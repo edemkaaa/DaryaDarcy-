@@ -13,6 +13,7 @@ import {
   listAdminPayments as readAdminPayments,
 } from "./admin/membership-repository";
 import { confirmPostPublication, type PostPublication } from "./content/publication";
+import { publishDueScheduledPosts as persistDueScheduledPosts } from "./content/scheduled-publication";
 import { savePostEdit as persistPostEdit } from "./content/post-editor";
 import type { ContentEditPrecondition } from "./content/content-edit-revision";
 import { deletePost as persistPostDeletion } from "./content/post-deletion";
@@ -319,7 +320,7 @@ export async function updateUserProfile(userId: number, data: { name?: string; g
 // ── Feed queries ──
 
 import { posts, Post, InsertPost, Tag, Video, InsertVideo, penPalProfiles, penPalShown, PenPalProfile, clubPayments, ClubPayment, shopPurchases, ShopPurchase, postComments, commentLikes, commentReports, Article } from "../../../packages/database/src/schema";
-import { desc, asc, and, sql, or, ne, gte, lte, isNotNull, isNull } from "drizzle-orm";
+import { desc, and, sql, or, ne, gte, isNull } from "drizzle-orm";
 
 // Get all published posts, optionally filtered by tag
 export async function getPosts(tagFilter?: string): Promise<(Post & { likeCount: number; media: PostMedia[] })[]> {
@@ -853,34 +854,7 @@ export async function confirmScheduledPost(postId: number, actor?: ContentWriteA
 }
 
 export async function publishDueScheduledPosts(): Promise<{ id: number; text: string; target: "feed" | "club" | "both" }[]> {
-  const db = await getDb();
-  if (!db) return [];
-
-  return db.transaction(async (tx) => {
-    // Claim the current rows before changing them. Another scheduler/admin
-    // holding a row leaves it for a later tick, never a stale announcement.
-    const due = await tx
-      .select({ id: posts.id, text: posts.text, target: posts.target })
-      .from(posts)
-      .where(and(
-        eq(posts.status, "scheduled"),
-        isNotNull(posts.scheduledAt),
-        lte(posts.scheduledAt, new Date()),
-      ))
-      .orderBy(asc(posts.id))
-      .for("update", { skipLocked: true });
-
-    if (due.length === 0) return [];
-
-    await tx.update(posts).set({
-      status: "published",
-      published: true,
-      publishedAt: sql`COALESCE(${posts.publishedAt}, ${posts.scheduledAt}, UTC_TIMESTAMP())`,
-    }).where(inArray(posts.id, due.map((post) => post.id)));
-
-    // The transaction resolves only after commit; callers announce this batch.
-    return due;
-  });
+  return persistDueScheduledPosts(await getDb());
 }
 
 // ── Post Statistics (admin dashboard) ──
