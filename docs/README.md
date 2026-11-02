@@ -25,6 +25,9 @@
 
 ## Проверки и выпуск
 
+- [Актуальная сверка готовности выпуска — 2 ноября](audits/release-readiness-2026-11-02.md): доказательства, ограничения и расхождения между старыми отчётами. Единственный исполняемый план и чек-лист остаются в tasks/.
+- [Текущий остаток backend/связки](audits/backend-remaining-after-release-2026-10-27.md) и [актуальное поручение фронтендеру](development/frontend-request-audit-actions-2026-10-30.md).
+
 - [Аудиты и результаты этапов](audits/README.md).
 - Проверки фронтенда от 6 октября 2026 года: [локальные изображения](development/frontend-image-audit-2026-10-06.md), [изображения из S3](development/frontend-external-image-audit-2026-10-06.md), [скорость загрузки](development/frontend-loading-audit-2026-10-06.md).
 - [Материалы передачи на аудит](audits/package.md).
