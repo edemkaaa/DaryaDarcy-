@@ -27,7 +27,10 @@ export async function verifyPassword(password: string, stored: string): Promise<
   const p = Number(parts[3]);
   const salt = Buffer.from(parts[4], "base64");
   const expected = Buffer.from(parts[5], "base64");
-  const derived = (await scryptAsync(password, salt, expected.length, { N: n, r, p })) as Buffer;
+  // Stored digests use KEYLEN. Corruption must not shorten the comparison to
+  // a prefix, or to zero bytes where every password would match.
+  if (expected.length !== KEYLEN) return false;
+  const derived = (await scryptAsync(password, salt, KEYLEN, { N: n, r, p })) as Buffer;
   if (derived.length !== expected.length) return false;
   return timingSafeEqual(derived, expected);
 }

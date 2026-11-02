@@ -12,6 +12,7 @@ import type { AddressInfo } from "node:net";
 import type { User } from "../packages/database/src/schema";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { SessionService } from "../apps/backend/src/identity/session.service";
+import { hashPassword } from "../apps/backend/src/_core/password";
 import { sdk } from "../apps/backend/src/_core/sdk";
 import { COOKIE_NAME } from "../packages/shared/src/const";
 import { EMAIL_REGISTER_CONSENT_VERSION } from "../packages/shared/src/consent-texts";
@@ -235,4 +236,50 @@ it("does not penalize completed successful sign-ins", async () => {
     expect(response.status).toBe(200);
     expect(await response.json()).not.toHaveProperty("sessionToken");
   }
+});
+
+
+it.each([0, 1, 31])(
+  "rejects a %i-byte stored digest over HTTP without updating the account or issuing a cookie",
+  async (length) => {
+    const password = "synthetic-fixture-password";
+    const parts = (await hashPassword(password)).split("$");
+    parts[5] = Buffer.from(parts[5], "base64").subarray(0, length).toString("base64");
+    vi.mocked(sessions.findByEmail).mockResolvedValueOnce({
+      ...member,
+      email: `damaged-${length}@example.test`,
+      passwordHash: parts.join("$"),
+    });
+    vi.mocked(sessions.passwordUser).mockImplementation((user, input) =>
+      SessionService.prototype.passwordUser.call(sessions, user, input),
+    );
+    const response = await post("/api/auth/login", {
+      email: `damaged-${length}@example.test`,
+      password,
+    }, "198.51.100.240");
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ error: "Неверный email или пароль" });
+    expect(response.headers.get("set-cookie")).toBeNull();
+    expect(sessions.updateUser).not.toHaveBeenCalled();
+  },
+);
+
+it("keeps a valid stored password usable through the real verifier and HTTP session issuance", async () => {
+  const password = "synthetic-valid-password";
+  vi.mocked(sessions.findByEmail).mockResolvedValueOnce({
+    ...member,
+    email: "valid-digest@example.test",
+    passwordHash: await hashPassword(password),
+  });
+  vi.mocked(sessions.passwordUser).mockImplementation((user, input) =>
+    SessionService.prototype.passwordUser.call(sessions, user, input),
+  );
+  const response = await post("/api/auth/login", {
+    email: "valid-digest@example.test",
+    password,
+  }, "198.51.100.241");
+  expect(response.status).toBe(200);
+  expect(response.headers.get("set-cookie")).toContain(`${COOKIE_NAME}=`);
+  expect(sessions.updateUser).toHaveBeenCalledOnce();
+  expect(await response.json()).not.toHaveProperty("sessionToken");
 });

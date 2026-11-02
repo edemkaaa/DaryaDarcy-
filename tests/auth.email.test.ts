@@ -14,4 +14,21 @@ describe("email auth helpers", () => {
     expect(await verifyPassword("cottagecore", hash)).toBe(true);
     expect(await verifyPassword("wrong-pass", hash)).toBe(false);
   });
+
+  it.each([0, 1, 31, 33])(
+    "rejects a damaged stored digest of %i bytes instead of accepting a partial comparison",
+    async (length) => {
+      const password = "synthetic-correct-password";
+      const parts = (await hashPassword(password)).split("$");
+      const complete = Buffer.from(parts[5], "base64");
+      parts[5] = (length <= complete.length
+        ? complete.subarray(0, length)
+        : Buffer.concat([complete, Buffer.alloc(length - complete.length)])
+      ).toString("base64");
+      const damaged = parts.join("$");
+      expect(await verifyPassword(password, damaged)).toBe(false);
+      expect(await verifyPassword("synthetic-wrong-password", damaged)).toBe(false);
+    },
+  );
+
 });
