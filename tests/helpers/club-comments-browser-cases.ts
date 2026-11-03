@@ -25,8 +25,12 @@ export function registerClubCommentsBrowserCases(
       const postId = 94841,
         commentId = 94842;
       const text = "C3 reportable author comment";
+      // This slice starts with the real server profile already completed.
+      await connection.query("UPDATE users SET gender='female' WHERE id=?", [
+        memberId,
+      ]);
       const identitySql =
-        "SELECT id,email,phone,passwordHash,role,sessionVersion,blockedAt FROM users WHERE id IN (?,?) ORDER BY id";
+        "SELECT id,email,phone,gender,passwordHash,role,sessionVersion,blockedAt FROM users WHERE id IN (?,?) ORDER BY id";
       const identity = await rows(identitySql, [memberId, actorId]);
       try {
         await connection.query(
@@ -49,14 +53,6 @@ export function registerClubCommentsBrowserCases(
           [memberId],
         );
         await context.clearCookies();
-        await context.addInitScript(
-          (id) =>
-            localStorage.setItem(
-              `darcy:user:${id}:@darcy_club_profile_completed`,
-              "true",
-            ),
-          memberId,
-        );
         await context.addCookies([
           {
             name: COOKIE_NAME,
@@ -177,13 +173,13 @@ export function registerClubCommentsBrowserCases(
       const text = "C3 protected author comment fixture";
       const commentSql = "SELECT * FROM post_comments WHERE postId=?";
       const identitySql =
-        "SELECT id,email,phone,passwordHash,role,sessionVersion,blockedAt FROM users WHERE id IN (?,?) ORDER BY id";
+        "SELECT id,email,phone,gender,passwordHash,role,sessionVersion,blockedAt FROM users WHERE id IN (?,?) ORDER BY id";
       // Catches author-check removal even when the caller has paid/staff access.
       try {
-        await connection.query("UPDATE users SET role=? WHERE id=?", [
-          role,
-          actorId,
-        ]);
+        await connection.query(
+          "UPDATE users SET role=?,gender='female' WHERE id=?",
+          [role, actorId],
+        );
         await connection.query(
           "INSERT INTO posts (id,text,photos,tags,status,published,target,createdAt,publishedAt) VALUES (?,'C3 protected community fixture','[]',JSON_ARRAY('community','autumn'),'published',1,'club',UTC_TIMESTAMP(),UTC_TIMESTAMP())",
           [postId],
@@ -202,12 +198,6 @@ export function registerClubCommentsBrowserCases(
           "SELECT * FROM club_payments WHERE userId=?",
           [actorId],
         );
-        await context.addInitScript((id) => {
-          localStorage.setItem(
-            `darcy:user:${id}:@darcy_club_profile_completed`,
-            "true",
-          );
-        }, actorId);
         const page = await context.newPage();
         await page.goto(frontend + "club");
         await page
@@ -432,6 +422,31 @@ export function registerClubCommentsBrowserCases(
           await page
             .getByRole("button", { name: "Комьюнити", exact: true })
             .click();
+          // Replies are a separate lazy page after reload, not part of root reads.
+          const repliesRead = page.waitForResponse(
+            (response) =>
+              response.url().includes("club.commentsPage") &&
+              decodeURIComponent(response.url()).includes(
+                `"parentId":${created.id}`,
+              ),
+          );
+          await page
+            .getByRole("button", { name: "Показать ответы (1)", exact: true })
+            .click();
+          const replies = await repliesRead;
+          expect(replies.status()).toBe(200);
+          const replyBody = await replies.json();
+          expect(
+            (Array.isArray(replyBody) ? replyBody[0] : replyBody).result.data
+              .json.items,
+          ).toMatchObject([
+            {
+              id: child.id,
+              parentId: created.id,
+              userId: memberId,
+              text: replyText,
+            },
+          ]);
           await browserExpect(
             page.getByText(replyText, { exact: true }),
           ).toBeVisible();

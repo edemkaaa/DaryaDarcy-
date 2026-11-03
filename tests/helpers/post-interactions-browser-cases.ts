@@ -1,5 +1,9 @@
 import { expect, it } from "vitest";
-import { expect as browserExpect, type BrowserContext } from "@playwright/test";
+import {
+  expect as browserExpect,
+  type BrowserContext,
+  type Response as BrowserResponse,
+} from "@playwright/test";
 import type { Connection, RowDataPacket } from "mysql2/promise";
 import { hashPassword } from "../../apps/backend/src/_core/password";
 import { COOKIE_NAME } from "../../packages/shared/src/const";
@@ -94,6 +98,38 @@ export function registerPostInteractionsBrowserCases(
         const page = await context.newPage();
         const isPage = (url: string) =>
           url.includes(route === "feed" ? "feed.listPaginated" : "club.list");
+        const isNext = (url: string) =>
+          isPage(url) && decodeURIComponent(url).includes('"cursor":12');
+        const nextResponses: BrowserResponse[] = [];
+        // Short lists may prefetch their second page before the setup dialog closes.
+        page.on("response", (response) => {
+          if (isNext(response.url())) nextResponses.push(response);
+        });
+        let loseReply = true;
+        const lostPages: number[][] = [];
+        if (retry) {
+          // Read the actual API/SQL, then lose only its return transport.
+          await page.route("**/api/trpc/*", async (faultRoute) => {
+            const url = new URL(faultRoute.request().url());
+            if (!isNext(url.href)) return faultRoute.fallback();
+            const response = await faultRoute.fetch({
+              url: base + url.pathname + url.search,
+              maxRedirects: 0,
+            });
+            expect(response.status()).toBe(200);
+            if (loseReply) {
+              const body = await response.json();
+              const entries = Array.isArray(body) ? body : [body];
+              const data = entries
+                .map((entry) => entry.result?.data?.json)
+                .find((data) => Array.isArray(data?.posts));
+              expect(data.nextCursor).toBeNull();
+              lostPages.push(data.posts.map((post: { id: number }) => post.id));
+              return faultRoute.abort("failed");
+            }
+            return faultRoute.fulfill({ response });
+          });
+        }
         const firstResponse = page.waitForResponse((response) =>
           isPage(response.url()),
         );
@@ -132,32 +168,7 @@ export function registerPostInteractionsBrowserCases(
         // Scroll the actual windowed collection to its tail; no synthetic API reads.
         const collection = page.locator("[data-windowed-collection]:visible");
         await browserExpect(collection).toHaveCount(1);
-        const isNext = (url: string) =>
-          isPage(url) && decodeURIComponent(url).includes('"cursor":12');
         if (retry) {
-          let loseReply = true;
-          const lostPages: number[][] = [];
-          // Read the actual API/SQL, then lose only its return transport.
-          await page.route("**/api/trpc/*", async (faultRoute) => {
-            const url = new URL(faultRoute.request().url());
-            if (!isNext(url.href)) return faultRoute.fallback();
-            const response = await faultRoute.fetch({
-              url: base + url.pathname + url.search,
-              maxRedirects: 0,
-            });
-            expect(response.status()).toBe(200);
-            if (loseReply) {
-              const body = await response.json();
-              const entries = Array.isArray(body) ? body : [body];
-              const data = entries
-                .map((entry) => entry.result?.data?.json)
-                .find((data) => Array.isArray(data?.posts));
-              expect(data.nextCursor).toBeNull();
-              lostPages.push(data.posts.map((post: { id: number }) => post.id));
-              return faultRoute.abort("failed");
-            }
-            return faultRoute.fulfill({ response });
-          });
           await collection.evaluate((element) => {
             element.scrollTop = element.scrollHeight;
           });
@@ -180,24 +191,37 @@ export function registerPostInteractionsBrowserCases(
           expect(await rows(snapshotSql)).toEqual(before);
           loseReply = false;
         }
-        const [next] = await Promise.all([
-          page.waitForResponse((response) => isNext(response.url())),
-          retry
-            ? page
-                .getByRole("alert")
-                .filter({
-                  hasText: errorMessage,
-                })
-                .getByRole("button", { name: "Повторить", exact: true })
-                .click()
-            : section
-              ? page
-                  .getByRole("button", { name: "Эксклюзив", exact: true })
-                  .click()
-              : collection.evaluate((element) => {
-                  element.scrollTop = element.scrollHeight;
-                }),
-        ]);
+        let next: BrowserResponse;
+        if (section) {
+          // A new rubric starts at its own first page, not the all-posts offset.
+          const filtered = page.waitForResponse((response) => {
+            const url = decodeURIComponent(response.url());
+            return (
+              isPage(response.url()) &&
+              url.includes('"category":"exclusive"') &&
+              !url.includes('"cursor":12')
+            );
+          });
+          await page
+            .getByRole("button", { name: "Эксклюзив", exact: true })
+            .click();
+          next = await filtered;
+        } else {
+          if (retry)
+            await page
+              .getByRole("alert")
+              .filter({ hasText: errorMessage })
+              .getByRole("button", { name: "Повторить", exact: true })
+              .click();
+          else
+            await collection.evaluate((element) => {
+              element.scrollTop = element.scrollHeight;
+            });
+          await browserExpect
+            .poll(() => nextResponses.length)
+            .toBeGreaterThan(0);
+          next = nextResponses[0];
+        }
         expect(next.status()).toBe(200);
         const terminal = await payload(next);
         if (retry) {
@@ -476,7 +500,7 @@ export function registerPostInteractionsBrowserCases(
     }
   }, 30_000);
   it("C3 preserves liked and saved posts across login while isolating the next account", async () => {
-    const { rows, connection, context, frontend, actorId, memberId } =
+    const { rows, connection, context, frontend, base, actorId, memberId } =
       fixture();
     const postId = 94601;
     const text = "C3 account reactions fixture";
@@ -495,7 +519,7 @@ export function registerPostInteractionsBrowserCases(
     const identity = await rows(identitySql, [actorId, memberId]);
     // Catches forgotten persisted reactions and cached state leaking between users.
     try {
-      // The existing profile/logout UI is for club members, not unpaid accounts.
+      // Keep the paid participant's access row intact through both account switches.
       await connection.query(
         "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'c3-reactions-access','paid','0','2030-01-01')",
         [memberId],
@@ -527,7 +551,13 @@ export function registerPostInteractionsBrowserCases(
           page.getByText(text, { exact: true }),
         ).toBeVisible();
       };
+      const revokedSessions: string[] = [];
       const logout = async () => {
+        revokedSessions.push(
+          (await context.cookies()).find(
+            (cookie) => cookie.name === COOKIE_NAME,
+          )!.value,
+        );
         await page.goto(frontend + "profile");
         await page.getByRole("button", { name: "Выйти", exact: true }).click();
         await browserExpect
@@ -588,7 +618,18 @@ export function registerPostInteractionsBrowserCases(
       await signIn("c3.member@example.test", memberId);
       await assertReactions(true);
       await assertSql();
-      expect(await rows(identitySql, [actorId, memberId])).toEqual(identity);
+      expect(await rows(identitySql, [actorId, memberId])).toEqual(
+        identity.map((user) => ({
+          ...user,
+          sessionVersion: user.sessionVersion + 1,
+        })),
+      );
+      for (const oldSession of revokedSessions) {
+        const protectedRead = await fetch(base + "/api/trpc/feed.savedPosts", {
+          headers: { Authorization: `Bearer ${oldSession}` },
+        });
+        expect(protectedRead.status).toBe(401);
+      }
       expect(
         await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
       ).toEqual(access);
