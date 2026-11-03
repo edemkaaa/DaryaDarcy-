@@ -466,6 +466,7 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
       "SELECT id,email,passwordHash,role,sessionVersion FROM users WHERE id IN (91401,91402) ORDER BY id";
     const before = await rows(identitySql);
     const page = await context.newPage();
+    const active = page.locator("[data-tab-screen]:not([hidden])");
     await page.goto(frontend + "profile");
     const saved = {
       primaryKey: "cottagecore",
@@ -493,7 +494,7 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
     await setStored(raw);
     await page.reload();
     await browserExpect(
-      page.getByText("Девушка, вернувшая жизнь заброшенному саду", {
+      active.getByText("Девушка, вернувшая жизнь заброшенному саду", {
         exact: true,
       }),
     ).toBeVisible();
@@ -503,7 +504,7 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
     await page.getByRole("button", { name: /Посмотреть результат →/ }).click();
     await browserExpect(page).toHaveURL(/\/quiz\/result$/);
     await browserExpect(
-      page.getByText("Девушка, вернувшая жизнь заброшенному саду", {
+      active.getByText("Девушка, вернувшая жизнь заброшенному саду", {
         exact: true,
       }),
     ).toBeVisible();
@@ -533,9 +534,12 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
     // A resume refresh of the same session must not re-write the restored completion.
     await setStored(raw);
     await page.goto(frontend + "quiz/result");
-    const title = page.getByText("Девушка, вернувшая жизнь заброшенному саду", {
-      exact: true,
-    });
+    const title = active.getByText(
+      "Девушка, вернувшая жизнь заброшенному саду",
+      {
+        exact: true,
+      },
+    );
     await browserExpect(title).toBeVisible();
     const [current] = await Promise.all([
       page.waitForResponse(
@@ -565,6 +569,11 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
       page.getByRole("button", { name: "Начать путешествие", exact: true }),
     ).toBeVisible();
     await browserExpect(title).toHaveCount(0);
+    await browserExpect(
+      page.getByText("Девушка, вернувшая жизнь заброшенному саду", {
+        exact: true,
+      }),
+    ).toHaveCount(0);
     expect(
       await page.evaluate(() =>
         localStorage.getItem("darcy:user:91401:@darcy_quiz_result"),
@@ -724,10 +733,27 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
       page.getByRole("button", { name: /Тёплое спокойствие/ }),
     ).toHaveAttribute("aria-pressed", "false");
     expect(await stored()).toEqual(completed);
+    const progress = () =>
+      page.evaluate(() =>
+        JSON.parse(
+          localStorage.getItem("darcy:user:guest:@darcy_quiz_progress")!,
+        ),
+      );
+    const restarted = await progress();
+    expect(restarted).toMatchObject({
+      version: 2,
+      currentQuestion: 0,
+      answers: Array(10).fill(null),
+    });
+    expect(restarted.runId).not.toBe(completed.runId);
     await page.reload();
     await browserExpect(
-      page.getByRole("button", { name: "Начать путешествие", exact: true }),
-    ).toBeVisible();
+      page.getByRole("button", { name: "Далее →", exact: true }),
+    ).toBeDisabled();
+    await browserExpect(
+      page.getByRole("button", { name: /Тёплое спокойствие/ }),
+    ).toHaveAttribute("aria-pressed", "false");
+    expect(await progress()).toEqual(restarted);
     expect(await stored()).toEqual(completed);
     expect(await rows(identitySql)).toEqual(before);
   }, 30_000);
@@ -753,6 +779,7 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
       ]);
       await context.clearCookies();
       const page = await context.newPage();
+      const active = page.locator("[data-tab-screen]:not([hidden])");
       await page.goto(frontend + "login?next=/quiz");
       await page.getByPlaceholder("Email", { exact: true }).fill(email);
       await page.getByPlaceholder("Пароль", { exact: true }).fill(password);
@@ -780,7 +807,7 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
       });
       const completed = await stored();
       await page.goto(frontend + "profile");
-      const result = page.getByText(
+      const result = active.getByText(
         "Девушка, вернувшая жизнь заброшенному саду",
         { exact: true },
       );
@@ -808,7 +835,6 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
         .getByRole("link", { name: "Клуб", exact: true });
       await clubTab.click();
       await browserExpect(page).toHaveURL(/\/club$/);
-      await browserExpect(clubTab).toHaveAttribute("aria-current", "page");
       const setup = page.getByRole("dialog", {
         name: "Настройка профиля клуба",
       });
@@ -817,6 +843,13 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
         .getByRole("button", { name: "Закрыть настройку профиля", exact: true })
         .click();
       await browserExpect(setup).toHaveCount(0);
+      // The paid Club owns its one-row menu; the global tabs return on exit.
+      await browserExpect(
+        page.getByRole("navigation", { name: "Разделы клуба", exact: true }),
+      ).toBeVisible();
+      await browserExpect(
+        page.getByRole("navigation", { name: "Разделы", exact: true }),
+      ).toHaveCount(0);
       const community = page.getByRole("button", {
         name: "Комьюнити",
         exact: true,
@@ -831,6 +864,9 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
       ).toHaveCount(0);
       await page.goBack();
       await browserExpect(page).toHaveURL(/\/profile$/);
+      await browserExpect(
+        page.getByRole("navigation", { name: "Разделы", exact: true }),
+      ).toBeVisible();
       await browserExpect(result).toBeVisible();
       expect(await stored()).toEqual(completed);
       await page
@@ -877,7 +913,7 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
   }, 30_000);
 
   it("C3 clears the completed quiz on logout and does not transfer it to the next account", async () => {
-    const { rows, connection, context, frontend, memberId } = fixture();
+    const { rows, connection, context, frontend, base, memberId } = fixture();
     const actorId = 91401;
     const password = "Synthetic-C3-quiz-switch-only-2026!";
     const passwordHash = await hashPassword(password);
@@ -918,6 +954,9 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
         await browserExpect(page).toHaveURL(frontend.slice(0, -1) + next);
       };
       await signIn("c3.quiz.member@example.test", memberId, "/quiz");
+      const oldSession = (await context.cookies()).find(
+        (cookie) => cookie.name === COOKIE_NAME,
+      )!.value;
       await completeCottagecoreQuiz(page);
       const memberResult = () =>
         page.evaluate(
@@ -958,7 +997,17 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
       await page.reload();
       await browserExpect(empty).toBeVisible();
       await browserExpect(title).toHaveCount(0);
-      expect(await rows(identitySql, [actorId, memberId])).toEqual(identity);
+      // Logout revokes only the old account's sessions; credentials stay intact.
+      expect(await rows(identitySql, [actorId, memberId])).toEqual(
+        identity.map((user) => ({
+          ...user,
+          sessionVersion: user.sessionVersion + (user.id === memberId ? 1 : 0),
+        })),
+      );
+      const revoked = await fetch(base + "/api/trpc/club.list", {
+        headers: { Authorization: `Bearer ${oldSession}` },
+      });
+      expect(revoked.status).toBe(401);
       expect(
         await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
       ).toEqual(payment);

@@ -120,11 +120,45 @@ export function registerClubServiceAccessBrowserCases(
         page.getByText("Служебный доступ", { exact: true }),
       ).toHaveCount(0);
       await browserExpect(
-        page.getByText(
-          "Личный профиль с возможностью сохранять публикации и результаты интерактивов доступен для участниц клуба Darcy",
-          { exact: true },
-        ),
+        page.getByText("У тебя нет активной подписки", { exact: true }),
       ).toBeVisible();
+      // An unpaid account retains its personal bookmarks, but not club access.
+      await browserExpect(
+        page.getByText("Сохранённое", { exact: true }),
+      ).toBeVisible();
+      await browserExpect(
+        page.getByRole("button", {
+          name: "Вступить в Клуб Darcy →",
+          exact: true,
+        }),
+      ).toBeVisible();
+      const access = await page.evaluate(async () => {
+        const subscription = await fetch("/api/trpc/club.subscription");
+        const posts = await fetch("/api/trpc/club.list");
+        return {
+          subscriptionStatus: subscription.status,
+          subscription: await subscription.json(),
+          postsStatus: posts.status,
+          posts: await posts.json(),
+        };
+      });
+      expect(access.subscriptionStatus).toBe(200);
+      expect(access.subscription.result.data.json).toMatchObject({
+        hasClubAccess: false,
+        subscribed: false,
+        isOwner: false,
+      });
+      expect(access.postsStatus).toBe(403);
+      expect(access.posts).toMatchObject({
+        error: { json: { data: { code: "FORBIDDEN" } } },
+      });
+      expect(access.posts).not.toHaveProperty("result");
+      expect(
+        await rows("SELECT role FROM users WHERE id=?", [memberId]),
+      ).toEqual([{ role: "user" }]);
+      expect(
+        await rows("SELECT id FROM club_payments WHERE userId=?", [memberId]),
+      ).toEqual([]);
     },
     30_000,
   );
