@@ -13,6 +13,7 @@ export const WORKER_OPERATIONS = Symbol("WORKER_OPERATIONS");
 
 /** Existing domain boundaries; constructing this binding must not call them. */
 export type WorkerOperations = Readonly<{
+  runExclusiveJob(name: string, run: () => Promise<void>): Promise<void>;
   publishDueScheduledPosts: typeof db.publishDueScheduledPosts;
   sendMarketingPostNotification: typeof sendMarketingPostNotification;
   getDb: typeof db.getDb;

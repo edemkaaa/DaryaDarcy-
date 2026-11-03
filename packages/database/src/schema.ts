@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, boolean, unique, index, uniqueIndex, primaryKey } from "drizzle-orm/mysql-core";
+import { bigint, int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, boolean, unique, index, uniqueIndex, primaryKey } from "drizzle-orm/mysql-core";
 import { sql } from "drizzle-orm";
 import type { AdminActionOutcome } from "../../shared/src/admin-action";
 import type { RichTextBlock, RichTextInline } from "../../shared/src/rich-text-types";
@@ -686,3 +686,13 @@ export const smsCodes = mysqlTable("sms_codes", {
 
 export type SmsCode = typeof smsCodes.$inferSelect;
 export type InsertSmsCode = typeof smsCodes.$inferInsert;
+
+/** Expiring coordination counters. Keys contain hashes, never contact details. */
+export const apiRateLimits = mysqlTable("api_rate_limits", {
+  kind: mysqlEnum("kind", ["rate", "login"]).notNull(),
+  keyHash: varchar("keyHash", { length: 64 }).notNull(),
+  attempts: bigint("attempts", { mode: "number", unsigned: true }).notNull(),
+  expiresAt: bigint("expiresAt", { mode: "number", unsigned: true }).notNull(),
+  nextAllowedAt: bigint("nextAllowedAt", { mode: "number", unsigned: true }).default(0).notNull(),
+  generation: varchar("generation", { length: 36 }).notNull(),
+}, table => [primaryKey({ columns: [table.kind, table.keyHash] }), index("api_rate_limits_expiry").on(table.kind, table.expiresAt)]);

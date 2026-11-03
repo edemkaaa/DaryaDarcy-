@@ -1,10 +1,10 @@
 import { TRPCError } from "@trpc/server";
 import type { Request, Response } from "express";
-import { checkRateLimit } from "../_core/rate-limit";
+import { checkRequestRateLimit } from "../_core/request-rate-limit";
 import { clientIp } from "../sms-auth";
 
 /** Each invocation counts before validation/provider work, including batches. */
-export function enforceLegacyCheckoutLimit(
+export async function enforceLegacyCheckoutLimit(
   req: Request,
   res: Response,
   userId?: number,
@@ -15,7 +15,7 @@ export function enforceLegacyCheckoutLimit(
   ];
   if (userId !== undefined) keys.push([`legacy-checkout:user:${userId}`, 5]);
   for (const [key, max] of keys) {
-    const limit = checkRateLimit(key, max, windowMs);
+    const limit = await checkRequestRateLimit(key, max, windowMs);
     if (limit.ok) continue;
     res.setHeader(
       "Retry-After",

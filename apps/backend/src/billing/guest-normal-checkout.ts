@@ -11,7 +11,7 @@ import {
 } from "../../../../packages/database/src/schema";
 import { getDb, ensureUserByEmail } from "../db";
 import { normalizeEmail, isValidEmail } from "../_core/password";
-import { checkRateLimit } from "../_core/rate-limit";
+import { checkRequestRateLimit } from "../_core/request-rate-limit";
 import { clientIp } from "../sms-auth";
 import {
   assertClubCheckoutConfigured,
@@ -80,7 +80,7 @@ function enabled() {
 }
 
 /** Bounded existing counters; neither raw proof nor email enters keys or URLs. */
-export function enforceGuestCheckoutLimit(
+export async function enforceGuestCheckoutLimit(
   req: Request,
   res: Response,
   proof: Proof,
@@ -96,7 +96,7 @@ export function enforceGuestCheckoutLimit(
     [`guest-checkout-ip:${clientIp(req)}`, 60],
     [`guest-checkout-intent:${requestKey(proof)}`, 12],
   ] as const) {
-    const result = checkRateLimit(key, max, 60_000);
+    const result = await checkRequestRateLimit(key, max, 60_000);
     if (!result.ok) {
       res.setHeader("Retry-After", result.retryAfterSec);
       throw new TRPCError({

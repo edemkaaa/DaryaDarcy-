@@ -16,7 +16,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { adminActionKey } from "../../../../packages/shared/src/admin-action";
 import { isValidEmail, normalizeEmail } from "../_core/password";
-import { checkRateLimit } from "../_core/rate-limit";
+import { checkRequestRateLimit } from "../_core/request-rate-limit";
 import { clientIp } from "../sms-auth";
 import { PasswordService } from "./password.service";
 import {
@@ -40,7 +40,7 @@ export class PasswordController {
   async resend(@Req() req: AuthenticatedRequest, @Res() res: Response) {
     try {
       const actor = req.authenticatedUser;
-      if (!checkRateLimit(`access-resend:${actor.id}`, 20, 3600000).ok) {
+      if (!(await checkRequestRateLimit(`access-resend:${actor.id}`, 20, 3600000)).ok) {
         res.sendStatus(429);
         return;
       }
@@ -71,7 +71,7 @@ export class PasswordController {
   async request(@Req() req: Request, @Res() res: Response) {
     const email =
       typeof req.body?.email === "string" ? normalizeEmail(req.body.email) : "";
-    const ipLimit = checkRateLimit(
+    const ipLimit = await checkRequestRateLimit(
       `password-request-ip:${clientIp(req)}`,
       10,
       900000,
@@ -86,7 +86,7 @@ export class PasswordController {
       if (isValidEmail(email) && email.length <= 320) {
         const emailKey = createHash("sha256").update(email).digest("hex");
         if (
-          checkRateLimit(`password-request-email:${emailKey}`, 3, 3600000).ok
+          (await checkRequestRateLimit(`password-request-email:${emailKey}`, 3, 3600000)).ok
         ) {
           await this.passwords.request(email);
         }
@@ -107,7 +107,7 @@ export class PasswordController {
   @HttpCode(200)
   @Header("Cache-Control", "no-store")
   async complete(@Req() req: Request, @Res() res: Response) {
-    if (!checkRateLimit(`password-complete:${clientIp(req)}`, 20, 900000).ok) {
+    if (!(await checkRequestRateLimit(`password-complete:${clientIp(req)}`, 20, 900000)).ok) {
       res.sendStatus(429);
       return;
     }

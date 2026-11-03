@@ -1,19 +1,19 @@
 import { TRPCError } from "@trpc/server";
 import type { Request, Response } from "express";
-import { checkRateLimit } from "../_core/rate-limit";
+import { checkRequestRateLimit } from "../_core/request-rate-limit";
 import { clientIp } from "../sms-auth";
 
 /** Per procedure (including batches/invalid input), before validation and SQL.
- * Reuses the bounded process-local store; multiple API workers need shared quotas.
+ * Uses the configured bounded store, shared across API workers in mysql mode.
  */
-export function enforcePushRegistrationLimit(
+export async function enforcePushRegistrationLimit(
   req: Request,
   res: Response,
   userId?: number,
-): void {
+): Promise<void> {
   const window = 15 * 60_000;
   refuse(
-    checkRateLimit(
+    await checkRequestRateLimit(
       `push-register:ip:${clientIp(req) || "unknown"}`,
       30,
       window,
@@ -21,10 +21,10 @@ export function enforcePushRegistrationLimit(
     res,
   );
   if (userId !== undefined)
-    refuse(checkRateLimit(`push-register:user:${userId}`, 10, window), res);
+    refuse(await checkRequestRateLimit(`push-register:user:${userId}`, 10, window), res);
 }
 
-function refuse(limit: ReturnType<typeof checkRateLimit>, res: Response): void {
+function refuse(limit: Awaited<ReturnType<typeof checkRequestRateLimit>>, res: Response): void {
   if (limit.ok) return;
   res.setHeader(
     "Retry-After",

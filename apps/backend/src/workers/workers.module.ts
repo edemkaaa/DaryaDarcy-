@@ -1,3 +1,4 @@
+import { runExclusiveWorker } from "../database/coordination";
 import { Module } from "@nestjs/common";
 import { publishDueScheduledPosts, getDb } from "../db";
 import { processCancellations } from "../billing/cancellation";
@@ -18,6 +19,7 @@ import { WORKER_OPERATIONS, type WorkerOperations } from "./worker-operations";
       provide: WORKER_OPERATIONS,
       // A separate binding per app, with no domain work during construction.
       useFactory: (): WorkerOperations => ({
+        runExclusiveJob: runExclusiveWorker,
         publishDueScheduledPosts,
         sendMarketingPostNotification,
         getDb,

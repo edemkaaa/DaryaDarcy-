@@ -15,7 +15,7 @@ import type { User } from "../../../../packages/database/src/schema";
 import { normalizeRuPhone } from "../../../../packages/shared/src/phone";
 import { clientIp, consumeSmsCode, issueSmsCode } from "../sms-auth";
 import { getCapabilities } from "../launch/capabilities";
-import { checkRateLimit } from "../_core/rate-limit";
+import { checkRequestRateLimit } from "../_core/request-rate-limit";
 import { logUserConsent } from "../platform-db";
 import {
   EMAIL_REGISTER_CONSENT_VERSION,
@@ -25,7 +25,7 @@ import {
 } from "../../../../packages/shared/src/consent-texts";
 import { adminTotpEnabled, verifyTotp } from "../_core/totp";
 import { publicUser, SessionService } from "./session.service";
-import { loginAccountLimiter } from "./login-account-limit";
+import { beginLoginAccount } from "./login-account-limit";
 
 function verifyStaffTotp(req: Request, res: Response): boolean {
   if (!adminTotpEnabled()) return true;
@@ -80,7 +80,7 @@ export class SessionController {
   async register(@Req() req: Request, @Res() res: Response) {
     try {
       const ip = clientIp(req);
-      const limited = checkRateLimit(`auth:register:${ip}`, 15, 15 * 60_000);
+      const limited = await checkRequestRateLimit(`auth:register:${ip}`, 15, 15 * 60_000);
       if (!limited.ok) {
         res
           .status(429)
@@ -138,7 +138,7 @@ export class SessionController {
   async login(@Req() req: Request, @Res() res: Response) {
     try {
       const ip = clientIp(req);
-      const limited = checkRateLimit(`auth:login:${ip}`, 20, 15 * 60_000);
+      const limited = await checkRequestRateLimit(`auth:login:${ip}`, 20, 15 * 60_000);
       if (!limited.ok) {
         res.setHeader("Retry-After", limited.retryAfterSec);
         res
@@ -164,7 +164,7 @@ export class SessionController {
       const candidate = await this.identity.findByEmail(email);
       // Use the stored address: SQL collations can equate spelling variants
       // that lowercasing alone does not (for example accented characters).
-      const attempt = loginAccountLimiter.begin(candidate?.email ?? email);
+      const attempt = await beginLoginAccount(candidate?.email ?? email);
       if (!attempt.ok) {
         res.setHeader("Retry-After", attempt.retryAfterSec);
         res.status(429).json({
@@ -186,8 +186,8 @@ export class SessionController {
         openId: user.openId,
         lastSignedIn: new Date(),
       });
+      await attempt.succeeded();
       const session = await this.issueSession(req, res, user);
-      attempt.succeeded();
       res.json(session);
     } catch (error) {
       console.error("[Auth] Login failed");

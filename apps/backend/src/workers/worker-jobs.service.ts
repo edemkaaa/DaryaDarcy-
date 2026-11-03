@@ -1,5 +1,9 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { IntervalJobs, type PendingJob } from "./interval-jobs";
+import {
+  IntervalJobs,
+  type PendingJob,
+  type IntervalJob,
+} from "./interval-jobs";
 import { WORKER_OPERATIONS, type WorkerOperations } from "./worker-operations";
 
 @Injectable()
@@ -9,7 +13,7 @@ export class WorkerJobs {
   constructor(
     @Inject(WORKER_OPERATIONS) private readonly operations: WorkerOperations,
   ) {
-    this.jobs = new IntervalJobs([
+    const definitions: IntervalJob[] = [
       { name: "publication", intervalMs: 60_000, run: () => this.publish() },
       { name: "billing", intervalMs: 30_000, run: () => this.bill() },
       {
@@ -24,7 +28,16 @@ export class WorkerJobs {
           await this.operations.runMysqlBackupIfDue();
         },
       },
-    ]);
+    ];
+    this.jobs = new IntervalJobs(
+      definitions.map((job) => ({
+        ...job,
+        run: () =>
+          this.operations.runExclusiveJob(job.name, async () => {
+            await job.run();
+          }),
+      })),
+    );
   }
 
   /** Activation belongs to the executable after a successful listen, not init. */

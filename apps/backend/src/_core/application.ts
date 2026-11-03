@@ -12,11 +12,13 @@ import { registerHttpSecurity } from "./http-security";
 import { MEDIA_JSON_BODY_LIMIT, registerRequestBodies } from "./request-bodies";
 import { registerProdamusSandboxBody } from "../billing/prodamus-sandbox.ingress";
 import { SessionService } from "../identity/session.service";
+import { verifyApiCoordination } from "../database/coordination";
 
 /** Composition only: no environment files, listener or scheduled side effects. */
 export async function createBackendApplication(
   options: { allowedPostPaths?: readonly string[] } = {},
 ): Promise<INestApplication> {
+  await verifyApiCoordination();
   const adapter = new ExpressAdapter();
   const http = adapter.getInstance<Express>();
   // The API has no published port: its only external ingress is the private

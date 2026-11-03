@@ -46,7 +46,7 @@ export class ProdamusTestClubController {
       return;
     }
     try {
-      enforceReturnCheckLimit(request, response);
+      await enforceReturnCheckLimit(request, response);
       const input = resultInput.safeParse(request.body);
       if (!input.success) {
         response.status(400).json({ error: "invalid test result request" });

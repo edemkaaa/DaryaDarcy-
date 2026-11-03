@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 import { normalizeEmail } from "../_core/password";
+import { coordinationMode } from "../database/coordination";
+import { beginSharedLogin } from "../database/shared-limits";
 
 type Bucket = { attempts: number; expiresAt: number; nextAllowedAt: number };
 type Admission =
@@ -63,3 +65,9 @@ export class LoginAccountLimiter {
 }
 
 export const loginAccountLimiter = new LoginAccountLimiter();
+
+export async function beginLoginAccount(email: string) {
+  return coordinationMode() === "mysql"
+    ? beginSharedLogin(email)
+    : loginAccountLimiter.begin(email);
+}

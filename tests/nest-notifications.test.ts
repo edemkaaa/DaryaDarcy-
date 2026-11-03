@@ -31,7 +31,7 @@ import { ProfileService } from "../apps/backend/src/profile/profile.service";
 import { ModerationService } from "../apps/backend/src/moderation/moderation.service";
 import { ShopService } from "../apps/backend/src/shop/shop.service";
 import * as capabilities from "../apps/backend/src/launch/capabilities";
-import * as rateLimit from "../apps/backend/src/_core/rate-limit";
+import * as rateLimit from "../apps/backend/src/_core/request-rate-limit";
 
 // Native HTTP/authorization plus explicit composition callers; session lookup
 // and the selected provider or persistence boundary are doubled. No JWT/SQL or
@@ -117,7 +117,7 @@ describe("notifications over native HTTP", () => {
   });
   beforeEach(() => {
     vi.spyOn(capabilities, "requireCapability").mockImplementation(() => {});
-    vi.spyOn(rateLimit, "checkRateLimit").mockReturnValue({ ok: true });
+    vi.spyOn(rateLimit, "checkRequestRateLimit").mockResolvedValue({ ok: true });
     actor = { ...member };
     vi.spyOn(sessions, "optionalUser").mockImplementation(async () => actor);
   });

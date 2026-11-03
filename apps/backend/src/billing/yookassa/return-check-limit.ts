@@ -1,18 +1,18 @@
 import { TRPCError } from "@trpc/server";
 import type { Request, Response } from "express";
 import { z } from "zod";
-import { checkRateLimit } from "../../_core/rate-limit";
+import { checkRequestRateLimit } from "../../_core/request-rate-limit";
 import { clientIp } from "../../sms-auth";
 import { billingKey } from "../protocol";
 
 /** HTTP-only quota; webhook settlement and payment creation are separate flows. */
-export function enforceReturnCheckLimit(req: Request, res: Response): void {
+export async function enforceReturnCheckLimit(req: Request, res: Response): Promise<void> {
   if (req.query?.batch !== undefined)
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Проверяйте одну платёжную заявку за запрос",
     });
-  const ipLimit = checkRateLimit(
+  const ipLimit = await checkRequestRateLimit(
     `yookassa-return-ip:${clientIp(req)}`,
     60,
     60_000,
@@ -25,7 +25,7 @@ export function enforceReturnCheckLimit(req: Request, res: Response): void {
       message: "Нужен ключ платёжной заявки",
     });
   // Keep bearer intent keys out of the short-lived in-memory counter keys.
-  const keyLimit = checkRateLimit(
+  const keyLimit = await checkRequestRateLimit(
     `yookassa-return-intent:${billingKey([key.data.toLowerCase()])}`,
     12,
     60_000,
@@ -33,7 +33,7 @@ export function enforceReturnCheckLimit(req: Request, res: Response): void {
   refuse(keyLimit, res);
 }
 
-function refuse(limit: ReturnType<typeof checkRateLimit>, res: Response): void {
+function refuse(limit: Awaited<ReturnType<typeof checkRequestRateLimit>>, res: Response): void {
   if (limit.ok) return;
   res.setHeader("Retry-After", limit.retryAfterSec);
   throw new TRPCError({

@@ -17,6 +17,7 @@ function deferred() {
 function fixture() {
   const events: string[] = [];
   const operations: WorkerOperations = {
+    runExclusiveJob: async (_, run) => { await run(); },
     publishDueScheduledPosts: async () => {
       events.push("publication");
       return [];
@@ -63,6 +64,19 @@ afterEach(() => {
 });
 
 describe("explicit worker job orchestration", () => {
+  it("passes every scheduled callback through the shared admission before domain work", async () => {
+    const { operations, events } = fixture();
+    const names: string[] = [];
+    let admitted = false;
+    const jobs = new WorkerJobs({ ...operations, runExclusiveJob: async (name, run) => {
+      names.push(name); if (admitted) await run();
+    } });
+    jobs.start(); await vi.advanceTimersByTimeAsync(0);
+    expect(new Set(names)).toEqual(new Set(["publication", "billing", "maintenance", "backup"]));
+    expect(events).toEqual([]);
+    admitted = true; await vi.advanceTimersByTimeAsync(60_000);
+    expect(events).toContain("publication"); expect(events).toContain("database"); jobs.stop();
+  });
   it.each(["", "false", "1"])(
     "disabled binding flag=%s performs no SQL or mail work",
     async (flag) => {

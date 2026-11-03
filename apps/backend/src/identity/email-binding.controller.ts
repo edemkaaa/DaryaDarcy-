@@ -8,7 +8,7 @@ import {
   emailBindingReceiptSchema,
   emailBindingStatusSchema,
 } from "./email-binding-http-contract";
-import { checkRateLimit } from "../_core/rate-limit";
+import { checkRequestRateLimit } from "../_core/request-rate-limit";
 import { clientIp } from "../sms-auth";
 import { publicAccessUrl } from "./urls";
 
@@ -51,8 +51,8 @@ function failure(res: Response, error: unknown) {
   };
   reject(res, error instanceof EmailBindingError ? codes[error.code] : 503);
 }
-function limited(res: Response, key: string, window: number) {
-  const result = checkRateLimit(key, 20, window);
+async function limited(res: Response, key: string, window: number) {
+  const result = await checkRequestRateLimit(key, 20, window);
   if (result.ok) return false;
   res.setHeader("Retry-After", result.retryAfterSec);
   reject(res, 429);
@@ -107,7 +107,7 @@ export class EmailBindingController {
       const actor = await this.administrator(req, res);
       if (
         !actor ||
-        limited(res, `email-binding-request:${actor.userId}`, 3600000)
+        (await limited(res, `email-binding-request:${actor.userId}`, 3600000))
       )
         return;
       const receipt = await this.bindings.request(actor, req.body);
@@ -137,7 +137,7 @@ export class EmailBindingController {
   @Post("auth/email-bindings/confirm")
   async confirm(@Req() req: Request, @Res() res: Response) {
     if (!ready(req, res)) return;
-    if (limited(res, `email-binding-confirm:${clientIp(req)}`, 900000)) return;
+    if (await limited(res, `email-binding-confirm:${clientIp(req)}`, 900000)) return;
     const body = emailBindingConfirmationSchema.safeParse(req.body);
     if (!body.success) {
       reject(res, 400);

@@ -39,15 +39,15 @@ export const createClubRouter = (
     createGuestNormalCheckout: publicProcedure
       .input(guestCheckoutInput)
       .output(normalCheckoutResult)
-      .mutation(({ ctx, input }) => {
-        enforceGuestCheckoutLimit(ctx.req, ctx.res, input);
+      .mutation(async ({ ctx, input }) => {
+        await enforceGuestCheckoutLimit(ctx.req, ctx.res, input);
         return createGuestNormalCheckout(input, ctx.req.headers?.["idempotency-key"], ctx.user);
       }),
     guestNormalCheckoutStatus: publicProcedure
       .input(guestCheckoutProof)
       .output(normalCheckoutStatusResult)
-      .mutation(({ ctx, input }) => {
-        enforceGuestCheckoutLimit(ctx.req, ctx.res, input);
+      .mutation(async ({ ctx, input }) => {
+        await enforceGuestCheckoutLimit(ctx.req, ctx.res, input);
         return guestNormalCheckoutStatus(input, ctx.user);
       }),
     listByCategory: clubMemberProcedure.input(clubCategoryInput)
@@ -92,8 +92,8 @@ export const createClubRouter = (
       billing.subscriptions.subscription(ctx.user),
     ),
     reconcileCheckout: publicProcedure
-      .use(({ ctx, next }) => {
-        enforceReturnCheckLimit(ctx.req, ctx.res);
+      .use(async ({ ctx, next }) => {
+        await enforceReturnCheckLimit(ctx.req, ctx.res);
         return next();
       })
       .input(z.undefined())
@@ -111,8 +111,8 @@ export const createClubRouter = (
         ),
       ),
     createCheckout: publicProcedure
-      .use(({ ctx, next }) => {
-        enforceLegacyCheckoutLimit(ctx.req, ctx.res, ctx.user?.id);
+      .use(async ({ ctx, next }) => {
+        await enforceLegacyCheckoutLimit(ctx.req, ctx.res, ctx.user?.id);
         return next();
       })
       .input(

@@ -16,14 +16,14 @@ export const createNotificationsRouter = (
   router({
     // Guest devices remain supported only when the server capability permits it.
     registerToken: publicProcedure
-      .use(({ ctx, next }) => {
+      .use(async ({ ctx, next }) => {
         requireCapability("webPush");
         if (ctx.user?.blockedAt)
           throw new TRPCError({
             code: "FORBIDDEN",
             message: "Аккаунт заблокирован",
           });
-        enforcePushRegistrationLimit(ctx.req, ctx.res, ctx.user?.id);
+        await enforcePushRegistrationLimit(ctx.req, ctx.res, ctx.user?.id);
         return next();
       })
       .input(registerTokenInput)
