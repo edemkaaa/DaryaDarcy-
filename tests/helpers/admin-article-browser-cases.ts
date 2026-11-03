@@ -105,13 +105,13 @@ export function registerAdminArticleBrowserCases(fixture: () => Fixture) {
       ]);
       await page.getByRole("button", { name: "Статьи", exact: true }).click();
       const field = page.getByPlaceholder("Что посмотреть осенью...");
-      const edit = async (name: string) => {
+      const edit = async (name: string, restoredTitle = name) => {
         await page
           .getByText(name, { exact: true })
           .locator("..")
           .getByRole("button", { name: "Править", exact: true })
           .click();
-        await browserExpect(field).toHaveValue(name);
+        await browserExpect(field).toHaveValue(restoredTitle);
       };
       await edit(title);
       await field.fill(cancelled);
@@ -119,7 +119,7 @@ export function registerAdminArticleBrowserCases(fixture: () => Fixture) {
       await browserExpect(field).toHaveCount(0);
       expect(await rows(sql, [id])).toEqual([expected]);
       expect(writes).toEqual(["/api/trpc/admin.createArticle"]);
-      await edit(title);
+      await edit(title, cancelled);
       await field.fill(renamed);
       await page
         .getByRole("button", { name: "Сохранить", exact: true })
@@ -183,6 +183,8 @@ export function registerAdminArticleBrowserCases(fixture: () => Fixture) {
       });
       let handler: Promise<void> | undefined;
       let readReady = false;
+      let readError: unknown;
+      let laterReads = 0;
       let writes = 0;
       try {
         const page = await context.newPage();
@@ -228,35 +230,43 @@ export function registerAdminArticleBrowserCases(fixture: () => Fixture) {
         await page.route("**/api/trpc/admin.articles*", (route) => {
           const hold = !handler;
           const pending = (async () => {
-            const url = new URL(route.request().url());
-            const response = await route.fetch({
-              url: base + url.pathname + url.search,
-              maxRedirects: 0,
-            });
-            expect(response.status()).toBe(200);
-            if (hold) {
-              const payload = await response.json();
-              const returned = (
-                Array.isArray(payload) ? payload : [payload]
-              ).flatMap((item) => item.result.data.json);
-              expect(returned).toEqual(
-                expect.arrayContaining([
-                  expect.objectContaining({ id: committed[0].id, title }),
-                ]),
-              );
+            try {
+              const url = new URL(route.request().url());
+              const response = await route.fetch({
+                url: base + url.pathname + url.search,
+                maxRedirects: 0,
+              });
+              expect(response.status()).toBe(200);
+              if (hold) {
+                const payload = await response.json();
+                const returned = (
+                  Array.isArray(payload) ? payload : [payload]
+                ).flatMap((item) => item.result.data.json.items);
+                expect(returned).toEqual(
+                  expect.arrayContaining([
+                    expect.objectContaining({ id: committed[0].id, title }),
+                  ]),
+                );
+                readReady = true;
+                await gate;
+                // Lose only the held return transport after the actual SQL read.
+                // A stale rejection must not alert/reset the replacement owner.
+                if (outcome === "read-lost") return route.abort("failed");
+              }
+              await route.fulfill({ response });
+              if (!hold) laterReads++;
+            } catch (error) {
+              readError = error;
               readReady = true;
-              await gate;
-              // Lose only the held return transport after the actual SQL read.
-              // A stale rejection must not alert/reset the replacement owner.
-              if (outcome === "read-lost") return route.abort("failed");
+              await route.abort("failed").catch(() => {});
             }
-            await route.fulfill({ response });
           })();
           if (!handler) handler = pending;
           return pending;
         });
         await page.getByRole("button", { name: "Отмена", exact: true }).click();
         await browserExpect.poll(() => readReady).toBe(true);
+        expect(readError).toBeUndefined();
         await browserExpect(field).toHaveValue(title);
         if (transition === "navigation") {
           // Switching views unmounts the old editor without a document reload.
@@ -268,9 +278,12 @@ export function registerAdminArticleBrowserCases(fixture: () => Fixture) {
             .getByRole("button", { name: "Статьи", exact: true })
             .click();
           await page
-            .getByRole("button", { name: "Написать статью", exact: true })
+            .getByRole("button", {
+              name: "Восстановить создание статьи",
+              exact: true,
+            })
             .click();
-          await field.fill(newTitle);
+          await browserExpect(field).toHaveValue(title);
         } else {
           const password = "Synthetic-C2-reconciliation-only-2026!";
           await connection.query(
@@ -317,7 +330,9 @@ export function registerAdminArticleBrowserCases(fixture: () => Fixture) {
         }
         release();
         await handler;
-        await page.unroute("**/api/trpc/admin.articles*");
+        expect(readError).toBeUndefined();
+        if (transition === "account")
+          await page.unroute("**/api/trpc/admin.articles*");
         // Let the returned read and React's resulting callbacks settle before
         // checking that they did not reset the replacement editor/session.
         await page.evaluate(
@@ -329,25 +344,32 @@ export function registerAdminArticleBrowserCases(fixture: () => Fixture) {
             ),
         );
         if (transition === "navigation") {
-          await browserExpect(field).toHaveValue(newTitle);
+          await browserExpect(field).toHaveValue(title);
           await browserExpect(
-            page.getByRole("button", { name: "Опубликовать", exact: true }),
+            page.getByRole("button", {
+              name: "Проверить сохранение",
+              exact: true,
+            }),
           ).toBeEnabled();
+          await browserExpect(
+            page.getByRole("button", {
+              name: "Сохранить черновик",
+              exact: true,
+            }),
+          ).toBeDisabled();
           await page
             .getByRole("button", { name: "Отмена", exact: true })
             .click();
           await browserExpect(field).toHaveCount(0);
           if (outcome === "read-lost") {
-            // The returned view shared this failed read. Show an honest retry
-            // state rather than claiming an empty/complete canonical list.
+            // The new view has its own successful native read. Failure of the
+            // retired request must not replace that result with an error.
+            await browserExpect.poll(() => laterReads).toBeGreaterThan(0);
             await browserExpect(
               page
                 .getByRole("alert")
                 .filter({ hasText: "Не удалось загрузить статьи" }),
-            ).toBeVisible();
-            await page
-              .getByRole("button", { name: "Повторить", exact: true })
-              .click();
+            ).toHaveCount(0);
           }
           await browserExpect(
             page.getByText(title, { exact: true }),
@@ -463,9 +485,15 @@ export function registerAdminArticleBrowserCases(fixture: () => Fixture) {
           expect(committed[0].sections).toEqual([
             { type: "text", text: "Original body" },
           ]);
-        await save.click();
-        await browserExpect.poll(() => alerts.length).toBe(2);
-        expect(alerts[1]).toContain("Результат сохранения не подтверждён");
+        let expectedAlerts = 1;
+        if (mode === "create") await browserExpect(save).toBeDisabled();
+        else {
+          await save.click();
+          await browserExpect.poll(() => alerts.length).toBe(++expectedAlerts);
+          expect(alerts.at(-1)).toContain(
+            "Результат сохранения не подтверждён",
+          );
+        }
         expect(writes).toBe(1);
         expect(await rows(sql, [title, originalTitle])).toEqual(committed);
         const canonical = await context.newPage();
@@ -481,9 +509,11 @@ export function registerAdminArticleBrowserCases(fixture: () => Fixture) {
         ).toHaveCount(0);
         expect(await rows(sql, [title, originalTitle])).toEqual(committed);
         expect(writes).toBe(1);
-        // A failed reconciliation cannot discard the unknown write state.
+        // Cancellation retains the local operation until a validated read.
         let readFault: "network" | "invalid-identity" | "none" = "network";
+        let reads = 0;
         await page.route("**/api/trpc/admin.articles*", async (route) => {
+          reads++;
           if (readFault === "network") return route.abort("failed");
           const url = new URL(route.request().url());
           const response = await route.fetch({
@@ -492,12 +522,11 @@ export function registerAdminArticleBrowserCases(fixture: () => Fixture) {
           });
           expect(response.status()).toBe(200);
           if (readFault === "invalid-identity") {
-            // Corrupt only the native return payload after the real SQL read.
-            // HTTP200 alone must not authorize discarding an unknown write.
+            // Corrupt only the native paginated return after the real SQL read.
             const payload = await response.json();
             let corrupted = 0;
             for (const item of Array.isArray(payload) ? payload : [payload])
-              for (const article of item.result.data.json) {
+              for (const article of item.result.data.json.items) {
                 expect(article.id).toBeGreaterThan(0);
                 article.id = 0;
                 corrupted++;
@@ -507,30 +536,77 @@ export function registerAdminArticleBrowserCases(fixture: () => Fixture) {
           }
           return route.fulfill({ response });
         });
-        await page.getByRole("button", { name: "Отмена", exact: true }).click();
-        await browserExpect.poll(() => alerts.length).toBe(3);
-        expect(alerts[2]).toContain("Редактор остаётся открытым");
-        await browserExpect(field).toHaveValue(title);
-        await save.click();
-        await browserExpect.poll(() => alerts.length).toBe(4);
-        expect(alerts[3]).toContain("Результат сохранения не подтверждён");
-        expect(writes).toBe(1);
-        readFault = "invalid-identity";
-        await page.getByRole("button", { name: "Отмена", exact: true }).click();
-        await browserExpect.poll(() => alerts.length).toBe(5);
-        expect(alerts[4]).toContain("Редактор остаётся открытым");
-        await browserExpect(field).toHaveValue(title);
-        await save.click();
-        await browserExpect.poll(() => alerts.length).toBe(6);
-        expect(alerts[5]).toContain("Результат сохранения не подтверждён");
-        expect(writes).toBe(1);
-        expect(await rows(sql, [title, originalTitle])).toEqual(committed);
+        for (const fault of ["network", "invalid-identity"] as const) {
+          readFault = fault;
+          const beforeReads = reads;
+          await page
+            .getByRole("button", { name: "Отмена", exact: true })
+            .click();
+          await browserExpect.poll(() => reads).toBeGreaterThan(beforeReads);
+          await browserExpect(save).toHaveAttribute("aria-busy", "false");
+          await browserExpect(
+            page.getByText(
+              "Не удалось сохранить черновик или обновить список статей. Отмена не подтверждена. Не закрывайте редактор; попробуйте снова.",
+              { exact: true },
+            ),
+          ).toBeVisible();
+          await browserExpect(field).toHaveValue(title);
+          if (mode === "create") await browserExpect(save).toBeDisabled();
+          else {
+            await save.click();
+            await browserExpect
+              .poll(() => alerts.length)
+              .toBe(++expectedAlerts);
+            expect(alerts.at(-1)).toContain(
+              "Результат сохранения не подтверждён",
+            );
+          }
+          expect(writes).toBe(1);
+          expect(await rows(sql, [title, originalTitle])).toEqual(committed);
+        }
         readFault = "none";
         await page.getByRole("button", { name: "Отмена", exact: true }).click();
         await browserExpect(field).toHaveCount(0);
         await browserExpect(page.getByText(title, { exact: true })).toHaveCount(
           1,
         );
+        // Closing the form keeps its durable source. Explicit comparison/status
+        // confirms the committed write without sending it again.
+        await page
+          .getByRole("button", {
+            name:
+              mode === "create"
+                ? "Восстановить создание статьи"
+                : "Продолжить черновик статьи",
+            exact: true,
+          })
+          .click();
+        await browserExpect(field).toHaveValue(title);
+        await page
+          .getByRole("button", {
+            name:
+              mode === "create"
+                ? "Проверить сохранение"
+                : "Сравнить с серверной версией",
+            exact: true,
+          })
+          .click();
+        await browserExpect(field).toHaveCount(0);
+        await browserExpect(page.getByText(title, { exact: true })).toHaveCount(
+          1,
+        );
+        await browserExpect(
+          page.getByRole("button", {
+            name: "Продолжить черновик статьи",
+            exact: true,
+          }),
+        ).toHaveCount(0);
+        await browserExpect(
+          page.getByRole("button", {
+            name: "Восстановить создание статьи",
+            exact: true,
+          }),
+        ).toHaveCount(0);
         await browserExpect(
           page.getByText(originalTitle, { exact: true }),
         ).toHaveCount(0);
@@ -592,7 +668,7 @@ export function registerAdminArticleBrowserCases(fixture: () => Fixture) {
         .toHaveLength(1);
       await browserExpect(
         page.getByRole("button", { name: "Отмена", exact: true }),
-      ).toBeDisabled();
+      ).toBeEnabled();
       await browserExpect(field).toHaveValue(title);
       release();
       await handler;

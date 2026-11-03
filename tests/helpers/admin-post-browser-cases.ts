@@ -347,7 +347,7 @@ export function registerAdminPostBrowserCases(
     }
   }, 30_000);
   it("C2 opens the editor after password login and removes admin controls after logout and member login", async () => {
-    const { rows, connection, context, frontend, actorId, memberId } =
+    const { rows, connection, context, frontend, base, actorId, memberId } =
       fixture();
     const password = "Synthetic-C2-login-only-2026!";
     const passwordHash = await hashPassword(password);
@@ -388,8 +388,9 @@ export function registerAdminPostBrowserCases(
       expect(
         await page.evaluate(() => localStorage.getItem("app_session_token")),
       ).toBeNull();
+      return cookie.value;
     };
-    await signIn("c2.admin@example.test", actorId, "admin");
+    const adminToken = await signIn("c2.admin@example.test", actorId, "admin");
     await page.reload();
     await page.getByRole("button", { name: /Новый/ }).click();
     const editor = page.getByRole("dialog", { name: "Редактор публикации" });
@@ -448,7 +449,20 @@ export function registerAdminPostBrowserCases(
         "SELECT id FROM posts WHERE text IN ('C2 unsent administrator draft','C2 forbidden member draft')",
       ),
     ).toEqual([]);
-    expect(await rows(identitySql, [actorId, memberId])).toEqual(identity);
+    expect(await rows(identitySql, [actorId, memberId])).toEqual(
+      identity.map((row) =>
+        row.id === actorId
+          ? { ...row, sessionVersion: row.sessionVersion + 1 }
+          : row,
+      ),
+    );
+    expect(
+      (
+        await fetch(base + "/api/trpc/admin.posts", {
+          headers: { Authorization: `Bearer ${adminToken}` },
+        })
+      ).status,
+    ).toBe(401);
   }, 30_000);
   it("C2 retries a committed draft after a lost HTTP reply without creating another post", async () => {
     const { rows, connection, context, frontend, actorId, base } = fixture();
