@@ -1,4 +1,5 @@
 import * as db from "../db";
+import { hasClubAccess } from "./club-access-policy";
 
 /** Shared policy; an injected reader keeps checks on the caller's SQL transaction. */
 export async function userHasClubAccess(
@@ -15,8 +16,5 @@ export async function userHasClubAccess(
     typeof db.getActiveClubSubscription
   > = db.getActiveClubSubscription,
 ): Promise<boolean> {
-  if (user.blockedAt) return false;
-  if (db.isOwnerAccount(user)) return true;
-  if (user.role === "admin" || user.role === "moderator") return true;
-  return Boolean(await readSubscription(user.id));
+  return hasClubAccess(user, readSubscription);
 }

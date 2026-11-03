@@ -3,7 +3,7 @@ import { eq, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { privateContentFiles } from "../../../../packages/database/src/schema";
-import { getDb } from "../db";
+import { getDb } from "../database/connection";
 import { preparePhoto } from "../media/photos";
 import { decodeMediaBase64, validateMediaBase64 } from "../media/media-encoding";
 import { digest, ensurePrivateUploadObject, privateStorageNamespace } from "../media/private-upload-object";

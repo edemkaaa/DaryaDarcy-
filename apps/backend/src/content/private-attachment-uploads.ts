@@ -9,7 +9,7 @@ import {
   users,
   type User,
 } from "../../../../packages/database/src/schema";
-import { getDb } from "../db";
+import { getDb } from "../database/connection";
 import { decodeMediaBase64 } from "../media/media-encoding";
 import { isDeliverableAttachmentMime } from "../media/private-attachment-mime";
 import { assertContentRecoveryWindow } from "./recovery-window";
