@@ -249,7 +249,12 @@ test("returning to a stale tab refreshes the API without clearing its search or 
           result: {
             data: {
               json: [
-                { id: 701, title: "Сборник обновления", access: "public" },
+                {
+                  id: 701,
+                  title: "Сборник обновления",
+                  coverUrl: null,
+                  access: "public",
+                },
               ],
             },
           },

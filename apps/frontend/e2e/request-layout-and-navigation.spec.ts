@@ -6,19 +6,39 @@ const menu = 'nav[aria-label="Разделы"]';
 async function centeredError(page: Page) {
   const alert = page.locator("main").getByRole("alert");
   await expect(alert).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
   const group = await alert.evaluate((node) => {
-    const message = node.querySelector(".ui-text")!.getBoundingClientRect();
-    const button = node.querySelector("button")!.getBoundingClientRect();
-    const area = node.getBoundingClientRect();
+    // StatusNotice's first .ui-text is the decorative icon. Center the whole
+    // notice inside QueryRetryState, not that icon and the right-aligned button.
+    const card = node.getBoundingClientRect();
+    const area = node.parentElement!.getBoundingClientRect();
+    const button = node.querySelector("button")!;
+    const control = button.getBoundingClientRect();
     return {
-      centerY: (message.top + button.bottom) / 2,
+      centerY: card.top + card.height / 2,
       areaCenterY: area.top + area.height / 2,
-      centerX: button.left + button.width / 2,
+      centerX: card.left + card.width / 2,
       areaCenterX: area.left + area.width / 2,
+      overflow: node.scrollWidth > node.clientWidth + 1,
+      actionable: button.contains(
+        document.elementFromPoint(
+          control.x + control.width / 2,
+          control.y + control.height / 2,
+        ),
+      ),
     };
   });
   expect(Math.abs(group.centerY - group.areaCenterY)).toBeLessThanOrEqual(2);
   expect(Math.abs(group.centerX - group.areaCenterX)).toBeLessThanOrEqual(2);
+  expect(group.overflow).toBe(false);
+  expect(group.actionable).toBe(true);
+  const card = (await alert.boundingBox())!;
+  const header = (await page
+    .getByRole("banner", { name: "Навигация профиля" })
+    .boundingBox())!;
+  const tabs = (await page.locator(menu).boundingBox())!;
+  expect(card.y).toBeGreaterThanOrEqual(header.y + header.height);
+  expect(card.y + card.height).toBeLessThanOrEqual(tabs.y);
 }
 
 for (const [width, height] of [
@@ -60,8 +80,22 @@ for (const [width, height] of [
           (await header.boundingBox())!.y,
         );
         const main = (await page.locator("main").boundingBox())!;
-        const area = (await alert.boundingBox())!;
-        expect(area.y + area.height).toBeCloseTo(main.y + main.height, 0);
+        const area = (await alert.locator("..").boundingBox())!;
+        if (Math.abs(area.y + area.height - main.y - main.height) >= 0.5) {
+          await test.info().attach("request-state-bounds", {
+            contentType: "application/json",
+            body: JSON.stringify({
+              main,
+              area,
+              card: await alert.boundingBox(),
+            }),
+          });
+          await page.screenshot({
+            path: test.info().outputPath("request-state-bounds.png"),
+          });
+        }
+        // Keep the geometry failure while still checking the real recovery action.
+        expect.soft(area.y + area.height).toBeCloseTo(main.y + main.height, 0);
         await expect(
           alert.getByRole("button", { name: "Повторить" }),
         ).toBeInViewport();
@@ -90,14 +124,19 @@ for (const path of ["/profile", "/club"]) {
     );
     await page.goto(path, { waitUntil: "domcontentloaded" });
     await centeredError(page);
-    const alert = (await page
+    const viewport = await page
       .locator("main")
       .getByRole("alert")
-      .boundingBox())!;
+      .evaluate((node) => {
+        const box = node.closest(".ui-scroll")!.getBoundingClientRect();
+        return { y: box.y, bottom: box.bottom };
+      });
     const main = (await page.locator("main").boundingBox())!;
-    const inset = path === "/profile" ? 44 : 0;
-    expect(alert.y).toBe(main.y + inset);
-    expect(alert.height).toBe(main.height - inset);
+    const header = (await page
+      .getByRole("banner", { name: "Навигация профиля" })
+      .boundingBox())!;
+    expect(viewport.y).toBe(header.y + header.height);
+    expect(viewport.bottom).toBe(main.y + main.height);
   });
 }
 
