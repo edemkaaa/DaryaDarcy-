@@ -61,7 +61,7 @@ flowchart TD
 | ProfileModule — profile/profile.module.ts | Нет | Профиль/revision, recovery export, legacy avatar, удаление аккаунта; db/platform-db/content/media | Требует исследования: зафиксированы зависимости и прошлые profile tests; совместные отказы deletion/retention/files требуют отдельного прохода |
 | ModerationModule — moderation/moderation.module.ts | Нет | Модерация пользователей/жалоб/комментариев через platform-db и content | Требует исследования: actor/target checks прослежены; полный конкурентный lifecycle модерации и удаления сейчас не выполнялся |
 | ShopModule — shop/shop.module.ts | Нет | Старые digital checkout/owned endpoints, capability gate; db/prodamus; действующий магазин формирует mailto во фронте | Требует исследования: backend не доказывает отправку mailto-заказа; receipt/delivery legacy ветки и фактическое письмо менеджеру отдельно |
-| WorkersModule — workers/workers.module.ts | Нет | Явный WORKER_OPERATIONS binding: publication, billing/email, retention/shop delivery, backups | Найдены проблемы: часть эффектов живёт вне Nest-сервисов; локальный single-flight не является распределённой координацией, уведомления публикаций без durable outbox |
+| WorkersModule — workers/workers.module.ts | Нет | Явный WORKER_OPERATIONS binding: publication, billing/email, retention/shop delivery, backups | Требует исследования: helper functions внедрены явно, это само по себе не дефект. Локальный single-flight не является распределённой координацией; необходимость durable outbox не установлена |
 
 ## Фактическая карта областей TS
 
@@ -86,7 +86,7 @@ backend-связи; Node/npm-пакеты и packages/shared/database идут �
 | profile / 5 | _core, content, db, media, platform-db | Требует исследования |
 | shop / 3 | _core, db, launch, prodamus | Требует исследования |
 | system / 1 | Нет backend-зависимостей | Проверен как liveness |
-| workers / 4 | _core, billing, db, identity, platform-db, prodamus, push, shop-delivery | Найдены проблемы/ограничения координации, см. приоритеты |
+| workers / 4 | _core, billing, db, identity, platform-db, prodamus, push, shop-delivery | Требует исследования: ограничения координации/гарантий доставки, см. приоритеты |
 
 | Корневой TS-файл | Зависимости и ответственность | Статус |
 | --- | --- | --- |
@@ -165,7 +165,6 @@ Nest provider через createAppRouter/TrpcService, сохранить standal
 | ID | Приоритет | Подтверждённое / неизвестное | Следующий ограниченный шаг |
 | --- | --- | --- | --- |
 | A1 | P2 | 12-файловый цикл db/content/club-access подтверждён. Ошибка загрузки не доказана | Отделить конкретный SQL reader/pool boundary без переноса всего db.ts; проверить ESM и транзакционный reader |
-| A2 | P2, выбран | Ручной SessionService в authRouter подтверждён | Тест → factory injection → HTTP/SQL проверка; статус результата ниже |
 | A3 | P2 | Общий pool/db facade и platform-db соединяют много доменов; multi-app lifetime не изолирован | Описать ownership/lifecycle, потом один узкий repository seam; не вводить generic repository |
 | A4 | P2; P1 перед второй API-репликой | IntervalJobs координирует только один процесс, rate limiter тоже in-memory. Фактическая topology сейчас не прочитана | Подтвердить число реплик; до горизонтального масштабирования проверить durable claims/общую квоту. Вторую реплику автоматически не включать |
 | A5 | P2, требует отдельного воспроизведения | _core/notification.ts выводит body/Error провайдера и не задаёт deadline. Внешний secret leak не проверен | Synthetic fault tests на активном admin endpoint; redaction/timeout при подтверждении, не дублировать большой HTTP framework |
@@ -180,5 +179,56 @@ Nest provider через createAppRouter/TrpcService, сохранить standal
 
 ## Результат выбранного изменения
 
-На момент составления карты runtime-изменения ещё не начинались. Результаты
-RED/GREEN и выполненные команды будут добавлены отдельно после проверки.
+Карта зафиксирована отдельным коммитом c6b67887 **до** runtime-правок.
+Последующее изменение c6a6a051 закрывает только A2 локально:
+
+- createAuthRouter получает существующую session boundary; TrpcService передаёт
+  свой Nest provider через createAppRouter. REST/tRPC context/logout теперь
+  используют один экземпляр в пределах приложения.
+- Standalone authRouter и вызов createAppRouter с прежними аргументами сохранены.
+  JWT, SQL, cookie, роли, error/status policy и ответы не менялись.
+- Два новых теста сначала получили HTTP500 вместо успешного выхода: запрос
+  обходил подставленную app-owned boundary и попадал в старый DB-путь.
+  Это контролируемое доказательство обхода DI, **не** утверждение об отказе
+  рабочего logout с настоящей БД. После исправления оба теста проходят.
+- Проверены две apps со своими actors и отказ одного экземпляра, отсутствие
+  Set-Cookie при отказе и отсутствие приватной ошибки в ответе. Вместе с
+  прежними native application/session/cookie проверками: 64/64.
+- На новом MySQL8.4/tmpfs применены 50 настоящих миграций. С реальными JWT/SQL
+  прошли 29/29 tests/nest-sessions.mysql.test.ts: блокировка, отзыв старых
+  токенов, повтор выхода, поздний replay и SQL-отказ без ложного успеха.
+  Только собственный контейнер удалён, tmpfs уничтожен.
+
+Финальные проверки на Node22.23.2 (PATH=/opt/homebrew/opt/node@22/bin:$PATH):
+
+| Команда | Фактический результат |
+| --- | --- |
+| pnpm exec vitest run --project unit --maxWorkers=2 | 4010 passed, 94 прежних skipped, 309 passed/28 skipped files, 89,60 с, exit0 |
+| pnpm exec vitest run tests/nest-auth-composition.test.ts tests/session-availability.test.ts tests/nest-application.test.ts tests/session-cookie.test.ts | 64 passed, exit0 |
+| pnpm db:fresh:local --initialize-empty-local | 50 миграций на отдельной пустой MySQL8.4/tmpfs, pending=[], exit0 |
+| pnpm exec vitest run --project mysql tests/nest-sessions.mysql.test.ts | 29 passed, 2,72 с, exit0 |
+| pnpm check | root/frontend TypeScript, exit0 |
+| pnpm lint:backend | exit0 |
+| pnpm build | backend ESM, exit0 |
+| pnpm check:api | 107 процедур/46501 байт, контракт прежний, exit0 |
+| pnpm check:boundaries | 896 файлов, exit0 |
+
+SQL-команды получили только собственные FRESH_DATABASE_URL/CONTAINER_ID и
+BACKEND_TEST_DATABASE_URL на loopback/backend_test; после fresh-профиля
+fixture tracker отмечает уже применённые миграции, production history не
+меняется. Остальные SQL-наборы в этом срезе не запускались.
+
+В этом продолжении изменены 9 файлов: 3 runtime, 1 новый test и 5 документов,
+включая заранее сохранённую карту. Никаких новых пакетов, схем, маршрутов,
+фронтовых изменений, внешних сообщений, платежей, push/deploy нет.
+
+Логи/exit codes и cleanup:
+../.local-artifacts/backend-module-map-20261103/verification.json,
+auth-red.log/auth-green.log/unit.log/types.log/lint.log/build.log/api.log,
+boundaries.log/migration.log/sql.log/sql-cleanup.json. Карту и решение сохраняют
+коммиты c6b67887 и c6a6a051; последующий docs-коммит не меняет runtime.
+
+Матрица выше сохраняет исходный статус снимка; A2 исправлен, но Identity/Trpc нельзя объявить
+целиком принятыми: A6, static routers и невыбранные сценарии остаются открытыми.
+**Архитектурный аудит не завершён.** Закрыт один выбранный дефект связывания;
+A1/A3–A8 требуют следующих ограниченных исследований/решений.

@@ -1,5 +1,19 @@
 # Daryadarcy Modular Monorepo
 
+## Карта backend и открытый архитектурный аудит — 3 ноября
+
+- [x] До runtime-правок зафиксированы все 13 Nest-модулей, 16 директорий и 10 root TS-файлов с зависимостями/статусами/границами доказательств.
+- [x] Отделены acyclic Nest imports и 12-файловый цикл исходников; недостижимость helper не названа доказательством мёртвого кода.
+- [x] Из карты выбран только A2: SessionService в tRPC logout; два RED HTTP-теста → минимальная factory injection.
+- [x] 64 целевых и 29 JWT/MySQL tests проходят после 50 миграций на own tmpfs; контейнер удалён.
+- [x] Общий unit4010 pass/94 прежних skip, types/backend lint/build/API107/boundaries896 проходят; аудит целиком открыт.
+- [ ] A1/A3: отдельно исследовать разрыв цикла и pool/db/platform-db responsibilities.
+- [ ] A4: до второй реплики подтвердить topology, общую квоту и durable claims.
+- [ ] A5/A6: воспроизвести external owner-notification failure/privacy и проверить pre-Nest ingress dependencies.
+- [ ] A7/A8: уточнить требования доставки/проверить legacy consumers до outbox или удаления helpers.
+
+[Карта, приоритеты и незавершённая часть](../docs/audits/backend-module-map-2026-11-03.md).
+
 ## Аудит backend по отдельному запросу — 3 ноября
 
 - [x] Проверены Git, версии, Nest-модули/зависимости и исходные проверки; рабочее дерево было чистым.
