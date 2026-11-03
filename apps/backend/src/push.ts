@@ -87,8 +87,8 @@ export async function sendMarketingPostNotification(
 
     const accepted = await sendExpoPushBatch("marketing", messages, target);
     console.log(`[Push] Expo accepted ${accepted} marketing notifications for post #${postId}`);
-  } catch (err) {
-    console.warn("[Push] Error sending marketing notifications:", err);
+  } catch {
+    console.warn("[Push] Marketing notification failed");
   }
 }
 
@@ -114,9 +114,10 @@ export async function sendServicePushNotification(input: {
         body: input.body,
         data: { ...input.data, category: "service" },
       }));
-    return sendExpoPushBatch("service", messages, target);
-  } catch (err) {
-    console.warn("[Push] Service notification failed:", err);
+    // Await here so a rejected audience recheck is contained after commit too.
+    return await sendExpoPushBatch("service", messages, target);
+  } catch {
+    console.warn("[Push] Service notification failed");
     return 0;
   }
 }
