@@ -1,0 +1,93 @@
+import { eq, sql } from "drizzle-orm";
+import {
+  users,
+  commentReports,
+} from "../../../../packages/database/src/schema";
+import { getDb } from "../database/connection";
+import { queueCancellationForUser } from "../billing/cancellation";
+import { deletePostCommentInTransaction } from "../content/comments";
+import { lockUserModerationTarget } from "./user-target";
+import { writeAdminAction } from "../admin/audit-log";
+
+export async function dismissCommentReport(
+  actorUserId: number,
+  reportId: number,
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.transaction(async (tx) => {
+    await tx.delete(commentReports).where(eq(commentReports.id, reportId));
+    await writeAdminAction(tx, {
+      actorUserId,
+      action: "dismiss_comment_report",
+      targetType: "comment_report",
+      targetId: reportId,
+    });
+  });
+}
+
+export async function deleteReportedComment(
+  actorUserId: number,
+  commentId: number,
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.transaction(async (tx) => {
+    await deletePostCommentInTransaction(tx, commentId, 0, true);
+    await writeAdminAction(tx, {
+      actorUserId,
+      action: "delete_reported_comment",
+      targetType: "comment",
+      targetId: commentId,
+    });
+  });
+}
+
+export async function blockUser(
+  actorId: number,
+  targetUserId: number,
+  reason: string,
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.transaction(async (tx) => {
+    await lockUserModerationTarget(tx, actorId, targetUserId);
+    await tx
+      .update(users)
+      .set({
+        blockedAt: new Date(),
+        blockedReason: reason.slice(0, 512),
+        sessionVersion: sql`${users.sessionVersion}+1`,
+      })
+      .where(eq(users.id, targetUserId));
+    await queueCancellationForUser(tx, targetUserId);
+    await writeAdminAction(tx, {
+      actorUserId: actorId,
+      action: "block_user",
+      targetType: "user",
+      targetId: targetUserId,
+      details: reason,
+    });
+  });
+}
+
+export async function unblockUser(
+  actorId: number,
+  targetUserId: number,
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.transaction(async (tx) => {
+    await lockUserModerationTarget(tx, actorId, targetUserId);
+    await tx
+      .update(users)
+      .set({ blockedAt: null, blockedReason: null })
+      .where(eq(users.id, targetUserId));
+    await writeAdminAction(tx, {
+      actorUserId: actorId,
+      action: "unblock_user",
+      targetType: "user",
+      targetId: targetUserId,
+    });
+  });
+}
