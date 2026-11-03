@@ -1,5 +1,19 @@
 # Implementation Plan: Daryadarcy Modular Monorepo
 
+### Реальный Docker-образ локально — 3 ноября
+
+По запросу владельца собраны существующим Dockerfile и запущены настоящие
+backend images из HEAD2c67be67: ARM64 нативно в Docker VM и AMD64 через эмуляцию.
+На каждой новой MySQL8.4 применена51 реальная миграция; по12 HTTP/SQL-сценариев
+прошли, включая два API, общие quotas, регистрационный outbox, редакторы,
+revocation, SIGTERM drain и настоящий backup/restore клиентом из образа.
+Добавлены opt-in suite и local-only runner с проверкой владения/очисткой.
+[Команды, артефакты и границы](../docs/operations/backend-image-local-acceptance-2026-11-03.md).
+Код продукта/фронт/рабочая БД/S3/сервер не менялись, без push/deploy.
+Серверный P1 и внешняя приёмка остаются открыты: AMD64 под эмуляцией не заменяет
+проверку реальных ресурсов и rollout на нативном Linux.
+
+
 ### Завершение локального P1–P3 среза — 3 ноября
 
 [Новый отчёт](../docs/audits/backend-audit-closure-2026-11-03.md) фиксирует

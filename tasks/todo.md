@@ -1,5 +1,19 @@
 # Daryadarcy Modular Monorepo
 
+## Docker-проверка backend — 3 ноября
+
+- [x] Собрать готовые ARM64/AMD64 images существующим Dockerfile из HEAD2c67be67.
+- [x] На свежих owned MySQL8.4 применить51 migration без legacy fixture DDL.
+- [x] ARM64:12/12 и AMD64 (эмуляция):12/12 настоящих HTTP/SQL-сценариев.
+- [x] Две API-реплики: session/revoke, IP/account quotas, редакторы, права и SIGTERM drain.
+- [x] Настоящие gzip backup/restore из образа в отдельную временную схему.
+- [x] Сохранить repeatable local runner; собственные API/сети/БД удалены, images сохранены.
+- [ ] Нативная серверная приёмка/бюджеты/история/выпуск и общие внешние gates по-прежнему открыты.
+
+[Полный результат и повторение](../docs/operations/backend-image-local-acceptance-2026-11-03.md).
+Без изменений продукта/frontend, рабочих данных и push/deploy.
+
+
 ## Остаток P1–P3 — 3 ноября
 
 - [x] До фиксов: смысловой RED stale worker leases (4 SQL), stale DNS API (2 proxy) и матрица бюджетов.
