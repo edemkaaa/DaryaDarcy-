@@ -1,5 +1,4 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import { ContentReadService } from "../content/content-read.service";
 import { ContentWriteService } from "../content/content-write.service";
 import { ContentCommentService } from "../content/content-comment.service";
@@ -8,7 +7,7 @@ import { SessionService } from "../identity/session.service";
 import { ClubCheckoutService } from "../billing/club-checkout.service";
 import { ClubSubscriptionService } from "../billing/club-subscription.service";
 import { createAppRouter, type AppRouter } from "../routers";
-import type { TrpcContext } from "./context";
+import { createContextFactory } from "./context";
 import { NotificationsService } from "../notifications/notifications.service";
 import { ProfileService } from "../profile/profile.service";
 import { ModerationService } from "../moderation/moderation.service";
@@ -18,6 +17,7 @@ import { ShopService } from "../shop/shop.service";
 @Injectable()
 export class TrpcService {
   readonly router: AppRouter;
+  readonly createContext: ReturnType<typeof createContextFactory>;
 
   constructor(
     @Inject(ContentReadService) content: ContentReadService,
@@ -32,6 +32,7 @@ export class TrpcService {
     @Inject(ModerationService) moderation: ModerationService,
     @Inject(ShopService) shop: ShopService,
   ) {
+    this.createContext = createContextFactory(this.sessions);
     this.router = createAppRouter(
       content,
       posts,
@@ -44,12 +45,4 @@ export class TrpcService {
       this.sessions,
     );
   }
-
-  readonly createContext = async (
-    opts: CreateExpressContextOptions,
-  ): Promise<TrpcContext> => ({
-    req: opts.req,
-    res: opts.res,
-    user: await this.sessions.optionalUser(opts.req),
-  });
 }

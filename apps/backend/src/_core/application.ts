@@ -11,6 +11,7 @@ import { TrpcService } from "./trpc.service";
 import { registerHttpSecurity } from "./http-security";
 import { MEDIA_JSON_BODY_LIMIT, registerRequestBodies } from "./request-bodies";
 import { registerProdamusSandboxBody } from "../billing/prodamus-sandbox.ingress";
+import { SessionService } from "../identity/session.service";
 
 /** Composition only: no environment files, listener or scheduled side effects. */
 export async function createBackendApplication(
@@ -50,17 +51,17 @@ export async function createBackendApplication(
       next();
     });
   });
-  registerRequestBodies(http);
-
-  // Transitional adapters: replace one domain at a time behind the same API.
-  registerProdamusRoutes(http);
-  registerYoutubeStream(http);
   const application = await NestFactory.create(AppModule, adapter, {
     bodyParser: false,
     logger: false,
     abortOnError: false,
   });
   try {
+    // Providers are constructed, but routes/listener are not initialized yet.
+    // Preserve ingress order while sharing the same session policy as HTTP/tRPC.
+    registerRequestBodies(http, application.get(SessionService));
+    registerProdamusRoutes(http);
+    registerYoutubeStream(http);
     // Resolve only at the composition root, after Nest creates its providers.
     // Mount before init so security/parsers/tRPC still precede native routes.
     const trpc = application.get(TrpcService);

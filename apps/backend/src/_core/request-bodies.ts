@@ -6,7 +6,6 @@ import { admitVideoUpload, releaseVideoUpload } from "./video-upload-admission";
 import { asyncHandler } from "./async-handler";
 
 const photoProcedures = new Set(["profile.uploadAvatar", "profile.uploadAvatarWithReceipt", "club.uploadPrivateCommentPhoto", "admin.uploadPhoto", "admin.uploadPublicCover"]);
-const sessions = new SessionService();
 export const MEDIA_JSON_BODY_LIMIT = 50 * 1024 * 1024;
 const streamedMediaRequests = new WeakSet<Request>();
 const jsonParsers = {
@@ -16,7 +15,7 @@ const jsonParsers = {
   media: express.json({ limit: MEDIA_JSON_BODY_LIMIT }),
 };
 
-async function requireUploadIdentity(req: Request, res: Response, administrator: boolean) {
+async function requireUploadIdentity(req: Request, res: Response, administrator: boolean, sessions: Pick<SessionService, "optionalUser">) {
   try {
     const user = await sessions.optionalUser(req);
     if (!user) { res.status(401).json({ error: "Нужно войти" }); return false; }
@@ -35,11 +34,11 @@ function isProviderWebhook(req: Request): boolean {
     (req.method === "GET" || req.method === "HEAD" || req.method === "POST");
 }
 
-export function registerRequestBodies(app: Express) {
+export function registerRequestBodies(app: Express, sessions: Pick<SessionService, "optionalUser"> = new SessionService()) {
   app.post("/api/admin/private-video-uploads", asyncHandler(async (req, res, next) => {
     res.setHeader("Cache-Control", "no-store");
     if (!privateVideoUploadEnabled()) { res.status(404).json({ error: "Загрузка недоступна" }); return; }
-    if (!(await requireUploadIdentity(req, res, true))) return;
+    if (!(await requireUploadIdentity(req, res, true, sessions))) return;
     if (!privateVideoMetadata.safeParse({ query: req.query, idempotencyKey: req.headers["idempotency-key"], mimeType: req.headers["content-type"] ?? "application/octet-stream" }).success) {
       res.status(400).json({ error: "Некорректный запрос" }); return;
     }
@@ -73,7 +72,7 @@ export function registerRequestBodies(app: Express) {
     // Base64 envelopes need room above the existing decoded 4/32 MiB quotas.
     const media = privateUpload || names.includes("admin.uploadPrivateContentFile");
     const photo = names.some(name => photoProcedures.has(name));
-    if ((media || photo) && !(await requireUploadIdentity(req, res, media || names.includes("admin.uploadPhoto") || names.includes("admin.uploadPublicCover")))) return;
+    if ((media || photo) && !(await requireUploadIdentity(req, res, media || names.includes("admin.uploadPhoto") || names.includes("admin.uploadPublicCover"), sessions))) return;
     // tRPC 11 stringifies an Express-parsed object and parses it again. Let its
     // bounded stream reader handle standard UTF-8 JSON once, after admission.
     // Other charsets retain the existing Express JSON path. Encoded bodies
