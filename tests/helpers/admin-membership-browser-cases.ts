@@ -349,10 +349,23 @@ export function registerAdminMembershipBrowserCases(
       dialogs.push(dialog.type());
       await dialog.accept();
     });
-    await member
-      .getByRole("button", { name: "Выдать клуб", exact: true })
-      .click();
-    await browserExpect.poll(() => dialogs).toEqual(["confirm", "alert"]);
+    const [granted] = await Promise.all([
+      page.waitForResponse(
+        (reply) =>
+          reply.url().includes("/api/trpc/admin.grantClub") &&
+          reply.request().method() === "POST",
+      ),
+      member.getByRole("button", { name: "Выдать клуб", exact: true }).click(),
+    ]);
+    expect(granted.status()).toBe(200);
+    await browserExpect(
+      page
+        .getByRole("status")
+        .getByText(
+          new RegExp(`Продление подтверждено для участницы №${memberId}:`),
+        ),
+    ).toBeVisible();
+    expect(dialogs).toEqual(["confirm"]);
     const completedAt = Date.now();
     const payments = await rows(
       "SELECT * FROM club_payments WHERE userId=? ORDER BY id",
@@ -368,6 +381,23 @@ export function registerAdminMembershipBrowserCases(
       email: null,
       cancelAtPeriodEnd: 0,
     });
+    expect(
+      await rows(
+        "SELECT kind,targetUserId,result FROM admin_action_operations WHERE actorUserId=?",
+        [actorId],
+      ),
+    ).toEqual([
+      {
+        kind: "grantClub",
+        targetUserId: memberId,
+        result: {
+          state: "succeeded",
+          kind: "grantClub",
+          userId: memberId,
+          expiresAt: payments[1].expiresAt.toISOString(),
+        },
+      },
+    ]);
     // Independent real-clock bounds permit MySQL's whole-second rounding.
     const expiry = payments[1].expiresAt.getTime();
     expect(expiry).toBeGreaterThanOrEqual(startedAt + 31 * 86_400_000 - 1_000);
@@ -496,8 +526,11 @@ export function registerAdminMembershipBrowserCases(
       .getByRole("button", { name: "Повторить письмо", exact: true })
       .click();
     await browserExpect(
-      member.getByRole("button", { name: "Письмо в очереди", exact: true }),
-    ).toBeDisabled();
+      member.getByRole("button", {
+        name: "Отправить ещё одно письмо",
+        exact: true,
+      }),
+    ).toBeEnabled();
     await browserExpect(member.getByRole("status")).toContainText(
       "Доставка ещё не подтверждена",
     );
@@ -512,6 +545,22 @@ export function registerAdminMembershipBrowserCases(
         email: "browser.member@example.test",
         sentAt: null,
         discardedAt: null,
+      },
+    ]);
+    const receipt = await rows(
+      "SELECT kind,targetUserId,result FROM admin_action_operations WHERE actorUserId=?",
+      [actorId],
+    );
+    expect(receipt).toEqual([
+      {
+        kind: "resendAccessEmail",
+        targetUserId: memberId,
+        result: {
+          state: "succeeded",
+          kind: "resendAccessEmail",
+          userId: memberId,
+          queued: true,
+        },
       },
     ]);
     const database = await getDb();
@@ -550,6 +599,12 @@ export function registerAdminMembershipBrowserCases(
     });
     await processAccessEmails(database, sendTransactionalEmail, memberId);
     expect(smtp.messages).toHaveLength(1);
+    expect(
+      await rows(
+        "SELECT kind,targetUserId,result FROM admin_action_operations WHERE actorUserId=?",
+        [actorId],
+      ),
+    ).toEqual(receipt);
     expect(await rows("SELECT * FROM users WHERE id=?", [memberId])).toEqual(
       identity,
     );
@@ -751,10 +806,25 @@ export function registerAdminMembershipBrowserCases(
       dialogs.push(dialog.type());
       await dialog.accept();
     });
-    await member
-      .getByRole("button", { name: "Продлить клуб", exact: true })
-      .click();
-    await browserExpect.poll(() => dialogs).toEqual(["confirm", "alert"]);
+    const [granted] = await Promise.all([
+      page.waitForResponse(
+        (reply) =>
+          reply.url().includes("/api/trpc/admin.grantClub") &&
+          reply.request().method() === "POST",
+      ),
+      member
+        .getByRole("button", { name: "Продлить клуб", exact: true })
+        .click(),
+    ]);
+    expect(granted.status()).toBe(200);
+    await browserExpect(
+      page
+        .getByRole("status")
+        .getByText(
+          new RegExp(`Продление подтверждено для участницы №${memberId}:`),
+        ),
+    ).toBeVisible();
+    expect(dialogs).toEqual(["confirm"]);
     const payments = await rows(
       "SELECT * FROM club_payments WHERE userId=? ORDER BY expiresAt",
       [memberId],
@@ -767,6 +837,23 @@ export function registerAdminMembershipBrowserCases(
       sum: "0",
       expiresAt: new Date("2030-02-01T00:00:00.000Z"),
     });
+    expect(
+      await rows(
+        "SELECT kind,targetUserId,result FROM admin_action_operations WHERE actorUserId=?",
+        [actorId],
+      ),
+    ).toEqual([
+      {
+        kind: "grantClub",
+        targetUserId: memberId,
+        result: {
+          state: "succeeded",
+          kind: "grantClub",
+          userId: memberId,
+          expiresAt: payments[1].expiresAt.toISOString(),
+        },
+      },
+    ]);
     await page.reload();
     await page.getByRole("button", { name: "Участницы", exact: true }).click();
     await browserExpect(member.getByText(/Клуб до/)).toContainText(

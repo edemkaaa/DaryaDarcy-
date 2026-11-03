@@ -63,6 +63,10 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       return (await connection.query<RowDataPacket[]>(sql, args))[0];
     }
     async function cleanup() {
+      await connection.query(
+        "DELETE FROM admin_action_operations WHERE actorUserId=?",
+        [actorId],
+      );
       await connection.query("DELETE FROM access_email_outbox WHERE userId=?", [
         memberId,
       ]);
