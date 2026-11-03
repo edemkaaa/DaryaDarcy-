@@ -37,9 +37,14 @@ export async function sendExpoPushBatch(
   let accepted = 0;
   for (let i = 0; i < filtered.length; i += 100) {
     const batch = filtered.slice(i, i + 100);
+    const controller = new AbortController();
+    const deadline = setTimeout(() => controller.abort(), 10_000);
+    deadline.unref();
+    let response: Response | undefined;
     try {
-      const response = await fetch("https://exp.host/--/api/v2/push/send", {
+      response = await fetch("https://exp.host/--/api/v2/push/send", {
         method: "POST",
+        signal: controller.signal,
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
@@ -59,6 +64,11 @@ export async function sendExpoPushBatch(
     } catch {
       // Provider messages and transport errors can contain recipient tokens.
       console.warn("[Push] Batch transport or response failed");
+    } finally {
+      clearTimeout(deadline);
+      // Rejected HTTP bodies are not read above. Release the connection before
+      // the next batch; the deadline also covers successful response parsing.
+      await response?.body?.cancel().catch(() => {});
     }
   }
 
