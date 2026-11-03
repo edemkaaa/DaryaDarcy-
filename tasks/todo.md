@@ -1,16 +1,31 @@
 # Daryadarcy Modular Monorepo
 
-## Карта backend и открытый архитектурный аудит — 3 ноября
+## Продолжение архитектурного аудита — 3 ноября
+
+- [x] A1: разорван runtime-цикл; пул/чтение подписки/политика доступа отделены от агрегата db.
+- [x] A3: platform persistence разнесена по владельцам, совместимые exports и транзакции сохранены.
+- [x] A5/A6: owner notification deadline/redaction и app-owned session в ingress/context, RED/GREEN.
+- [x] A4: по решению владельца общая MySQL-квота и worker admission для нескольких процессов, два реальных OS-процесса локально.
+- [x] A7: оставлен прежний best-effort публикационный push; платёжные письма не изменены.
+- [x] A8: проверены runtime/test/операционные потребители; legacy helpers не удалены только из-за недостижимости из main.
+- [x] Unit4043 pass/94 skip; SQL1565 pass/299 skip; отдельно fresh9/9 и coordination+retention47/47; собственные tmpfs-БД удалены.
+- [x] Types, backend lint/build, API107/46501 байт, boundaries909; frontend без изменений.
+- [ ] Выпуск 0050/включение нескольких API: отдельный бэкап/preflight, production topology/resources/load-balancing/drain и smoke. Сейчас не выполняется.
+- [ ] Общий аудит остаётся открыт: P2 process-owned pool/фасады/fencing, P3 необязательные helper cleanup; LIVE/SMTP/S3/договорная приёмка отдельно.
+
+[Результаты и точный остаток](../docs/audits/backend-architecture-followup-2026-11-03.md).
+
+## Исходный срез карты backend и открытого аудита — 3 ноября
 
 - [x] До runtime-правок зафиксированы все 13 Nest-модулей, 16 директорий и 10 root TS-файлов с зависимостями/статусами/границами доказательств.
 - [x] Отделены acyclic Nest imports и 12-файловый цикл исходников; недостижимость helper не названа доказательством мёртвого кода.
 - [x] Из карты выбран только A2: SessionService в tRPC logout; два RED HTTP-теста → минимальная factory injection.
 - [x] 64 целевых и 29 JWT/MySQL tests проходят после 50 миграций на own tmpfs; контейнер удалён.
 - [x] Общий unit4010 pass/94 прежних skip, types/backend lint/build/API107/boundaries896 проходят; аудит целиком открыт.
-- [ ] A1/A3: отдельно исследовать разрыв цикла и pool/db/platform-db responsibilities.
-- [ ] A4: до второй реплики подтвердить topology, общую квоту и durable claims.
-- [ ] A5/A6: воспроизвести external owner-notification failure/privacy и проверить pre-Nest ingress dependencies.
-- [ ] A7/A8: уточнить требования доставки/проверить legacy consumers до outbox или удаления helpers.
+- [x] A1/A3: первоначальное исследование продолжено, результат указан выше.
+- [x] A4: общая квота/worker admission локально проверены; production topology остаётся открытой выше.
+- [x] A5/A6: воспроизведены и исправлены ограниченные owner-notification/ingress случаи.
+- [x] A7/A8: решение о best-effort получено, потребители исследованы; outbox/удаление не добавлены.
 
 [Карта, приоритеты и незавершённая часть](../docs/audits/backend-module-map-2026-11-03.md).
 

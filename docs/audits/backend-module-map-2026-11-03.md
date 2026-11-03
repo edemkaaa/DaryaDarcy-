@@ -4,6 +4,19 @@
 feature/stage-one-completion-2026-10-10. Ранее сделанные push/TEST-DI исправления
 учтены как история, а не выданы за результат этой карты. Весь аудит **открыт**.
 
+## Последующее состояние
+
+После согласованного продолжения A1/A3/A5/A6 исправлены в ограниченных границах;
+A4 реализован и проверен локально для нескольких процессов. A7: владелец
+подтвердил прежний best-effort push, очередь не нужна. A8 исследован без
+автоматического удаления недостижимых helper exports. Детали, команды и
+**открытые P1/P2/P3** в [отчёте продолжения](backend-architecture-followup-2026-11-03.md).
+
+На новом снимке 254 TS-файла, те же 13 Nest-модулей; eager runtime SCC отсутствуют.
+Ниже сохранён исходный снимок до исправлений и первоначальные статусы: это
+история исследования, а не новые невыполненные задания на уже исправленный код.
+Архитектурная и договорная приёмка остаются открытыми.
+
 ## Как читать статусы
 
 - **Проверен**: изучены указанные границы и есть приведённое свидетельство;
@@ -232,3 +245,24 @@ boundaries.log/migration.log/sql.log/sql-cleanup.json. Карту и решен�
 целиком принятыми: A6, static routers и невыбранные сценарии остаются открытыми.
 **Архитектурный аудит не завершён.** Закрыт один выбранный дефект связывания;
 A1/A3–A8 требуют следующих ограниченных исследований/решений.
+
+## Актуальные статусы модулей после ограниченного продолжения
+
+| Модуль | Статус и предел |
+| --- | --- |
+| AppModule | Проверен: composition/init без workers, unsafe multi-API config отвергается до listener; production rollout требует исследования |
+| SystemModule | Проверен: native health/error/security границы в локальной регрессии; отказоустойчивость topology требует исследования |
+| LaunchModule | Проверен: текущие capability/settings сценарии регрессии; настройки владельца/рабочая публикация отдельно |
+| IdentityModule | Исправлены session composition/shared quotas; проверены вход/отзыв/retention; реальные SMTP/LIVE-цепочки требуют проверки |
+| TrpcModule | Проверены общий session provider и прежний API107; static compatibility exports сохранены, полная изоляция provider graph не заявляется |
+| ContentModule | Разорван runtime-цикл, проверены SQL/HTTP uploads/recovery/access; реальные S3/browser opt-in не приняты этим прогоном |
+| BillingModule | Проверены текущие SQL/HTTP claims и общий checkout quota; LIVE provider/recurring остаются внешней приёмкой |
+| NotificationsModule | Проверены admissions/privacy/deadline; publication push best effort принят владельцем; реальная доставка не заявляется |
+| ProfileModule | Проверены текущие native/SQL сценарии и перенос retention; реальные устройства/файлы отдельно |
+| ModerationModule | Проверены роли/транзакции/audit в одноразовой БД; persistence теперь в feature |
+| ShopModule | Проверена SQL delivery persistence; получение настоящего заказа менеджером требует живой приёмки |
+| WorkersModule | Проверены lifecycle/drain, общий admission, два OS-процесса и maintenance opt-in; fencing/exactly once и production topology не приняты |
+| ProdamusSandboxModule | Проверены прежние isolated built/native тесты; диагностический sandbox не означает подключённый LIVE merchant |
+
+Статус «проверен» относится только к описанному срезу. Не все сценарии всех
+модулей имеют одинаковую глубину проверки. Приоритеты остатка — в отчёте выше.
