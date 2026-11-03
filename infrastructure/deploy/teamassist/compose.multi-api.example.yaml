@@ -1,0 +1,19 @@
+# Reviewed candidate profile, not a command to scale the existing shared host.
+# Append after all runtime overlays; run multi-api-preflight against the final
+# private resolved config and actual host/SQL capacity before using it.
+# api.env must set mysql coordination/count=2 for TEST ingress as well.
+services:
+  api:
+    deploy: { replicas: 2 }
+    environment: { API_REPLICA_COUNT: "2", API_COORDINATION_MODE: mysql }
+    mem_limit: 1536m
+    cpus: 1.5
+    stop_grace_period: 15s
+  web:
+    mem_limit: 2048m
+    cpus: 2.0
+  mysql:
+    mem_limit: 2048m
+    cpus: 1.0
+    command:
+      ["--innodb-buffer-pool-size=128M", "--max-connections=50", "--performance-schema=OFF", "--temptable-max-ram=64M", "--temptable-max-mmap=0"]
