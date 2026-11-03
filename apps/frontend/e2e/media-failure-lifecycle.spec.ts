@@ -5,6 +5,7 @@ import { gotoWithSession } from "./layout-fixtures";
 const embed =
   "https://vkvideo.ru/video_ext.php?oid=-227034863&id=456239527&hash=99fae216cf20dcdc";
 const videoUrl = "https://media.example.test/broken.mp4";
+const catalogEnabled = process.env.VK_CATALOG_UI_ENABLED === "true";
 
 for (const path of ["/feed", "/post/42", "/video/42"]) {
   test(`broken video has an explicit retry and releases its source on ${path}`, async ({
@@ -20,14 +21,60 @@ for (const path of ["/feed", "/post/42", "/video/42"]) {
       status: "published",
       published: true,
       createdAt: "2026-10-13T10:00:00Z",
-      media: [{ id: 1, type: "video", url: videoUrl }],
+      publishedAt: "2026-10-13T10:00:00Z",
+      richText: null,
+      likeCount: 0,
+      commentCount: 0,
+      media: [
+        {
+          id: 1,
+          type: "video",
+          url: videoUrl,
+          duration: null,
+          filename: null,
+          mimeType: "video/mp4",
+          posterUrl: null,
+          fileSize: null,
+          postId: 42,
+          sortOrder: 0,
+          createdAt: "2026-10-13T10:00:00Z",
+        },
+      ],
     };
     await editorApi(page, (name) => {
       if (name === "feed.getById") return ok(post);
       if (name === "feed.listPaginated")
         return ok({ posts: [post], nextCursor: null });
       if (name === "videos.getById")
-        return ok({ id: 42, title: "MEDIA_TEST", videoUrl, youtubeId: "" });
+        return ok({
+          id: 42,
+          title: "MEDIA_TEST",
+          videoUrl,
+          youtubeId: "testvideo42",
+          duration: null,
+          views: null,
+          publishedText: null,
+        });
+      if (name === "videos.catalog")
+        return ok({
+          items: [
+            {
+              id: 42,
+              title: "MEDIA_TEST",
+              duration: null,
+              access: "public",
+              canWatch: true,
+            },
+          ],
+          nextCursor: null,
+        });
+      if (name === "videos.playback")
+        return ok({
+          id: 42,
+          provider: "youtube",
+          youtubeId: "testvideo42",
+          videoUrl,
+        });
     });
     await page.route(videoUrl, (route) => {
       requests++;
@@ -95,7 +142,25 @@ test("VK unloads in a hidden retained tab and never autoplays on return", async 
               tags: [],
               target: "feed",
               createdAt: "2026-10-13T10:00:00Z",
-              media: [{ id: 1, type: "video", url: embed }],
+              publishedAt: "2026-10-13T10:00:00Z",
+              richText: null,
+              likeCount: 0,
+              commentCount: 0,
+              media: [
+                {
+                  id: 1,
+                  type: "video",
+                  url: embed,
+                  duration: null,
+                  filename: null,
+                  mimeType: null,
+                  posterUrl: null,
+                  fileSize: null,
+                  postId: 42,
+                  sortOrder: 0,
+                  createdAt: "2026-10-13T10:00:00Z",
+                },
+              ],
             },
           ],
           nextCursor: null,
@@ -252,16 +317,28 @@ for (const format of ["jpg", "png", "webp", "heic"]) {
 test("a failed access refetch hides a previously loaded video instead of retaining stale playback", async ({
   page,
 }) => {
+  test.skip(
+    !catalogEnabled,
+    "Club VK access uses the enabled catalog/playback API, not public legacy getById.",
+  );
   let deny = false;
-  const video = {
-    id: 42,
-    title: "PRIVATE_VIDEO",
-    videoUrl: embed,
-    youtubeId: "",
-  };
+  let playbackReads = 0;
   await editorApi(page, (name) => {
-    if (name === "videos.list") return ok([video]);
-    if (name !== "videos.getById") return;
+    if (name === "videos.catalog")
+      return ok({
+        items: [
+          {
+            id: 42,
+            title: "PRIVATE_VIDEO",
+            duration: null,
+            access: "club",
+            canWatch: true,
+          },
+        ],
+        nextCursor: null,
+      });
+    if (name !== "videos.playback") return;
+    playbackReads++;
     return deny
       ? {
           error: {
@@ -272,7 +349,7 @@ test("a failed access refetch hides a previously loaded video instead of retaini
             },
           },
         }
-      : ok(video);
+      : ok({ id: 42, provider: "vk", embedUrl: embed });
   });
   await page.route("https://vkvideo.ru/**", (route) =>
     route.fulfill({
@@ -294,25 +371,37 @@ test("a failed access refetch hides a previously loaded video instead of retaini
     .click();
   await expect(page.getByTitle("VK Видео", { exact: true })).toHaveCount(0);
   await expect(
-    page.getByRole("button", { name: "Повторить", exact: true }),
+    page
+      .getByRole("status")
+      .filter({ hasText: "Для просмотра нужен доступ к клубу" }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Перейти в клуб", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Повторить", exact: true }),
+  ).toHaveCount(0);
+  expect(playbackReads).toBeGreaterThanOrEqual(2);
 });
 
 test("loaded VK keeps recovery controls away from the provider's interactive frame", async ({
   page,
 }) => {
+  test.skip(
+    !catalogEnabled,
+    "VK detail requires the enabled catalog/playback build.",
+  );
   await editorApi(page, (name) => {
-    if (name === "videos.getById")
-      return ok({
-        id: 42,
-        title: "VK_CONTROLS",
-        videoUrl: embed,
-        youtubeId: "",
-      });
     if (name === "videos.catalog")
       return ok({
         items: [
-          { id: 42, title: "VK_CONTROLS", access: "public", canWatch: true },
+          {
+            id: 42,
+            title: "VK_CONTROLS",
+            duration: null,
+            access: "public",
+            canWatch: true,
+          },
         ],
         nextCursor: null,
       });

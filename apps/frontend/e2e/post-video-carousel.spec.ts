@@ -44,7 +44,15 @@ async function fixture(page: Page, count = 3, photos: string[] = []) {
     richText: null,
     createdAt: new Date().toISOString(),
     publishedAt: new Date().toISOString(),
-    media: videos.slice(0, count),
+    media: videos.slice(0, count).map((video, index) => ({
+      ...video,
+      duration: null,
+      mimeType: index < 2 ? "video/webm" : null,
+      fileSize: index < 2 ? bytes.length : null,
+      postId: 42,
+      sortOrder: index,
+      createdAt: "2026-10-13T10:00:00Z",
+    })),
     likeCount: 0,
     commentCount: 0,
   };

@@ -22,6 +22,7 @@ for (const path of ["/club", "/feed"]) {
           const post = {
             id: 42,
             text: "Осенняя подборка для дома",
+            richText: null,
             photos,
             tags: ["podborki"],
             target: "both",
