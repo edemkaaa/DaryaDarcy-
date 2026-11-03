@@ -17,6 +17,8 @@ const existing = {
   richText: null,
   createdAt: "2026-10-04T10:00:00Z",
   publishedAt: "2026-10-04T10:00:00Z",
+  likeCount: 0,
+  commentCount: 0,
   media: [
     {
       id: 9,
@@ -24,6 +26,12 @@ const existing = {
       url: "https://example.test/old.pdf",
       filename: "old.pdf",
       mimeType: "application/pdf",
+      duration: null,
+      posterUrl: null,
+      fileSize: null,
+      postId: 7,
+      sortOrder: 0,
+      createdAt: "2026-10-04T10:00:00Z",
     },
   ],
 };

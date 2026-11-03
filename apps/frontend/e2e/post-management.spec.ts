@@ -57,14 +57,18 @@ for (const screen of ["feed", "club"] as const) {
           return ok({
             hasClubAccess: true,
             subscribed: true,
-            expiresAt: "2030-01-01",
+            expiresAt: "2030-01-01T00:00:00Z",
             cancelAtPeriodEnd: false,
             cancellationStatus: "none",
             isOwner: true,
             monthlyPrice: "790",
           });
         if (
-          ["feed.listPaginated", "club.listByCategory", "admin.postsPage"].includes(name)
+          [
+            "feed.listPaginated",
+            "club.listByCategory",
+            "admin.postsPage",
+          ].includes(name)
         )
           return ok({
             posts: exists
@@ -121,8 +125,21 @@ for (const screen of ["feed", "club"] as const) {
         await tags
           .getByRole("button", { name: "Обновить публикации", exact: true })
           .click();
+        // A fresh read updates the card but must preserve the unsaved local draft.
+        expect(current.tags).toEqual(["spring", "winter"]);
         await expect(
-          tags.getByText("Выбрано: 2", { exact: true }),
+          page.getByText(screen === "feed" ? "#Зима" : "зима", {
+            exact: true,
+          }),
+        ).toBeVisible();
+        expect(
+          await page.evaluate(() => {
+            const draft = localStorage.getItem("darcy:tag-draft:101:77");
+            return draft ? JSON.parse(draft).tags : null;
+          }),
+        ).toEqual(["spring"]);
+        await expect(
+          tags.getByText("Выбрано: 1", { exact: true }),
         ).toBeVisible();
         await expect(
           tags.getByRole("button", { name: "Сохранить", exact: true }),
@@ -179,7 +196,8 @@ for (const screen of ["feed", "club"] as const) {
       ).toContainText("0");
       expect(calls.filter((call) => call.name === "admin.posts")).toEqual([]);
       expect(calls.filter((call) => call.name === "admin.postDetail")).toEqual(
-        Array.from({ length: lost ? 2 : 1 }, () => ({
+        // Normal: open, verify write, reopen, verify deletion. Lost: open, two recoveries.
+        Array.from({ length: lost ? 3 : 4 }, () => ({
           name: "admin.postDetail",
           input: { id: 77 },
         })),
@@ -249,6 +267,7 @@ test("an account change cancels a late quick-action inspection", async ({
     release = resolve;
   });
   let started = false;
+  let holdInspection = false;
   let otherAccount = false;
   const calls = requests(page);
   let cancelled = false;
@@ -268,6 +287,7 @@ test("an account change cancels a late quick-action inspection", async ({
       });
     if (name === "admin.updatePost") return failure(503);
     if (name === "admin.postDetail") {
+      if (!holdInspection) return ok(post());
       started = true;
       await held;
       return ok(null);
@@ -278,6 +298,8 @@ test("an account change cancels a late quick-action inspection", async ({
   const tags = page.getByRole("dialog", { name: "Теги публикации" });
   await tags.getByRole("button", { name: "Весна", exact: true }).click();
   await tags.getByRole("button", { name: "Сохранить", exact: true }).click();
+  await expect(tags.getByRole("alert")).toContainText("не подтверждён");
+  holdInspection = true;
   await tags
     .getByRole("button", { name: "Обновить публикации", exact: true })
     .click();
