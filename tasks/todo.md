@@ -1,5 +1,17 @@
 # Daryadarcy Modular Monorepo
 
+## Проверка запросов — 3 ноября
+
+- [x] Расширить реальный image HTTP suite:36/36 ARM64 и36/36 AMD64 через эмуляцию.
+- [x] Проверить HTTP parsing/лимиты, CORS/CSRF, batch, guest/admin права, DTO/privacy.
+- [x] Отклонённые profile writes не меняют SQL; реальный fixture SQL fault не разлогинивает пользователя.
+- [x] 125 существующих handler/session/validation и34 compression tests проходят; root types проходят.
+- [ ] Остальные API/реальные внешние сервисы/серверные ресурсы и приёмка остаются отдельно.
+
+[Подробности](../docs/operations/backend-image-local-acceptance-2026-11-03.md).
+Код продукта и рабочие ресурсы не менялись, без push/deploy.
+
+
 ## Docker-проверка backend — 3 ноября
 
 - [x] Собрать готовые ARM64/AMD64 images существующим Dockerfile из HEAD2c67be67.

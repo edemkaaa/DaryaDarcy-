@@ -10,6 +10,7 @@ import {
   vi,
 } from "vitest";
 import superjson from "superjson";
+import { COOKIE_NAME } from "../packages/shared/src/const";
 import { hashPassword } from "../apps/backend/src/_core/password";
 import mysql, { type Connection, type RowDataPacket } from "mysql2/promise";
 import { assertTestDatabase } from "../tooling/scripts/test-database-policy";
@@ -49,14 +50,20 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
     let adminId: number;
     let adminCookie = "",
       memberCookie = "";
-    type HttpResult = { status: number; text: string; cookies: string[] };
-    const httpWire = `const fs=require('node:fs');const x=JSON.parse(fs.readFileSync(0,'utf8'));fetch('http://'+(x.host||'127.0.0.1')+':3000'+x.path,{method:x.method,headers:{'Content-Type':'application/json',...(x.cookie?{'Cookie':x.cookie}:{})},body:x.method==='GET'?undefined:JSON.stringify(x.data),redirect:'manual',signal:AbortSignal.timeout(x.timeoutMs||5000)}).then(async r=>console.log(JSON.stringify({status:r.status,text:await r.text(),cookies:r.headers.getSetCookie()}))).catch(()=>{process.exitCode=1})`;
+    type HttpResult = {
+      status: number;
+      text: string;
+      cookies: string[];
+      headers: Record<string, string>;
+    };
+    const httpWire = `const fs=require('node:fs');const x=JSON.parse(fs.readFileSync(0,'utf8'));fetch('http://'+(x.host||'127.0.0.1')+':3000'+x.path,{method:x.method,headers:{'Content-Type':'application/json',...(x.cookie?{'Cookie':x.cookie}:{}),...x.headers},body:['GET','HEAD'].includes(x.method)?undefined:x.raw===undefined?JSON.stringify(x.data):x.raw,redirect:'manual',signal:AbortSignal.timeout(x.timeoutMs||5000)}).then(async r=>console.log(JSON.stringify({status:r.status,text:await r.text(),cookies:r.headers.getSetCookie(),headers:Object.fromEntries([...r.headers].filter(([k])=>k!=='set-cookie'))}))).catch(()=>{process.exitCode=1})`;
     function request(
       container: string,
       path: string,
       data?: unknown,
       cookie = "",
       method = "POST",
+      wire: { raw?: string; headers?: Partial<Record<string, string>> } = {},
     ): HttpResult {
       try {
         return JSON.parse(
@@ -65,7 +72,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
             ["exec", "-i", container, "node", "-e", httpWire],
             {
               encoding: "utf8",
-              input: JSON.stringify({ path, data, cookie, method }),
+              input: JSON.stringify({ path, data, cookie, method, ...wire }),
               timeout: 10000,
               stdio: ["pipe", "pipe", "pipe"],
             },
@@ -323,6 +330,221 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
           throw new Error("Unowned network cleanup refused");
         docker("network", "rm", network);
       }
+    });
+    it.each([
+      { path: "/api/auth/login", raw: "{PRIVATE_PARSE_SENTINEL", status: 400 },
+      {
+        path: "/api/auth/login",
+        raw: JSON.stringify({ payload: "x".repeat(17 * 1024) }),
+        status: 413,
+      },
+      {
+        path: "/api/trpc/feed.listPaginated",
+        raw: JSON.stringify({ payload: "x".repeat(270 * 1024) }),
+        status: 413,
+      },
+    ])(
+      "bounds and sanitizes JSON at $path ($status)",
+      ({ path, raw, status }) => {
+        const response = request(api, path, undefined, "", "POST", { raw });
+        expect(response.status).toBe(status);
+        expect(response.text).not.toMatch(
+          /PRIVATE_PARSE_SENTINEL|SyntaxError|stack|passwordHash/,
+        );
+        expect(response.headers["content-type"]).toContain("application/json");
+        expect(response.headers["cache-control"]).toBe("no-store");
+        expect(request(api, "/api/health", undefined, "", "GET").status).toBe(
+          200,
+        );
+      },
+    );
+    it.each([
+      { headers: { Origin: "https://foreign.example.test" }, status: 403 },
+      { headers: { "Sec-Fetch-Site": "cross-site" }, status: 403 },
+      {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        status: 403,
+      },
+      { headers: { "Content-Encoding": "gzip" }, status: 415 },
+    ])(
+      "rejects unsafe HTTP metadata before mutation: $headers",
+      ({ headers, status }) => {
+        const response = request(
+          api,
+          "/api/auth/logout",
+          {},
+          adminCookie,
+          "POST",
+          { headers },
+        );
+        expect(response.status).toBe(status);
+        expect(response.cookies).toEqual([]);
+        expect(
+          request(second, "/api/auth/me", undefined, adminCookie, "GET").status,
+        ).toBe(200);
+        expect(
+          JSON.parse(
+            request(second, "/api/auth/me", undefined, adminCookie, "GET").text,
+          ).user.id,
+        ).toBe(adminId);
+        expect(response.headers["x-content-type-options"]).toBe("nosniff");
+      },
+    );
+    it("accepts only the configured credentialed CORS preflight", () => {
+      const response = request(
+        api,
+        "/api/auth/login",
+        undefined,
+        "",
+        "OPTIONS",
+        {
+          headers: {
+            Origin: env.PUBLIC_APP_URL,
+            "Access-Control-Request-Method": "POST",
+          },
+        },
+      );
+      expect(response.status).toBe(200);
+      expect(response.headers["access-control-allow-origin"]).toBe(
+        env.PUBLIC_APP_URL,
+      );
+      expect(response.headers["access-control-allow-credentials"]).toBe("true");
+      expect(response.headers["access-control-allow-headers"]).toContain(
+        "Idempotency-Key",
+      );
+    });
+    it.each([Array(21).fill("auth.me").join(","), "feed.list,feed.list"])(
+      "rejects amplification before entering tRPC: %s",
+      (names) => {
+        const response = request(
+          api,
+          `/api/trpc/${names}?batch=1`,
+          undefined,
+          "",
+          "GET",
+        );
+        expect(response.status).toBe(400);
+        expect(JSON.parse(response.text)).toEqual({
+          error: "Слишком много операций в запросе",
+        });
+      },
+    );
+    it.each([
+      ["admin.stats", 401],
+      ["feed.savedPosts", 401],
+      ["doesNotExist", 404],
+    ] as const)(
+      "keeps guest access/unknown procedure errors explicit: %s",
+      (procedure, status) => {
+        const response = trpc(api, procedure, undefined, "", true).response;
+        expect(response.status).toBe(status);
+        expect(response.cookies).toEqual([]);
+        expect(response.text).not.toMatch(
+          /passwordHash|sessionVersion|stack|SELECT /,
+        );
+      },
+    );
+    it.each([
+      { limit: 0 },
+      { limit: 51 },
+      { limit: 1.5 },
+      { limit: 12, cursor: -1 },
+    ])("rejects invalid pagination instead of coercing it: %j", (input) => {
+      expect(
+        trpc(api, "feed.listPaginated", input, "", true).response.status,
+      ).toBe(400);
+    });
+    it.each([
+      "club.uploadCommentPhoto",
+      "admin.uploadMedia",
+      "admin.uploadPrivateContentFile",
+      "club.uploadPrivateCommentPhoto",
+    ])(
+      "keeps retired/disabled upload %s unreachable even for admin",
+      (procedure) => {
+        expect(
+          request(api, `/api/trpc/${procedure}`, {}, adminCookie).status,
+        ).toBe(404);
+      },
+    );
+    it("keeps public profile fields consistent between REST and tRPC", () => {
+      const rest = JSON.parse(
+        request(api, "/api/auth/me", undefined, adminCookie, "GET").text,
+      ).user;
+      const rpc = trpc(second, "auth.me", undefined, adminCookie, true);
+      expect(rpc.response.status).toBe(200);
+      expect(rpc.data).toEqual(rest);
+      for (const key of [
+        "passwordHash",
+        "sessionVersion",
+        "blockedReason",
+        "accountDeletionRequestedAt",
+      ])
+        expect(rest).not.toHaveProperty(key);
+      expect(
+        request(
+          api,
+          "/api/auth/me",
+          undefined,
+          `${COOKIE_NAME}=invalid-fixture`,
+          "GET",
+        ).text,
+      ).toBe('{"user":null}');
+    });
+    it("rejects invalid profile values without changing the SQL row", async () => {
+      const select =
+        "SELECT name,profileRevision,avatarUrl FROM users WHERE openId='image-member'";
+      const [before] = await conn.query<RowDataPacket[]>(select);
+      for (const input of [
+        { name: "   " },
+        { avatarUrl: "javascript:fixture" },
+        { expectedRevision: 1.5, name: "invalid revision" },
+      ]) {
+        const response = trpc(
+          api,
+          "profile.update",
+          { expectedRevision: before[0].profileRevision, ...input },
+          memberCookie,
+        ).response;
+        expect(response.status).toBe(400);
+      }
+      const [after] = await conn.query<RowDataPacket[]>(select);
+      expect(after).toEqual(before);
+    });
+    it("returns server errors, not a guest, during a real disposable SQL fault and recovers with the same cookie", async () => {
+      await conn.query("RENAME TABLE users TO image_fixture_users_unavailable");
+      try {
+        const rest = request(
+          api,
+          "/api/auth/me",
+          undefined,
+          adminCookie,
+          "GET",
+        );
+        expect(rest.status).toBe(503);
+        expect(rest.cookies).toEqual([]);
+        expect(rest.text).not.toMatch(
+          /user.*null|image_fixture|SELECT|stack|passwordHash/,
+        );
+        const rpc = trpc(
+          second,
+          "auth.me",
+          undefined,
+          adminCookie,
+          true,
+        ).response;
+        expect(rpc.status).toBe(500);
+        expect(rpc.cookies).toEqual([]);
+        expect(rpc.text).not.toMatch(/image_fixture|SELECT|stack|passwordHash/);
+      } finally {
+        await conn.query(
+          "RENAME TABLE image_fixture_users_unavailable TO users",
+        );
+      }
+      const recovered = JSON.parse(
+        request(second, "/api/auth/me", undefined, adminCookie, "GET").text,
+      );
+      expect(recovered.user.id).toBe(adminId);
     });
     it("executes the actual image as non-root with working Linux native media dependencies", () => {
       const result = JSON.parse(
