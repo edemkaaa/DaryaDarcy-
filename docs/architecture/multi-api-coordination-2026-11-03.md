@@ -58,3 +58,11 @@
 [MySQL 8.4 locking functions](https://dev.mysql.com/doc/refman/8.4/en/locking-functions.html).
 Заимствование/возврат соединений соответствует
 [mysql2 Promise API](https://sidorares.github.io/node-mysql2/docs/documentation/promise-wrapper).
+
+## Продолжение проверки
+
+[Порядок выпуска и offline preflight](../operations/multi-api-release-preflight-2026-11-03.md)
+подготовлены отдельно. Два edge templates проверены на реальном Docker DNS при
+замене IP реплики; в access mail/cancellation добавлена проверка актуального lease
+перед внешним эффектом и время claim берётся из БД. Exactly once обычного SMTP
+не заявляется. На рабочем сервере эти изменения не применялись.

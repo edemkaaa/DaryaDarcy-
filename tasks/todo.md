@@ -1,5 +1,20 @@
 # Daryadarcy Modular Monorepo
 
+## Остаток P1–P3 — 3 ноября
+
+- [x] До фиксов: смысловой RED stale worker leases (4 SQL), stale DNS API (2 proxy) и матрица бюджетов.
+- [x] Перед внешним эффектом проверяются lease/status/срок по часам MySQL, чужая задача не меняется.
+- [x] Nginx следует за новой репликой без restart; неизвестный ответ POST не вызывает повтор записи.
+- [x] Gate считает все replicas/TEST, RAM и MySQL reserve, не раскрывает secrets; подготовлен opt-in Compose-кандидат.
+- [x] Пять неиспользуемых helpers удалены, 748 строк; реальные migration/media/recovery consumers сохранены.
+- [x] Pool и compatibility facades обоснованно оставлены: новые layers/очереди ради формы не вводятся.
+- [x] Unit4055 pass/98 skip, SQL1570 pass/299 skip, отдельно proxy2/2 и policy+Compose14/14; types/lint/build/API107/boundaries904.
+- [ ] P1 на сервере: восстановить доступ, снять реальные budgets/config/history, native image build, затем согласованный бэкап/preflight/выпуск. SSH banner и HTTPS TLS timeout; ресурсы не менялись.
+- [ ] Общая приёмка внешних сервисов/устройств/пилота и невыбранных сценариев остаётся отдельной.
+
+[Результат и ограничения](../docs/audits/backend-audit-closure-2026-11-03.md),
+[порядок DevOps](../docs/operations/multi-api-release-preflight-2026-11-03.md).
+
 ## Продолжение архитектурного аудита — 3 ноября
 
 - [x] A1: разорван runtime-цикл; пул/чтение подписки/политика доступа отделены от агрегата db.
@@ -11,7 +26,7 @@
 - [x] Unit4043 pass/94 skip; SQL1565 pass/299 skip; отдельно fresh9/9 и coordination+retention47/47; собственные tmpfs-БД удалены.
 - [x] Types, backend lint/build, API107/46501 байт, boundaries909; frontend без изменений.
 - [ ] Выпуск 0050/включение нескольких API: отдельный бэкап/preflight, production topology/resources/load-balancing/drain и smoke. Сейчас не выполняется.
-- [ ] Общий аудит остаётся открыт: P2 process-owned pool/фасады/fencing, P3 необязательные helper cleanup; LIVE/SMTP/S3/договорная приёмка отдельно.
+- [x] Первоначальный локальный P2/P3 остаток разобран в следующем срезе выше; общая внешняя приёмка остаётся открытой.
 
 [Результаты и точный остаток](../docs/audits/backend-architecture-followup-2026-11-03.md).
 

@@ -4,6 +4,13 @@
 Текущий стенд использует TEST Prodamus. Боевые реквизиты ещё не получены.
 Frontend source и дизайн для подготовки этого пакета не менялись.
 
+## Несколько API
+
+Есть отдельные `compose.multi-api.example.yaml` и
+[offline preflight/порядок выпуска](../../../docs/operations/multi-api-release-preflight-2026-11-03.md).
+Масштабирование удваивает API RAM/pool budget; прежний ресурсный профиль одного
+API нельзя автоматически применить к двум репликам. Текущий сервер не переключён.
+
 ## Файлы
 
 - `Dockerfile.backend`: API и отдельный `dist/prodamus-test.mjs`, non-root runtime.

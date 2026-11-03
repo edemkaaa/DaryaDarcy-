@@ -1,5 +1,19 @@
 # Implementation Plan: Daryadarcy Modular Monorepo
 
+### Завершение локального P1–P3 среза — 3 ноября
+
+[Новый отчёт](../docs/audits/backend-audit-closure-2026-11-03.md) фиксирует
+stale-owner проверки до SMTP/cancellation, dynamic API upstream, безопасный
+multi-api preflight/Compose и удаление пяти мёртвых helpers. Поведение/API сохранены;
+process pool/facades оставлены осознанно, новая очередь не вводится.
+Unit4055 pass/98 skip, SQL1570 pass/299 skip, proxy2/2, policy+Compose14/14;
+types/backend lint/build/API107/boundaries904 проходят. Server rollout не выполнен:
+SSH banner timeout/HTTPS TLS timeout. После восстановления доступа нужен
+[порядок DevOps](../docs/operations/multi-api-release-preflight-2026-11-03.md)
+с проверкой actual RAM/max_connections, image build, бэкапом/историей и smoke.
+Фронт/рабочая БД/S3/аккаунты/remote Git сохранены. Весь аудит не закрыт только
+по зелёным тестам: внешние сервисы/устройства/пилот идут отдельной приёмкой.
+
 ### Продолжение backend-аудита — 3 ноября 2026
 
 Локально закрыты ограниченные A1/A3/A5/A6, для согласованных нескольких API
