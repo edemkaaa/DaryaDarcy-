@@ -1,4 +1,4 @@
-import { Controller, Post, Req, Res } from "@nestjs/common";
+import { Controller, Inject, Post, Req, Res } from "@nestjs/common";
 import type { Request, Response } from "express";
 import { ProdamusTestClubService } from "./prodamus-test-club.service";
 import { TRPCError } from "@trpc/server";
@@ -9,7 +9,10 @@ const resultInput = z.object({ token: z.string().max(192) }).strict();
 
 @Controller("api/prodamus/test")
 export class ProdamusTestClubController {
-  private readonly service = new ProdamusTestClubService();
+  constructor(
+    @Inject(ProdamusTestClubService)
+    private readonly service: ProdamusTestClubService,
+  ) {}
   @Post("webhook")
   async notification(@Req() request: Request, @Res() response: Response) {
     if (Object.keys(request.query).length || request.headers.cookie) {

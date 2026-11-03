@@ -12,6 +12,7 @@ import { createProdamusWebhookHandler } from "../prodamus";
 import { ProdamusSandboxService } from "./prodamus-sandbox.service";
 import { ProdamusSandboxController } from "./prodamus-sandbox.controller";
 import { ProdamusTestClubController } from "./prodamus-test-club.controller";
+import { ProdamusTestClubService } from "./prodamus-test-club.service";
 import {
   PRODAMUS_WEBHOOK_HANDLER,
   ProdamusWebhookController,
@@ -43,11 +44,14 @@ export type BillingServices = ClubBillingServices & {
       useFactory: () => new ProdamusSandboxService(process.env),
     },
     YookassaClubService,
+    ProdamusTestClubService,
     {
       provide: ClubCheckoutService,
-      useFactory: (yookassa: YookassaClubService) =>
-        new ClubCheckoutService(yookassa),
-      inject: [YookassaClubService],
+      useFactory: (
+        yookassa: YookassaClubService,
+        prodamusTest: ProdamusTestClubService,
+      ) => new ClubCheckoutService(yookassa, prodamusTest),
+      inject: [YookassaClubService, ProdamusTestClubService],
     },
     ClubSubscriptionService,
     {

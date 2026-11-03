@@ -24,7 +24,10 @@ export type ClubCheckoutInput = {
 /** Starts/reconciles billing without issuing a session; access requires provider proof. */
 @Injectable()
 export class ClubCheckoutService {
-  constructor(private readonly yookassa = new YookassaClubService()) {}
+  constructor(
+    private readonly yookassa = new YookassaClubService(),
+    private readonly prodamusTest = new ProdamusTestClubService(),
+  ) {}
   reconcileCheckout(actor: User | null, intentKey: unknown) {
     // Return checking is test-only and can never fall back to payment creation.
     return this.yookassa.reconcileCheckout(actor, intentKey);
@@ -66,7 +69,7 @@ export class ClubCheckoutService {
     const plan = input?.plan ?? "monthly";
     const prodamusTest = process.env.PRODAMUS_TEST_ENABLED;
     if (prodamusTest && prodamusTest !== "false")
-      return new ProdamusTestClubService().createCheckout(
+      return this.prodamusTest.createCheckout(
         email,
         actor || existing,
         plan,
@@ -101,7 +104,8 @@ export class ClubCheckoutService {
       });
     assertClubCheckoutConfigured(plan);
     // An email names the billing recipient, not a proven authenticated identity.
-    const user = actor || existing || (await db.ensureUserByEmail(email, contactPhone));
+    const user =
+      actor || existing || (await db.ensureUserByEmail(email, contactPhone));
     const orderId =
       plan === "semiannual"
         ? `club6m-${user.id}-${randomUUID()}`
