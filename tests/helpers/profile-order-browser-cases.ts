@@ -33,10 +33,17 @@ export function registerProfileOrderBrowserCases(
           sameSite: "Lax",
         },
       ]);
+      await connection.query(
+        "UPDATE users SET name='C3 Intermediate profile name' WHERE id=? AND openId='binding-browser-member'",
+        [memberId],
+      );
       const page = await context.newPage();
       await page.goto(frontend + "profile");
       await page
-        .getByRole("button", { name: "Browser phone member", exact: true })
+        .getByRole("button", {
+          name: "C3 Intermediate profile name",
+          exact: true,
+        })
         .click();
       const field = page.getByRole("textbox", {
         name: "Имя профиля",
@@ -50,10 +57,6 @@ export function registerProfileOrderBrowserCases(
             "Browser phone member",
           ),
         memberId,
-      );
-      await connection.query(
-        "UPDATE users SET name='C3 Intermediate profile name' WHERE id=? AND openId='binding-browser-member'",
-        [memberId],
       );
       let releaseRead!: () => void,
         enterRead!: () => void,
@@ -112,24 +115,29 @@ export function registerProfileOrderBrowserCases(
           finishRead();
         }
       });
+      let writeError: unknown;
       await page.route("**/api/trpc/*", async (route) => {
         if (!route.request().url().includes("profile.update"))
           return route.fallback();
         writes++;
-        const url = new URL(route.request().url());
-        const response = await route.fetch({
-          url: base + url.pathname + url.search,
-          maxRedirects: 0,
-        });
-        expect(response.status()).toBe(200);
-        const body = await response.json();
-        expect((Array.isArray(body) ? body[0] : body).result.data.json).toEqual(
-          { success: true },
-        );
-        enterWrite();
         try {
+          const url = new URL(route.request().url());
+          const response = await route.fetch({
+            url: base + url.pathname + url.search,
+            maxRedirects: 0,
+          });
+          expect(response.status()).toBe(200);
+          const body = await response.json();
+          expect(
+            (Array.isArray(body) ? body[0] : body).result.data.json,
+          ).toEqual({ success: true, profileRevision: 1 });
+          enterWrite();
           await heldWrite;
           await route.fulfill({ response });
+        } catch (error) {
+          writeError = error;
+          enterWrite();
+          await route.abort("failed").catch(() => {});
         } finally {
           finishWrite();
         }
@@ -145,6 +153,7 @@ export function registerProfileOrderBrowserCases(
         await readEntered;
         await field.press("Enter");
         await writeEntered;
+        expect(writeError).toBeUndefined();
         await browserExpect(field).toBeDisabled();
         expect(
           await rows("SELECT name FROM users WHERE id=?", [memberId]),
@@ -157,13 +166,28 @@ export function registerProfileOrderBrowserCases(
           user: { name: "C3 Intermediate profile name" },
         });
         await readFinished;
-        // The existing-cache reconciliation proves the intermediate snapshot
-        // reached React while the ACK is held; the editing draft must survive it.
-        await browserExpect.poll(cached).toBe("C3 Intermediate profile name");
+        // The old native read is delivered while the actual write ACK is held.
+        // Its revision must not replace the submitted draft or become a legacy cache.
+        expect(await cached()).toBe("Browser phone member");
+        expect(
+          await page.evaluate(
+            (id) =>
+              JSON.parse(
+                localStorage.getItem(
+                  `darcy:user:${id}:@darcy_profile_name_draft`,
+                )!,
+              ),
+            memberId,
+          ),
+        ).toMatchObject({
+          ownerId: memberId,
+          base: { revision: 0 },
+          values: { name: "C3 Profile ACK name" },
+        });
         await browserExpect(field).toHaveValue("C3 Profile ACK name");
         if (refresh === "newer")
           await connection.query(
-            "UPDATE users SET name='C3 Newer profile name' WHERE id=? AND openId='binding-browser-member'",
+            "UPDATE users SET name='C3 Newer profile name',profileRevision=profileRevision+1 WHERE id=? AND openId='binding-browser-member'",
             [memberId],
           );
         const refreshed =
@@ -184,10 +208,25 @@ export function registerProfileOrderBrowserCases(
         await browserExpect(
           page.getByRole("button", { name, exact: true }),
         ).toBeVisible();
-        await browserExpect.poll(cached).toBe(name);
+        expect(await cached()).toBe("Browser phone member");
         expect(
-          await rows("SELECT name FROM users WHERE id=?", [memberId]),
-        ).toEqual([{ name }]);
+          await page.evaluate(
+            (id) => [
+              localStorage.getItem(
+                `darcy:user:${id}:@darcy_profile_name_draft`,
+              ),
+              localStorage.getItem(
+                `darcy:user:${id}:@darcy_profile_name_pending`,
+              ),
+            ],
+            memberId,
+          ),
+        ).toEqual([null, null]);
+        expect(
+          await rows("SELECT name,profileRevision FROM users WHERE id=?", [
+            memberId,
+          ]),
+        ).toEqual([{ name, profileRevision: refresh === "lost" ? 1 : 2 }]);
         expect(reads).toBe(2);
         expect(writes).toBe(1);
         expect(await rows(identitySql, [memberId])).toEqual(identity);

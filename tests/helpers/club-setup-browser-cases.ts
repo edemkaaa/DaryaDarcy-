@@ -18,6 +18,18 @@ interface ClubSetupFixture {
   memberId: number;
 }
 
+async function expectRetiredClubDraft(page: Page, memberId: number) {
+  expect(
+    await page.evaluate(
+      (id) =>
+        ["name", "gender", "completed", "draft", "pending"].map((key) =>
+          localStorage.getItem(`darcy:user:${id}:@darcy_club_profile_${key}`),
+        ),
+      memberId,
+    ),
+  ).toEqual([null, null, null, null, null]);
+}
+
 async function openSetup(fixture: ClubSetupFixture) {
   const { connection, rows, context, frontend, memberId } = fixture;
   await connection.query(
@@ -58,12 +70,12 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
     async (refresh) => {
       const current = fixture();
       const { connection, rows, base, memberId } = current;
-      const { page, setup, field, identitySql, identity, access } =
-        await openSetup(current);
       await connection.query(
         "UPDATE users SET name='C3 Intermediate club name' WHERE id=? AND openId='binding-browser-member'",
         [memberId],
       );
+      const { page, setup, field, identitySql, identity, access } =
+        await openSetup(current);
       let releaseRead!: () => void,
         enterRead!: () => void,
         finishRead!: () => void;
@@ -119,26 +131,32 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
           finishRead();
         }
       });
+      let writeError: unknown;
       await page.route("**/api/trpc/*", async (route) => {
         if (!route.request().url().includes("profile.update"))
           return route.fallback();
         writes++;
-        const url = new URL(route.request().url());
-        const response = await route.fetch({
-          url: base + url.pathname + url.search,
-          maxRedirects: 0,
-        });
-        expect(response.status()).toBe(200);
-        const body = await response.json();
-        expect((Array.isArray(body) ? body[0] : body).result.data.json).toEqual(
-          {
-            success: true,
-          },
-        );
-        enterWrite();
         try {
+          const url = new URL(route.request().url());
+          const response = await route.fetch({
+            url: base + url.pathname + url.search,
+            maxRedirects: 0,
+          });
+          expect(response.status()).toBe(200);
+          const body = await response.json();
+          expect(
+            (Array.isArray(body) ? body[0] : body).result.data.json,
+          ).toEqual({
+            success: true,
+            profileRevision: 1,
+          });
+          enterWrite();
           await heldWrite;
           await route.fulfill({ response });
+        } catch (error) {
+          writeError = error;
+          enterWrite();
+          await route.abort("failed").catch(() => {});
         } finally {
           finishWrite();
         }
@@ -150,6 +168,7 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
           .getByRole("button", { name: "Продолжить", exact: true })
           .click();
         await writeEntered;
+        expect(writeError).toBeUndefined();
         await browserExpect(field).toBeDisabled();
         expect(
           await rows("SELECT name,gender FROM users WHERE id=?", [memberId]),
@@ -171,7 +190,7 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
         ).toBeVisible();
         if (refresh === "newer")
           await connection.query(
-            "UPDATE users SET name='C3 Newer server name',gender='male' WHERE id=? AND openId='binding-browser-member'",
+            "UPDATE users SET name='C3 Newer server name',gender='male',profileRevision=profileRevision+1 WHERE id=? AND openId='binding-browser-member'",
             [memberId],
           );
         const refreshed =
@@ -205,17 +224,12 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
             ? { name: "C3 Recovery club name", gender: "female" }
             : { name: "C3 Newer server name", gender: "male" },
         ]);
+        await expectRetiredClubDraft(page, memberId);
         expect(
-          await page.evaluate(
-            (id) =>
-              ["name", "gender", "completed"].map((key) =>
-                localStorage.getItem(
-                  `darcy:user:${id}:@darcy_club_profile_${key}`,
-                ),
-              ),
+          await rows("SELECT profileRevision FROM users WHERE id=?", [
             memberId,
-          ),
-        ).toEqual(["C3 Recovery club name", "female", "true"]);
+          ]),
+        ).toEqual([{ profileRevision: refresh === "lost" ? 1 : 2 }]);
         expect(reads).toBe(2);
         expect(writes).toBe(1);
         expect(await rows(identitySql, [memberId])).toEqual(identity);
@@ -303,17 +317,7 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
           exact: true,
         }),
       ).toBeVisible();
-      expect(
-        await page.evaluate(
-          (id) =>
-            ["name", "gender", "completed"].map((key) =>
-              localStorage.getItem(
-                `darcy:user:${id}:@darcy_club_profile_${key}`,
-              ),
-            ),
-          memberId,
-        ),
-      ).toEqual(["C3 Recovery club name", "female", "true"]);
+      await expectRetiredClubDraft(page, memberId);
       expect(writes).toBe(1);
       expect(await rows(identitySql, [memberId])).toEqual(identity);
       expect(
@@ -382,21 +386,13 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
         });
       }
     }
-    expect(
-      await page.evaluate(
-        (id) =>
-          ["name", "gender", "completed"].map((key) =>
-            localStorage.getItem(`darcy:user:${id}:@darcy_club_profile_${key}`),
-          ),
-        memberId,
-      ),
-    ).toEqual(["C3 Recovery club name", "female", "true"]);
+    await expectRetiredClubDraft(page, memberId);
     expect(writes).toBe(1);
     await fixture().removePageRoutes(page);
     // A new confirmed snapshot can legitimately restore the original values.
     // Compare snapshot identity, not just strings, and honour a cleared gender.
     await connection.query(
-      "UPDATE users SET name='Browser phone member',gender=NULL WHERE id=? AND openId='binding-browser-member'",
+      "UPDATE users SET name='Browser phone member',gender=NULL,profileRevision=profileRevision+1 WHERE id=? AND openId='binding-browser-member'",
       [memberId],
     );
     const [restored] = await Promise.all([
@@ -412,7 +408,7 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
       page.getByText("Очень рада тебе, Browser phone member", { exact: true }),
     ).toBeVisible();
     await connection.query(
-      "UPDATE users SET name=NULL WHERE id=? AND openId='binding-browser-member'",
+      "UPDATE users SET name=NULL,profileRevision=profileRevision+1 WHERE id=? AND openId='binding-browser-member'",
       [memberId],
     );
     const [cleared] = await Promise.all([
@@ -426,7 +422,7 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
     });
     await browserExpect(page.getByText(/^Очень рада тебе,/)).toHaveCount(0);
     await connection.query(
-      "UPDATE users SET name='C3 New remote name',gender='male' WHERE id=? AND openId='binding-browser-member'",
+      "UPDATE users SET name='C3 New remote name',gender='male',profileRevision=profileRevision+1 WHERE id=? AND openId='binding-browser-member'",
       [memberId],
     );
     const [recovered] = await Promise.all([
@@ -503,13 +499,15 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
     expect(
       await page.evaluate(() =>
         Object.entries(localStorage).filter(([key]) =>
-          /:@darcy_club_profile_(name|gender|completed)$/.test(key),
+          /:@darcy_club_profile_(name|gender|completed|draft|pending)$/.test(
+            key,
+          ),
         ),
       ),
     ).toEqual([]);
   }, 30_000);
   it.each(["missing", "present"])(
-    "C3 club avatar-cache migration preserves identity and a confirmed server avatar (%s)",
+    "C3 club avatar-cache cannot populate or overwrite a server avatar (%s)",
     async (serverAvatar) => {
       const current = fixture();
       const { connection, rows, context, frontend, memberId } = current;
@@ -531,33 +529,22 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
         { id: memberId, avatar: cached },
       );
       let writes = 0,
-        uploads = 0,
-        acknowledged = false;
+        uploads = 0;
       context.on("request", (request) => {
         if (request.method() !== "POST") return;
         if (request.url().includes("profile.update")) writes++;
         if (request.url().includes("profile.uploadAvatar")) uploads++;
       });
-      context.on("response", (response) => {
-        if (
-          response.url().includes("profile.update") &&
-          response.status() === 200
-        )
-          acknowledged = true;
-      });
       const { setup, identitySql, identity, access } = await openSetup(current);
       await browserExpect(setup).toBeVisible();
-      if (serverAvatar === "missing") {
-        await browserExpect.poll(() => acknowledged).toBe(true);
-      }
       expect(
         await rows("SELECT avatarUrl FROM users WHERE id=?", [memberId]),
       ).toEqual([
         {
-          avatarUrl: serverAvatar === "present" ? confirmed : cached,
+          avatarUrl: serverAvatar === "present" ? confirmed : null,
         },
       ]);
-      expect(writes).toBe(serverAvatar === "present" ? 0 : 1);
+      expect(writes).toBe(0);
       expect(uploads).toBe(0);
       expect(await rows(identitySql, [memberId])).toEqual(identity);
       expect(
@@ -566,8 +553,10 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
       expect(
         await rows("SELECT name,gender FROM users WHERE id=?", [memberId]),
       ).toEqual([{ name: "Browser phone member", gender: null }]);
-      // Only a same-origin, already remote URL is migrated. No external storage
-      // write or synthetic upload response is used by this acceptance case.
+      // A legacy local URL is untrusted input, never an implicit server write.
+      expect(
+        await rows("SELECT profileRevision FROM users WHERE id=?", [memberId]),
+      ).toEqual([{ profileRevision: 0 }]);
     },
     30_000,
   );
@@ -599,7 +588,7 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
           const body = await response.json();
           expect(
             (Array.isArray(body) ? body[0] : body).result.data.json,
-          ).toEqual({ success: true });
+          ).toEqual({ success: true, profileRevision: 1 });
         }
         return route.abort("failed");
       });
@@ -624,7 +613,7 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
       await browserExpect(setup).toBeVisible();
       await browserExpect(field).toHaveValue("C3 Recovery club name");
       await browserExpect(setup.getByRole("alert")).toContainText(
-        "Не удалось сохранить анкету",
+        "Результат сохранения не подтверждён",
       );
       expect(
         await page.evaluate(
@@ -650,27 +639,86 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
         }
       }
       await fixture().removePageRoutes(page);
-      const [retried] = await Promise.all([
-        page.waitForResponse(
-          (response) =>
-            response.request().method() === "POST" &&
-            response.url().includes("profile.update"),
+      expect(
+        await page.evaluate(
+          (id) => ({
+            draft: JSON.parse(
+              localStorage.getItem(
+                `darcy:user:${id}:@darcy_club_profile_draft`,
+              )!,
+            ),
+            pending: JSON.parse(
+              localStorage.getItem(
+                `darcy:user:${id}:@darcy_club_profile_pending`,
+              )!,
+            ),
+          }),
+          memberId,
         ),
-        setup
+      ).toMatchObject({
+        draft: {
+          ownerId: memberId,
+          base: { revision: 0 },
+          values: { name: "C3 Recovery club name", gender: "female" },
+        },
+        pending: {
+          name: "C3 Recovery club name",
+          gender: "female",
+          expectedRevision: 0,
+        },
+      });
+      if (lost === "uncommitted") {
+        await page.reload();
+        await browserExpect(setup).toBeVisible();
+        await browserExpect(field).toHaveValue("C3 Recovery club name");
+        await browserExpect(field).toBeDisabled();
+      }
+      expect(writes).toBe(1);
+      const checked = page.waitForResponse(
+        (reply) => new URL(reply.url()).pathname === "/api/auth/me",
+      );
+      await setup
+        .getByRole("button", {
+          name: "Проверить сохранение анкеты",
+          exact: true,
+        })
+        .click();
+      expect((await checked).status()).toBe(200);
+      if (lost === "uncommitted") {
+        const submit = setup.getByRole("button", {
+          name: "Продолжить",
+          exact: true,
+        });
+        await browserExpect(submit).toBeDisabled();
+        await browserExpect(field).toHaveValue("C3 Recovery club name");
+        expect(writes).toBe(1);
+        expect(
+          await rows(
+            "SELECT name,gender,profileRevision FROM users WHERE id=?",
+            [memberId],
+          ),
+        ).toEqual([
+          { name: "Browser phone member", gender: null, profileRevision: 0 },
+        ]);
+        await setup
           .getByRole("button", {
-            name: "Повторить сохранение анкеты",
+            name: "Использовать мой черновик",
             exact: true,
           })
-          .click(),
-      ]);
-      expect(retried.status()).toBe(200);
+          .click();
+        const saved = page.waitForResponse((reply) =>
+          reply.url().includes("profile.update"),
+        );
+        await submit.click();
+        expect((await saved).status()).toBe(200);
+      }
       await browserExpect(setup).toHaveCount(0);
       await browserExpect(
         page.getByText("Очень рада тебе, дорогая C3 Recovery club name", {
           exact: true,
         }),
       ).toBeVisible();
-      expect(writes).toBe(2);
+      expect(writes).toBe(lost === "uncommitted" ? 2 : 1);
       expect(
         await rows("SELECT name,gender FROM users WHERE id=?", [memberId]),
       ).toEqual([{ name: "C3 Recovery club name", gender: "female" }]);
@@ -678,17 +726,17 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
       expect(
         await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
       ).toEqual(access);
+      await expectRetiredClubDraft(page, memberId);
       expect(
-        await page.evaluate(
-          (id) =>
-            ["name", "gender", "completed"].map((key) =>
-              localStorage.getItem(
-                `darcy:user:${id}:@darcy_club_profile_${key}`,
-              ),
-            ),
-          memberId,
-        ),
-      ).toEqual(["C3 Recovery club name", "female", "true"]);
+        await rows("SELECT profileRevision FROM users WHERE id=?", [memberId]),
+      ).toEqual([{ profileRevision: 1 }]);
+      await page.reload();
+      await browserExpect(
+        page.getByText("Очень рада тебе, дорогая C3 Recovery club name", {
+          exact: true,
+        }),
+      ).toBeVisible();
+      await browserExpect(setup).toHaveCount(0);
     },
     30_000,
   );
@@ -720,7 +768,7 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
         expect(response.status()).toBe(200);
         const body = await response.json();
         expect((Array.isArray(body) ? body[0] : body).result.data.json).toEqual(
-          { success: true },
+          { success: true, profileRevision: 1 },
         );
         captured = true;
         await held;
@@ -741,7 +789,22 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
           name: "Закрыть настройку профиля",
           exact: true,
         }),
-      ).toBeDisabled();
+      ).toBeEnabled();
+      expect(
+        await page.evaluate(
+          (id) =>
+            JSON.parse(
+              localStorage.getItem(
+                `darcy:user:${id}:@darcy_club_profile_pending`,
+              )!,
+            ),
+          memberId,
+        ),
+      ).toMatchObject({
+        name: "C3 Recovery club name",
+        gender: "female",
+        expectedRevision: 0,
+      });
       expect(
         await rows("SELECT name,gender FROM users WHERE id=?", [memberId]),
       ).toEqual([{ name: "C3 Recovery club name", gender: "female" }]);
@@ -781,7 +844,9 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
       expect(
         await page.evaluate(() =>
           Object.entries(localStorage).filter(([key]) =>
-            /:@darcy_club_profile_(name|gender|completed)$/.test(key),
+            /:@darcy_club_profile_(name|gender|completed|draft|pending)$/.test(
+              key,
+            ),
           ),
         ),
       ).toEqual([]);
@@ -794,6 +859,15 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
           "SELECT name,gender FROM users WHERE openId='binding-browser-admin'",
         ),
       ).toEqual([{ name: "Browser administrator", gender: null }]);
+      expect(
+        await rows(
+          "SELECT openId,profileRevision FROM users WHERE id=? OR openId='binding-browser-admin' ORDER BY id",
+          [memberId],
+        ),
+      ).toEqual([
+        { openId: "binding-browser-admin", profileRevision: 0 },
+        { openId: "binding-browser-member", profileRevision: 1 },
+      ]);
       expect(await rows(identitySql, [memberId])).toEqual(identity);
       expect(
         await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
