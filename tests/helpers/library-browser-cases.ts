@@ -55,7 +55,14 @@ export function registerLibraryBrowserCases(
         response.url().includes("articles.list"),
       );
       await page.goto(frontend + "library");
-      expect((await listed).status()).toBe(200);
+      const listResponse = await listed;
+      expect(listResponse.status()).toBe(200);
+      const listBody = await listResponse.text();
+      expect(listBody).toContain("C3 library public fixture");
+      expect(listBody).toContain("C3 library club fixture");
+      expect(listBody).not.toContain("C3 private article body fixture");
+      expect(listBody).not.toContain("C3 library draft fixture");
+      expect(listBody).not.toContain("C3 draft article body fixture");
       await page
         .getByPlaceholder("Поиск материалов...")
         .filter({ visible: true })
@@ -71,7 +78,9 @@ export function registerLibraryBrowserCases(
       });
       await browserExpect(clubCard).toBeVisible();
       await browserExpect(
-        clubCard.getByText("Для участниц клуба Darcy →", { exact: true }),
+        clubCard.locator("..").getByText("Для участниц клуба Darcy →", {
+          exact: true,
+        }),
       ).toBeVisible();
       await browserExpect(
         page.getByText("C3 library draft fixture", { exact: true }),
@@ -84,7 +93,9 @@ export function registerLibraryBrowserCases(
       await browserExpect(
         page.getByText("C3 public article body fixture", { exact: true }),
       ).toBeVisible();
-      await page.getByRole("button", { name: "← Назад", exact: true }).click();
+      await page
+        .getByRole("button", { name: "Вернуться назад", exact: true })
+        .click();
       await browserExpect(material).toBeVisible();
       const locked = page.waitForResponse((response) =>
         response.url().includes("articles.getById"),

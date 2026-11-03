@@ -122,9 +122,11 @@ export function registerSeasonAdminBrowserCases(fixture: () => SeasonFixture) {
       ]);
       expect(response.status()).toBe(200);
       expect(await response.json()).toEqual({ revision: 32, config: expected });
-      await browserExpect(form.getByRole("status")).toHaveText(
-        "Настройки сезонов сохранены.",
-      );
+      await browserExpect(
+        form
+          .getByRole("status")
+          .getByText("Настройки сезонов сохранены.", { exact: true }),
+      ).toBeVisible();
       const saved = await rows(
         "SELECT revision,CAST(config AS CHAR) AS config,updatedBy FROM launch_settings WHERE id=1",
       );
@@ -203,9 +205,13 @@ export function registerSeasonAdminBrowserCases(fixture: () => SeasonFixture) {
       await form
         .getByRole("button", { name: "Проверить настройки", exact: true })
         .click();
-      await browserExpect(form.getByRole("status")).toHaveText(
-        "Актуальные настройки совпадают с вашим вариантом.",
-      );
+      await browserExpect(
+        form
+          .getByRole("status")
+          .getByText("Актуальные настройки совпадают с вашим вариантом.", {
+            exact: true,
+          }),
+      ).toBeVisible();
       await browserExpect(
         form.getByLabel("Весна: дата начала", { exact: true }),
       ).toBeEnabled();
@@ -487,9 +493,14 @@ export function registerSeasonAdminBrowserCases(fixture: () => SeasonFixture) {
       ]);
       expect(checked.status()).toBe(200);
       expect(await checked.json()).toEqual({ revision: 31, config: initial });
-      await browserExpect(form.getByRole("status")).toHaveText(
-        "Настройки проверены. Ваш ввод сохранён; можно сохранить его отдельно.",
-      );
+      await browserExpect(
+        form
+          .getByRole("status")
+          .getByText(
+            "Настройки проверены. Ваш ввод сохранён; можно сохранить его отдельно.",
+            { exact: true },
+          ),
+      ).toBeVisible();
       await browserExpect(field).toHaveValue("03-21");
       await browserExpect(field).toBeEnabled();
       await browserExpect(save).toBeEnabled();
@@ -516,9 +527,11 @@ export function registerSeasonAdminBrowserCases(fixture: () => SeasonFixture) {
           },
         },
       });
-      await browserExpect(form.getByRole("status")).toHaveText(
-        "Настройки сезонов сохранены.",
-      );
+      await browserExpect(
+        form
+          .getByRole("status")
+          .getByText("Настройки сезонов сохранены.", { exact: true }),
+      ).toBeVisible();
       expect(writes).toBe(2);
       const committed = await rows(
         "SELECT revision,updatedBy,CAST(config AS CHAR) AS config FROM launch_settings WHERE id=1",
@@ -555,9 +568,11 @@ export function registerSeasonAdminBrowserCases(fixture: () => SeasonFixture) {
       await winner
         .getByRole("button", { name: "Сохранить сезоны", exact: true })
         .click();
-      await browserExpect(winner.getByRole("status")).toHaveText(
-        "Настройки сезонов сохранены.",
-      );
+      await browserExpect(
+        winner
+          .getByRole("status")
+          .getByText("Настройки сезонов сохранены.", { exact: true }),
+      ).toBeVisible();
       const committed = await rows("SELECT * FROM launch_settings WHERE id=1");
       const [rejected] = await Promise.all([
         stalePage.waitForResponse(
@@ -596,9 +611,11 @@ export function registerSeasonAdminBrowserCases(fixture: () => SeasonFixture) {
       ).toBeDisabled();
       stalePage.once("dialog", (dialog) => dialog.accept());
       await load.click();
-      await browserExpect(stale.getByRole("status")).toHaveText(
-        "Актуальные настройки загружены.",
-      );
+      await browserExpect(
+        stale
+          .getByRole("status")
+          .getByText("Актуальные настройки загружены.", { exact: true }),
+      ).toBeVisible();
       await browserExpect(
         stale.getByLabel("Весна: дата начала", { exact: true }),
       ).toHaveValue("03-01");
