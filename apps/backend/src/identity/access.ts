@@ -352,7 +352,7 @@ export async function processAccessEmails(
         .update(accessEmailOutbox)
         .set({
           leaseId,
-          leaseUntil: new Date(Date.now() + 300000),
+          leaseUntil: sql`DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 5 MINUTE)`,
           attempts: row.attempts + 1,
         })
         .where(eq(accessEmailOutbox.id, row.id));
@@ -414,6 +414,22 @@ export async function processAccessEmails(
                   "'": "&#39;",
                 })[character]!,
             );
+          // A paused worker can resume after a replacement acquired its job.
+          // Revalidate immediately before SMTP, not only when recording success.
+          const [owned] = await database
+            .select({ id: accessEmailOutbox.id })
+            .from(accessEmailOutbox)
+            .where(
+              and(
+                eq(accessEmailOutbox.id, mail.id),
+                eq(accessEmailOutbox.leaseId, leaseId),
+                gt(accessEmailOutbox.leaseUntil, sql`CURRENT_TIMESTAMP`),
+                isNull(accessEmailOutbox.sentAt),
+                isNull(accessEmailOutbox.discardedAt),
+              ),
+            )
+            .limit(1);
+          if (!owned) continue;
           success = await send({
             to: mail.email,
             subject:

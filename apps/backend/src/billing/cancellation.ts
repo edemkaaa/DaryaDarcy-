@@ -3,6 +3,7 @@ import {
   and,
   desc,
   eq,
+  gt,
   isNotNull,
   isNull,
   like,
@@ -258,7 +259,7 @@ export async function processCancellations(
         .update(billingProfiles)
         .set({
           leaseId,
-          leaseUntil: new Date(Date.now() + 60000),
+          leaseUntil: sql`DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 1 MINUTE)`,
           attempts: row.attempts + 1,
         })
         .where(eq(billingProfiles.profileKey, row.profileKey));
@@ -271,6 +272,22 @@ export async function processCancellations(
       .where(eq(users.id, profile.userId));
     let success = false;
     try {
+      // Final state writes already compare leaseId. The external request must
+      // also be refused if this worker lost ownership while reading the actor.
+      const [owned] = await database
+        .select({ profileKey: billingProfiles.profileKey })
+        .from(billingProfiles)
+        .where(
+          and(
+            eq(billingProfiles.profileKey, profile.profileKey),
+            eq(billingProfiles.leaseId, leaseId),
+            gt(billingProfiles.leaseUntil, sql`CURRENT_TIMESTAMP`),
+            isNotNull(billingProfiles.cancelRequestedAt),
+            isNull(billingProfiles.cancelledAt),
+          ),
+        )
+        .limit(1);
+      if (!owned) continue;
       success = await send({ ...profile, manager: Boolean(user?.blockedAt) });
     } catch {
       success = false;
