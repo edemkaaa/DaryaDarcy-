@@ -41,6 +41,7 @@ export class TrpcService {
       notifications,
       profiles,
       moderation,
+      this.sessions,
     );
   }
 

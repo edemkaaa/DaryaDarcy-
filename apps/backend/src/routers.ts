@@ -1,6 +1,7 @@
 import { router } from "./_core/trpc";
 import { systemRouter } from "./_core/systemRouter";
-import { authRouter } from "./identity/router";
+import { createAuthRouter } from "./identity/router";
+import { SessionService } from "./identity/session.service";
 import {
   createProfileRouter,
   createProfileExtrasRouter,
@@ -36,10 +37,11 @@ export const createAppRouter = (
   notifications: NotificationsService,
   profiles: ProfileService,
   moderation: ModerationService,
+  sessions: Pick<SessionService, "revokeSessions"> = new SessionService(),
 ) =>
   router({
     system: systemRouter,
-    auth: authRouter,
+    auth: createAuthRouter(sessions),
     profile: createProfileRouter(profiles),
     feed: createFeedRouter(content, posts),
     notifications: createNotificationsRouter(notifications, content),
