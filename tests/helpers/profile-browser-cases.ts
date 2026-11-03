@@ -130,7 +130,7 @@ export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
             memberId,
           ),
         )
-        .toBe("C3 Profile ordered name");
+        .toBeNull();
       expect(writes).toBe(1);
       expect(await rows(identitySql, [memberId])).toEqual(identity);
       expect(
@@ -226,12 +226,8 @@ export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
           localStorage.getItem(`darcy:user:${id}:@darcy_club_profile_name`),
         memberId,
       );
-    expect(await cached()).toBe("C3 Profile acknowledged name");
+    expect(await cached()).toBeNull();
     await fixture().removePageRoutes(page);
-    await connection.query(
-      "UPDATE users SET name='Browser phone member' WHERE id=? AND openId='binding-browser-member'",
-      [memberId],
-    );
     const [restored] = await Promise.all([
       page.waitForResponse(
         (response) => new URL(response.url()).pathname === "/api/auth/me",
@@ -239,12 +235,15 @@ export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
       page.evaluate(() => window.dispatchEvent(new Event("online"))),
     ]);
     expect(await restored.json()).toMatchObject({
-      user: { name: "Browser phone member" },
+      user: { name: "C3 Profile acknowledged name", profileRevision: 1 },
     });
     await browserExpect(
-      page.getByRole("button", { name: "Browser phone member", exact: true }),
+      page.getByRole("button", {
+        name: "C3 Profile acknowledged name",
+        exact: true,
+      }),
     ).toBeVisible();
-    await browserExpect.poll(cached).toBe("Browser phone member");
+    await browserExpect.poll(cached).toBeNull();
     expect(writes).toBe(1);
     expect(await rows(identitySql, [memberId])).toEqual(identity);
     expect(
@@ -374,9 +373,14 @@ export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
           writes++;
       });
       await page.goto(frontend + "club");
-      // The mount sync finishes by refreshing native identity, even when no
-      // avatar needs migrating. Do not replace it with an arbitrary sleep.
-      await browserExpect.poll(() => identityReads).toBeGreaterThanOrEqual(2);
+      // Legacy local values never cause a write or an unnecessary mount refresh.
+      const setup = page.getByRole("dialog", {
+        name: "Настройка профиля клуба",
+      });
+      await browserExpect(
+        setup.getByPlaceholder("Как тебя зовут?"),
+      ).toHaveValue("Browser phone member");
+      await browserExpect.poll(() => identityReads).toBeGreaterThanOrEqual(1);
       expect(await rows(identitySql, [memberId])).toEqual(identity);
       expect(writes).toBe(0);
       await browserExpect(
@@ -471,9 +475,9 @@ export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
             localStorage.getItem(`darcy:user:${id}:@darcy_club_profile_name`),
           memberId,
         ),
-      ).toBe("Browser phone member");
+      ).toBe("C3 stale local name");
       await connection.query(
-        "UPDATE users SET name='C3 Fresh server name' WHERE id=? AND openId='binding-browser-member'",
+        "UPDATE users SET name='C3 Fresh server name',profileRevision=profileRevision+1 WHERE id=? AND openId='binding-browser-member'",
         [memberId],
       );
       const [refreshed] = await Promise.all([
@@ -494,14 +498,14 @@ export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
             localStorage.getItem(`darcy:user:${id}:@darcy_club_profile_name`),
           memberId,
         ),
-      ).toBe("C3 Fresh server name");
+      ).toBe("C3 stale local name");
       await page
         .getByRole("button", { name: "C3 Fresh server name", exact: true })
         .click();
       const draft = page.getByRole("textbox", { name: "Имя профиля" });
       await draft.fill("C3 unsaved draft");
       await connection.query(
-        "UPDATE users SET name='C3 Updated during editing' WHERE id=? AND openId='binding-browser-member'",
+        "UPDATE users SET name='C3 Updated during editing',profileRevision=profileRevision+1 WHERE id=? AND openId='binding-browser-member'",
         [memberId],
       );
       const [updatedDuringEditing] = await Promise.all([
@@ -522,11 +526,51 @@ export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
             memberId,
           ),
         )
-        .toBe("C3 Updated during editing");
+        .toBe("C3 stale local name");
       expect(writes).toBe(0);
+      // The draft's old revision must conflict instead of overwriting the remote edit.
+      const conflict = page.waitForResponse((reply) =>
+        reply.url().includes("profile.update"),
+      );
+      await draft.press("Enter");
+      expect((await conflict).status()).toBe(409);
+      await browserExpect(draft).toHaveValue("C3 unsaved draft");
+      await browserExpect(draft).toBeDisabled();
       expect(
-        await rows("SELECT name FROM users WHERE id=?", [memberId]),
-      ).toEqual([{ name: "C3 Updated during editing" }]);
+        await rows("SELECT name,profileRevision FROM users WHERE id=?", [
+          memberId,
+        ]),
+      ).toEqual([{ name: "C3 Updated during editing", profileRevision: 2 }]);
+      await page
+        .getByRole("button", {
+          name: "Проверить сохранение имени",
+          exact: true,
+        })
+        .click();
+      const save = page.getByRole("button", {
+        name: "Сохранить имя",
+        exact: true,
+      });
+      await browserExpect(save).toBeDisabled();
+      await browserExpect(draft).toHaveValue("C3 unsaved draft");
+      expect(writes).toBe(1);
+      await page
+        .getByRole("button", { name: "Использовать мой черновик", exact: true })
+        .click();
+      const saved = page.waitForResponse((reply) =>
+        reply.url().includes("profile.update"),
+      );
+      await save.click();
+      expect((await saved).status()).toBe(200);
+      await browserExpect(
+        page.getByRole("button", { name: "C3 unsaved draft", exact: true }),
+      ).toBeVisible();
+      expect(writes).toBe(2);
+      expect(
+        await rows("SELECT name,profileRevision FROM users WHERE id=?", [
+          memberId,
+        ]),
+      ).toEqual([{ name: "C3 unsaved draft", profileRevision: 3 }]);
       expect(await rows(identitySql, [memberId])).toEqual(identity);
       expect(
         await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
@@ -595,7 +639,7 @@ export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
         expect(response.status()).toBe(200);
         const body = await response.json();
         expect((Array.isArray(body) ? body[0] : body).result.data.json).toEqual(
-          { success: true },
+          { success: true, profileRevision: 1 },
         );
         captured = true;
         await held;
@@ -648,7 +692,9 @@ export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
       expect(
         await page.evaluate(() =>
           Object.entries(localStorage).filter(([key]) =>
-            key.endsWith(":@darcy_club_profile_name"),
+            /:@darcy_(club_profile_name|profile_name_draft|profile_name_pending)$/.test(
+              key,
+            ),
           ),
         ),
       ).toEqual([]);
@@ -661,6 +707,15 @@ export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
           "SELECT name FROM users WHERE openId='binding-browser-admin'",
         ),
       ).toEqual([{ name: "Browser administrator" }]);
+      expect(
+        await rows(
+          "SELECT openId,profileRevision FROM users WHERE id=? OR openId='binding-browser-admin' ORDER BY id",
+          [memberId],
+        ),
+      ).toEqual([
+        { openId: "binding-browser-admin", profileRevision: 0 },
+        { openId: "binding-browser-member", profileRevision: 1 },
+      ]);
       expect(await rows(identitySql, [memberId])).toEqual(identities);
       expect(
         await rows("SELECT * FROM club_payments WHERE userId=?", [memberId]),
@@ -721,7 +776,10 @@ export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
         await page
           .getByRole("button", { name: "Browser phone member", exact: true })
           .click();
-        const field = page.getByRole("textbox").filter({ visible: true });
+        const field = page.getByRole("textbox", {
+          name: "Имя профиля",
+          exact: true,
+        });
         await field.fill("C3 Confirmed profile name");
         let writes = 0;
         page.on("request", (request) => {
@@ -747,7 +805,7 @@ export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
               const body = await response.json();
               expect(
                 (Array.isArray(body) ? body[0] : body).result.data.json,
-              ).toEqual({ success: true });
+              ).toEqual({ success: true, profileRevision: 1 });
             }
             return route.abort("failed");
           });
@@ -776,7 +834,7 @@ export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
           await browserExpect(
             page
               .getByRole("alert")
-              .filter({ hasText: "Не удалось сохранить имя" }),
+              .filter({ hasText: "Результат сохранения не подтверждён" }),
           ).toBeVisible();
           await browserExpect(field).toHaveValue("C3 Confirmed profile name");
           expect(
@@ -793,7 +851,7 @@ export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
           await browserExpect(
             page
               .getByRole("alert")
-              .filter({ hasText: "Не удалось сохранить имя" }),
+              .filter({ hasText: "Результат сохранения не подтверждён" }),
           ).toBeVisible();
           expect(writes).toBe(1);
           if (process.env.PROFILE_SCREENSHOT_PREFIX && lost === "uncommitted") {
@@ -804,13 +862,76 @@ export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
               });
             }
           }
+          await browserExpect(field).toBeDisabled();
+          const persisted = () =>
+            page.evaluate(
+              (id) => ({
+                draft: JSON.parse(
+                  localStorage.getItem(
+                    `darcy:user:${id}:@darcy_profile_name_draft`,
+                  )!,
+                ),
+                pending: JSON.parse(
+                  localStorage.getItem(
+                    `darcy:user:${id}:@darcy_profile_name_pending`,
+                  )!,
+                ),
+              }),
+              memberId,
+            );
+          expect(await persisted()).toMatchObject({
+            draft: {
+              ownerId: memberId,
+              base: { revision: 0 },
+              values: { name: "C3 Confirmed profile name" },
+            },
+            pending: { name: "C3 Confirmed profile name", expectedRevision: 0 },
+          });
           await fixture().removePageRoutes(page);
+          await page.reload();
           await page
             .getByRole("button", {
-              name: "Повторить сохранение имени",
+              name:
+                lost === "committed"
+                  ? "C3 Confirmed profile name"
+                  : "Browser phone member",
               exact: true,
             })
             .click();
+          await browserExpect(field).toHaveValue("C3 Confirmed profile name");
+          await browserExpect(field).toBeDisabled();
+          expect(writes).toBe(1);
+          const checked = page.waitForResponse(
+            (reply) => new URL(reply.url()).pathname === "/api/auth/me",
+          );
+          await page
+            .getByRole("button", {
+              name: "Проверить сохранение имени",
+              exact: true,
+            })
+            .click();
+          expect((await checked).status()).toBe(200);
+          if (lost === "uncommitted") {
+            const save = page.getByRole("button", {
+              name: "Сохранить имя",
+              exact: true,
+            });
+            await browserExpect(field).toHaveValue("C3 Confirmed profile name");
+            await browserExpect(save).toBeDisabled();
+            expect(writes).toBe(1);
+            expect(
+              await rows("SELECT name,profileRevision FROM users WHERE id=?", [
+                memberId,
+              ]),
+            ).toEqual([{ name: "Browser phone member", profileRevision: 0 }]);
+            await page
+              .getByRole("button", {
+                name: "Использовать мой черновик",
+                exact: true,
+              })
+              .click();
+            await save.click();
+          }
           await browserExpect(
             page.getByRole("button", {
               name: "C3 Confirmed profile name",
@@ -840,7 +961,7 @@ export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
           const body = await response.json();
           expect(
             (Array.isArray(body) ? body[0] : body).result.data.json,
-          ).toEqual({ success: true });
+          ).toEqual({ success: true, profileRevision: 1 });
           await browserExpect(
             page.getByRole("button", {
               name: "C3 Confirmed profile name",
@@ -858,7 +979,25 @@ export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
             }),
           ).toBeVisible();
         }
-        expect(writes).toBe(lost === "confirmed" ? 1 : 2);
+        expect(writes).toBe(lost === "uncommitted" ? 2 : 1);
+        expect(
+          await rows("SELECT profileRevision FROM users WHERE id=?", [
+            memberId,
+          ]),
+        ).toEqual([{ profileRevision: 1 }]);
+        expect(
+          await page.evaluate(
+            (id) => [
+              localStorage.getItem(
+                `darcy:user:${id}:@darcy_profile_name_draft`,
+              ),
+              localStorage.getItem(
+                `darcy:user:${id}:@darcy_profile_name_pending`,
+              ),
+            ],
+            memberId,
+          ),
+        ).toEqual([null, null]);
         if (lost === "confirmed") {
           await context.clearCookies();
           await context.addCookies([
