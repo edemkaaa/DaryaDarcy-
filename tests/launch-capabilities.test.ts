@@ -18,6 +18,9 @@ const effects = vi.hoisted(() => ({
   orders: 0,
   profiles: 0,
 }));
+vi.mock("../apps/backend/src/database/connection", () => ({
+  getDb: async () => { effects.database++; return null; },
+}));
 vi.mock("../apps/backend/src/db", () => ({
   isOwnerAccount: (user: User) => user.role === "admin",
   getDb: async () => {
