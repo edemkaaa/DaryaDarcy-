@@ -15,6 +15,7 @@ export default defineConfig({
     "vk-video.spec.ts",
     "content-refresh.spec.ts",
     "media-failure-lifecycle.spec.ts",
+    "status-notice-layout.spec.ts",
   ],
   outputDir: "test-results/catalog",
 });

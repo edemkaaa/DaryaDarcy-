@@ -69,6 +69,8 @@ for (const mode of ["full", "quick"] as const) {
           scheduledAt: null,
           createdAt: "2026-10-04T10:00:00Z",
           publishedAt: "2026-10-04T10:00:00Z",
+          likeCount: 0,
+          commentCount: 0,
           richText: [
             {
               type: "paragraph",
@@ -184,6 +186,8 @@ for (const mode of ["full", "quick"] as const) {
       scheduledAt: null,
       createdAt: "2026-10-04T10:00:00Z",
       publishedAt: "2026-10-04T10:00:00Z",
+      likeCount: 0,
+      commentCount: 0,
       richText: [
         {
           type: "paragraph",
@@ -342,6 +346,8 @@ for (const mode of ["full", "quick"] as const) {
       scheduledAt: null,
       createdAt: "2026-10-04T10:00:00Z",
       publishedAt: "2026-10-04T10:00:00Z",
+      likeCount: 0,
+      commentCount: 0,
       richText: [
         {
           type: "paragraph",

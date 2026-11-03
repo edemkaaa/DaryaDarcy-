@@ -28,10 +28,20 @@ for (const mode of ["full", "quick"] as const) {
             id: 42,
             createdAt: "2026-10-13T10:00:00Z",
             publishedAt: "2026-10-13T10:00:00Z",
+            likeCount: 0,
+            commentCount: 0,
             media: ((input.videos as string[]) ?? []).map((url, i) => ({
               id: i + 1,
               type: "video",
               url,
+              duration: null,
+              filename: null,
+              mimeType: null,
+              posterUrl: null,
+              fileSize: null,
+              postId: 42,
+              sortOrder: i,
+              createdAt: "2026-10-13T10:00:00Z",
             })),
           };
           return name === "admin.createPost" ? ok(42) : ok({ success: true });

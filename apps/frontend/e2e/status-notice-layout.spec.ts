@@ -2,18 +2,32 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
 import { editorApi, failure, ok } from "./editor-fixtures";
 
-async function outsideNavigation(page: Page, notice: Locator) {
+const catalogEnabled = process.env.VK_CATALOG_UI_ENABLED === "true";
+
+async function outsideNavigation(
+  page: Page,
+  notice: Locator,
+  standalone = false,
+) {
   await expect(notice).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
   const control = notice.locator("button, a").first();
   if (await control.count()) await control.scrollIntoViewIfNeeded();
-  const header = (await page
-    .getByRole("banner", { name: "Навигация профиля" })
-    .boundingBox())!;
-  const navigation = (await page
-    .getByRole("navigation", { name: "Разделы", exact: true })
-    .boundingBox())!;
-  const main = (await page.locator("main").boundingBox())!;
+  const viewport = page.viewportSize()!;
+  // Next's unmatched-route fallback is outside the tab shell and has no session read.
+  const header = standalone
+    ? { y: 0, height: 0 }
+    : (await page
+        .getByRole("banner", { name: "Навигация профиля" })
+        .boundingBox())!;
+  const navigation = standalone
+    ? { y: viewport.height }
+    : (await page
+        .getByRole("navigation", { name: "Разделы", exact: true })
+        .boundingBox())!;
+  const main = standalone
+    ? { x: 0, width: viewport.width }
+    : (await page.locator("main").boundingBox())!;
   const card = (await notice.boundingBox())!;
   if (
     card.y < Math.max(0, header.y + header.height) ||
@@ -71,15 +85,20 @@ for (const [width, height] of [
   test.describe(`notices outside navigation at ${width}x${height}`, () => {
     test.use({ viewport: { width, height } });
 
-    test("an unknown route keeps the whole notice and home link below the header", async ({
+    test("an unknown route keeps its standalone 404 notice and home link inside the viewport", async ({
       page,
     }) => {
       await layoutApi(page);
-      await gotoWithSession(page, "/missing-status-layout");
+      const response = await page.goto("/missing-status-layout", {
+        waitUntil: "domcontentloaded",
+      });
+      expect(response?.status()).toBe(404);
+      await expect(page.getByRole("banner")).toHaveCount(0);
+      await expect(page.getByRole("navigation")).toHaveCount(0);
       const notice = page
         .getByRole("status")
         .filter({ hasText: "Страница не найдена." });
-      await outsideNavigation(page, notice);
+      await outsideNavigation(page, notice, true);
       await page.screenshot({ path: test.info().outputPath("not-found.png") });
       await notice
         .getByRole("link", { name: "Вернуться на главную →" })
@@ -112,7 +131,11 @@ for (const [width, height] of [
         "Сервис временно недоступен",
       ],
       ["/feed", "feed.listPaginated", "Не удалось загрузить ленту"],
-      ["/videos", "videos.catalog", "Не удалось загрузить видео"],
+      [
+        "/videos",
+        catalogEnabled ? "videos.catalog" : "videos.list",
+        "Не удалось загрузить видео",
+      ],
     ]) {
       test(`a failed initial read on ${path} keeps retry clear of navigation`, async ({
         page,
@@ -164,18 +187,80 @@ for (const [width, height] of [
     test("a page render error keeps its recovery action below the header", async ({
       page,
     }) => {
+      await page.addInitScript(() => {
+        const nativeGetDate = Date.prototype.getDate;
+        Date.prototype.getDate = function () {
+          if (
+            this.getTime() === Date.parse("2026-10-02T12:00:00Z") &&
+            !(window as unknown as { allowNoticeRender?: boolean })
+              .allowNoticeRender
+          )
+            throw new Error("Synthetic post date render failure");
+          return nativeGetDate.call(this);
+        };
+      });
       await layoutApi(page, false, (name) =>
         name === "feed.listPaginated"
+          ? ok({
+              posts: [
+                {
+                  id: 700,
+                  text: "NOTICE_RENDER_RECOVERY_POST",
+                  photos: [],
+                  tags: [],
+                  media: [],
+                  richText: null,
+                  target: "feed",
+                  likeCount: 0,
+                  commentCount: 0,
+                  createdAt: "2026-10-02T12:00:00Z",
+                  publishedAt: "2026-10-02T12:00:00Z",
+                },
+              ],
+              nextCursor: null,
+            })
+          : undefined,
+      );
+      await gotoWithSession(page, "/feed");
+      const notice = page.getByRole("alert").filter({
+        hasText: "Не удалось открыть страницу.",
+      });
+      await outsideNavigation(page, notice);
+      await page.evaluate(() =>
+        Object.assign(window, { allowNoticeRender: true }),
+      );
+      await notice
+        .getByRole("button", { name: "Попробовать ещё раз", exact: true })
+        .click();
+      await expect(notice).toHaveCount(0);
+      await expect(
+        page.getByText("NOTICE_RENDER_RECOVERY_POST", { exact: true }),
+      ).toBeVisible();
+    });
+
+    test("a malformed initial list is rejected before rendering and retry stays reachable", async ({
+      page,
+    }) => {
+      let valid = false;
+      await layoutApi(page, false, (name) =>
+        name === "feed.listPaginated" && !valid
           ? ok({ posts: [null], nextCursor: null })
           : undefined,
       );
       await gotoWithSession(page, "/feed");
-      await outsideNavigation(
-        page,
-        page
-          .getByRole("alert")
-          .filter({ hasText: "Не удалось открыть страницу." }),
-      );
+      const notice = page
+        .getByRole("alert")
+        .filter({ hasText: "Не удалось загрузить ленту" });
+      await outsideNavigation(page, notice);
+      await expect(
+        page.getByText("Не удалось открыть страницу.", { exact: true }),
+      ).toHaveCount(0);
+      valid = true;
+      await notice
+        .getByRole("button", { name: "Повторить", exact: true })
+        .click();
+      await expect(notice).toHaveCount(0);
+      await expect(page.getByRole("article").first()).toBeVisible();
     });
 
     test("a failed admin list keeps retry reachable after its toolbars", async ({
@@ -201,6 +286,10 @@ for (const [width, height] of [
       test(`video playback ${status} leaves its recovery action outside navigation`, async ({
         page,
       }) => {
+        test.skip(
+          !catalogEnabled,
+          "Requires the opt-in VK catalog build; covered by the catalog profile.",
+        );
         await layoutApi(page, false, (name) => {
           if (name === "videos.playback") return failure(status);
           if (name === "videos.catalog")
@@ -218,12 +307,26 @@ for (const [width, height] of [
             });
         });
         await gotoWithSession(page, "/video/700");
-        await outsideNavigation(
-          page,
-          page
-            .locator('[role="alert"], [role="status"]')
-            .filter({ hasText: message }),
-        );
+        const notice = page
+          .locator('[role="alert"], [role="status"]')
+          .filter({ hasText: message });
+        await outsideNavigation(page, notice);
+        await expect(page.locator("iframe")).toHaveCount(0);
+        await expect(
+          notice.getByRole("button", {
+            name:
+              status === 401
+                ? "Войти"
+                : status === 403
+                  ? "Перейти в клуб"
+                  : "Повторить",
+            exact: true,
+          }),
+        ).toBeVisible();
+        if (status !== 500)
+          await expect(
+            notice.getByRole("button", { name: "Повторить", exact: true }),
+          ).toHaveCount(0);
       });
     }
 
