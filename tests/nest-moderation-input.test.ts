@@ -96,14 +96,14 @@ describe("moderation ID inputs over native HTTP", () => {
           userId: id,
           reason: "  synthetic reason  ",
         }),
-      want: [["block", 9810, 9811, "synthetic reason"]],
+      want: [["block", { id: 9810, sessionVersion: 0 }, 9811, "synthetic reason"]],
     },
     {
       name: "unblock user",
       validId: 9811,
       run: (id: number) =>
         client().moderation.unblockUser.mutate({ userId: id }),
-      want: [["unblock", 9810, 9811]],
+      want: [["unblock", { id: 9810, sessionVersion: 0 }, 9811]],
     },
   ];
   beforeAll(async () => {
@@ -147,8 +147,8 @@ describe("moderation ID inputs over native HTTP", () => {
     { method: "listCommentReports", want: [moderator] },
     { method: "dismissCommentReport", want: [{ id: 9810, sessionVersion: 0 }, 9811] },
     { method: "deleteReportedComment", want: [{ id: 9810, sessionVersion: 0 }, 9811] },
-    { method: "blockUser", want: [9810, 9811, "synthetic reason"] },
-    { method: "unblockUser", want: [9810, 9811] },
+    { method: "blockUser", want: [{ id: 9810, sessionVersion: 0 }, 9811, "synthetic reason"] },
+    { method: "unblockUser", want: [{ id: 9810, sessionVersion: 0 }, 9811] },
   ])(
     "$method preserves the explicitly supplied service's refusal",
     async ({ method, want }) => {

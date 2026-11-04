@@ -160,7 +160,7 @@ describe.skipIf(!testDatabaseUrl)(
       // The write must not trust the earlier allowed hint.
       await conn.query("UPDATE users SET role='admin' WHERE id=8411");
       expect((await moderation.listCommentReports(actor)).find(row => row.id === 8413)?.canBlockAuthor).toBe(false);
-      await expect(moderation.blockUser(8410, 8411, "synthetic stale hint")).rejects.toMatchObject({ code: "FORBIDDEN" });
+      await expect(moderation.blockUser({ id: 8410, sessionVersion: 0 }, 8411, "synthetic stale hint")).rejects.toMatchObject({ code: "FORBIDDEN" });
       const [rows] = await conn.query<RowDataPacket[]>("SELECT blockedAt FROM users WHERE id=8411");
       expect(rows[0].blockedAt).toBe(null);
     });

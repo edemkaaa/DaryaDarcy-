@@ -21,13 +21,13 @@ export class ModerationService {
     return { ok: true as const };
   }
 
-  async blockUser(actorUserId: number, userId: number, reason: string) {
-    await platformDb.blockUser(actorUserId, userId, reason);
+  async blockUser(actor: ContentWriteActor, userId: number, reason: string) {
+    await platformDb.blockUser(actor, userId, reason);
     return { ok: true as const };
   }
 
-  async unblockUser(actorUserId: number, userId: number) {
-    await platformDb.unblockUser(actorUserId, userId);
+  async unblockUser(actor: ContentWriteActor, userId: number) {
+    await platformDb.unblockUser(actor, userId);
     return { ok: true as const };
   }
 }

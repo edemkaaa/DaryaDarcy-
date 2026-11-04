@@ -1,3 +1,4 @@
+import type { ContentWriteActor } from "../content/content-write-actor";
 import { TRPCError } from "@trpc/server";
 import { asc, inArray } from "drizzle-orm";
 import { users, type User } from "../../../../packages/database/src/schema";
@@ -28,27 +29,29 @@ export function canModerateUserTarget(
 /** Lock in ID order; roles may have changed since the request authenticated. */
 export async function lockUserModerationTarget(
   tx: Transaction,
-  actorId: number,
+  requestActor: ContentWriteActor,
   targetId: number,
 ) {
   const rows = await tx
     .select({
       id: users.id,
       role: users.role,
+      sessionVersion: users.sessionVersion,
       blockedAt: users.blockedAt,
       accountDeletionRequestedAt: users.accountDeletionRequestedAt,
     })
     .from(users)
-    .where(inArray(users.id, [actorId, targetId]))
+    .where(inArray(users.id, [requestActor.id, targetId]))
     .orderBy(asc(users.id))
     .for("update");
-  const actor = rows.find((row) => row.id === actorId);
+  const actor = rows.find((row) => row.id === requestActor.id);
+  if (!actor || actor.sessionVersion !== requestActor.sessionVersion)
+    throw new TRPCError({ code: "UNAUTHORIZED" });
   if (
-    !actor ||
     actor.blockedAt ||
     actor.accountDeletionRequestedAt ||
     !["admin", "moderator"].includes(actor.role) ||
-    actorId === targetId
+    requestActor.id === targetId
   )
     throw new TRPCError({ code: "FORBIDDEN" });
   const target = rows.find((row) => row.id === targetId);

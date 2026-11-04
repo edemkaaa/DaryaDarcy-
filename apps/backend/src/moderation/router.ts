@@ -30,11 +30,11 @@ export const createModerationRouter = (moderation: ModerationService) =>
         }),
       )
       .mutation(({ ctx, input }) =>
-        moderation.blockUser(ctx.user.id, input.userId, input.reason),
+        moderation.blockUser({ id: ctx.user.id, sessionVersion: ctx.user.sessionVersion }, input.userId, input.reason),
       ),
     unblockUser: moderatorProcedure
       .input(z.object({ userId: z.number().int().positive() }))
       .mutation(({ ctx, input }) =>
-        moderation.unblockUser(ctx.user.id, input.userId),
+        moderation.unblockUser({ id: ctx.user.id, sessionVersion: ctx.user.sessionVersion }, input.userId),
       ),
   });

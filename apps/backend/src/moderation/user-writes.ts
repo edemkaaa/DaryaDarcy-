@@ -51,14 +51,14 @@ export async function deleteReportedComment(
 }
 
 export async function blockUser(
-  actorId: number,
+  actor: ContentWriteActor,
   targetUserId: number,
   reason: string,
 ): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.transaction(async (tx) => {
-    await lockUserModerationTarget(tx, actorId, targetUserId);
+    await lockUserModerationTarget(tx, actor, targetUserId);
     await tx
       .update(users)
       .set({
@@ -69,7 +69,7 @@ export async function blockUser(
       .where(eq(users.id, targetUserId));
     await queueCancellationForUser(tx, targetUserId);
     await writeAdminAction(tx, {
-      actorUserId: actorId,
+      actorUserId: actor.id,
       action: "block_user",
       targetType: "user",
       targetId: targetUserId,
@@ -79,19 +79,19 @@ export async function blockUser(
 }
 
 export async function unblockUser(
-  actorId: number,
+  actor: ContentWriteActor,
   targetUserId: number,
 ): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.transaction(async (tx) => {
-    await lockUserModerationTarget(tx, actorId, targetUserId);
+    await lockUserModerationTarget(tx, actor, targetUserId);
     await tx
       .update(users)
       .set({ blockedAt: null, blockedReason: null })
       .where(eq(users.id, targetUserId));
     await writeAdminAction(tx, {
-      actorUserId: actorId,
+      actorUserId: actor.id,
       action: "unblock_user",
       targetType: "user",
       targetId: targetUserId,

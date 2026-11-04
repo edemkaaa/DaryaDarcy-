@@ -1,3 +1,5 @@
+import { appRouter } from "../apps/backend/src/routers";
+import type { TrpcContext } from "../apps/backend/src/_core/context";
 import {
   afterAll,
   afterEach,
@@ -12,7 +14,7 @@ import type { Connection, RowDataPacket } from "mysql2/promise";
 import type { INestApplication } from "@nestjs/common";
 import type { AddressInfo } from "node:net";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
-import { getDb } from "../apps/backend/src/db";
+import { getDb, getUserByOpenId } from "../apps/backend/src/db";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { sdk } from "../apps/backend/src/_core/sdk";
 import { ModerationService } from "../apps/backend/src/moderation/moderation.service";
@@ -120,13 +122,75 @@ describe.skipIf(!testDatabaseUrl)(
         const before = await state();
         const result =
           operation === "blockUser"
-            ? moderation.blockUser(8400, 8401, "native reason")
-            : moderation.unblockUser(8400, 8401);
+            ? moderation.blockUser(
+                { id: 8400, sessionVersion: 0 },
+                8401,
+                "native reason",
+              )
+            : moderation.unblockUser({ id: 8400, sessionVersion: 0 }, 8401);
         await expect(result).rejects.toMatchObject({ code: "FORBIDDEN" });
         expect(await state()).toEqual(before);
       });
     }
     for (const operation of ["blockUser", "unblockUser"] as const) {
+      it.each(["epoch", "blocked-then-restored"] as const)(
+        `${operation} rejects an in-flight context after %s without side effects`,
+        async (change) => {
+          if (operation === "unblockUser")
+            await conn.query(
+              "UPDATE users SET blockedAt=NOW(),blockedReason='Retain block' WHERE id=8401",
+            );
+          const captured = appRouter.createCaller({
+            user: (await getUserByOpenId("moderation-audit-actor"))!,
+            req: {} as TrpcContext["req"],
+            res: {} as TrpcContext["res"],
+          });
+          if (change === "blocked-then-restored") {
+            await conn.query(
+              "UPDATE users SET blockedAt=NOW(),sessionVersion=sessionVersion+1 WHERE id=8400",
+            );
+            await conn.query("UPDATE users SET blockedAt=NULL WHERE id=8400");
+          } else
+            await conn.query(
+              "UPDATE users SET sessionVersion=sessionVersion+1 WHERE id=8400",
+            );
+          const before = await state();
+          const result =
+            operation === "blockUser"
+              ? captured.moderation.blockUser({
+                  userId: 8401,
+                  reason: "Synthetic late block",
+                })
+              : captured.moderation.unblockUser({ userId: 8401 });
+          await expect(result).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+          expect(await state()).toEqual(before);
+        },
+      );
+      it(`${operation} allows a newly authenticated context after revocation`, async () => {
+        if (operation === "unblockUser")
+          await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=8401");
+        await conn.query(
+          "UPDATE users SET sessionVersion=sessionVersion+1 WHERE id=8400",
+        );
+        const current = appRouter.createCaller({
+          user: (await getUserByOpenId("moderation-audit-actor"))!,
+          req: {} as TrpcContext["req"],
+          res: {} as TrpcContext["res"],
+        });
+        const result =
+          operation === "blockUser"
+            ? current.moderation.blockUser({
+                userId: 8401,
+                reason: "Fresh moderator",
+              })
+            : current.moderation.unblockUser({ userId: 8401 });
+        expect(await result).toEqual({ ok: true });
+        const saved = await state();
+        expect(saved.audit).toHaveLength(1);
+        expect(Boolean(saved.account.blockedAt)).toBe(
+          operation === "blockUser",
+        );
+      });
       it(`does not confirm ${operation} for a deleted member or write a misleading audit`, async () => {
         await conn.query("DELETE FROM users WHERE id=8401");
         const before = await state();
@@ -202,7 +266,11 @@ describe.skipIf(!testDatabaseUrl)(
     it("rolls back blocking, session revocation and cancellation intent when audit insertion fails", async () => {
       await rejectAudit();
       await expect(
-        moderation.blockUser(8400, 8401, "test reason"),
+        moderation.blockUser(
+          { id: 8400, sessionVersion: 0 },
+          8401,
+          "test reason",
+        ),
       ).rejects.toThrow();
       expect(await state()).toEqual({
         account: { blockedAt: null, blockedReason: null, sessionVersion: 7 },
@@ -216,11 +284,19 @@ describe.skipIf(!testDatabaseUrl)(
       );
       const before = await state();
       await rejectAudit();
-      await expect(moderation.unblockUser(8400, 8401)).rejects.toThrow();
+      await expect(
+        moderation.unblockUser({ id: 8400, sessionVersion: 0 }, 8401),
+      ).rejects.toThrow();
       expect(await state()).toEqual(before);
     });
     it("commits blocking with its audit and pending cancellation without provider confirmation", async () => {
-      expect(await moderation.blockUser(8400, 8401, "test reason")).toEqual({
+      expect(
+        await moderation.blockUser(
+          { id: 8400, sessionVersion: 0 },
+          8401,
+          "test reason",
+        ),
+      ).toEqual({
         ok: true,
       });
       const saved = await state();
@@ -250,7 +326,9 @@ describe.skipIf(!testDatabaseUrl)(
         "UPDATE billing_profiles SET cancelRequestedAt='2026-10-01 00:00:00' WHERE userId=8401",
       );
       const before = await state();
-      expect(await moderation.unblockUser(8400, 8401)).toEqual({ ok: true });
+      expect(
+        await moderation.unblockUser({ id: 8400, sessionVersion: 0 }, 8401),
+      ).toEqual({ ok: true });
       const saved = await state();
       expect(saved.account).toEqual({
         blockedAt: null,
