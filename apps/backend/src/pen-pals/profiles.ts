@@ -1,6 +1,9 @@
+import { TRPCError } from "@trpc/server";
 import { and, eq, isNull, lt, ne, or } from "drizzle-orm";
 import {
   users,
+  userConsentEvents,
+  type User,
   penPalProfiles,
   penPalMatches,
   penPalShown,
@@ -8,6 +11,10 @@ import {
 } from "../../../../packages/database/src/schema";
 import { getDb } from "../database/connection";
 import { requestMatch, respondMatch } from "./match-writes";
+import {
+  PEN_PAL_ADULT_CONSENT_LABEL,
+  PEN_PAL_CONSENT_VERSION,
+} from "../../../../packages/shared/src/pen-pals";
 type Database = NonNullable<Awaited<ReturnType<typeof getDb>>>;
 type DataWriter =
   | Database
@@ -33,8 +40,41 @@ export type PenPalMatchCard = {
   confirmDeadline: Date | null;
 };
 
-export async function upsertPenPalProfileV2(
+type ProfileActor = Pick<User, "id" | "openId" | "sessionVersion">;
+type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
+
+async function requireProfileActor(tx: Transaction, actor: ProfileActor) {
+  const [current] = await tx
+    .select()
+    .from(users)
+    .where(eq(users.id, actor.id))
+    .for("update");
+  if (
+    !current ||
+    current.openId !== actor.openId ||
+    current.sessionVersion !== actor.sessionVersion
+  )
+    throw new TRPCError({ code: "UNAUTHORIZED" });
+  if (current.blockedAt) throw new TRPCError({ code: "FORBIDDEN" });
+}
+
+async function recordProfileConsent(
+  tx: Transaction,
   userId: number,
+  status: "granted" | "revoked",
+  version: string,
+) {
+  await tx.insert(userConsentEvents).values({
+    userId,
+    consentKey: "pen_pals_adult",
+    status,
+    consentVersion: version,
+    consentText: PEN_PAL_ADULT_CONSENT_LABEL,
+  });
+}
+
+export async function upsertPenPalProfileV2(
+  actor: ProfileActor,
   data: {
     fullName: string;
     interests: string[];
@@ -44,39 +84,44 @@ export async function upsertPenPalProfileV2(
 ): Promise<PenPalProfile> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const now = new Date();
-  await db
-    .insert(penPalProfiles)
-    .values({
-      userId,
+  return db.transaction(async (tx) => {
+    await requireProfileActor(tx, actor);
+    const fields = {
       fullName: data.fullName,
       city: data.fullName,
       interests: data.interests,
       address: data.address,
-      adultConsentAt: now,
+      adultConsentAt: new Date(),
       consentVersion: data.consentVersion,
       active: true,
-    })
-    .onDuplicateKeyUpdate({
-      set: {
-        fullName: data.fullName,
-        city: data.fullName,
-        interests: data.interests,
-        address: data.address,
-        adultConsentAt: now,
-        consentVersion: data.consentVersion,
-        active: true,
-      },
-    });
-  const rows = await db
-    .select()
-    .from(penPalProfiles)
-    .where(eq(penPalProfiles.userId, userId))
-    .limit(1);
-  if (!rows[0]) throw new Error("Failed to save pen pal profile");
-  return rows[0];
+    };
+    await tx
+      .insert(penPalProfiles)
+      .values({ userId: actor.id, ...fields })
+      .onDuplicateKeyUpdate({ set: fields });
+    const [profile] = await tx
+      .select()
+      .from(penPalProfiles)
+      .where(eq(penPalProfiles.userId, actor.id))
+      .limit(1);
+    if (!profile) throw new Error("Failed to save pen pal profile");
+    await recordProfileConsent(tx, actor.id, "granted", data.consentVersion);
+    return profile;
+  });
 }
 
+/** User withdrawal remains available when discovery is disabled. */
+export async function withdrawPenPalProfile(actor: ProfileActor): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.transaction(async (tx) => {
+    await requireProfileActor(tx, actor);
+    await deactivatePenPalProfile(tx, actor.id);
+    await recordProfileConsent(tx, actor.id, "revoked", PEN_PAL_CONSENT_VERSION);
+  });
+}
+
+/** Trusted retention/maintenance: no user consent is asserted by this cleanup. */
 export async function deactivatePenPalProfileV2(userId: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

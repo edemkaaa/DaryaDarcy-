@@ -21,6 +21,7 @@ export {
 } from "./identity/account-retention";
 export {
   upsertPenPalProfileV2,
+  withdrawPenPalProfile,
   deactivatePenPalProfileV2,
   listPenPalCards,
   requestPenPalMatch,

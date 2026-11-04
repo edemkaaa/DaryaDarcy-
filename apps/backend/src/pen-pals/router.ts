@@ -45,19 +45,12 @@ export const penPalsRouter = router({
           message: "Выберите 2–3 темы из списка",
         });
       }
-      const profile = await platformDb.upsertPenPalProfileV2(ctx.user.id, {
+      const profile = await platformDb.upsertPenPalProfileV2(ctx.user, {
         fullName: input.fullName,
         interests: unique,
         address: input.address,
         consentVersion: PEN_PAL_CONSENT_VERSION,
       });
-      await platformDb.logUserConsent(
-        ctx.user.id,
-        "pen_pals_adult",
-        "granted",
-        PEN_PAL_CONSENT_VERSION,
-        PEN_PAL_ADULT_CONSENT_LABEL,
-      );
       return {
         fullName: profile.fullName || profile.city,
         interests: unique,
@@ -95,14 +88,7 @@ export const penPalsRouter = router({
       return { ok: true as const };
     }),
   remove: protectedProcedure.mutation(async ({ ctx }) => {
-    await platformDb.deactivatePenPalProfileV2(ctx.user.id);
-    await platformDb.logUserConsent(
-      ctx.user.id,
-      "pen_pals_adult",
-      "revoked",
-      PEN_PAL_CONSENT_VERSION,
-      PEN_PAL_ADULT_CONSENT_LABEL,
-    );
+    await platformDb.withdrawPenPalProfile(ctx.user);
     return { success: true as const };
   }),
   consentLabel: publicProcedure.query(() => ({
