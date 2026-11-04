@@ -1,17 +1,16 @@
 import { eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { users, posts } from "../../../../packages/database/src/schema";
+import { posts } from "../../../../packages/database/src/schema";
 import { areCommentsOpen } from "../../../../packages/shared/src/club-tags";
 import { readActiveClubSubscription } from "../billing/subscription-reader";
 import { hasClubAccess } from "../identity/club-access-policy";
 import type { ContentTransaction } from "./post-deletion";
-import type { ContentWriteActor } from "./content-write-actor";
+import { lockCurrentContentActor, type ContentWriteActor } from "./content-write-actor";
 
 /** Existing member/comment permissions, rechecked in the writer's transaction. */
 export async function lockCommentFileActor(tx: ContentTransaction, actor: ContentWriteActor) {
-  const [current] = await tx.select().from(users).where(eq(users.id, actor.id)).for("update");
-  if (!current || current.sessionVersion !== actor.sessionVersion) throw new TRPCError({ code: "UNAUTHORIZED" });
-  if (current.blockedAt || current.accountDeletionRequestedAt) throw new TRPCError({ code: "FORBIDDEN" });
+  const current = await lockCurrentContentActor(tx, actor);
+  if (current.accountDeletionRequestedAt) throw new TRPCError({ code: "FORBIDDEN" });
   return current;
 }
 export async function requireCommentFilePost(tx: ContentTransaction, actor: ContentWriteActor, postId: number) {

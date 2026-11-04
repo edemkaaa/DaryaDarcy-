@@ -319,19 +319,19 @@ export async function getAllTags(): Promise<Tag[]> {
 }
 
 // Toggle like on a post
-export async function toggleLike(userId: number, postId: number, hasClubAccess: ReactionAccessCheck): Promise<boolean> {
+export async function toggleLike(actor: ContentWriteActor, postId: number, hasClubAccess: ReactionAccessCheck): Promise<boolean> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  return togglePostReaction(db, "like", userId, postId, hasClubAccess);
+  return togglePostReaction(db, "like", actor, postId, hasClubAccess);
 }
 
 // Toggle save/bookmark on a post
-export async function toggleSave(userId: number, postId: number, hasClubAccess: ReactionAccessCheck): Promise<boolean> {
+export async function toggleSave(actor: ContentWriteActor, postId: number, hasClubAccess: ReactionAccessCheck): Promise<boolean> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  return togglePostReaction(db, "save", userId, postId, hasClubAccess);
+  return togglePostReaction(db, "save", actor, postId, hasClubAccess);
 }
 
 // Get user's liked post IDs

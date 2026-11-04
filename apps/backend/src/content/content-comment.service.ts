@@ -4,7 +4,6 @@ import type { User } from "../../../../packages/database/src/schema";
 import { areCommentsOpen } from "../../../../packages/shared/src/club-tags";
 import * as db from "../db";
 import { userHasClubAccess } from "../identity/club-access";
-import { isStaffAccount } from "../platform-db";
 import { sendServicePushNotification } from "../push";
 import type { AddCommentInput } from "./comment-input";
 import * as comments from "./comments";
@@ -112,24 +111,24 @@ export class ContentCommentService {
 
   async update(user: User, id: number, text: string): Promise<{ ok: true }> {
     await this.requireReadableComment(id, user);
-    await comments.updatePostCommentV2(id, user.id, text);
+    await comments.updatePostCommentV2(id, user, text);
     return { ok: true };
   }
 
   async toggleLike(user: User, commentId: number) {
     await this.requireReadableComment(commentId, user);
-    return comments.toggleCommentLike(user.id, commentId);
+    return comments.toggleCommentLike(user, commentId);
   }
 
   async delete(user: User, id: number): Promise<{ ok: true }> {
     await this.requireReadableComment(id, user);
-    await comments.deletePostCommentV2(id, user.id, isStaffAccount(user));
+    await comments.deletePostCommentV2(id, user);
     return { ok: true };
   }
 
   async report(user: User, id: number, reason: string): Promise<{ ok: true }> {
     await this.requireReadableComment(id, user);
-    await comments.reportComment(id, user.id, reason);
+    await comments.reportComment(id, user, reason);
     return { ok: true };
   }
 }

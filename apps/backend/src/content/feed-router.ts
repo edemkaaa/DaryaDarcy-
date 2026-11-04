@@ -39,14 +39,14 @@ export const createFeedRouter = (
     toggleLike: protectedProcedure
       .input(z.object({ postId: z.coerce.number().int().positive() }))
       .mutation(({ ctx, input }) => {
-        return posts.toggleLike(ctx.user.id, input.postId);
+        return posts.toggleLike(ctx.user, input.postId);
       }),
 
     // Toggle save/bookmark (requires auth)
     toggleSave: protectedProcedure
       .input(z.object({ postId: z.coerce.number().int().positive() }))
       .mutation(({ ctx, input }) => {
-        return posts.toggleSave(ctx.user.id, input.postId);
+        return posts.toggleSave(ctx.user, input.postId);
       }),
 
     // Get user's liked and saved post IDs (requires auth)

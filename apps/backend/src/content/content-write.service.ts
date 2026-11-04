@@ -1,3 +1,4 @@
+import type { ContentWriteActor } from "./content-write-actor";
 import { Injectable } from "@nestjs/common";
 import { articleCreationIntent } from "./article-creation-request";
 import type { InsertPost } from "../../../../packages/database/src/schema";
@@ -23,12 +24,12 @@ export class ContentWriteService {
   private readonly reactionAccess: ReactionAccessCheck = (actor, reader) =>
     userHasClubAccess(actor, (id) => db.getActiveClubSubscription(id, reader));
 
-  toggleLike(userId: number, postId: number): Promise<boolean> {
-    return db.toggleLike(userId, postId, this.reactionAccess);
+  toggleLike(actor: ContentWriteActor, postId: number): Promise<boolean> {
+    return db.toggleLike(actor, postId, this.reactionAccess);
   }
 
-  toggleSave(userId: number, postId: number): Promise<boolean> {
-    return db.toggleSave(userId, postId, this.reactionAccess);
+  toggleSave(actor: ContentWriteActor, postId: number): Promise<boolean> {
+    return db.toggleSave(actor, postId, this.reactionAccess);
   }
 
   createArticle(

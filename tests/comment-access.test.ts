@@ -38,5 +38,5 @@ it.each(actions)("refuses mutations on a draft even for subscribers", async acti
 it("keeps published public discussion mutations available to authenticated non-members", async () => {
   state.target = "feed";
   await caller().club.toggleCommentLike({ commentId: 10 });
-  expect(state.mutations).toHaveBeenCalledWith(7, 10);
+  expect(state.mutations).toHaveBeenCalledWith(user, 10);
 });

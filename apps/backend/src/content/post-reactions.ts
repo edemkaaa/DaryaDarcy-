@@ -1,9 +1,9 @@
+import { lockCurrentContentActor, type ContentWriteActor } from "./content-write-actor";
 import { and, desc, eq } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import {
   likes,
   savedPosts,
-  users,
   posts,
   type User,
 } from "../../../../packages/database/src/schema";
@@ -46,7 +46,7 @@ export async function getUserSavedPostIds(
 export async function togglePostReaction(
   database: MySql2Database,
   kind: "like" | "save",
-  userId: number,
+  requestActor: ContentWriteActor,
   postId: number,
   hasClubAccess: ReactionAccessCheck,
 ): Promise<boolean> {
@@ -54,20 +54,8 @@ export async function togglePostReaction(
   return database.transaction(async (tx) => {
     // A stable actor row serializes requests even when no reaction row exists.
     // Read the reaction only after acquiring it, so no stale snapshot wins.
-    const [actor] = await tx
-      .select({
-        id: users.id,
-        role: users.role,
-        email: users.email,
-        openId: users.openId,
-        blockedAt: users.blockedAt,
-      })
-      .from(users)
-      .where(eq(users.id, userId))
-      .for("update");
-    if (!actor) throw new Error("Reaction actor no longer exists");
-    if (actor.blockedAt)
-      throw new TRPCError({ code: "FORBIDDEN", message: "Доступ ограничен" });
+    const actor = await lockCurrentContentActor(tx, requestActor);
+    const userId = actor.id;
     // A current locked read fences deletion and visibility edits until commit.
     const [post] = await tx
       .select({

@@ -15,7 +15,8 @@ import { bindContentFiles, hasPrivateContent, type ContentFileReference } from "
 import { requireCommentFilePost } from "./private-comment-actor";
 import { requirePrivateContentEnabled } from "./private-content-uploads";
 import { claimCommentFileCreation } from "./comment-file-creation";
-import type { ContentWriteActor } from "./content-write-actor";
+import { isStaffAccount } from "../identity/account-policy";
+import { lockCurrentContentActor, type ContentWriteActor } from "./content-write-actor";
 import { requireContentDatabase } from "./read-database";
 import { boundedLegacyList, LEGACY_LIST_CAP } from "./legacy-list-limit";
 import {
@@ -127,6 +128,10 @@ export async function addPostCommentWithResult(data: CommentWriteInput): Promise
   const recoverable = privatePhotos || data.idempotencyKey !== undefined;
   return db.transaction(async (tx) => {
     let intent: Awaited<ReturnType<typeof claimCommentFileCreation>> | undefined;
+    if (!recoverable && data.actor) {
+      if (data.actor.id !== data.userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+      await lockCurrentContentActor(tx, data.actor);
+    }
     if (recoverable) {
       requirePrivateContentEnabled();
       if (!data.actor || data.actor.id !== data.userId) throw new TRPCError({ code: "UNAUTHORIZED" });
@@ -188,14 +193,16 @@ async function lockComment(tx: CommentTransaction, id: number) {
 
 export async function deletePostCommentV2(
   id: number,
-  userId: number,
+  actor: ContentWriteActor | number,
   asStaff = false,
 ): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.transaction((tx) =>
-    deletePostCommentInTransaction(tx, id, userId, asStaff),
-  );
+  await db.transaction(async (tx) => {
+    if (typeof actor === "number") return deletePostCommentInTransaction(tx, id, actor, asStaff);
+    const current = await lockCurrentContentActor(tx, actor);
+    await deletePostCommentInTransaction(tx, id, current.id, isStaffAccount(current));
+  });
 }
 
 /** Reuse the locked cascade when a caller must commit additional effects atomically. */
@@ -222,12 +229,13 @@ export async function deletePostCommentInTransaction(
 
 export async function updatePostCommentV2(
   id: number,
-  userId: number,
+  actor: ContentWriteActor | number,
   text: string,
 ): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.transaction(async (tx) => {
+    const userId = typeof actor === "number" ? actor : (await lockCurrentContentActor(tx, actor)).id;
     const comment = await lockComment(tx, id);
     if (comment.userId !== userId)
       throw new TRPCError({
@@ -239,13 +247,14 @@ export async function updatePostCommentV2(
 }
 
 export async function toggleCommentLike(
-  userId: number,
+  actor: ContentWriteActor | number,
   commentId: number,
 ): Promise<{ liked: boolean; likeCount: number }> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
   return db.transaction(async (tx) => {
+    const userId = typeof actor === "number" ? actor : (await lockCurrentContentActor(tx, actor)).id;
     await lockComment(tx, commentId);
     const existing = await tx
       .select({ id: commentLikes.id })
@@ -282,12 +291,13 @@ export async function toggleCommentLike(
 
 export async function reportComment(
   commentId: number,
-  reporterUserId: number,
+  actor: ContentWriteActor | number,
   reason: string,
 ): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.transaction(async (tx) => {
+    const reporterUserId = typeof actor === "number" ? actor : (await lockCurrentContentActor(tx, actor)).id;
     await lockComment(tx, commentId);
     await tx
       .insert(commentReports)
