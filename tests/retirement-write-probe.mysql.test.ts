@@ -25,6 +25,7 @@ describe.skipIf(!testDatabaseUrl)(
       commentId = 987650;
     let conn: Connection;
     async function cleanup() {
+      await conn.query("DELETE FROM admin_audit_log WHERE actorUserId=?", [owner]);
       for (const table of ["comment_likes", "comment_reports"])
         await conn.query(`DELETE FROM ${table} WHERE commentId IN (?,?)`, [
           commentId,
@@ -93,6 +94,36 @@ describe.skipIf(!testDatabaseUrl)(
       await expect(captured.club.deleteComment({ id: commentId + 1 })).rejects.toMatchObject({ code: "FORBIDDEN" });
       const [rows] = await conn.query<RowDataPacket[]>("SELECT id FROM post_comments WHERE id=?", [commentId + 1]);
       expect(rows).toHaveLength(1);
+    });
+    describe.each(["dismiss", "delete"] as const)("reported comment action %s", operation => {
+      async function seedStaff(role: "admin" | "moderator") {
+        await conn.query("UPDATE users SET role=?,accountDeletionRequestedAt=NULL WHERE id=?", [role, owner]);
+        await conn.query("INSERT INTO comment_reports(id,commentId,reporterUserId,reason) VALUES (?,?,?,'Synthetic report')", [commentId, commentId + 1, neighbor]);
+        return caller();
+      }
+      async function state() {
+        const [rows] = await conn.query<RowDataPacket[]>("SELECT (SELECT COUNT(*) FROM post_comments WHERE id=?) AS comments,(SELECT COUNT(*) FROM comment_reports WHERE id=?) AS reports,(SELECT COUNT(*) FROM admin_audit_log WHERE actorUserId=?) AS audit", [commentId + 1, commentId, owner]);
+        return rows[0];
+      }
+      function execute(captured: Awaited<ReturnType<typeof caller>>) {
+        return operation === "dismiss"
+          ? captured.moderation.dismissCommentReport({ reportId: commentId })
+          : captured.moderation.deleteReportedComment({ commentId: commentId + 1 });
+      }
+      it.each(["role", "blocked", "epoch"] as const)("rejects revoked %s and preserves records and audit", async change => {
+        const captured = await seedStaff("moderator");
+        if (change === "role") await conn.query("UPDATE users SET role='user' WHERE id=?", [owner]);
+        if (change === "blocked") await conn.query("UPDATE users SET blockedAt=NOW(),sessionVersion=sessionVersion+1 WHERE id=?", [owner]);
+        if (change === "epoch") await conn.query("UPDATE users SET sessionVersion=sessionVersion+1 WHERE id=?", [owner]);
+        const before = await state();
+        await expect(execute(captured)).rejects.toMatchObject({ code: change === "role" ? "FORBIDDEN" : "UNAUTHORIZED" });
+        expect(await state()).toEqual(before);
+      });
+      it.each(["admin", "moderator"] as const)("allows a current %s and writes the audit atomically", async role => {
+        const captured = await seedStaff(role);
+        expect(await execute(captured)).toEqual({ ok: true });
+        expect(await state()).toEqual({ comments: operation === "delete" ? 0 : 1, reports: 0, audit: 1 });
+      });
     });
     it.each([
       "comment-create",

@@ -10,7 +10,7 @@ export const createModerationRouter = (moderation: ModerationService) =>
     dismissCommentReport: moderatorProcedure
       .input(z.object({ reportId: z.number().int().positive() }))
       .mutation(({ ctx, input }) =>
-        moderation.dismissCommentReport(ctx.user.id, input.reportId),
+        moderation.dismissCommentReport({ id: ctx.user.id, sessionVersion: ctx.user.sessionVersion }, input.reportId),
       ),
     deleteReportedComment: moderatorProcedure
       .input(
@@ -20,7 +20,7 @@ export const createModerationRouter = (moderation: ModerationService) =>
         }),
       )
       .mutation(({ ctx, input }) =>
-        moderation.deleteReportedComment(ctx.user.id, input.commentId),
+        moderation.deleteReportedComment({ id: ctx.user.id, sessionVersion: ctx.user.sessionVersion }, input.commentId),
       ),
     blockUser: moderatorProcedure
       .input(

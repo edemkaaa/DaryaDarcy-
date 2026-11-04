@@ -93,7 +93,7 @@ describe.skipIf(!testDatabaseUrl)(
       const before = await state();
       await rejectAudit();
       await expect(
-        moderation.dismissCommentReport(8410, 8413),
+        moderation.dismissCommentReport({ id: 8410, sessionVersion: 0 }, 8413),
       ).rejects.toThrow();
       expect(await state()).toEqual(before);
     });
@@ -121,7 +121,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await state()).toEqual(before);
     });
     it("commits only the selected dismissal and the moderator audit", async () => {
-      expect(await moderation.dismissCommentReport(8410, 8413)).toEqual({
+      expect(await moderation.dismissCommentReport({ id: 8410, sessionVersion: 0 }, 8413)).toEqual({
         ok: true,
       });
       expect(await state()).toEqual({
@@ -139,7 +139,7 @@ describe.skipIf(!testDatabaseUrl)(
     });
     it("preserves the existing audited success for an absent report", async () => {
       const before = await state();
-      expect(await moderation.dismissCommentReport(8410, 8499)).toEqual({
+      expect(await moderation.dismissCommentReport({ id: 8410, sessionVersion: 0 }, 8499)).toEqual({
         ok: true,
       });
       expect(await state()).toEqual({

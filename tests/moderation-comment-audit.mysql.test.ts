@@ -107,7 +107,7 @@ describe.skipIf(!testDatabaseUrl)(
       const before = await state();
       await rejectAudit();
       await expect(
-        moderation.deleteReportedComment(8420, 8422),
+        moderation.deleteReportedComment({ id: 8420, sessionVersion: 0 }, 8422),
       ).rejects.toThrow();
       expect(await state()).toEqual(before);
     });
@@ -137,7 +137,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await state()).toEqual(before);
     });
     it("commits deletion and audit while retaining the detached reply and its reactions", async () => {
-      expect(await moderation.deleteReportedComment(8420, 8422)).toEqual({
+      expect(await moderation.deleteReportedComment({ id: 8420, sessionVersion: 0 }, 8422)).toEqual({
         ok: true,
       });
       expect(await state()).toEqual({
@@ -157,13 +157,13 @@ describe.skipIf(!testDatabaseUrl)(
     it("preserves NOT_FOUND without audit or cascade for an absent comment", async () => {
       const before = await state();
       await expect(
-        moderation.deleteReportedComment(8420, 8499),
+        moderation.deleteReportedComment({ id: 8420, sessionVersion: 0 }, 8499),
       ).rejects.toMatchObject({ code: "NOT_FOUND" });
       expect(await state()).toEqual(before);
     });
     it("continues to delete a comment without reports and records its audit", async () => {
       await conn.query("DELETE FROM comment_reports WHERE commentId=8422");
-      await moderation.deleteReportedComment(8420, 8422);
+      await moderation.deleteReportedComment({ id: 8420, sessionVersion: 0 }, 8422);
       const result = await state();
       expect(result.comments).toEqual([
         { id: 8423, parentId: null, text: "retain reply" },

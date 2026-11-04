@@ -69,14 +69,14 @@ describe("moderation ID inputs over native HTTP", () => {
       validId: 9811,
       run: (id: number) =>
         client().moderation.dismissCommentReport.mutate({ reportId: id }),
-      want: [["dismiss", 9810, 9811]],
+      want: [["dismiss", { id: 9810, sessionVersion: 0 }, 9811]],
     },
     {
       name: "delete comment without report",
       validId: 9811,
       run: (id: number) =>
         client().moderation.deleteReportedComment.mutate({ commentId: id }),
-      want: [["delete", 9810, 9811]],
+      want: [["delete", { id: 9810, sessionVersion: 0 }, 9811]],
     },
     {
       name: "delete comment with report",
@@ -86,7 +86,7 @@ describe("moderation ID inputs over native HTTP", () => {
           commentId: 9811,
           reportId: id,
         }),
-      want: [["delete", 9810, 9811]],
+      want: [["delete", { id: 9810, sessionVersion: 0 }, 9811]],
     },
     {
       name: "block user",
@@ -145,8 +145,8 @@ describe("moderation ID inputs over native HTTP", () => {
 
   it.each([
     { method: "listCommentReports", want: [moderator] },
-    { method: "dismissCommentReport", want: [9810, 9811] },
-    { method: "deleteReportedComment", want: [9810, 9811] },
+    { method: "dismissCommentReport", want: [{ id: 9810, sessionVersion: 0 }, 9811] },
+    { method: "deleteReportedComment", want: [{ id: 9810, sessionVersion: 0 }, 9811] },
     { method: "blockUser", want: [9810, 9811, "synthetic reason"] },
     { method: "unblockUser", want: [9810, 9811] },
   ])(
@@ -384,7 +384,7 @@ describe("moderation ID inputs over native HTTP", () => {
         actorUserId: 9999,
       } as { commentId: number }),
     ).toEqual({ ok: true });
-    expect(effects).toEqual([["delete", 9810, 9811]]);
+    expect(effects).toEqual([["delete", { id: 9810, sessionVersion: 0 }, 9811]]);
   });
 
   it("uses the session actor, not a client-supplied dismissal actor", async () => {
@@ -394,7 +394,7 @@ describe("moderation ID inputs over native HTTP", () => {
         actorUserId: 9999,
       } as { reportId: number }),
     ).toEqual({ ok: true });
-    expect(effects).toEqual([["dismiss", 9810, 9811]]);
+    expect(effects).toEqual([["dismiss", { id: 9810, sessionVersion: 0 }, 9811]]);
   });
 
   describe.each(operations)("$name", ({ run, validId, want }) => {

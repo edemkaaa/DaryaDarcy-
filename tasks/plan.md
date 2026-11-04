@@ -1,5 +1,9 @@
 # Implementation Plan: Daryadarcy Modular Monorepo
 
+## Исправление модерации — 4 ноября
+
+P1 в dismissCommentReport/deleteReportedComment исправлен локально. 52/52 SQL и 79/79 HTTP/router-тестов прошли. Перед выпуском пересобрать образ с новой версией.
+
 ## Повторный аудит модерации — 4 ноября
 
 Подтверждён P1 в двух маршрутах модерации жалоб и комментариев после отзыва прав. Перед выпуском нужен transaction-time actor guard и новые регрессии.

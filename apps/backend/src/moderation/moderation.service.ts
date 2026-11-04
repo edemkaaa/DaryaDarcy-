@@ -1,3 +1,4 @@
+import type { ContentWriteActor } from "../content/content-write-actor";
 import { Injectable } from "@nestjs/common";
 import * as commentDb from "../content/comments";
 import * as platformDb from "../platform-db";
@@ -10,13 +11,13 @@ export class ModerationService {
     return commentDb.listCommentReports(100, actor);
   }
 
-  async dismissCommentReport(actorUserId: number, reportId: number) {
-    await platformDb.dismissCommentReport(actorUserId, reportId);
+  async dismissCommentReport(actor: ContentWriteActor, reportId: number) {
+    await platformDb.dismissCommentReport(actor, reportId);
     return { ok: true as const };
   }
 
-  async deleteReportedComment(actorUserId: number, commentId: number) {
-    await platformDb.deleteReportedComment(actorUserId, commentId);
+  async deleteReportedComment(actor: ContentWriteActor, commentId: number) {
+    await platformDb.deleteReportedComment(actor, commentId);
     return { ok: true as const };
   }
 

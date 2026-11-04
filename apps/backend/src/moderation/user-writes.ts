@@ -1,3 +1,6 @@
+import { TRPCError } from "@trpc/server";
+import { lockCurrentContentActor, type ContentWriteActor } from "../content/content-write-actor";
+import { isStaffAccount } from "../identity/account-policy";
 import { eq, sql } from "drizzle-orm";
 import {
   users,
@@ -10,15 +13,17 @@ import { lockUserModerationTarget } from "./user-target";
 import { writeAdminAction } from "../admin/audit-log";
 
 export async function dismissCommentReport(
-  actorUserId: number,
+  actor: ContentWriteActor,
   reportId: number,
 ): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.transaction(async (tx) => {
+    const current = await lockCurrentContentActor(tx, actor);
+    if (!isStaffAccount(current)) throw new TRPCError({ code: "FORBIDDEN" });
     await tx.delete(commentReports).where(eq(commentReports.id, reportId));
     await writeAdminAction(tx, {
-      actorUserId,
+      actorUserId: current.id,
       action: "dismiss_comment_report",
       targetType: "comment_report",
       targetId: reportId,
@@ -27,15 +32,17 @@ export async function dismissCommentReport(
 }
 
 export async function deleteReportedComment(
-  actorUserId: number,
+  actor: ContentWriteActor,
   commentId: number,
 ): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.transaction(async (tx) => {
+    const current = await lockCurrentContentActor(tx, actor);
+    if (!isStaffAccount(current)) throw new TRPCError({ code: "FORBIDDEN" });
     await deletePostCommentInTransaction(tx, commentId, 0, true);
     await writeAdminAction(tx, {
-      actorUserId,
+      actorUserId: current.id,
       action: "delete_reported_comment",
       targetType: "comment",
       targetId: commentId,
