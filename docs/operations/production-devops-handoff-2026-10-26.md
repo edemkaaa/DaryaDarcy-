@@ -154,7 +154,7 @@ s3.twcstorage.ru у egress-прокси относится только к API: 
 | Закрытые DATABASE_URL и проверенная резервная копия | Перенос данных и проверка схемы |
 | JWT_SECRET и AUTH_LINK_ENCRYPTION_KEY действующего окружения | Сохранение сессий и обработки ожидающих писем |
 | S3 endpoint/bucket/ключи, действующие policy и prefixes | Медиа без потери прав и старых файлов |
-| SMTP_HOST/PORT/SECURE/USER/PASS/FROM; отдельно managerEmail | SMTP приложения — регистрация/доступ/reset. Заказ Магазина — mailto из почтового клиента покупателя; SMTP приложения не доказывает его доставку |
+| SMTP_HOST/PORT/SECURE/USER/PASS/FROM; optional SMTP_REPLY_TO; отдельно managerEmail | SMTP приложения — регистрация/доступ/reset. Заказ Магазина — mailto из почтового клиента покупателя; SMTP приложения не доказывает его доставку |
 | Настройки Prodamus и согласованный режим TEST/NORMAL | Верные webhook/checkout/return маршруты |
 | Ответственные за DNS, оплату хостинга, приёмку и аварийное восстановление | Решения при выпуске и сбое |
 
@@ -262,3 +262,10 @@ source SHA/digests/build flags; местоположение secrets без их
   локация с почасовой оплатой; тариф и сетевую доступность проверить до покупки.
 - [Поддержка Ubuntu](https://ubuntu.com/about/release-cycle),
   [ресурсные ограничения Docker](https://docs.docker.com/engine/containers/resource_constraints/).
+
+
+## Общая почта поддержки — подготовка 4 ноября
+
+Опциональный SMTP_REPLY_TO подготовлен локально. Включать после подтверждения
+ящика и выпуска нового backend image; текущие From/SMTP-учётные данные сохранять.
+[Настройка Яндекс 360, frontend и приёмка](support-mail-yandex-2026-11-04.md).

@@ -50,6 +50,7 @@ beforeEach(async () => {
   vi.stubEnv("SMTP_USER", "sender@example.test");
   vi.stubEnv("SMTP_PASS", "smtp-test-only");
   vi.stubEnv("SMTP_FROM", "sender@example.test");
+  vi.stubEnv("SMTP_REPLY_TO", "");
 });
 
 afterEach(async () => {
@@ -115,4 +116,39 @@ it("rejects recipient lists before making any SMTP connection", async () => {
   const { sendTransactionalEmail } = await import("../apps/backend/src/_core/email");
   expect(await sendTransactionalEmail({ ...mail, to: "member@example.test,second@example.test" })).toBe(false);
   expect(commands).toEqual([]);
+});
+
+
+it("routes replies to the support mailbox without copying private mail or changing SMTP identity", async () => {
+  vi.stubEnv("SMTP_REPLY_TO", "support@daryadarcy.com");
+  const { sendTransactionalEmail } = await import("../apps/backend/src/_core/email");
+  expect(await sendTransactionalEmail(mail)).toBe(true);
+  expect(commands).toContain("MAIL FROM:<sender@example.test>");
+  expect(commands.filter(command => command.startsWith("RCPT TO"))).toEqual(["RCPT TO:<member@example.test>"]);
+  expect(messages).toHaveLength(1);
+  expect(messages[0]).toContain("From: DARYADARCY <sender@example.test>");
+  expect(messages[0]).toContain("Reply-To: support@daryadarcy.com");
+  expect(messages[0]).not.toMatch(/^(?:Cc|Bcc):/mi);
+  const auth = commands.find(command => command.startsWith("AUTH PLAIN "))!;
+  expect(Buffer.from(auth.slice("AUTH PLAIN ".length), "base64").toString()).toBe("\0sender@example.test\0smtp-test-only");
+});
+
+it.each([
+  "support@example.test,other@example.test",
+  "Support <support@example.test>",
+  "support@example.test\r\nBcc: other@example.test",
+  "not-an-address",
+])("rejects an invalid support reply address before opening SMTP: %s", async replyTo => {
+  vi.stubEnv("SMTP_REPLY_TO", replyTo);
+  const { sendTransactionalEmail } = await import("../apps/backend/src/_core/email");
+  expect(await sendTransactionalEmail(mail)).toBe(false);
+  expect(commands).toEqual([]);
+  expect(messages).toEqual([]);
+});
+
+it("preserves existing mail headers when the optional support address is not enabled", async () => {
+  vi.stubEnv("SMTP_REPLY_TO", "   ");
+  const { sendTransactionalEmail } = await import("../apps/backend/src/_core/email");
+  expect(await sendTransactionalEmail(mail)).toBe(true);
+  expect(messages[0]).not.toMatch(/^Reply-To:/mi);
 });

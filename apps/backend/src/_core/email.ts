@@ -38,9 +38,11 @@ export async function sendTransactionalEmail(input: {
 }): Promise<boolean> {
   const to = input.to.trim();
   const from = (process.env.SMTP_FROM || DEFAULT_SMTP_IDENTITY).trim();
+  const replyTo = (process.env.SMTP_REPLY_TO || "").trim();
   // Access links are private: never accept a display-name/address-list here.
   const recipient = z.email().max(320);
   if (!recipient.safeParse(to).success || !recipient.safeParse(from).success) return false;
+  if (replyTo && !recipient.safeParse(replyTo).success) return false;
   const tx = getTransporter();
   if (!tx) {
     console.warn("[email] SMTP not configured");
@@ -50,6 +52,8 @@ export async function sendTransactionalEmail(input: {
     await tx.sendMail({
       from: { name: "DARYADARCY", address: from },
       to: { name: "", address: to },
+      // Support receives replies, never copies of access/reset links.
+      ...(replyTo ? { replyTo: { name: "", address: replyTo } } : {}),
       subject: input.subject,
       text: input.text,
       messageId: input.messageId,
