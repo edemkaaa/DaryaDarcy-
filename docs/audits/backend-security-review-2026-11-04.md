@@ -1,5 +1,13 @@
 # Безопасность бэкенда Daryadarcy
 
+## Продолжение: заявки и адреса Pen Pals
+
+Локально устранены stale actor в request/respond/me/find, ложный успех shown
+и выдача по устаревшим данным участницы. Проверка actor выполняется под SQL-lock,
+адреса — по актуальному join в READ COMMITTED. 140 SQL и 127 HTTP/unit проходят.
+Контракт прежний; maintenance/production аудит остаётся открытым.
+[Воспроизведения, исправления и остаток](pen-pal-access-lifecycle-review-2026-11-04.md).
+
 4 ноября 2026. Исходное исследование выполнено на source f9de55f9.
 После согласования владельцем подтверждённые дефекты исправлены локально.
 Использованы security-and-hardening, code-review, test-driven-development и

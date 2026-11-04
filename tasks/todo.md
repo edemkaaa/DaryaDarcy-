@@ -1,5 +1,17 @@
 # Daryadarcy Modular Monorepo
 
+## Заявки и адреса Pen Pals — 4 ноября
+
+- [x] Воспроизвести stale actor у request/accept/decline/me/find и ложный успех shown.
+- [x] Добавить transaction-time actor guard, свежую проверку связи/анкеты/блокировки.
+- [x] Проверить отзыв участия во время чтения; сохранить ownership/сроки заявок.
+- [x] Пройти 140 SQL и 127 HTTP/unit, типы/lint/API/boundaries/API+TEST сборки.
+- [x] Обновить единый frontend-документ без правок frontend и включения функции.
+- [ ] Далее: maintenance-переходы и конкурентная очистка/повторное создание анкеты.
+- [ ] Выпуск: новые итоговые images, AMD64-приёмка и fresh staging/server preflight.
+
+[Отчёт и открытые границы](../docs/audits/pen-pal-access-lifecycle-review-2026-11-04.md).
+
 ## Анкеты Pen Pals — 4 ноября
 
 - [x] Воспроизвести stale actor, восстановление данных после retirement и частичную запись согласия.

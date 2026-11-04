@@ -1,5 +1,14 @@
 # Implementation Plan: Daryadarcy Modular Monorepo
 
+## Заявки и адреса Pen Pals — 4 ноября
+
+Локально закрыт следующий срез: request/respond/me/find проверяют актуальную
+сессию в транзакции. Find читает связь и участницу актуальным SQL, учитывает
+withdrawal/блокировку и не скрывает отказ записи shown. 140 SQL и 127 HTTP/unit
+проверок проходят; публичный API-контракт прежний. Далее — maintenance-переходы
+и гонка очистки неактивной анкеты с новым upsert. Полный аудит остаётся открытым.
+[Доказательства и пределы](../docs/audits/pen-pal-access-lifecycle-review-2026-11-04.md).
+
 ## Анкеты Pen Pals — 4 ноября
 
 Два profile writers локально защищены от устаревших identity/epoch и блокировки.
