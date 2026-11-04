@@ -177,7 +177,7 @@ describe("profile use cases over native HTTP", () => {
           ? [9900, { expectedRevision:0, name: "synthetic name" },0]
           : method === "uploadAvatar"
             ? [member, photo, undefined]
-            : [9900],
+            : [member],
       );
     },
   );
@@ -382,7 +382,7 @@ describe("profile use cases over native HTTP", () => {
     expect(
       await client().profileExtras.requestAccountDeletion.mutate(),
     ).toEqual({ ok: true });
-    expect(received).toBe(9900);
+    expect(received).toEqual(member);
   });
 
   it.each([

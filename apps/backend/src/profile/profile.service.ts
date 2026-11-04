@@ -78,8 +78,10 @@ export class ProfileService {
     return { url: result.url };
   }
 
-  async requestAccountDeletion(userId: number): Promise<{ ok: true }> {
-    await platformDb.requestAccountDeletion(userId);
+  async requestAccountDeletion(
+    actor: Pick<User, "id" | "openId" | "sessionVersion">,
+  ): Promise<{ ok: true }> {
+    await platformDb.requestAccountDeletion(actor);
     return { ok: true };
   }
 }

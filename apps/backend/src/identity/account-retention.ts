@@ -1,6 +1,8 @@
+import { TRPCError } from "@trpc/server";
 import { and, desc, eq, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
 import {
   users,
+  type User,
   clubPayments,
   commentReports,
   likes,
@@ -25,14 +27,31 @@ type DataWriter =
   | Database
   | Parameters<Parameters<Database["transaction"]>[0]>[0];
 
-export async function requestAccountDeletion(userId: number): Promise<void> {
+/** Preserve the first request and fence actors invalidated while awaiting SQL. */
+export async function requestAccountDeletion(
+  actor: Pick<User, "id" | "openId" | "sessionVersion">,
+): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const [result] = await db
-    .update(users)
-    .set({ accountDeletionRequestedAt: new Date() })
-    .where(eq(users.id, userId));
-  if (result.affectedRows === 0) throw new Error("Profile account not found");
+  await db.transaction(async (tx) => {
+    const [current] = await tx
+      .select()
+      .from(users)
+      .where(eq(users.id, actor.id))
+      .for("update");
+    if (
+      !current ||
+      current.openId !== actor.openId ||
+      current.sessionVersion !== actor.sessionVersion
+    )
+      throw new TRPCError({ code: "UNAUTHORIZED" });
+    if (current.blockedAt) throw new TRPCError({ code: "FORBIDDEN" });
+    if (current.accountDeletionRequestedAt) return;
+    await tx
+      .update(users)
+      .set({ accountDeletionRequestedAt: new Date() })
+      .where(eq(users.id, actor.id));
+  });
 }
 
 const DELETED_USER_LABEL = "Удалённый аккаунт";

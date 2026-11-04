@@ -31,6 +31,6 @@ export const createProfileExtrasRouter = (profiles: ProfileService) =>
       .output(recoveryExportOutput)
       .query(({ ctx, input }) => profiles.recoveryExport(ctx.user, input)),
     requestAccountDeletion: protectedProcedure.mutation(({ ctx }) =>
-      profiles.requestAccountDeletion(ctx.user.id),
+      profiles.requestAccountDeletion(ctx.user),
     ),
   });

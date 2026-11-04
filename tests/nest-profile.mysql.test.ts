@@ -239,7 +239,7 @@ describe.skipIf(!testDatabaseUrl)(
       },
       {
         name: "deletion request",
-        run: (service: ProfileService) => service.requestAccountDeletion(8441),
+        run: (service: ProfileService) => service.requestAccountDeletion({ id: 8441, openId: "profile-http-8441", sessionVersion: 4 }),
       },
     ])(
       "refuses false success for a missing account's $name",
@@ -285,9 +285,9 @@ describe.skipIf(!testDatabaseUrl)(
         } else {
           const request = service.requestAccountDeletion.bind(service);
           vi.spyOn(service, "requestAccountDeletion").mockImplementation(
-            async (id) => {
-              await conn.query("DELETE FROM users WHERE id=?", [id]);
-              return request(id);
+            async (actor) => {
+              await conn.query("DELETE FROM users WHERE id=?", [actor.id]);
+              return request(actor);
             },
           );
         }
@@ -295,7 +295,7 @@ describe.skipIf(!testDatabaseUrl)(
           ? client().profile.update.mutate({expectedRevision:0,...(input)})
           : client().profileExtras.requestAccountDeletion.mutate();
         await expect(result).rejects.toMatchObject({
-          ...(input ? {data:{code:"UNAUTHORIZED",httpStatus:401}} : {message:"Внутренняя ошибка сервера",data:{code:"INTERNAL_SERVER_ERROR",httpStatus:500}}),
+          data: { code: "UNAUTHORIZED", httpStatus: 401 },
         });
         expect(await users()).toEqual([before[1]]);
       },
