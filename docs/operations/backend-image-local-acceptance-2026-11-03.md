@@ -1,5 +1,29 @@
 # Локальная приёмка Docker-образа backend
 
+## Проверка AMD64 — 4 ноября
+
+Собран локальный image `daryadarcy-audit-api:0fb19cbd-amd64`,
+ID `sha256:fac2b87deae9f19a1ff373dc10d5bef0454d42481b6bb484da74a2c28bcd8ca6`.
+Source revision `0fb19cbd419dd38f8d554334da161b010b02e657` совпадает с ARM64.
+На Mac ARM64 через эмуляцию пройдены 40/40 HTTP/SQL сценариев за 121,26 с,
+после 51 миграции на одноразовой БД. Runner подтвердил passed=true и cleaned=true.
+Нативная приёмка на целевом Linux и сверка свежего staging остаются перед выкладкой.
+
+Полная сборка штатным Dockerfile скомпилировала AMD64 bundles, но остановилась
+при упаковке node_modules из-за нехватки места и read-only ошибки Docker.
+Docker восстановлен, diplom-postgres возвращён в healthy. Кэш неудачной
+сборки очищен адресно. Финальный image использует сохранённый AMD64 runtime
+`sha256:c15d146ba63e34cbfe484461b88632949981476982a57ca7f90df43bb9bb9251`
+с новыми index.mjs и prodamus-test.mjs. Git diff подтвердил неизменность
+lockfile, всех workspace manifests и Dockerfile относительно этой основы.
+Контрольные суммы обоих bundles внутри образа совпали с текущей локальной сборкой.
+Это повторная упаковка проверенного runtime, а не завершённая полная сборка с нуля.
+
+Логи, временный Dockerfile и метаданные основы лежат вне Git в
+`../.local-artifacts/amd64-candidate-20261104`, результат приёмки — в
+`../.local-artifacts/daryadarcy-fresh-backend-audit-a32d811f7d4cb5f5`.
+Оба новых образа находятся локально. После завершения свободно около 2,1 ГиБ.
+
 ## Чистая пересборка 4 ноября
 
 Удалены локальные dist, web-dist, .next и tsconfig.tsbuildinfo, затем собраны
