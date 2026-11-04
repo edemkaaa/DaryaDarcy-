@@ -1,3 +1,4 @@
+import type { User } from "../../../../packages/database/src/schema";
 import { Injectable } from "@nestjs/common";
 import * as db from "../db";
 import * as platformDb from "../platform-db";
@@ -59,16 +60,21 @@ export class ProfileService {
   }
 
   async uploadAvatar(
-    userId: number,
+    actor: Pick<User, "id" | "sessionVersion" | "profileRevision">,
     base64: string,
     signal?: AbortSignal,
   ): Promise<{ url: string }> {
     // Avoid an external write when persistence is already known to be unavailable.
     // Client acquisition is not a connection probe or a guarantee of the write.
-    if (!(await db.getDb())) throw new Error("Database not available");
-    const result = await uploadPhoto(base64, `avatars/${userId}`, signal);
+    const database = await db.getDb();
+    if (!database) throw new Error("Database not available");
+    const precondition = { expectedRevision: actor.profileRevision };
+    await saveProfile(database, actor.id, actor.sessionVersion, precondition);
+    const result = await uploadPhoto(base64, `avatars/${actor.id}`, signal);
     signal?.throwIfAborted();
-    await db.updateUserProfile(userId, { avatarUrl: result.url });
+    await saveProfile(database, actor.id, actor.sessionVersion, {
+      ...precondition, avatarUrl: result.url,
+    });
     return { url: result.url };
   }
 

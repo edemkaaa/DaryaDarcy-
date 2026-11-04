@@ -16,6 +16,7 @@ vi.mock("../apps/backend/src/db", () => ({
   updateUserProfile: async () => undefined,
   getDb: async () => drizzle.mock(),
 }));
+vi.mock("../apps/backend/src/profile/profile-writes", () => ({ saveProfile: async () => 1 }));
 import { appRouter } from "../apps/backend/src/routers";
 const user = { id: 7, role: "admin", blockedAt: null } as User;
 function caller() { return appRouter.createCaller({ user, req: {}, res: {} } as TrpcContext); }

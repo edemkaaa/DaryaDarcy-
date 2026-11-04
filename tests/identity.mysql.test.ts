@@ -8,6 +8,8 @@ import {
   vi,
 } from "vitest";
 import mysql from "mysql2/promise";
+import { eq } from "drizzle-orm";
+import { users } from "../packages/database/src/schema";
 import { drizzle, type MySql2Database } from "drizzle-orm/mysql2";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 import {
@@ -357,8 +359,10 @@ describe.skipIf(!testDatabaseUrl)("durable access and password links", () => {
     await conn.query(
       "INSERT INTO club_payments (userId,orderId,status,expiresAt) VALUES (778,'club-778-resend','paid',DATE_ADD(NOW(),INTERVAL 30 DAY))",
     );
-    expect(await resendClubAccess(database, 778, 778)).toBe(false);
-    expect(await resendClubAccess(database, 781, 778)).toBe(true);
+    const [member] = await database.select().from(users).where(eq(users.id, 778));
+    const [admin] = await database.select().from(users).where(eq(users.id, 781));
+    await expect(resendClubAccess(database, member, 778)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(await resendClubAccess(database, admin, 778)).toBe(true);
     const [queued] = await conn.query<mysql.RowDataPacket[]>(
       "SELECT email FROM access_email_outbox WHERE userId=778",
     );

@@ -26,7 +26,7 @@ export class PasswordService {
 
   async resend(actor: User, userId: number, idempotencyKey?: string) {
     const database = await this.database();
-    if (idempotencyKey === undefined) return resendClubAccess(database, actor.id, userId);
+    if (idempotencyKey === undefined) return resendClubAccess(database, actor, userId);
     const result = await executeAdminAction(database, actor, { idempotencyKey, userId, kind: "resendAccessEmail" });
     return result.state === "succeeded";
   }

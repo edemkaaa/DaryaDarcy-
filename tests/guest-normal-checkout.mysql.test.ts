@@ -372,7 +372,7 @@ describe.skipIf(!testDatabaseUrl)(
             env: {
               NODE_ENV: "production",
               DATABASE_URL: testDatabaseUrl!,
-              JWT_SECRET: "compiled-guest-synthetic-secret",
+              JWT_SECRET: "compiled-guest-synthetic-secret-32-bytes",
               PUBLIC_APP_URL: "https://club.example.test",
               GUEST_CHECKOUT_RECOVERY_ENABLED: "true",
               PRODAMUS_TEST_ENABLED: "false",

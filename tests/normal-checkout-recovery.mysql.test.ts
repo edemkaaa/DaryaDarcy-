@@ -435,7 +435,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
           env: {
             NODE_ENV: "production",
             DATABASE_URL: testDatabaseUrl!,
-            JWT_SECRET: "compiled-normal-synthetic-secret",
+            JWT_SECRET: "compiled-normal-synthetic-secret-32-bytes",
             PUBLIC_APP_URL: "https://club.example.test",
             PRODAMUS_PAYFORM_URL: "https://fixture.payform.ru",
             PRODAMUS_SECRET: "synthetic-merchant-key",

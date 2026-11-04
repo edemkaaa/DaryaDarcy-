@@ -20,7 +20,7 @@ export const createProfileRouter = (profiles: ProfileService) =>
     uploadAvatar: protectedProcedure
       .input(photoInput)
       .mutation(({ ctx, input, signal }) =>
-        profiles.uploadAvatar(ctx.user.id, input.base64, signal),
+        profiles.uploadAvatar(ctx.user, input.base64, signal),
       ),
   });
 

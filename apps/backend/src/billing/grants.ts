@@ -1,18 +1,21 @@
+import { lockAdminActionActor } from "../admin/action-actor";
 import { randomUUID } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
-import { clubPayments, users } from "../../../../packages/database/src/schema";
+import { clubPayments, users, type User } from "../../../../packages/database/src/schema";
 
-/** Legacy/internal calls are distinct grants; keyed HTTP actions wrap the same transaction work. */
+/** Distinct grants. Trusted maintenance may omit actor; HTTP must supply its session actor. */
 export async function grantClubAccess(
   database: MySql2Database,
   userId: number,
   days: number,
+  actor?: User,
 ): Promise<Date> {
-  return database.transaction((tx) =>
-    grantClubAccessInTransaction(tx, userId, days),
-  );
+  return database.transaction(async (tx) => {
+    if (actor) await lockAdminActionActor(tx, actor, userId, "grantClub");
+    return grantClubAccessInTransaction(tx, userId, days);
+  });
 }
 
 export async function grantClubAccessInTransaction(

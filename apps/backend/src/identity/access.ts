@@ -1,3 +1,4 @@
+import { lockAdminActionActor } from "../admin/action-actor";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import {
   and,
@@ -24,6 +25,7 @@ import {
   clubPayments,
   passwordTokens,
   users,
+  type User,
 } from "../../../../packages/database/src/schema";
 import { hashPassword, normalizeEmail } from "../_core/password";
 import { publicAccessUrl } from "./urls";
@@ -269,10 +271,13 @@ export async function completePassword(
 }
 export async function resendClubAccess(
   database: MySql2Database,
-  actorId: number,
+  actor: User,
   userId: number,
 ): Promise<boolean> {
-  return database.transaction(tx => resendClubAccessInTransaction(tx, actorId, userId));
+  return database.transaction(async tx => {
+    await lockAdminActionActor(tx, actor, userId, "resendAccessEmail");
+    return resendClubAccessInTransaction(tx, actor.id, userId);
+  });
 }
 
 export async function resendClubAccessInTransaction(

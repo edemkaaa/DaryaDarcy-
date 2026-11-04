@@ -1043,10 +1043,10 @@ export async function nextClubExpiry(userId: number, periodMs = CLUB_ACCESS_MS):
   return new Date(baseMs + periodMs);
 }
 
-export async function grantClubDays(userId: number, days = 31): Promise<Date> {
+export async function grantClubDays(userId: number, days = 31, actor?: User): Promise<Date> {
   const database = await getDb();
   if (!database) throw new Error("Database not available");
-  return grantClubAccess(database, userId, days);
+  return grantClubAccess(database, userId, days, actor);
 }
 
 export async function markClubPaymentPaid(data: {

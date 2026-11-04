@@ -118,7 +118,7 @@ export const createAdminRouter = (
         if (result.kind !== "grantClub") throw new Error("Unexpected operation result");
         return { ok: true as const, expiresAt: result.expiresAt };
       }
-      const expiresAt = await db.grantClubDays(input.userId);
+      const expiresAt = await db.grantClubDays(input.userId, 31, ctx.user);
       return { ok: true as const, expiresAt: expiresAt.toISOString() };
     }),
   actionStatus: moderatorProcedure.input(z.object({ idempotencyKey: adminActionKey }).strict()).query(async ({ ctx, input }) => {

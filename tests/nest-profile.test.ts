@@ -176,7 +176,7 @@ describe("profile use cases over native HTTP", () => {
         method === "update"
           ? [9900, { expectedRevision:0, name: "synthetic name" },0]
           : method === "uploadAvatar"
-            ? [9900, photo, undefined]
+            ? [member, photo, undefined]
             : [9900],
       );
     },
@@ -344,9 +344,12 @@ describe("profile use cases over native HTTP", () => {
         return { key, url: "https://assets.example.test/sanitized.webp" };
       },
     );
-    vi.spyOn(db, "updateUserProfile").mockImplementation(async (...args) => {
-      effects.push("profile");
-      updated = args;
+    vi.spyOn(profileWrites, "saveProfile").mockImplementation(async (...args) => {
+      if ("avatarUrl" in args[3]) {
+        effects.push("profile");
+        updated = args;
+      }
+      return 1;
     });
     const input = {
       ...avatarInput(),
@@ -358,8 +361,8 @@ describe("profile use cases over native HTTP", () => {
     });
     expect(effects).toEqual(["upload", "profile"]);
     expect(updated).toEqual([
-      9900,
-      { avatarUrl: "https://assets.example.test/sanitized.webp" },
+      expect.anything(), 9900, 0,
+      { expectedRevision: 0, avatarUrl: "https://assets.example.test/sanitized.webp" },
     ]);
     expect(stored?.key).toMatch(/^avatars\/9900\/[0-9a-f-]{36}\.webp$/);
     expect(stored?.mime).toBe("image/webp");
@@ -484,9 +487,7 @@ describe("profile use cases over native HTTP", () => {
   ])("rejects $name before persistence/storage", async ({ run }) => {
     vi.spyOn(db, "getDb").mockResolvedValue(drizzle.mock());
     const effects: string[] = [];
-    vi.spyOn(db, "updateUserProfile").mockImplementation(async () => {
-      effects.push("update");
-    });
+    vi.spyOn(profileWrites, "saveProfile").mockResolvedValue(0);
     vi.spyOn(storage, "storagePut").mockImplementation(async (key) => {
       effects.push("storage");
       return { key, url: "https://assets.example.test/unexpected.webp" };
@@ -502,16 +503,16 @@ describe("profile use cases over native HTTP", () => {
     async (failure) => {
       vi.spyOn(db, "getDb").mockResolvedValue(drizzle.mock());
       const effects: string[] = [];
-      vi.spyOn(profileWrites,"saveProfile").mockImplementation(async()=>{effects.push("update");throw new Error("synthetic SQL detail");});
+      vi.spyOn(profileWrites,"saveProfile").mockImplementation(async (_db, _id, _version, input) => {
+        if (failure !== "update" && !("avatarUrl" in input)) return 0;
+        effects.push("update");
+        throw new Error("synthetic SQL detail");
+      });
       vi.spyOn(storage, "storagePut").mockImplementation(async (key) => {
         effects.push("storage");
         if (failure === "avatar storage")
           throw new Error("synthetic private storage detail");
         return { key, url: "https://assets.example.test/sanitized.webp" };
-      });
-      vi.spyOn(db, "updateUserProfile").mockImplementation(async () => {
-        effects.push("update");
-        throw new Error("synthetic private SQL detail");
       });
       vi.spyOn(platformDb, "requestAccountDeletion").mockImplementation(
         async () => {

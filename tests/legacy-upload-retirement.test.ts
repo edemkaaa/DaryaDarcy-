@@ -1,3 +1,4 @@
+import * as profileWrites from "../apps/backend/src/profile/profile-writes";
 import { afterAll, beforeAll, beforeEach, expect, it, vi } from "vitest";
 import type { INestApplication } from "@nestjs/common";
 import type { AddressInfo } from "node:net";
@@ -185,13 +186,14 @@ it("ordinary member cannot claim administrator's public-cover purpose", async ()
 it("public avatar uploads stay available and persist only the actor's URL", async () => {
   actor = member;
   const database = vi.spyOn(db, "getDb").mockResolvedValue(drizzle.mock());
-  const update = vi.spyOn(db, "updateUserProfile").mockResolvedValue(undefined);
+  const update = vi.spyOn(profileWrites, "saveProfile").mockResolvedValue(1);
   try {
     expect(
       await caller().profile.uploadAvatar({ base64: photo, filename: "x.png" }),
     ).toEqual({ url: "https://synthetic.invalid/public" });
     expect(storage.put.mock.calls[0][0]).toMatch(/^avatars\/7\//);
-    expect(update).toHaveBeenCalledWith(7, {
+    expect(update).toHaveBeenLastCalledWith(expect.anything(), 7, member.sessionVersion, {
+      expectedRevision: member.profileRevision,
       avatarUrl: "https://synthetic.invalid/public",
     });
   } finally {

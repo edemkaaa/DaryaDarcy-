@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import { validateSessionConfiguration } from "./session-config";
 import express, { type Express } from "express";
 import { NestFactory } from "@nestjs/core";
 import { ExpressAdapter } from "@nestjs/platform-express";
@@ -18,6 +19,7 @@ import { verifyApiCoordination } from "../database/coordination";
 export async function createBackendApplication(
   options: { allowedPostPaths?: readonly string[] } = {},
 ): Promise<INestApplication> {
+  validateSessionConfiguration();
   await verifyApiCoordination();
   const adapter = new ExpressAdapter();
   const http = adapter.getInstance<Express>();

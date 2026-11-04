@@ -1,5 +1,6 @@
+import { lockAdminActionActor, requireAdminActionActor } from "./action-actor";
 import { createHash } from "node:crypto";
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import {
@@ -17,26 +18,6 @@ import {
 import { grantClubAccessInTransaction } from "../billing/grants";
 import { resendClubAccessInTransaction } from "../identity/access";
 
-function requireActor(
-  current: User | undefined,
-  actor: User,
-  kind?: AdminActionKind,
-) {
-  if (
-    !current ||
-    current.openId !== actor.openId ||
-    current.sessionVersion !== actor.sessionVersion
-  )
-    throw new TRPCError({ code: "UNAUTHORIZED" });
-  if (
-    current.blockedAt ||
-    current.accountDeletionRequestedAt ||
-    !(kind === "grantClub"
-      ? current.role === "admin"
-      : ["admin", "moderator"].includes(current.role))
-  )
-    throw new TRPCError({ code: "FORBIDDEN" });
-}
 function requireKey(key: string) {
   if (!adminActionKey.safeParse(key).success)
     throw new TRPCError({ code: "BAD_REQUEST" });
@@ -65,18 +46,7 @@ export async function executeAdminAction(
     )
     .digest("hex");
   return database.transaction(async (tx) => {
-    // Consistent owner ordering also covers two admins acting on each other.
-    const owners = await tx
-      .select()
-      .from(users)
-      .where(inArray(users.id, [actor.id, input.userId]))
-      .orderBy(asc(users.id))
-      .for("update");
-    requireActor(
-      owners.find((user) => user.id === actor.id),
-      actor,
-      input.kind,
-    );
+    await lockAdminActionActor(tx, actor, input.userId, input.kind);
     const key = and(
       eq(adminActionOperations.actorUserId, actor.id),
       eq(adminActionOperations.operationKey, input.idempotencyKey),
@@ -176,7 +146,7 @@ export async function readAdminAction(
       .from(users)
       .where(eq(users.id, actor.id))
       .for("update");
-    requireActor(current, actor);
+    requireAdminActionActor(current, actor);
     const [saved] = await tx
       .select()
       .from(adminActionOperations)
@@ -187,7 +157,7 @@ export async function readAdminAction(
         ),
       );
     if (!saved) return { state: "notFound" };
-    requireActor(current, actor, saved.kind);
+    requireAdminActionActor(current, actor, saved.kind);
     return adminActionOutcome.parse(saved.result);
   });
 }
