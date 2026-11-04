@@ -616,6 +616,115 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         expect(readData<Card>("feed.getById", { id: a }, "").likeCount).toBe(0);
       });
     }, 60000);
+    describe.each(["dismissCommentReport", "deleteReportedComment"] as const)(
+      "in-flight moderation %s",
+      (operation) => {
+        it.each(["role", "epoch"] as const)(
+          "rejects a %s change committed while the writer waits",
+          async (change) => {
+            await fixturePosts(async (create) => {
+              const postId = create({ text: "Image moderation revocation" });
+              const comment = trpc(
+                api,
+                "club.addComment",
+                { postId, text: "Keep this comment" },
+                memberCookie,
+              );
+              expect(comment.response.status).toBe(200);
+              const commentId = (comment.data as { id: number }).id;
+              const [users] = await conn.query<RowDataPacket[]>(
+                "SELECT id FROM users WHERE openId='image-member'",
+              );
+              const userId = users[0].id;
+              await conn.query(
+                "INSERT INTO comment_reports(commentId,reporterUserId,reason) VALUES (?,?,'Image report')",
+                [commentId, userId],
+              );
+              const [reports] = await conn.query<RowDataPacket[]>(
+                "SELECT id FROM comment_reports WHERE commentId=?",
+                [commentId],
+              );
+              const reportId = reports[0].id;
+              const [auditBefore] = await conn.query<RowDataPacket[]>(
+                "SELECT COUNT(*) AS n FROM admin_audit_log WHERE actorUserId=?",
+                [userId],
+              );
+              await conn.query("UPDATE users SET role='moderator' WHERE id=?", [
+                userId,
+              ]);
+              const control = await mysql.createConnection({
+                uri: testDatabaseUrl!,
+                timezone: "Z",
+              });
+              let pending: ReturnType<typeof pendingRequest> | undefined;
+              try {
+                await control.beginTransaction();
+                await control.query(
+                  "SELECT id FROM users WHERE id=? FOR UPDATE",
+                  [userId],
+                );
+                pending = pendingRequest(
+                  second,
+                  "api-a",
+                  "/api/trpc/moderation." + operation,
+                  JSON.parse(
+                    superjson.stringify(
+                      operation === "dismissCommentReport"
+                        ? { reportId }
+                        : { commentId },
+                    ),
+                  ),
+                  memberCookie,
+                );
+                await expect
+                  .poll(
+                    async () => {
+                      const [waiting] = await conn.query<RowDataPacket[]>(
+                        "SELECT COUNT(*) AS n FROM performance_schema.data_lock_waits w JOIN information_schema.INNODB_TRX blocker ON blocker.trx_id=w.BLOCKING_ENGINE_TRANSACTION_ID WHERE blocker.trx_mysql_thread_id=?",
+                        [control.threadId],
+                      );
+                      return waiting[0].n;
+                    },
+                    { timeout: 7000, interval: 100 },
+                  )
+                  .toBeGreaterThan(0);
+                if (change === "role")
+                  await control.query(
+                    "UPDATE users SET role='user' WHERE id=?",
+                    [userId],
+                  );
+                else
+                  await control.query(
+                    "UPDATE users SET sessionVersion=sessionVersion+1 WHERE id=?",
+                    [userId],
+                  );
+                await control.commit();
+                expect((await pending.result).status).toBe(
+                  change === "role" ? 403 : 401,
+                );
+                const [state] = await conn.query<RowDataPacket[]>(
+                  "SELECT (SELECT COUNT(*) FROM post_comments WHERE id=?) AS comments,(SELECT COUNT(*) FROM comment_reports WHERE id=?) AS reports,(SELECT COUNT(*) FROM admin_audit_log WHERE actorUserId=?) AS audit",
+                  [commentId, reportId, userId],
+                );
+                expect(state[0]).toEqual({
+                  comments: 1,
+                  reports: 1,
+                  audit: auditBefore[0].n,
+                });
+              } finally {
+                await control.rollback();
+                await control.end();
+                await pending?.result.catch(() => {});
+                await conn.query("UPDATE users SET role='user' WHERE id=?", [
+                  userId,
+                ]);
+              }
+            });
+          },
+          45000,
+        );
+      },
+    );
     it("keeps threaded comment counts, ownership and SQL relations consistent", async () => {
       await fixturePosts(async (create) => {
         const postId = create({ text: "Image discussion" }),
