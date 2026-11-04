@@ -1,5 +1,14 @@
 # Implementation Plan: Daryadarcy Modular Monorepo
 
+## Запрос удаления аккаунта — 4 ноября
+
+Подтверждён и исправлен stale actor в profileExtras.requestAccountDeletion.
+Запрос сверяет актуальные identity/epoch/блокировку в транзакции; повтор не
+сдвигает дату уже принятой заявки. 91 SQL и 89 HTTP/unit проверок проходят,
+правила retention сохранены. Публичный вход/ответ прежние. Изменение локальное,
+нужен новый runtime image перед выпуском; далее аудит lifecycle Pen Pals.
+[Доказательства и остаток](../docs/audits/account-deletion-lifecycle-review-2026-11-04.md).
+
 ## Почта поддержки — 4 ноября
 
 Согласована схема общего support@daryadarcy.com с управлением менеджерами в

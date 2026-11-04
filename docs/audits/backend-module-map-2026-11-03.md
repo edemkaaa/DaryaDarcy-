@@ -1,5 +1,13 @@
 # Backend: карта модулей и открытый аудит — 3 ноября 2026
 
+## Продолжение profile/identity — 4 ноября
+
+requestAccountDeletion передаёт actor до SQL writer и проверяет его под
+блокировкой; дата уже принятой заявки сохраняется. Срез проверен 91 SQL и
+89 HTTP/unit тестами, остальной lifecycle Pen Pals ещё требует исследования.
+[Отчёт](account-deletion-lifecycle-review-2026-11-04.md). Это локальная проверка,
+публичные серверные настройки и весь модуль целиком ею не подтверждаются.
+
 ## Проверка безопасности — 4 ноября
 
 Локально исправлены P1 admin/grantClub без ключа и P2 identity/legacy resend, profile/legacy avatar и startup JWT. Общий transaction-time guard используется старыми и keyed admin-действиями. 147 SQL и 200 boundary/unit проверок проходят; зависимости обновлены, production audit — 0. Остальные статусы ниже исторические; полный аудит модулей и среды остаётся открытым.
