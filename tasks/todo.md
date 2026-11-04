@@ -1,5 +1,16 @@
 # Daryadarcy Modular Monorepo
 
+## Проверка безопасности — 4 ноября
+
+- [x] Проверить границы auth/payments/files и свежий production dependency audit.
+- [x] Воспроизвести P1 legacy grant и три P2 на одноразовой БД; 152 boundary-теста проходят.
+- [ ] P1 — исправить grantClub без ключа после отзыва роли/epoch.
+- [ ] P2 — исправить legacy resend, startup JWT и обновить follow-redirects/qs.
+- [ ] P2 — поздняя запись старого аватара, с учётом ранее отложенного scope.
+- [ ] Production/env/ACL и оставшиеся lifecycle-сценарии — продолжить аудит.
+
+[Полный отчёт и границы проверки](../docs/audits/backend-security-review-2026-11-04.md).
+
 ## Связь и готовый пакет — 4 ноября
 
 - [x] Повторить fetch, DNS, обычный HTTPS, HTTP/1.1 и SSH banner — доступ не восстановлен.
