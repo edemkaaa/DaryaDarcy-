@@ -103,7 +103,7 @@ backend-связи; Node/npm-пакеты и packages/shared/database идут �
 | identity / 22 | _core, admin, db, launch, platform-db, sms-auth | Найдены проблемы: session dependency ownership; sensitive lifecycle остаётся в очереди |
 | launch / 5 | db, identity | Проверен в указанном выше объёме |
 | media / 14 | _core, content, db, storage | Требует исследования: object policies/receipts/MIME/VK fetch; S3 и большие файлы сейчас не проверялись |
-| moderation / 4 | _core, content, platform-db | Требует исследования |
+| moderation / 4 | _core, content, platform-db | Найдены проблемы — отзыв прав в dismiss/delete, см. [повторный аудит](moderation-revocation-review-2026-11-04.md) |
 | notifications / 5 | _core, db, launch, sms-auth | Проверен на транспортной/SQL границе, не доставка устройству |
 | pen-pals / 2 | _core, db, launch, platform-db | Требует исследования: прошлые BOLA/lifecycle фиксы не заменяют новый полный проход; функция не включается |
 | profile / 5 | _core, content, db, media, platform-db | Требует исследования |
