@@ -56,14 +56,18 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
       cookies: string[];
       headers: Record<string, string>;
     };
-    const httpWire = `const fs=require('node:fs');const x=JSON.parse(fs.readFileSync(0,'utf8'));fetch('http://'+(x.host||'127.0.0.1')+':3000'+x.path,{method:x.method,headers:{'Content-Type':'application/json',...(x.cookie?{'Cookie':x.cookie}:{}),...x.headers},body:['GET','HEAD'].includes(x.method)?undefined:x.raw===undefined?JSON.stringify(x.data):x.raw,redirect:'manual',signal:AbortSignal.timeout(x.timeoutMs||5000)}).then(async r=>console.log(JSON.stringify({status:r.status,text:await r.text(),cookies:r.headers.getSetCookie(),headers:Object.fromEntries([...r.headers].filter(([k])=>k!=='set-cookie'))}))).catch(()=>{process.exitCode=1})`;
+    const httpWire = `const fs=require('node:fs');const x=JSON.parse(fs.readFileSync(0,'utf8'));fetch('http://'+(x.host||'127.0.0.1')+':3000'+x.path,{method:x.method,headers:{'Content-Type':'application/json',...(x.cookie?{'Cookie':x.cookie}:{}),...x.headers},body:['GET','HEAD'].includes(x.method)?undefined:x.raw===undefined?JSON.stringify(x.data):x.raw,redirect:'manual',signal:AbortSignal.timeout(x.timeoutMs||5000)}).then(async r=>console.log(JSON.stringify({status:r.status,text:x.discardBody?(await r.body?.cancel(),''):await r.text(),cookies:r.headers.getSetCookie(),headers:Object.fromEntries([...r.headers].filter(([k])=>k!=='set-cookie'))}))).catch(()=>{process.exitCode=1})`;
     function request(
       container: string,
       path: string,
       data?: unknown,
       cookie = "",
       method = "POST",
-      wire: { raw?: string; headers?: Partial<Record<string, string>> } = {},
+      wire: {
+        raw?: string;
+        headers?: Partial<Record<string, string>>;
+        discardBody?: boolean;
+      } = {},
     ): HttpResult {
       try {
         return JSON.parse(
@@ -271,7 +275,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
       expect(member.status).toBe(200);
       memberCookie = member.cookies.map((x) => x.split(";")[0]).join("; ");
     }, 30000);
-    function start(hostname: string) {
+    function start(hostname: string, overrides: Record<string, string> = {}) {
       const id = docker(
         "run",
         "--pull=never",
@@ -295,7 +299,10 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         "--tmpfs=/app/backups:rw,size=32m,uid=1000,gid=1000,mode=0700",
         "--cap-drop=ALL",
         "--security-opt=no-new-privileges",
-        ...Object.entries(env).flatMap(([k, v]) => ["-e", `${k}=${v}`]),
+        ...Object.entries({ ...env, ...overrides }).flatMap(([k, v]) => [
+          "-e",
+          `${k}=${v}`,
+        ]),
         image,
       );
       return id;
@@ -417,6 +424,28 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
             expect(rows[0].n).toBe(0);
           }
         }
+      }
+    }
+    async function withCommentRecovery(
+      run: (a: string, b: string) => Promise<void>,
+    ) {
+      const temporary: string[] = [];
+      // The regular pair is stopped only inside this owned test network, so
+      // the active topology still has two API processes and no outside egress.
+      docker("stop", api, second);
+      try {
+        const a = start("comment-a", { PRIVATE_CONTENT_FILES_ENABLED: "true" });
+        temporary.push(a);
+        await ready(a);
+        const b = start("comment-b", { PRIVATE_CONTENT_FILES_ENABLED: "true" });
+        temporary.push(b);
+        await ready(b);
+        await run(a, b);
+      } finally {
+        for (const id of temporary) docker("rm", "-f", id);
+        docker("start", api, second);
+        await ready(api);
+        await ready(second);
       }
     }
     it("pages real feed/club cards without duplicates, drafts or private text leakage", async () => {
@@ -1327,5 +1356,196 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         await pending?.result.catch(() => {});
       }
     }, 30000);
+    // Container replacement discards /app/backups tmpfs. As with the drain
+    // scenario above, run this lifecycle acceptance after backup/restore.
+    it("recovers committed comment intents across replicas without duplicates or access bypass", async () => {
+      await fixturePosts(async (create) => {
+        const postId = create({ text: "Image recoverable discussion" });
+        const privatePost = create({
+          text: "Image recoverable club discussion",
+          target: "club",
+        });
+        const input = {
+          postId,
+          text: "Image discarded comment response",
+          idempotencyKey: "image-comment-recovery-intent-0001",
+        };
+        // Feature-off compatibility is retained; no local/working flag changes.
+        expect(
+          trpc(api, "club.addComment", input, memberCookie).response.status,
+        ).toBe(404);
+        const stranger = otherSession();
+        const [member] = await conn.query<RowDataPacket[]>(
+          "SELECT id FROM users WHERE openId='image-member'",
+        );
+        try {
+          await withCommentRecovery(async (a, b) => {
+            const discarded = request(
+              a,
+              "/api/trpc/club.addComment",
+              JSON.parse(superjson.stringify(input)),
+              memberCookie,
+              "POST",
+              { discardBody: true },
+            );
+            expect(discarded.status).toBe(200);
+            expect(discarded.text).toBe("");
+            const [stored] = await conn.query<RowDataPacket[]>(
+              "SELECT id,userId FROM post_comments WHERE postId=? AND text=?",
+              [postId, input.text],
+            );
+            expect(stored).toHaveLength(1);
+            expect(stored[0].userId).toBe(member[0].id);
+            const id = stored[0].id as number;
+            const replay = trpc(b, "club.addComment", input, memberCookie);
+            expect(replay.response.status).toBe(200);
+            expect(replay.data).toEqual({ id });
+            expect(
+              trpc(
+                b,
+                "club.addComment",
+                { ...input, text: "changed intent" },
+                memberCookie,
+              ).response.status,
+            ).toBe(409);
+            const other = trpc(
+              b,
+              "club.addComment",
+              { ...input, text: "Image separate account intent" },
+              stranger,
+            );
+            expect(other.response.status).toBe(200);
+            const otherId = (other.data as { id: number }).id;
+            expect(otherId).not.toBe(id);
+            const [owners] = await conn.query<RowDataPacket[]>(
+              "SELECT c.id,u.openId FROM post_comments c JOIN users u ON u.id=c.userId WHERE c.id IN (?,?) ORDER BY c.id",
+              [id, otherId],
+            );
+            expect(owners).toEqual([
+              { id, openId: "image-member" },
+              { id: otherId, openId: "image-other" },
+            ]);
+            const parallel = {
+              ...input,
+              text: "Image simultaneous intent",
+              idempotencyKey: "image-comment-concurrent-intent-0001",
+            };
+            const first = pendingRequest(
+              a,
+              "comment-a",
+              "/api/trpc/club.addComment",
+              JSON.parse(superjson.stringify(parallel)),
+              memberCookie,
+            );
+            const secondRequest = pendingRequest(
+              b,
+              "comment-b",
+              "/api/trpc/club.addComment",
+              JSON.parse(superjson.stringify(parallel)),
+              memberCookie,
+            );
+            const replies = await Promise.all([
+              first.result,
+              secondRequest.result,
+            ]);
+            for (const response of replies) expect(response.status).toBe(200);
+            const results = replies.map((response) =>
+              superjson.deserialize<{ id: number }>(
+                JSON.parse(response.text).result.data,
+              ),
+            );
+            expect(results[0]).toEqual(results[1]);
+            const [parallelRows] = await conn.query<RowDataPacket[]>(
+              "SELECT id FROM post_comments WHERE postId=? AND text=?",
+              [postId, parallel.text],
+            );
+            expect(parallelRows).toEqual([{ id: results[0].id }]);
+            const [ledger] = await conn.query<RowDataPacket[]>(
+              "SELECT COUNT(*) AS n FROM comment_creation_requests WHERE commentId=? AND actorUserId=?",
+              [results[0].id, member[0].id],
+            );
+            expect(ledger[0].n).toBe(1);
+            expect(
+              trpc(a, "club.deleteComment", { id }, adminCookie).response
+                .status,
+            ).toBe(200);
+            expect(
+              trpc(b, "club.addComment", input, memberCookie).response.status,
+            ).toBe(409);
+            await conn.query(
+              "INSERT INTO club_payments(userId,orderId,status,expiresAt) VALUES (?,'image-comment-grant','paid',DATE_ADD(NOW(),INTERVAL 1 DAY))",
+              [member[0].id],
+            );
+            const clubInput = {
+              ...input,
+              postId: privatePost,
+              text: "Image club recoverable comment",
+              idempotencyKey: "image-comment-club-intent-0001",
+            };
+            expect(
+              trpc(a, "club.addComment", clubInput, memberCookie).response
+                .status,
+            ).toBe(200);
+            await conn.query(
+              "DELETE FROM club_payments WHERE orderId='image-comment-grant'",
+            );
+            expect(
+              trpc(b, "club.addComment", clubInput, memberCookie).response
+                .status,
+            ).toBe(403);
+            expect(
+              trpc(
+                b,
+                "club.addComment",
+                {
+                  ...clubInput,
+                  idempotencyKey: "image-comment-club-denied-0001",
+                },
+                memberCookie,
+              ).response.status,
+            ).toBe(403);
+            const [clubRows] = await conn.query<RowDataPacket[]>(
+              "SELECT COUNT(*) AS n FROM post_comments WHERE postId=?",
+              [privatePost],
+            );
+            expect(clubRows[0].n).toBe(1);
+            await conn.query(
+              "UPDATE users SET blockedAt=NOW(),sessionVersion=sessionVersion+1 WHERE id=?",
+              [member[0].id],
+            );
+            expect(
+              trpc(b, "club.addComment", parallel, memberCookie).response
+                .status,
+            ).toBe(401);
+            await conn.query("UPDATE users SET blockedAt=NULL WHERE id=?", [
+              member[0].id,
+            ]);
+            const login = request(a, "/api/auth/login", {
+              email: "image-member@example.test",
+              password,
+            });
+            expect(login.status).toBe(200);
+            const restored = login.cookies
+              .map((value) => value.split(";")[0])
+              .join("; ");
+            expect(trpc(b, "club.addComment", parallel, restored).data).toEqual(
+              results[0],
+            );
+            const [count] = await conn.query<RowDataPacket[]>(
+              "SELECT COUNT(*) AS n FROM post_comments WHERE postId=?",
+              [postId],
+            );
+            expect(count[0].n).toBe(2);
+          });
+        } finally {
+          await conn.query("UPDATE users SET blockedAt=NULL WHERE id=?", [
+            member[0].id,
+          ]);
+          await conn.query(
+            "DELETE FROM club_payments WHERE orderId='image-comment-grant'",
+          );
+        }
+      });
+    }, 180000);
   },
 );
