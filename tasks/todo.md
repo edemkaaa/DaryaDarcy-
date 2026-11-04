@@ -4,9 +4,11 @@
 
 - [x] Проверить границы auth/payments/files и свежий production dependency audit.
 - [x] Воспроизвести P1 legacy grant и три P2 на одноразовой БД; 152 boundary-теста проходят.
-- [ ] P1 — исправить grantClub без ключа после отзыва роли/epoch.
-- [ ] P2 — исправить legacy resend, startup JWT и обновить follow-redirects/qs.
-- [ ] P2 — поздняя запись старого аватара, с учётом ранее отложенного scope.
+- [x] P1 — исправить grantClub без ключа после отзыва роли/epoch.
+- [x] P2 — исправить legacy resend, startup JWT и обновить follow-redirects/qs.
+- [x] P2 — защитить позднюю запись старого аватара без расширения UI.
+- [x] Проверить исправления: 147 SQL, 200 boundary/unit, обе сборки, типы и API-контракт; prod audit — 0.
+- [ ] Собрать и принять новый контейнерный кандидат с исправлениями/зависимостями перед выпуском.
 - [ ] Production/env/ACL и оставшиеся lifecycle-сценарии — продолжить аудит.
 
 [Полный отчёт и границы проверки](../docs/audits/backend-security-review-2026-11-04.md).

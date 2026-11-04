@@ -2,7 +2,7 @@
 
 ## Проверка безопасности — 4 ноября
 
-Новый security-срез подтвердил P1 в admin/grantClub без ключа, P2 в identity/legacy resend и profile/legacy avatar, а также пробел startup JWT. Статусы ниже относятся к исходному срезу 3 ноября; это дополнение не объявляет остальные модули полностью проверенными.
+Локально исправлены P1 admin/grantClub без ключа и P2 identity/legacy resend, profile/legacy avatar и startup JWT. Общий transaction-time guard используется старыми и keyed admin-действиями. 147 SQL и 200 boundary/unit проверок проходят; зависимости обновлены, production audit — 0. Остальные статусы ниже исторические; полный аудит модулей и среды остаётся открытым.
 
 [Полный отчёт и границы проверки](backend-security-review-2026-11-04.md).
 
