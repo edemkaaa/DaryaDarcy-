@@ -1,9 +1,7 @@
-import { TRPCError } from "@trpc/server";
 import { and, eq, isNull, lt, ne, or } from "drizzle-orm";
 import {
   users,
   userConsentEvents,
-  type User,
   penPalProfiles,
   penPalMatches,
   penPalShown,
@@ -11,6 +9,7 @@ import {
 } from "../../../../packages/database/src/schema";
 import { getDb } from "../database/connection";
 import { requestMatch, respondMatch } from "./match-writes";
+import { lockPenPalActor, type PenPalActor } from "./actor";
 import {
   PEN_PAL_ADULT_CONSENT_LABEL,
   PEN_PAL_CONSENT_VERSION,
@@ -40,23 +39,7 @@ export type PenPalMatchCard = {
   confirmDeadline: Date | null;
 };
 
-type ProfileActor = Pick<User, "id" | "openId" | "sessionVersion">;
 type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
-
-async function requireProfileActor(tx: Transaction, actor: ProfileActor) {
-  const [current] = await tx
-    .select()
-    .from(users)
-    .where(eq(users.id, actor.id))
-    .for("update");
-  if (
-    !current ||
-    current.openId !== actor.openId ||
-    current.sessionVersion !== actor.sessionVersion
-  )
-    throw new TRPCError({ code: "UNAUTHORIZED" });
-  if (current.blockedAt) throw new TRPCError({ code: "FORBIDDEN" });
-}
 
 async function recordProfileConsent(
   tx: Transaction,
@@ -74,7 +57,7 @@ async function recordProfileConsent(
 }
 
 export async function upsertPenPalProfileV2(
-  actor: ProfileActor,
+  actor: PenPalActor,
   data: {
     fullName: string;
     interests: string[];
@@ -85,7 +68,7 @@ export async function upsertPenPalProfileV2(
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   return db.transaction(async (tx) => {
-    await requireProfileActor(tx, actor);
+    await lockPenPalActor(tx, actor);
     const fields = {
       fullName: data.fullName,
       city: data.fullName,
@@ -111,13 +94,18 @@ export async function upsertPenPalProfileV2(
 }
 
 /** User withdrawal remains available when discovery is disabled. */
-export async function withdrawPenPalProfile(actor: ProfileActor): Promise<void> {
+export async function withdrawPenPalProfile(actor: PenPalActor): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.transaction(async (tx) => {
-    await requireProfileActor(tx, actor);
+    await lockPenPalActor(tx, actor);
     await deactivatePenPalProfile(tx, actor.id);
-    await recordProfileConsent(tx, actor.id, "revoked", PEN_PAL_CONSENT_VERSION);
+    await recordProfileConsent(
+      tx,
+      actor.id,
+      "revoked",
+      PEN_PAL_CONSENT_VERSION,
+    );
   });
 }
 
@@ -153,6 +141,25 @@ export async function deactivatePenPalProfile(
     );
 }
 
+export async function readOwnPenPalProfile(actor: PenPalActor) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.transaction(async (tx) => {
+    await lockPenPalActor(tx, actor);
+    const [profile] = await tx
+      .select()
+      .from(penPalProfiles)
+      .where(eq(penPalProfiles.userId, actor.id))
+      .limit(1);
+    if (!profile?.active) return null;
+    return {
+      fullName: profile.fullName || profile.city,
+      interests: asInterestList(profile.interests),
+      address: profile.address,
+    };
+  });
+}
+
 async function matchRowForUser(
   row: typeof penPalMatches.$inferSelect,
   userId: number,
@@ -167,154 +174,193 @@ async function matchRowForUser(
   };
 }
 
-export async function listPenPalCards(
-  userId: number,
-  limit = 2,
-): Promise<PenPalMatchCard[]> {
-  const db = await getDb();
-  if (!db) return [];
+export async function findPenPalCards(actor: PenPalActor, limit = 2) {
+  const database = await getDb();
+  if (!database) throw new Error("Database not available");
+  return database.transaction(
+    async (db) => {
+      await lockPenPalActor(db, actor);
+      const userId = actor.id;
 
-  const mine = await db
-    .select()
-    .from(penPalProfiles)
-    .where(eq(penPalProfiles.userId, userId))
-    .limit(1);
-  const profile = mine[0];
-  if (!profile?.active) return [];
+      const mine = await db
+        .select()
+        .from(penPalProfiles)
+        .where(eq(penPalProfiles.userId, userId))
+        .limit(1);
+      const profile = mine[0];
+      if (!profile?.active)
+        return {
+          needsProfile: true as const,
+          matches: [] as PenPalMatchCard[],
+        };
 
-  const now = new Date();
-  await db
-    .delete(penPalMatches)
-    .where(
-      and(
-        isNull(penPalMatches.mutualConfirmedAt),
-        lt(penPalMatches.confirmDeadline, now),
-      ),
-    );
-
-  const myInterests = asInterestList(profile.interests);
-  const matchRows = await db
-    .select()
-    .from(penPalMatches)
-    .where(
-      or(
-        eq(penPalMatches.userLowId, userId),
-        eq(penPalMatches.userHighId, userId),
-      ),
-    );
-
-  const cards: PenPalMatchCard[] = [];
-  const matchedIds = new Set<number>();
-
-  for (const row of matchRows) {
-    const info = await matchRowForUser(row, userId);
-    matchedIds.add(info.otherUserId);
-    const [otherProfile] = await db
-      .select()
-      .from(penPalProfiles)
-      .where(eq(penPalProfiles.userId, info.otherUserId))
-      .limit(1);
-    const [otherUser] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, info.otherUserId))
-      .limit(1);
-    if (!otherProfile?.active) continue;
-    const interests = asInterestList(otherProfile.interests);
-    cards.push({
-      userId: info.otherUserId,
-      matchId: row.id,
-      name: otherUser?.name ?? null,
-      avatarUrl: otherUser?.avatarUrl ?? null,
-      fullName: otherProfile.fullName || otherProfile.city,
-      interests,
-      sharedInterests: interests.filter((i) => myInterests.includes(i)),
-      address: info.mutualConfirmed ? otherProfile.address : undefined,
-      myConfirmed: info.myConfirmed,
-      theirConfirmed: info.theirConfirmed,
-      mutualConfirmed: info.mutualConfirmed,
-      confirmDeadline: info.confirmDeadline,
-    });
-  }
-
-  if (cards.length >= limit) return cards.slice(0, limit);
-
-  const [others, shownRows] = await Promise.all([
-    db
-      .select()
-      .from(penPalProfiles)
-      .where(
-        and(eq(penPalProfiles.active, true), ne(penPalProfiles.userId, userId)),
-      ),
-    db
-      .select({ matchUserId: penPalShown.matchUserId })
-      .from(penPalShown)
-      .where(eq(penPalShown.userId, userId)),
-  ]);
-  const shown = new Set(shownRows.map((r) => r.matchUserId));
-
-  const ranked = others
-    .filter((p) => !shown.has(p.userId) && !matchedIds.has(p.userId))
-    .map((p) => {
-      const interests = asInterestList(p.interests);
-      const shared = interests.filter((i) => myInterests.includes(i));
-      return {
-        profile: p,
-        interests,
-        sharedInterests: shared,
-        score: shared.length,
-      };
-    })
-    .filter((r) => r.score >= 1)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit - cards.length);
-
-  for (const row of ranked) {
-    try {
+      const now = new Date();
       await db
-        .insert(penPalShown)
-        .values({ userId, matchUserId: row.profile.userId });
-    } catch {
-      // duplicate
-    }
-    const [u] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, row.profile.userId))
-      .limit(1);
-    cards.push({
-      userId: row.profile.userId,
-      matchId: null,
-      name: u?.name ?? null,
-      avatarUrl: u?.avatarUrl ?? null,
-      fullName: row.profile.fullName || row.profile.city,
-      interests: row.interests,
-      sharedInterests: row.sharedInterests,
-      myConfirmed: false,
-      theirConfirmed: false,
-      mutualConfirmed: false,
-      confirmDeadline: null,
-    });
-  }
+        .delete(penPalMatches)
+        .where(
+          and(
+            or(
+              eq(penPalMatches.userLowId, userId),
+              eq(penPalMatches.userHighId, userId),
+            ),
+            isNull(penPalMatches.mutualConfirmedAt),
+            lt(penPalMatches.confirmDeadline, now),
+          ),
+        );
 
-  return cards;
+      const myInterests = asInterestList(profile.interests);
+      const matchRows = await db
+        .select()
+        .from(penPalMatches)
+        .where(
+          or(
+            eq(penPalMatches.userLowId, userId),
+            eq(penPalMatches.userHighId, userId),
+          ),
+        );
+
+      const cards: PenPalMatchCard[] = [];
+      const matchedIds = new Set<number>();
+
+      for (const row of matchRows) {
+        let info = await matchRowForUser(row, userId);
+        matchedIds.add(info.otherUserId);
+        // A single current read authorizes the relation and peer together.
+        // The initial match list must not retain access after withdrawal.
+        const [current] = await db
+          .select({
+            match: penPalMatches,
+            profile: penPalProfiles,
+            user: { name: users.name, avatarUrl: users.avatarUrl },
+          })
+          .from(penPalMatches)
+          .innerJoin(
+            penPalProfiles,
+            eq(penPalProfiles.userId, info.otherUserId),
+          )
+          .innerJoin(users, eq(users.id, penPalProfiles.userId))
+          .where(
+            and(
+              eq(penPalMatches.id, row.id),
+              eq(penPalMatches.userLowId, row.userLowId),
+              eq(penPalMatches.userHighId, row.userHighId),
+              eq(penPalProfiles.active, true),
+              isNull(users.blockedAt),
+            ),
+          )
+          .limit(1);
+        if (
+          !current ||
+          (!current.match.mutualConfirmedAt &&
+            current.match.confirmDeadline <= new Date())
+        )
+          continue;
+        info = await matchRowForUser(current.match, userId);
+        const interests = asInterestList(current.profile.interests);
+        cards.push({
+          userId: info.otherUserId,
+          matchId: current.match.id,
+          name: current.user.name,
+          avatarUrl: current.user.avatarUrl,
+          fullName: current.profile.fullName || current.profile.city,
+          interests,
+          sharedInterests: interests.filter((i) => myInterests.includes(i)),
+          address: info.mutualConfirmed ? current.profile.address : undefined,
+          myConfirmed: info.myConfirmed,
+          theirConfirmed: info.theirConfirmed,
+          mutualConfirmed: info.mutualConfirmed,
+          confirmDeadline: info.confirmDeadline,
+        });
+      }
+
+      if (cards.length >= limit)
+        return { needsProfile: false as const, matches: cards.slice(0, limit) };
+
+      const [others, shownRows] = await Promise.all([
+        db
+          .select()
+          .from(penPalProfiles)
+          .where(
+            and(
+              eq(penPalProfiles.active, true),
+              ne(penPalProfiles.userId, userId),
+            ),
+          ),
+        db
+          .select({ matchUserId: penPalShown.matchUserId })
+          .from(penPalShown)
+          .where(eq(penPalShown.userId, userId)),
+      ]);
+      const shown = new Set(shownRows.map((r) => r.matchUserId));
+
+      const ranked = others
+        .filter((p) => !shown.has(p.userId) && !matchedIds.has(p.userId))
+        .map((p) => {
+          const interests = asInterestList(p.interests);
+          const shared = interests.filter((i) => myInterests.includes(i));
+          return {
+            profile: p,
+            interests,
+            sharedInterests: shared,
+            score: shared.length,
+          };
+        })
+        .filter((r) => r.score >= 1)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit - cards.length);
+
+      for (const row of ranked) {
+        const [u] = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, row.profile.userId))
+          .limit(1);
+        const [currentProfile] = await db
+          .select()
+          .from(penPalProfiles)
+          .where(eq(penPalProfiles.userId, row.profile.userId))
+          .limit(1);
+        if (!currentProfile?.active || !u || u.blockedAt) continue;
+        await db
+          .insert(penPalShown)
+          .values({ userId, matchUserId: row.profile.userId })
+          .onDuplicateKeyUpdate({ set: { matchUserId: row.profile.userId } });
+        cards.push({
+          userId: row.profile.userId,
+          matchId: null,
+          name: u?.name ?? null,
+          avatarUrl: u?.avatarUrl ?? null,
+          fullName: currentProfile.fullName || currentProfile.city,
+          interests: row.interests,
+          sharedInterests: row.sharedInterests,
+          myConfirmed: false,
+          theirConfirmed: false,
+          mutualConfirmed: false,
+          confirmDeadline: null,
+        });
+      }
+
+      return { needsProfile: false as const, matches: cards };
+    },
+    { isolationLevel: "read committed" },
+  );
 }
 
 export async function requestPenPalMatch(
-  userId: number,
+  actor: PenPalActor,
   targetUserId: number,
 ): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return requestMatch(db, userId, targetUserId);
+  return requestMatch(db, actor, targetUserId);
 }
 
 export async function respondPenPalMatch(
-  userId: number,
+  actor: PenPalActor,
   matchId: number,
   accept: boolean,
 ): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await respondMatch(db, userId, matchId, accept);
+  await respondMatch(db, actor, matchId, accept);
 }

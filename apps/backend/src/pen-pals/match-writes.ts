@@ -8,6 +8,13 @@ import {
 } from "../../../../packages/database/src/schema";
 import { PEN_PAL_CONFIRM_DAYS } from "../../../../packages/shared/src/pen-pals";
 
+import {
+  lockPenPalActor,
+  penPalActorColumns,
+  requirePenPalActor,
+  type PenPalActor,
+} from "./actor";
+
 type Transaction = Parameters<Parameters<MySql2Database["transaction"]>[0]>[0];
 type Match = typeof penPalMatches.$inferSelect;
 const unavailable = () =>
@@ -21,15 +28,21 @@ const ownedMatch = (id: number, actorId: number) =>
     ),
   );
 
-async function requireActivePair(tx: Transaction, low: number, high: number) {
+async function requireActivePair(
+  tx: Transaction,
+  low: number,
+  high: number,
+  actor: PenPalActor,
+) {
   // A stable lock order serializes reciprocal requests with account retirement
   // and profile deactivation. A row checked only before this transaction is stale.
   for (const id of [low, high]) {
     const [user] = await tx
-      .select({ id: users.id, blockedAt: users.blockedAt })
+      .select(penPalActorColumns)
       .from(users)
       .where(eq(users.id, id))
       .for("update");
+    if (id === actor.id) requirePenPalActor(user, actor);
     if (!user || user.blockedAt) throw unavailable();
   }
   for (const id of [low, high]) {
@@ -88,9 +101,10 @@ async function confirm(tx: Transaction, row: Match, actorId: number) {
 
 export async function requestMatch(
   database: MySql2Database,
-  userId: number,
+  actor: PenPalActor,
   targetUserId: number,
 ): Promise<number> {
+  const userId = actor.id;
   if (userId === targetUserId)
     throw new TRPCError({
       code: "BAD_REQUEST",
@@ -99,7 +113,7 @@ export async function requestMatch(
   const [low, high] =
     userId < targetUserId ? [userId, targetUserId] : [targetUserId, userId];
   return database.transaction(async (tx) => {
-    await requireActivePair(tx, low, high);
+    await requireActivePair(tx, low, high, actor);
     const [row] = await tx
       .select()
       .from(penPalMatches)
@@ -133,10 +147,11 @@ export async function requestMatch(
 
 export async function respondMatch(
   database: MySql2Database,
-  userId: number,
+  actor: PenPalActor,
   matchId: number,
   accept: boolean,
 ): Promise<void> {
+  const userId = actor.id;
   await database.transaction(async (tx) => {
     const [initial] = await tx
       .select()
@@ -149,11 +164,12 @@ export async function respondMatch(
     )
       throw unavailable();
     if (!accept) {
+      await lockPenPalActor(tx, actor);
       // Declining must remain possible even if an account/profile is no longer active.
       await tx.delete(penPalMatches).where(ownedMatch(matchId, userId));
       return;
     }
-    await requireActivePair(tx, initial.userLowId, initial.userHighId);
+    await requireActivePair(tx, initial.userLowId, initial.userHighId, actor);
     const [row] = await tx
       .select()
       .from(penPalMatches)

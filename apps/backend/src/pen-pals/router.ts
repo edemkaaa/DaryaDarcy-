@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
-import * as db from "../db";
 import * as platformDb from "../platform-db";
 import { requireCapability } from "../launch/capabilities";
 import {
@@ -16,15 +15,7 @@ const penPalProcedure = protectedProcedure.use(({ next }) => {
 });
 
 export const penPalsRouter = router({
-  me: penPalProcedure.query(async ({ ctx }) => {
-    const profile = await db.getPenPalProfile(ctx.user.id);
-    if (!profile || !profile.active) return null;
-    return {
-      fullName: profile.fullName || profile.city,
-      interests: Array.isArray(profile.interests) ? profile.interests : [],
-      address: profile.address,
-    };
-  }),
+  me: penPalProcedure.query(({ ctx }) => platformDb.readOwnPenPalProfile(ctx.user)),
   upsert: penPalProcedure
     .input(
       z.object({
@@ -57,22 +48,12 @@ export const penPalsRouter = router({
         address: profile.address,
       };
     }),
-  find: penPalProcedure.mutation(async ({ ctx }) => {
-    const profile = await db.getPenPalProfile(ctx.user.id);
-    if (!profile || !profile.active) {
-      return {
-        needsProfile: true as const,
-        matches: [] as platformDb.PenPalMatchCard[],
-      };
-    }
-    const matches = await platformDb.listPenPalCards(ctx.user.id, 4);
-    return { needsProfile: false as const, matches };
-  }),
+  find: penPalProcedure.mutation(({ ctx }) => platformDb.findPenPalCards(ctx.user, 4)),
   requestMatch: penPalProcedure
     .input(z.object({ targetUserId: z.number().int().positive().max(2147483647) }))
     .mutation(async ({ ctx, input }) => {
       const matchId = await platformDb.requestPenPalMatch(
-        ctx.user.id,
+        ctx.user,
         input.targetUserId,
       );
       return { matchId };
@@ -81,7 +62,7 @@ export const penPalsRouter = router({
     .input(z.object({ matchId: z.number().int().positive().max(2147483647), accept: z.boolean() }))
     .mutation(async ({ ctx, input }) => {
       await platformDb.respondPenPalMatch(
-        ctx.user.id,
+        ctx.user,
         input.matchId,
         input.accept,
       );

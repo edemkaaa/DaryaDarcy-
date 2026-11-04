@@ -51,6 +51,8 @@ beforeAll(async () => {
       ({
         id: actorId,
         role: "user",
+        openId: "pen-pal-unit-" + actorId,
+        sessionVersion: 0,
         blockedAt: null,
       }) as User,
   );
@@ -77,6 +79,8 @@ beforeEach(() => {
             [
               [
                 params[0],
+                "pen-pal-unit-" + params[0],
+                0,
                 transport.blockedUser === params[0]
                   ? "2026-10-21 00:00:00"
                   : null,
@@ -233,7 +237,7 @@ it("account block detected after authentication prevents match creation", async 
   transport.blockedUser = 1;
   await expect(
     client().penPals.requestMatch.mutate({ targetUserId: 2 }),
-  ).rejects.toMatchObject({ data: { code: "NOT_FOUND" } });
+  ).rejects.toMatchObject({ data: { code: "FORBIDDEN" } });
   expect(writes()).toEqual([]);
 });
 
