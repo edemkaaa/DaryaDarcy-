@@ -1,5 +1,15 @@
 # Implementation Plan: Daryadarcy Modular Monorepo
 
+### Разрешённое обновление — 4 ноября, доступ заблокирован
+
+Подготовлен локальный source6e95f0c0, проверенный bundle и семь свежих gates:
+root/frontend types, backend lint/две сборки/API/boundaries/docs проходят.
+Обычный fetch, HTTP/1.1 fetch и SSH снова не завершили соединение; freshness
+staging неизвестна. Merge/push/deploy/серверный бэкап/миграции не выполнялись.
+БД/аккаунты/старые файлы/env не менялись. Владелец уведомлён о сетевом остатке.
+[Конкретный пакет и порядок продолжения](../docs/operations/release-candidate-2026-11-04.md).
+
+
 ### Beget и доступ к проекту — 4 ноября
 
 Read-only повтор11:39МСК: Beget восстанавливается частично, основной сайт
