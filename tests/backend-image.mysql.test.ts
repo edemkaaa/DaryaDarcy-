@@ -1,4 +1,4 @@
-import { execFileSync, spawn } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { createDecipheriv, randomBytes, randomUUID } from "node:crypto";
 import {
   afterAll,
@@ -762,6 +762,155 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         await pending?.result.catch(() => {});
       }
     }
+    it("ships the patched redirect and querystring production packages", () => {
+      const versions = JSON.parse(
+        docker(
+          "exec",
+          api,
+          "node",
+          "-e",
+          `
+        const path=require('node:path');
+        const read=(name,parent)=>require(require.resolve(name+'/package.json',{paths:[path.dirname(require.resolve(parent+'/package.json'))]})).version;
+        console.log(JSON.stringify({redirect:read('follow-redirects','axios'),querystring:read('qs','express')}));
+      `,
+        ),
+      );
+      expect(versions).toEqual({ redirect: "1.16.2", querystring: "6.16.1" });
+    });
+    it("refuses production startup with an undersized JWT key", async () => {
+      const weak = start("api-weak-key", { JWT_SECRET: "x" });
+      await expect
+        .poll(() => inspect(weak).State.Running, {
+          timeout: 10000,
+          interval: 200,
+        })
+        .toBe(false);
+      expect(inspect(weak).State.ExitCode).not.toBe(0);
+      const logs = spawnSync("docker", ["logs", weak], { encoding: "utf8", timeout: 10000 });
+      expect(logs.status).toBe(0);
+      expect(logs.stdout + logs.stderr).toContain("JWT_SECRET");
+    });
+    it.each([
+      { operation: "grant", change: "epoch", status: 401 },
+      { operation: "grant", change: "role", status: 403 },
+      { operation: "resend", change: "epoch", status: 401 },
+      { operation: "resend", change: "deletion", status: 403 },
+    ] as const)(
+      "fences legacy $operation after actor $change changes in flight",
+      async ({ operation, change, status }) => {
+        const [rows] = await conn.query<RowDataPacket[]>(
+          "SELECT id,openId FROM users WHERE openId IN ('image-member','image-other')",
+        );
+        const actorId = rows.find((row) => row.openId === "image-member")!.id;
+        const targetId = rows.find((row) => row.openId === "image-other")!.id;
+        await conn.query("UPDATE users SET role='admin' WHERE id=?", [actorId]);
+        if (operation === "resend")
+          await conn.query(
+            "INSERT INTO club_payments(userId,orderId,status,expiresAt) VALUES (?,'image-legacy-resend-check','paid',DATE_ADD(NOW(),INTERVAL 1 DAY))",
+            [targetId],
+          );
+        const state = async () => {
+          const [payments] = await conn.query(
+            "SELECT * FROM club_payments WHERE userId=? ORDER BY id",
+            [targetId],
+          );
+          const [outbox] = await conn.query(
+            "SELECT * FROM access_email_outbox WHERE userId=? ORDER BY id",
+            [targetId],
+          );
+          const [tokens] = await conn.query(
+            "SELECT * FROM password_tokens WHERE userId=? ORDER BY id",
+            [targetId],
+          );
+          const [audit] = await conn.query(
+            "SELECT * FROM admin_audit_log WHERE actorUserId=? ORDER BY id",
+            [actorId],
+          );
+          return { payments, outbox, tokens, audit };
+        };
+        try {
+          const before = await state();
+          const response = await withActorLock(
+            actorId,
+            () =>
+              pendingRequest(
+                second,
+                "api-a",
+                operation === "grant"
+                  ? "/api/trpc/admin.grantClub"
+                  : "/api/admin/access-email/resend",
+                operation === "grant"
+                  ? JSON.parse(superjson.stringify({ userId: targetId }))
+                  : { userId: targetId },
+                memberCookie,
+              ),
+            async (control) => {
+              const update =
+                change === "epoch"
+                  ? "sessionVersion=sessionVersion+1"
+                  : change === "role"
+                    ? "role='user'"
+                    : "accountDeletionRequestedAt=NOW()";
+              await control.query(`UPDATE users SET ${update} WHERE id=?`, [
+                actorId,
+              ]);
+            },
+          );
+          expect(response.status).toBe(status);
+          expect(await state()).toEqual(before);
+        } finally {
+          await conn.query(
+            "UPDATE users SET role='user',accountDeletionRequestedAt=NULL WHERE id=?",
+            [actorId],
+          );
+          await conn.query("DELETE FROM access_email_outbox WHERE userId=?", [
+            targetId,
+          ]);
+          await conn.query("DELETE FROM password_tokens WHERE userId=?", [
+            targetId,
+          ]);
+          await conn.query("DELETE FROM club_payments WHERE userId=?", [
+            targetId,
+          ]);
+          await conn.query("DELETE FROM admin_audit_log WHERE actorUserId=?", [
+            actorId,
+          ]);
+        }
+      },
+    );
+    it("keeps legacy grant and resend usable through the built HTTP API", async () => {
+      const [targets] = await conn.query<RowDataPacket[]>(
+        "SELECT id FROM users WHERE openId='image-other'",
+      );
+      const userId = targets[0].id;
+      try {
+        expect(
+          trpc(api, "admin.grantClub", { userId }, adminCookie).response.status,
+        ).toBe(200);
+        const resend = request(
+          second,
+          "/api/admin/access-email/resend",
+          { userId },
+          adminCookie,
+        );
+        expect(resend.status).toBe(202);
+        expect(JSON.parse(resend.text)).toEqual({ queued: true });
+        const [counts] = await conn.query<RowDataPacket[]>(
+          "SELECT (SELECT COUNT(*) FROM club_payments WHERE userId=?) AS grants, (SELECT COUNT(*) FROM access_email_outbox WHERE userId=?) AS mails",
+          [userId, userId],
+        );
+        expect(counts[0]).toMatchObject({ grants: 1, mails: 1 });
+      } finally {
+        await conn.query("DELETE FROM access_email_outbox WHERE userId=?", [
+          userId,
+        ]);
+        await conn.query("DELETE FROM password_tokens WHERE userId=?", [
+          userId,
+        ]);
+        await conn.query("DELETE FROM club_payments WHERE userId=?", [userId]);
+      }
+    });
     it.each(["blockUser", "unblockUser"] as const)(
       "rejects revoked session during in-flight %s without target or audit changes",
       async (operation) => {

@@ -2,7 +2,7 @@
 
 ## Проверка безопасности — 4 ноября
 
-Подтверждённые P1 grantClub и P2 legacy resend/avatar, startup JWT и dependency advisories исправлены локально. 147 SQL и 200 boundary/unit проверок проходят, production audit — 0. Публичный API-контракт сохранён. Следующий шаг перед выпуском — новый контейнерный кандидат, свежий staging и серверный preflight; аудит оставшихся модулей и production открыт. Без push/deploy и изменений frontend/рабочих данных.
+Подтверждённые P1 grantClub и P2 legacy resend/avatar, startup JWT и dependency advisories исправлены локально. 147 SQL и 200 boundary/unit проверок проходят, production audit — 0. Публичный API-контракт сохранён. ARM64-кандидат 2adb313e собран штатным Dockerfile и принят 59/59. Перед выпуском остаются новый AMD64-кандидат (нужен запас диска), свежий staging и серверный preflight; аудит оставшихся модулей и production открыт. Без push/deploy и изменений frontend/рабочих данных.
 
 [Полный отчёт и границы проверки](../docs/audits/backend-security-review-2026-11-04.md).
 
