@@ -680,7 +680,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
                   .poll(
                     async () => {
                       const [waiting] = await conn.query<RowDataPacket[]>(
-                        "SELECT COUNT(*) AS n FROM performance_schema.data_lock_waits w JOIN information_schema.INNODB_TRX blocker ON blocker.trx_id=w.BLOCKING_ENGINE_TRANSACTION_ID WHERE blocker.trx_mysql_thread_id=?",
+                        "SELECT COUNT(*) AS n FROM performance_schema.data_lock_waits w JOIN performance_schema.threads blocker ON blocker.THREAD_ID=w.BLOCKING_THREAD_ID WHERE blocker.PROCESSLIST_ID=?",
                         [control.threadId],
                       );
                       return waiting[0].n;
@@ -724,6 +724,227 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
           45000,
         );
       },
+    );
+    async function withActorLock(
+      userId: number,
+      startRequest: () => ReturnType<typeof pendingRequest>,
+      change: (control: Connection) => Promise<void>,
+    ) {
+      const control = await mysql.createConnection({
+        uri: testDatabaseUrl!,
+        timezone: "Z",
+      });
+      let pending: ReturnType<typeof pendingRequest> | undefined;
+      try {
+        await control.beginTransaction();
+        await control.query("SELECT id FROM users WHERE id=? FOR UPDATE", [
+          userId,
+        ]);
+        pending = startRequest();
+        await expect
+          .poll(
+            async () => {
+              const [waiting] = await conn.query<RowDataPacket[]>(
+                "SELECT COUNT(*) AS n FROM performance_schema.data_lock_waits w JOIN performance_schema.threads blocker ON blocker.THREAD_ID=w.BLOCKING_THREAD_ID WHERE blocker.PROCESSLIST_ID=?",
+                [control.threadId],
+              );
+              return waiting[0].n;
+            },
+            { timeout: 7000, interval: 100 },
+          )
+          .toBeGreaterThan(0);
+        await change(control);
+        await control.commit();
+        return await pending.result;
+      } finally {
+        await control.rollback();
+        await control.end();
+        await pending?.result.catch(() => {});
+      }
+    }
+    it.each(["blockUser", "unblockUser"] as const)(
+      "rejects revoked session during in-flight %s without target or audit changes",
+      async (operation) => {
+        const [rows] = await conn.query<RowDataPacket[]>(
+          "SELECT id,openId FROM users WHERE openId IN ('image-member','image-other')",
+        );
+        const actorId = rows.find((row) => row.openId === "image-member")!.id;
+        const targetId = rows.find((row) => row.openId === "image-other")!.id;
+        await conn.query("UPDATE users SET role='moderator' WHERE id=?", [
+          actorId,
+        ]);
+        if (operation === "unblockUser")
+          await conn.query(
+            "UPDATE users SET blockedAt=NOW(),blockedReason='Image retained block' WHERE id=?",
+            [targetId],
+          );
+        async function state() {
+          const [target] = await conn.query(
+            "SELECT blockedAt,blockedReason,sessionVersion FROM users WHERE id=?",
+            [targetId],
+          );
+          const [audit] = await conn.query(
+            "SELECT id FROM admin_audit_log WHERE actorUserId=? ORDER BY id",
+            [actorId],
+          );
+          return { target, audit };
+        }
+        try {
+          const before = await state();
+          const response = await withActorLock(
+            actorId,
+            () =>
+              pendingRequest(
+                second,
+                "api-a",
+                "/api/trpc/moderation." + operation,
+                JSON.parse(
+                  superjson.stringify({
+                    userId: targetId,
+                    ...(operation === "blockUser"
+                      ? { reason: "Late block" }
+                      : {}),
+                  }),
+                ),
+                memberCookie,
+              ),
+            async (control) => {
+              await control.query(
+                "UPDATE users SET sessionVersion=sessionVersion+1 WHERE id=?",
+                [actorId],
+              );
+            },
+          );
+          expect(response.status).toBe(401);
+          expect(await state()).toEqual(before);
+        } finally {
+          await conn.query("UPDATE users SET role='user' WHERE id=?", [
+            actorId,
+          ]);
+          await conn.query(
+            "UPDATE users SET blockedAt=NULL,blockedReason=NULL WHERE id=?",
+            [targetId],
+          );
+        }
+      },
+      45000,
+    );
+    it.each([
+      ["create", "private"],
+      ["edit", "draft"],
+      ["delete", "private"],
+      ["like", "subscription"],
+      ["report", "private"],
+      ["create", "closed"],
+    ] as const)(
+      "rechecks post access during in-flight comment %s after %s",
+      async (operation, change) => {
+        await fixturePosts(async (create) => {
+          const postId = create({ text: "Image delayed comment access" });
+          const root = trpc(
+            api,
+            "club.addComment",
+            { postId, text: "Keep original text" },
+            memberCookie,
+          );
+          expect(root.response.status).toBe(200);
+          const commentId = (root.data as { id: number }).id;
+          const [owners] = await conn.query<RowDataPacket[]>(
+            "SELECT id FROM users WHERE openId='image-member'",
+          );
+          const userId = owners[0].id;
+          const orderId = "image-access-race-" + postId;
+          if (change === "subscription") {
+            await conn.query("UPDATE posts SET target='club' WHERE id=?", [
+              postId,
+            ]);
+            await conn.query(
+              "INSERT INTO club_payments(userId,orderId,status,expiresAt) VALUES (?,?,'paid',DATE_ADD(NOW(),INTERVAL 1 DAY))",
+              [userId, orderId],
+            );
+          }
+          async function state() {
+            const [comments] = await conn.query(
+              "SELECT id,text FROM post_comments WHERE postId=? ORDER BY id",
+              [postId],
+            );
+            const [likes] = await conn.query(
+              "SELECT id FROM comment_likes WHERE commentId=?",
+              [commentId],
+            );
+            const [reports] = await conn.query(
+              "SELECT id FROM comment_reports WHERE commentId=?",
+              [commentId],
+            );
+            return { comments, likes, reports };
+          }
+          const commands = {
+            create: {
+              procedure: "club.addComment",
+              input: { postId, text: "Delayed comment" },
+            },
+            edit: {
+              procedure: "club.updateComment",
+              input: { id: commentId, text: "Delayed edit" },
+            },
+            delete: {
+              procedure: "club.deleteComment",
+              input: { id: commentId },
+            },
+            like: { procedure: "club.toggleCommentLike", input: { commentId } },
+            report: {
+              procedure: "club.reportComment",
+              input: { id: commentId, reason: "Delayed report" },
+            },
+          };
+          const command = commands[operation];
+          try {
+            const before = await state();
+            const response = await withActorLock(
+              userId,
+              () =>
+                pendingRequest(
+                  second,
+                  "api-a",
+                  "/api/trpc/" + command.procedure,
+                  JSON.parse(superjson.stringify(command.input)),
+                  memberCookie,
+                ),
+              async (control) => {
+                if (change === "private")
+                  await control.query(
+                    "UPDATE posts SET target='club' WHERE id=?",
+                    [postId],
+                  );
+                if (change === "draft")
+                  await control.query(
+                    "UPDATE posts SET published=FALSE,status='draft' WHERE id=?",
+                    [postId],
+                  );
+                if (change === "subscription")
+                  await control.query(
+                    "UPDATE club_payments SET status='failed' WHERE orderId=?",
+                    [orderId],
+                  );
+                if (change === "closed")
+                  await control.query(
+                    "UPDATE posts SET publishedAt=DATE_SUB(NOW(),INTERVAL 3 DAY) WHERE id=?",
+                    [postId],
+                  );
+              },
+            );
+            expect(response.status).toBe(
+              change === "draft" ? 404 : change === "closed" ? 400 : 403,
+            );
+            expect(await state()).toEqual(before);
+          } finally {
+            await conn.query("DELETE FROM club_payments WHERE orderId=?", [
+              orderId,
+            ]);
+          }
+        });
+      },
+      45000,
     );
     it("keeps threaded comment counts, ownership and SQL relations consistent", async () => {
       await fixturePosts(async (create) => {
@@ -1429,7 +1650,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
                   `SQL gate request completed before waiting: ${completed.status} ${completed.text.slice(0, 400)}`,
                 );
               const [waiting] = await conn.query<RowDataPacket[]>(
-                "SELECT COUNT(*) AS n FROM performance_schema.data_lock_waits w JOIN information_schema.INNODB_TRX blocker ON blocker.trx_id=w.BLOCKING_ENGINE_TRANSACTION_ID WHERE blocker.trx_mysql_thread_id=?",
+                "SELECT COUNT(*) AS n FROM performance_schema.data_lock_waits w JOIN performance_schema.threads blocker ON blocker.THREAD_ID=w.BLOCKING_THREAD_ID WHERE blocker.PROCESSLIST_ID=?",
                 [control.threadId],
               );
               return waiting[0].n;
