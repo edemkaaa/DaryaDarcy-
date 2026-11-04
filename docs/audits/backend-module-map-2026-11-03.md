@@ -1,5 +1,12 @@
 # Backend: карта модулей и открытый аудит — 3 ноября 2026
 
+## Продолжение Pen Pals profiles — 4 ноября
+
+Upsert/withdrawal проверяют актуального actor и записывают consent-event в своей
+транзакции. Срез проверен 113 SQL и 127 HTTP/unit тестами; maintenance helper
+сохранён отдельно от пользовательского withdrawal. Match/read/maintenance аудит
+ещё открыт. [Отчёт](pen-pal-profile-lifecycle-review-2026-11-04.md).
+
 ## Продолжение profile/identity — 4 ноября
 
 requestAccountDeletion передаёт actor до SQL writer и проверяет его под

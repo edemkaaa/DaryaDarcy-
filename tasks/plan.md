@@ -1,5 +1,14 @@
 # Implementation Plan: Daryadarcy Modular Monorepo
 
+## Анкеты Pen Pals — 4 ноября
+
+Два profile writers локально защищены от устаревших identity/epoch и блокировки.
+Согласие сохраняется/отзывается в той же транзакции; rollback не оставляет
+частично изменённую анкету или связи. 113 SQL и 127 HTTP/unit проверок прошли.
+Контракт и флаг стенда прежние. Следующий срез — match writers, чтение адресов и
+maintenance-переходы; полный аудит Pen Pals не закрыт.
+[Доказательства и остаток](../docs/audits/pen-pal-profile-lifecycle-review-2026-11-04.md).
+
 ## Запрос удаления аккаунта — 4 ноября
 
 Подтверждён и исправлен stale actor в profileExtras.requestAccountDeletion.

@@ -5,6 +5,13 @@
 Использованы security-and-hardening, code-review, test-driven-development и
 verification-before-completion. Аудит остальных модулей и среды остаётся открытым.
 
+## Продолжение: анкеты Pen Pals
+
+Два profile writers исправлены локально: actor guard под SQL-lock и атомарный
+consent-event. 113 SQL и 127 HTTP/unit проверок прошли. Match/read/maintenance
+сценарии требуют отдельного продолжения; функция на стенде не включалась.
+[Воспроизведения и пределы проверки](pen-pal-profile-lifecycle-review-2026-11-04.md).
+
 ## Продолжение: запрос удаления аккаунта
 
 Дополнительно подтверждён и локально исправлен P2 в profileExtras.requestAccountDeletion:
@@ -52,7 +59,7 @@ Frontend, рабочие БД/S3/сервер не менялись; push/deploy
 - **P1 перед выпуском:** свежая сверка staging, новый AMD64-образ и проверка целевого
   env/сети/ACL/резервной копии, в том числе координации нескольких API и JWT-ключа.
   Недоступность сервера в предыдущей проверке не доказывает его неисправность.
-- **P2 аудит кода:** ID-only lifecycle writers Pen Pals,
+- **P2 аудит кода:** match/read/maintenance lifecycle Pen Pals,
   прочие admin/content writers, доставка/владение push и legacy shop/integrations.
   Непроверенный путь не объявляется подтверждённой уязвимостью.
 - **P2 архитектура:** прежние границы общего пула/совместимых фасадов и
