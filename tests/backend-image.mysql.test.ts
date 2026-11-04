@@ -209,8 +209,8 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
       console.log("Owned schema verified; preparing fixture accounts");
       const encoded = await hashPassword(password);
       await conn.query(
-        "INSERT INTO users(openId,email,passwordHash,role) VALUES ('image-admin','image-admin@example.test',?,'admin'),('image-member','image-member@example.test',?,'user')",
-        [encoded, encoded],
+        "INSERT INTO users(openId,email,passwordHash,role) VALUES ('image-admin','image-admin@example.test',?,'admin'),('image-member','image-member@example.test',?,'user'),('image-other','image-other@example.test',?,'user')",
+        [encoded, encoded, encoded],
       );
       const [admins] = await conn.query<RowDataPacket[]>(
         "SELECT id FROM users WHERE openId='image-admin'",
@@ -331,6 +331,389 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         docker("network", "rm", network);
       }
     });
+    type Card = {
+      id: number;
+      text: string;
+      media: unknown[];
+      commentCount: number;
+      likeCount: number;
+    };
+    type OffsetPage = { posts: Card[]; nextCursor: number | null };
+    type SavedPage = { items: Card[]; nextCursor: string | null };
+    type CommentPage = {
+      items: {
+        id: number;
+        parentId: number | null;
+        replyCount: number;
+        likeCount: number;
+        likedByMe: boolean;
+        text: string;
+      }[];
+      nextCursor: string | null;
+      totalCount: number;
+    };
+    function readData<T>(
+      procedure: string,
+      input: unknown,
+      cookie = adminCookie,
+      container = api,
+    ): T {
+      const result = trpc(container, procedure, input, cookie, true);
+      expect(result.response.status).toBe(200);
+      return result.data as T;
+    }
+    function otherSession() {
+      const login = request(second, "/api/auth/login", {
+        email: "image-other@example.test",
+        password,
+      });
+      expect(login.status).toBe(200);
+      return login.cookies.map((x) => x.split(";")[0]).join("; ");
+    }
+    async function fixturePosts(
+      run: (
+        create: (input: Record<string, unknown>) => number,
+      ) => Promise<void>,
+    ) {
+      const ids: number[] = [];
+      const create = (input: Record<string, unknown>) => {
+        const result = trpc(
+          api,
+          "admin.createPost",
+          {
+            text: "Image read fixture",
+            photos: [],
+            tags: ["community"],
+            target: "feed",
+            published: true,
+            status: "published",
+            ...input,
+          },
+          adminCookie,
+        );
+        expect(result.response.status).toBe(200);
+        expect(result.data).toBeTypeOf("number");
+        const id = result.data as number;
+        ids.push(id);
+        return id;
+      };
+      try {
+        await run(create);
+      } finally {
+        for (const id of ids) {
+          expect(
+            trpc(api, "admin.deletePost", { id }, adminCookie).response.status,
+          ).toBe(200);
+          for (const table of [
+            "posts",
+            "likes",
+            "saved_posts",
+            "post_comments",
+          ]) {
+            const [rows] = await conn.query<RowDataPacket[]>(
+              `SELECT COUNT(*) AS n FROM ${table} WHERE ${table === "posts" ? "id" : "postId"}=?`,
+              [id],
+            );
+            expect(rows[0].n).toBe(0);
+          }
+        }
+      }
+    }
+    it("pages real feed/club cards without duplicates, drafts or private text leakage", async () => {
+      await fixturePosts(async (create) => {
+        const publicA = create({
+          text: "Image public Alpha",
+          tags: ["image-feed"],
+          publishedAt: "2026-01-01T00:00:00Z",
+        });
+        const both = create({
+          text: "Image public Beta",
+          target: "both",
+          tags: ["image-feed"],
+          publishedAt: "2026-01-01T00:00:00Z",
+        });
+        create({
+          text: "Image public hidden draft",
+          published: false,
+          status: "draft",
+        });
+        const old = create({
+          text: "Image secret club old",
+          target: "club",
+          sortOrder: -100,
+          publishedAt: "2026-01-02T00:00:00Z",
+        });
+        const recent = create({
+          text: "Image secret club recent",
+          target: "club",
+          sortOrder: 100,
+          publishedAt: "2026-01-03T00:00:00Z",
+        });
+        const first = readData<OffsetPage>(
+          "feed.listPaginated",
+          { limit: 1 },
+          "",
+        );
+        const last = readData<OffsetPage>(
+          "feed.listPaginated",
+          { limit: 1, cursor: first.nextCursor },
+          "",
+          second,
+        );
+        expect(first.posts.map((x) => x.id)).toEqual([publicA]);
+        expect(last.posts.map((x) => x.id)).toEqual([both]);
+        expect(last.nextCursor).toBeNull();
+        for (const card of [...first.posts, ...last.posts]) {
+          expect(card.media).toEqual([]);
+          expect(card.commentCount).toBe(0);
+          expect(card.likeCount).toBe(0);
+        }
+        expect(
+          readData<OffsetPage>(
+            "feed.listPaginated",
+            { limit: 12, search: "Beta", tag: "image-feed" },
+            "",
+          ).posts.map((x) => x.id),
+        ).toEqual([both]);
+        const pages: number[] = [];
+        let cursor: number | null = null;
+        for (let i = 0; i < 3; i++) {
+          const page: OffsetPage = readData<OffsetPage>("club.list", {
+            limit: 1,
+            cursor,
+          });
+          pages.push(...page.posts.map((x) => x.id));
+          cursor = page.nextCursor;
+        }
+        expect(pages).toEqual([recent, old, both]);
+        expect(cursor).toBeNull();
+        expect(
+          readData<OffsetPage>("club.listByCategory", {
+            category: "community",
+            limit: 20,
+          }).posts.map((x) => x.id),
+        ).toEqual([recent, old]);
+        expect(
+          trpc(api, "club.list", { limit: 1 }, memberCookie, true).response
+            .status,
+        ).toBe(403);
+        const denied = trpc(second, "feed.getById", { id: recent }, "", true);
+        expect(denied.response.status).toBe(200);
+        expect(denied.data).toBeUndefined();
+        expect(denied.response.text).not.toContain("Image secret");
+      });
+    }, 60000);
+    it("persists reactions, pages public saves and scopes saved cursors to the current account", async () => {
+      await fixturePosts(async (create) => {
+        const a = create({ text: "Image saved one" }),
+          b = create({ text: "Image saved two" }),
+          secret = create({ text: "Image saved private", target: "club" });
+        for (const id of [a, b]) {
+          const result = trpc(
+            api,
+            "feed.toggleSave",
+            { postId: id },
+            memberCookie,
+          );
+          expect(result.response.status).toBe(200);
+          expect(result.data).toBe(true);
+        }
+        expect(
+          trpc(api, "feed.toggleSave", { postId: secret }, memberCookie)
+            .response.status,
+        ).toBe(403);
+        expect(
+          trpc(second, "feed.toggleLike", { postId: a }, memberCookie).data,
+        ).toBe(true);
+        const marks = readData<{ likedIds: number[]; savedIds: number[] }>(
+          "feed.interactionsForPosts",
+          { postIds: [a, b, secret, a] },
+          memberCookie,
+        );
+        expect(marks.likedIds).toEqual([a]);
+        expect(marks.savedIds).toEqual([a, b]);
+        const first = readData<SavedPage>(
+          "feed.savedPostsPage",
+          { target: "feed", limit: 1 },
+          memberCookie,
+        );
+        expect(first.nextCursor).toBeTypeOf("string");
+        const last = readData<SavedPage>(
+          "feed.savedPostsPage",
+          { target: "feed", limit: 1, cursor: first.nextCursor },
+          memberCookie,
+          second,
+        );
+        expect(
+          new Set([...first.items, ...last.items].map((x) => x.id)),
+        ).toEqual(new Set([a, b]));
+        expect(last.nextCursor).toBeNull();
+        const stranger = otherSession();
+        expect(
+          readData<SavedPage>(
+            "feed.savedPostsPage",
+            { target: "feed" },
+            stranger,
+          ).items,
+        ).toEqual([]);
+        expect(
+          trpc(
+            second,
+            "feed.savedPostsPage",
+            { target: "feed", cursor: first.nextCursor },
+            stranger,
+            true,
+          ).response.status,
+        ).toBe(400);
+        const [stored] = await conn.query<RowDataPacket[]>(
+          "SELECT (SELECT COUNT(*) FROM likes WHERE postId=?) AS likes,(SELECT COUNT(*) FROM saved_posts WHERE postId IN (?,?)) AS saves",
+          [a, a, b],
+        );
+        expect(stored[0]).toEqual({ likes: 1, saves: 2 });
+        expect(readData<Card>("feed.getById", { id: a }, "").likeCount).toBe(1);
+        expect(
+          trpc(api, "feed.toggleLike", { postId: a }, memberCookie).data,
+        ).toBe(false);
+        expect(
+          trpc(second, "feed.toggleSave", { postId: a }, memberCookie).data,
+        ).toBe(false);
+        expect(
+          readData<SavedPage>(
+            "feed.savedPostsPage",
+            { target: "feed" },
+            memberCookie,
+          ).items.map((x) => x.id),
+        ).toEqual([b]);
+        expect(readData<Card>("feed.getById", { id: a }, "").likeCount).toBe(0);
+      });
+    }, 60000);
+    it("keeps threaded comment counts, ownership and SQL relations consistent", async () => {
+      await fixturePosts(async (create) => {
+        const postId = create({ text: "Image discussion" }),
+          otherPost = create({ text: "Image other discussion" });
+        const stranger = otherSession();
+        function comment(text: string, cookie: string, parentId?: number) {
+          const result = trpc(
+            api,
+            "club.addComment",
+            { postId, text, parentId },
+            cookie,
+          );
+          expect(result.response.status).toBe(200);
+          return (result.data as { id: number }).id;
+        }
+        const root = comment("Image root", memberCookie),
+          reply = comment("Image reply", stranger, root);
+        const roots = readData<CommentPage>(
+          "club.commentsPage",
+          { postId, limit: 1 },
+          memberCookie,
+        );
+        expect(roots.totalCount).toBe(2);
+        expect(roots.items).toHaveLength(1);
+        expect(roots.items[0]).toMatchObject({ id: root, replyCount: 1 });
+        expect(
+          readData<CommentPage>(
+            "club.commentsPage",
+            { postId, parentId: root },
+            stranger,
+          ).items.map((x) => x.id),
+        ).toEqual([reply]);
+        expect(
+          trpc(
+            second,
+            "club.updateComment",
+            { id: root, text: "foreign overwrite" },
+            stranger,
+          ).response.status,
+        ).toBe(403);
+        expect(
+          trpc(second, "club.deleteComment", { id: root }, stranger).response
+            .status,
+        ).toBe(403);
+        expect(
+          trpc(
+            second,
+            "club.addComment",
+            { postId: otherPost, parentId: root, text: "cross-post reply" },
+            stranger,
+          ).response.status,
+        ).toBe(400);
+        const [stored] = await conn.query<RowDataPacket[]>(
+          "SELECT text FROM post_comments WHERE id=?",
+          [root],
+        );
+        expect(stored[0].text).toBe("Image root");
+        expect(
+          trpc(second, "club.toggleCommentLike", { commentId: root }, stranger)
+            .response.status,
+        ).toBe(200);
+        expect(
+          readData<CommentPage>("club.commentsPage", { postId }, stranger)
+            .items[0],
+        ).toMatchObject({ likeCount: 1, likedByMe: true });
+        expect(
+          readData<OffsetPage>(
+            "feed.listPaginated",
+            { limit: 50 },
+            "",
+          ).posts.find((x) => x.id === postId)?.commentCount,
+        ).toBe(2);
+        expect(
+          trpc(
+            api,
+            "club.updateComment",
+            { id: root, text: "Image edited root" },
+            memberCookie,
+          ).response.status,
+        ).toBe(200);
+        const [edited] = await conn.query<RowDataPacket[]>(
+          "SELECT text FROM post_comments WHERE id=?",
+          [root],
+        );
+        expect(edited[0].text).toBe("Image edited root");
+        expect(
+          trpc(second, "club.deleteComment", { id: root }, memberCookie)
+            .response.status,
+        ).toBe(200);
+        const after = readData<CommentPage>(
+          "club.commentsPage",
+          { postId },
+          stranger,
+        );
+        expect(after.totalCount).toBe(1);
+        expect(after.items[0]).toMatchObject({ id: reply, parentId: null });
+        const [likes] = await conn.query<RowDataPacket[]>(
+          "SELECT COUNT(*) AS n FROM comment_likes WHERE commentId=?",
+          [root],
+        );
+        expect(likes[0].n).toBe(0);
+        await conn.query(
+          "UPDATE posts SET publishedAt=DATE_SUB(NOW(),INTERVAL 3 DAY) WHERE id=?",
+          [postId],
+        );
+        expect(
+          trpc(
+            api,
+            "club.addComment",
+            { postId, text: "late comment" },
+            memberCookie,
+          ).response.status,
+        ).toBe(400);
+        expect(
+          readData<CommentPage>("club.commentsPage", { postId }, stranger)
+            .totalCount,
+        ).toBe(1);
+        expect(
+          trpc(api, "club.deleteComment", { id: reply }, adminCookie).response
+            .status,
+        ).toBe(200);
+        expect(
+          readData<CommentPage>("club.commentsPage", { postId }, memberCookie)
+            .totalCount,
+        ).toBe(0);
+      });
+    }, 60000);
     it.each([
       { path: "/api/auth/login", raw: "{PRIVATE_PARSE_SENTINEL", status: 400 },
       {
