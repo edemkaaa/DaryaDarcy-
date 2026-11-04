@@ -12,7 +12,8 @@ import {
 } from "../../../../packages/database/src/schema";
 import { getDb } from "../db";
 import { bindContentFiles, hasPrivateContent, type ContentFileReference } from "./private-content-binding";
-import { requireCommentFilePost } from "./private-comment-actor";
+import { areCommentsOpen } from "../../../../packages/shared/src/club-tags";
+import { requireReadableCommentPost, requireCommentFilePost } from "./private-comment-actor";
 import { requirePrivateContentEnabled } from "./private-content-uploads";
 import { claimCommentFileCreation } from "./comment-file-creation";
 import { isStaffAccount } from "../identity/account-policy";
@@ -130,7 +131,10 @@ export async function addPostCommentWithResult(data: CommentWriteInput): Promise
     let intent: Awaited<ReturnType<typeof claimCommentFileCreation>> | undefined;
     if (!recoverable && data.actor) {
       if (data.actor.id !== data.userId) throw new TRPCError({ code: "UNAUTHORIZED" });
-      await lockCurrentContentActor(tx, data.actor);
+      const current = await lockCurrentContentActor(tx, data.actor);
+      const post = await requireReadableCommentPost(tx, current, data.postId);
+      if (!areCommentsOpen(post.tags, post.publishedAt ?? post.createdAt))
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Комментарии к этому посту закрыты" });
     }
     if (recoverable) {
       requirePrivateContentEnabled();
@@ -191,6 +195,15 @@ async function lockComment(tx: CommentTransaction, id: number) {
   return comment;
 }
 
+/** Match post deletion's post-before-comment lock order. */
+async function lockReadableComment(tx: CommentTransaction, actor: ContentWriteActor, id: number) {
+  const current = await lockCurrentContentActor(tx, actor);
+  const [reference] = await tx.select({ postId: postComments.postId }).from(postComments).where(eq(postComments.id, id)).limit(1);
+  if (!reference) throw new TRPCError({ code: "NOT_FOUND", message: "Комментарий не найден" });
+  await requireReadableCommentPost(tx, current, reference.postId);
+  return { current, comment: await lockComment(tx, id) };
+}
+
 export async function deletePostCommentV2(
   id: number,
   actor: ContentWriteActor | number,
@@ -200,7 +213,7 @@ export async function deletePostCommentV2(
   if (!db) throw new Error("Database not available");
   await db.transaction(async (tx) => {
     if (typeof actor === "number") return deletePostCommentInTransaction(tx, id, actor, asStaff);
-    const current = await lockCurrentContentActor(tx, actor);
+    const { current } = await lockReadableComment(tx, actor, id);
     await deletePostCommentInTransaction(tx, id, current.id, isStaffAccount(current));
   });
 }
@@ -235,8 +248,8 @@ export async function updatePostCommentV2(
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.transaction(async (tx) => {
-    const userId = typeof actor === "number" ? actor : (await lockCurrentContentActor(tx, actor)).id;
-    const comment = await lockComment(tx, id);
+    const userId = typeof actor === "number" ? actor : actor.id;
+    const comment = typeof actor === "number" ? await lockComment(tx, id) : (await lockReadableComment(tx, actor, id)).comment;
     if (comment.userId !== userId)
       throw new TRPCError({
         code: "FORBIDDEN",
@@ -254,8 +267,9 @@ export async function toggleCommentLike(
   if (!db) throw new Error("Database not available");
 
   return db.transaction(async (tx) => {
-    const userId = typeof actor === "number" ? actor : (await lockCurrentContentActor(tx, actor)).id;
-    await lockComment(tx, commentId);
+    const userId = typeof actor === "number" ? actor : actor.id;
+    if (typeof actor === "number") await lockComment(tx, commentId);
+    else await lockReadableComment(tx, actor, commentId);
     const existing = await tx
       .select({ id: commentLikes.id })
       .from(commentLikes)
@@ -297,8 +311,9 @@ export async function reportComment(
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.transaction(async (tx) => {
-    const reporterUserId = typeof actor === "number" ? actor : (await lockCurrentContentActor(tx, actor)).id;
-    await lockComment(tx, commentId);
+    const reporterUserId = typeof actor === "number" ? actor : actor.id;
+    if (typeof actor === "number") await lockComment(tx, commentId);
+    else await lockReadableComment(tx, actor, commentId);
     await tx
       .insert(commentReports)
       .values({
