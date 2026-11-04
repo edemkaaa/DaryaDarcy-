@@ -18,10 +18,7 @@ import { purgeOldPostComments } from "../content/comments";
 import { cancelDeletedUserEmailBindings } from "./email-binding-retention";
 import { retireContentRecovery } from "../content/recovery-retirement";
 import { retirePublicPhotoReceipts } from "../media/public-photo-receipts";
-import {
-  deactivatePenPalProfile,
-  deactivatePenPalProfileV2,
-} from "../pen-pals/profiles";
+import { deactivatePenPalProfile } from "../pen-pals/profiles";
 type Database = NonNullable<Awaited<ReturnType<typeof getDb>>>;
 type DataWriter =
   | Database
@@ -201,7 +198,7 @@ export async function purgeStalePenPalData(): Promise<{
   const matches = Number(expiredMatches[0]?.affectedRows ?? 0);
 
   const inactiveProfiles = await db
-    .select({ userId: penPalProfiles.userId })
+    .select({ id: penPalProfiles.id, userId: penPalProfiles.userId })
     .from(penPalProfiles)
     .where(
       and(
@@ -211,23 +208,58 @@ export async function purgeStalePenPalData(): Promise<{
     );
   let profiles = 0;
   for (const row of inactiveProfiles) {
-    await db
+    // Candidate selection is only a hint. A fresh upsert/withdrawal can commit
+    // before DELETE obtains the row lock; recheck its current retention state.
+    const [removed] = await db
       .delete(penPalProfiles)
-      .where(eq(penPalProfiles.userId, row.userId));
-    profiles += 1;
+      .where(
+        and(
+          eq(penPalProfiles.id, row.id),
+          eq(penPalProfiles.userId, row.userId),
+          eq(penPalProfiles.active, false),
+          lt(penPalProfiles.updatedAt, inactiveCutoff),
+        ),
+      );
+    profiles += removed.affectedRows;
   }
 
-  const { getLatestClubExpiry } = await import("../db");
   const activeProfiles = await db
-    .select()
+    .select({ userId: penPalProfiles.userId })
     .from(penPalProfiles)
     .where(eq(penPalProfiles.active, true));
   for (const profile of activeProfiles) {
-    const expiry = await getLatestClubExpiry(profile.userId);
-    if (expiry && expiry < clubExpiredCutoff) {
-      await deactivatePenPalProfileV2(profile.userId);
-      profiles += 1;
-    }
+    const deactivated = await db.transaction(async (tx) => {
+      // Settlement, grants and profile writes share this owner lock. Read paid
+      // expiry only after waiting, and deactivate on the same transaction.
+      const [user] = await tx
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.id, profile.userId))
+        .for("update");
+      if (!user) return false;
+      const [current] = await tx
+        .select({ active: penPalProfiles.active })
+        .from(penPalProfiles)
+        .where(eq(penPalProfiles.userId, profile.userId))
+        .for("update");
+      if (!current?.active) return false;
+      const [latest] = await tx
+        .select({ expiresAt: clubPayments.expiresAt })
+        .from(clubPayments)
+        .where(
+          and(
+            eq(clubPayments.userId, profile.userId),
+            eq(clubPayments.status, "paid"),
+          ),
+        )
+        .orderBy(desc(clubPayments.expiresAt))
+        .limit(1);
+      if (!latest?.expiresAt || latest.expiresAt >= clubExpiredCutoff)
+        return false;
+      await deactivatePenPalProfile(tx, profile.userId);
+      return true;
+    });
+    if (deactivated) profiles += 1;
   }
 
   return { profiles, matches };
