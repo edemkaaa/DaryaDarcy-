@@ -1,5 +1,18 @@
 # Daryadarcy Modular Monorepo
 
+## Очистка Pen Pals — 5 ноября
+
+- [x] Воспроизвести повторное заполнение/withdrawal после выбора кандидата очистки.
+- [x] Воспроизвести продление во время ожидания owner-lock и неверный счётчик повтора.
+- [x] Перепроверять условия DELETE и paid expiry; сохранить атомарность деактивации/связей.
+- [x] Пройти 150 SQL и 167 HTTP/unit, типы/lint/API/boundaries/API+TEST сборки.
+- [x] Обновить единый frontend-документ без изменений интерфейса и флагов.
+- [ ] Далее: свежие итоговые images и приёмка. На Mac около 6,3 ГиБ; проверить запас перед сборкой.
+- [ ] После восстановления связи: fresh staging, серверный preflight/backup и конфигурация нескольких API.
+- [ ] Архитектура: замеры подбора/maintenance и порционная обработка при подтверждённой необходимости.
+
+[Доказательства и точный остаток](../docs/audits/pen-pal-maintenance-review-2026-11-05.md).
+
 ## Заявки и адреса Pen Pals — 4 ноября
 
 - [x] Воспроизвести stale actor у request/accept/decline/me/find и ложный успех shown.
@@ -7,7 +20,7 @@
 - [x] Проверить отзыв участия во время чтения; сохранить ownership/сроки заявок.
 - [x] Пройти 140 SQL и 127 HTTP/unit, типы/lint/API/boundaries/API+TEST сборки.
 - [x] Обновить единый frontend-документ без правок frontend и включения функции.
-- [ ] Далее: maintenance-переходы и конкурентная очистка/повторное создание анкеты.
+- [x] Maintenance-переходы и конкурентная очистка проверены отдельным срезом 5 ноября.
 - [ ] Выпуск: новые итоговые images, AMD64-приёмка и fresh staging/server preflight.
 
 [Отчёт и открытые границы](../docs/audits/pen-pal-access-lifecycle-review-2026-11-04.md).
@@ -18,7 +31,7 @@
 - [x] Проверять пользователя под owner-lock; анкета/withdrawal и consent-event записываются атомарно.
 - [x] Проверить 113 SQL и 127 HTTP/unit; гейт выключенной функции и доступность privacy withdrawal сохранены.
 - [x] Обновить единый frontend-документ; API-поля и frontend не менялись.
-- [ ] Далее: actor revocation у match writers, чтение адресов и maintenance-переходы. Pen Pals на стенде не включать.
+- [x] Match/read проверены 4 ноября, maintenance — 5 ноября. Pen Pals на стенде не включать.
 
 [Отчёт и границы](../docs/audits/pen-pal-profile-lifecycle-review-2026-11-04.md).
 
