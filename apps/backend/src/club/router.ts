@@ -168,7 +168,7 @@ export const createClubRouter = (
         comments.report(ctx.user, input.id, input.reason),
       ),
     uploadPrivateCommentPhoto: protectedProcedure.input(privateCommentPhotoInput)
-      .mutation(({ ctx, input }) => uploadPrivateContentFile(ctx.user, input)),
+      .mutation(({ ctx, input, signal }) => uploadPrivateContentFile(ctx.user, input, signal)),
     privateCommentPhotoStatus: protectedProcedure.input(privateContentStatusInput)
       .query(({ ctx, input }) => privateContentFileStatus(ctx.user, input.idempotencyKey, true)),
     uploadCommentPhoto: protectedProcedure

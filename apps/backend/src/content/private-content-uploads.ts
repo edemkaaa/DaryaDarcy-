@@ -48,8 +48,13 @@ function receipt(row: FileRow) {
     ...(row.state === "ready" ? { url: contentFileUrl(row.assetId) } : {}) };
 }
 const requestKey = (actor: PrivateAttachmentActor, key: string) => digest(JSON.stringify(["private.content:v1", actor.id, key]));
-export async function uploadPrivateContentFile(actor: PrivateAttachmentActor, input: z.output<typeof privateContentInput> | z.output<typeof privateCommentPhotoInput>) {
+export async function uploadPrivateContentFile(
+  actor: PrivateAttachmentActor,
+  input: z.output<typeof privateContentInput> | z.output<typeof privateCommentPhotoInput>,
+  signal?: AbortSignal,
+) {
   requirePrivateContentEnabled();
+  signal?.throwIfAborted();
   if (input.usage === "commentPhoto") {
     validateMediaBase64(input.base64, 4 * 1024 * 1024);
     try {
@@ -67,6 +72,7 @@ export async function uploadPrivateContentFile(actor: PrivateAttachmentActor, in
   const hash = digest(JSON.stringify([input.usage, input.filename, mimeType, digest(raw), digest(bytes), ...(input.usage === "commentPhoto" ? [input.postId] : [])]));
   const key = requestKey(actor, input.idempotencyKey);
   try {
+    signal?.throwIfAborted();
     const namespace = privateStorageNamespace();
     const database = await getDb(); if (!database) throw unavailable();
     const check = (row: FileRow | undefined): FileRow => {
@@ -86,7 +92,8 @@ export async function uploadPrivateContentFile(actor: PrivateAttachmentActor, in
     if (intent.state === "ready") return receipt(intent);
     // A restart still recovers the same object; no network operation owns a SQL
     // lock. The final transaction rechecks the actor, post and recovery window.
-    const etag = await ensurePrivateUploadObject({ ...intent, type: "document", scope: "content" }, bytes);
+    const etag = await ensurePrivateUploadObject({ ...intent, type: "document", scope: "content" }, bytes, signal);
+    signal?.throwIfAborted();
     return await database.transaction(async tx => {
       if (input.usage === "commentPhoto") await requireCommentFilePost(tx, actor, input.postId);
       else await lockPrivateAttachmentActor(tx, actor);

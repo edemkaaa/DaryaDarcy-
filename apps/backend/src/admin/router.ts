@@ -76,11 +76,11 @@ export const createAdminRouter = (
     .mutation(({ input }) => uploads.uploadMedia(input)),
 
   uploadPrivateAttachment: adminProcedure.input(privateUploadInput)
-    .mutation(({ input, ctx }) => uploadPrivateAttachment(ctx.user, input)),
+    .mutation(({ input, ctx, signal }) => uploadPrivateAttachment(ctx.user, input, signal)),
   privateAttachmentStatus: adminProcedure.input(privateUploadStatusInput)
     .query(({ input, ctx }) => privateAttachmentStatus(ctx.user, input.idempotencyKey)),
   uploadPrivateContentFile: adminProcedure.input(privateContentInput)
-    .mutation(({ input, ctx }) => uploadPrivateContentFile(ctx.user, input)),
+    .mutation(({ input, ctx, signal }) => uploadPrivateContentFile(ctx.user, input, signal)),
   privateContentFileStatus: adminProcedure.input(privateContentStatusInput)
     .query(({ input, ctx }) => privateContentFileStatus(ctx.user, input.idempotencyKey)),
 

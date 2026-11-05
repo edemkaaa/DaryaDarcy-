@@ -133,8 +133,10 @@ function assertIntent(
 export async function uploadPrivateAttachment(
   actor: PrivateAttachmentActor,
   input: z.output<typeof privateUploadInput>,
+  signal?: AbortSignal,
 ) {
   requirePrivateUploadEnabled();
+  signal?.throwIfAborted();
   const bytes = decodeMediaBase64(input.base64, 32 * 1024 * 1024);
   const declared = normalizeMediaContentType(input.type, input.mimeType);
   // Existing legacy Word acceptance is not a byte detector; do not claim it here.
@@ -149,7 +151,7 @@ export async function uploadPrivateAttachment(
       code: "BAD_REQUEST",
       message: "Формат файла не поддерживается закрытой выдачей",
     });
-  return storePrivateAttachment(actor, { ...input, mimeType }, bytes);
+  return storePrivateAttachment(actor, { ...input, mimeType }, bytes, signal);
 }
 
 /** Validated canonical bytes only; all upload kinds share one actor/key namespace. */
@@ -162,8 +164,10 @@ export async function storePrivateAttachment(
     mimeType: string;
   },
   bytes: Buffer,
+  signal?: AbortSignal,
 ) {
   requirePrivateUploadEnabled();
+  signal?.throwIfAborted();
   const { mimeType } = input;
   const payloadHash = digest(
     JSON.stringify([
@@ -226,7 +230,8 @@ export async function storePrivateAttachment(
     if (intent.state === "ready") return privateUploadReceipt(intent);
     // The durable intent fixes the object identity. Do not hold a SQL connection
     // or actor lock across slow storage; authority is checked again at commit.
-    const etag = await ensurePrivateUploadObject(intent, bytes);
+    const etag = await ensurePrivateUploadObject(intent, bytes, signal);
+    signal?.throwIfAborted();
     return await database.transaction(async (tx) => {
       await lockPrivateAttachmentActor(tx, actor);
       await requirePrivateAttachmentSchema(tx);

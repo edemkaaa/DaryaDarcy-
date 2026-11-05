@@ -15,7 +15,7 @@ export async function openPrivateUploadWire(options: { content?: boolean; public
   >();
   const effects: string[] = [];
   let deleteGate: { entered: () => void; wait: Promise<void> } | undefined;
-  let putGate: { entered: () => void; wait: Promise<void> } | undefined;
+  let putGate: { entered: () => void; disconnected: () => void; wait: Promise<void> } | undefined;
   let dropNextPut = false,
     dropNextDelete = false,
     rejectPolicy = false;
@@ -87,7 +87,15 @@ export async function openPrivateUploadWire(options: { content?: boolean; public
       const chunks: Buffer[] = [];
       for await (const chunk of req) chunks.push(Buffer.from(chunk));
       const bytes = Buffer.concat(chunks);
-      if(putGate){const gate=putGate;putGate=undefined;gate.entered();await gate.wait;}
+      if (putGate) {
+        const gate = putGate;
+        putGate = undefined;
+        res.once("close", () => {
+          if (!res.writableFinished) gate.disconnected();
+        });
+        gate.entered();
+        await gate.wait;
+      }
       // Recheck at commit too: a concurrent conditional PUT may have won while reading.
       if(objects.has(key)){res.writeHead(412).end();return;}
       const etag = `"${createHash("md5").update(bytes).digest("hex")}"`;
@@ -178,9 +186,11 @@ export async function openPrivateUploadWire(options: { content?: boolean; public
     },
     pausePut: () => {
       let enter!:()=>void,release!:()=>void;
+      let disconnected = false;
       const entered=new Promise<void>(resolve=>{enter=resolve;});
       const wait=new Promise<void>(resolve=>{release=resolve;});
-      putGate={entered:enter,wait};return {entered,release};
+      putGate = { entered: enter, wait, disconnected: () => { disconnected = true; } };
+      return { entered, release, isDisconnected: () => disconnected };
     },
     dropDeleteAck: () => {
       dropNextDelete = true;

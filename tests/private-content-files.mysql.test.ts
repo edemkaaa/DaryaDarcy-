@@ -26,11 +26,11 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
   const madeFiles = new Set<string>();
   const input = { idempotencyKey: "content-upload-intent-0001", usage: "articleDocument", filename: "article.txt", mimeType: "text/plain", base64: Buffer.from("private article document").toString("base64") };
   async function rows(query: string, args: unknown[] = []) { return (await conn.query<RowDataPacket[]>(query, args))[0]; }
-  async function call(method: string, data: unknown = input, who = "admin", query = false) {
+  async function call(method: string, data: unknown = input, who = "admin", query = false, signal = AbortSignal.timeout(20000)) {
     const encoded = superjson.stringify(data);
     const response = await fetch(`${base}/api/trpc/${method}${query ? `?input=${encodeURIComponent(encoded)}` : ""}`, {
       method: query ? "GET" : "POST", headers: { "content-type": "application/json", ...(tokens[who] ? { authorization: `Bearer ${tokens[who]}` } : {}) },
-      ...(query ? {} : { body: encoded }), signal: AbortSignal.timeout(20000),
+      ...(query ? {} : { body: encoded }), signal,
     });
     const json = await response.json();
     return { status: response.status, data: json.result ? superjson.deserialize<Record<string, unknown>>(json.result.data) : null, wire: JSON.stringify(json) };
@@ -115,6 +115,32 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     expect(result.wire).not.toContain(wire.endpoint); expect(result.wire).not.toContain("content/private-v1");
     expect(await rows("SELECT state,parentId FROM private_content_files WHERE actorUserId=98150")).toEqual([{ state: "ready", parentId: null }]);
     expect((await status()).data).toEqual(result.data);
+  });
+  it("cancels storage on HTTP disconnect and recovers the same object on retry", async () => {
+    const gate = wire.pausePut();
+    const browser = new AbortController();
+    const request = call("admin.uploadPrivateContentFile", input, "admin", false, browser.signal);
+    const aborted = expect(request).rejects.toMatchObject({ name: "AbortError" });
+    try {
+      await gate.entered;
+      browser.abort();
+      await aborted;
+      await vi.waitFor(() => expect(gate.isDisconnected()).toBe(true), {
+        timeout: 2000,
+      });
+      expect((await status()).data).toMatchObject({ state: "pending" });
+    } finally {
+      browser.abort();
+      gate.release();
+    }
+
+    // Хранилище могло принять все байты до разрыва. Повтор сверяет уже записанный объект.
+    await vi.waitFor(() => expect(wire.objects.size).toBe(1));
+    const result = await upload();
+    expect(result.status).toBe(200);
+    expect(result.data).toMatchObject({ state: "ready" });
+    expect((await status()).data).toEqual(result.data);
+    expect(wire.effects.filter(effect => effect.startsWith("PUT "))).toHaveLength(1);
   });
   it("does not hold the comment actor or post lock across storage and rechecks post visibility", async () => {
     const post = await makePost({ ...postInput(""), photos: [], target: "feed", status: "published", tags: ["community"] });

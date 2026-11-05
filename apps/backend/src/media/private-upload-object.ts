@@ -116,7 +116,12 @@ export function verifyPrivateUploadPolicy(
 export async function ensurePrivateUploadObject(
   receipt: PrivateUploadObject,
   bytes: Buffer,
+  callerSignal?: AbortSignal,
 ) {
+  // Обрыв HTTP прерывает ожидание S3. Уже принятый объект проверит повтор по тому же ключу.
+  const timeout = AbortSignal.timeout(30000);
+  const signal = callerSignal ? AbortSignal.any([callerSignal, timeout]) : timeout;
+  signal.throwIfAborted();
   const namespace = privateStorageNamespace();
   const contentScope = receipt.scope === "content" || receipt.type === "video";
   if (
@@ -141,7 +146,6 @@ export async function ensurePrivateUploadObject(
       throwOnRequestTimeout: true,
     },
   });
-  const signal = AbortSignal.timeout(30000);
   const object = {
     Bucket: namespace.bucket,
     Key: privateAttachmentObjectKey(
