@@ -39,6 +39,7 @@ beforeAll(async () => {
     async () => actor,
   );
   vi.spyOn(sdk, "authenticateRequest").mockImplementation(async () => actor);
+  vi.spyOn(db, "getUserById").mockImplementation(async () => actor);
   await app.listen(0, "127.0.0.1");
   base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
   photo = (

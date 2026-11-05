@@ -4,6 +4,8 @@ import { uploadPhoto } from "../media/photos";
 import { rejectLegacyUpload } from "../media/legacy-upload-policy";
 import type { MediaUploadInput } from "./media-upload-input";
 import { blockedVideoPageReason, isOurStorageUrl } from "./video-import-policy";
+import { getUserById } from "../db";
+import type { User } from "../../../../packages/database/src/schema";
 
 /** The adapter authorizes; storage and SQL helpers retain their ownership. */
 @Injectable()
@@ -39,6 +41,7 @@ export class ContentUploadService {
   uploadPhoto(
     base64: string,
     purpose: "publicCover",
+    actor: Pick<User, "id" | "openId" | "sessionVersion">,
     signal?: AbortSignal,
   ): Promise<{ url: string }> {
     if (purpose !== "publicCover")
@@ -46,7 +49,20 @@ export class ContentUploadService {
         code: "BAD_REQUEST",
         message: "Укажите назначение публичной обложки",
       });
-    return uploadPhoto(base64, "covers", signal);
+    return uploadPhoto(base64, "covers", signal, async () => {
+      // Декодирование занимает время. Сверяем сессию и роль перед публичной записью.
+      const current = await getUserById(actor.id);
+      if (
+        !current ||
+        current.openId !== actor.openId ||
+        current.sessionVersion !== actor.sessionVersion
+      ) {
+        throw new TRPCError({ code: "UNAUTHORIZED" });
+      }
+      if (current.blockedAt || current.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+    });
   }
 
   async uploadMedia(_input: MediaUploadInput): Promise<{

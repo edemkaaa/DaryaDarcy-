@@ -16,6 +16,7 @@ import sharp from "sharp";
 import { openContentTestDatabase } from "./helpers/content-mysql";
 import { testDatabaseUrl } from "./helpers/backend-mysql";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
+import { ContentUploadService } from "../apps/backend/src/content/content-upload.service";
 import type { AppRouter } from "../apps/backend/src/routers";
 import { sdk } from "../apps/backend/src/_core/sdk";
 import { getDb } from "../apps/backend/src/db";
@@ -133,6 +134,33 @@ describe.skipIf(!testDatabaseUrl)(
       expect(metadata).toMatchObject({ format: "webp", width: 8, height: 12 });
       expect(metadata.exif).toBeUndefined();
       expect(await rows()).toEqual([]);
+    });
+    it.each([
+      ["sessionVersion=sessionVersion+1", 401],
+      ["blockedAt=NOW()", 403],
+      ["role='user'", 403],
+    ] as const)("refuses a cover when %s changes after tRPC authorization", async (change, status) => {
+      const uploads = app.get(ContentUploadService);
+      const uploadPhoto = uploads.uploadPhoto.bind(uploads);
+      const pause = vi.spyOn(uploads, "uploadPhoto").mockImplementationOnce(
+        async (...args) => {
+          // Меняем состояние аккаунта после того, как tRPC уже пропустил запрос.
+          await conn.query(`UPDATE users SET ${change} WHERE id=9010`);
+          return uploadPhoto(...args);
+        },
+      );
+      try {
+        const response = await post("admin.uploadPhoto", {
+          base64: photo,
+          filename: "cover.jpg",
+          purpose: "publicCover",
+        });
+        expect(pause).toHaveBeenCalledOnce();
+        expect(response.status).toBe(status);
+        expect(storage.put).not.toHaveBeenCalled();
+      } finally {
+        pause.mockRestore();
+      }
     });
     it("refuses missing purpose without a storage write", async () => {
       await expect(

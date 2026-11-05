@@ -56,12 +56,21 @@ export async function preparePhoto(base64: string): Promise<Buffer> {
   return output;
 }
 
-export async function uploadPhoto(base64: string, folder: string, signal?: AbortSignal): Promise<{ url: string }> {
+export async function uploadPhoto(
+  base64: string,
+  folder: string,
+  signal?: AbortSignal,
+  authorizeStorageWrite?: () => Promise<void>,
+): Promise<{ url: string }> {
   // Public images have an explicit purpose; arbitrary content folders are retired.
   if (folder !== "covers" && !/^avatars\/[1-9]\d*$/.test(folder)) rejectLegacyUpload();
   signal?.throwIfAborted();
   const output = await preparePhoto(base64);
   signal?.throwIfAborted();
+  if (authorizeStorageWrite) {
+    await authorizeStorageWrite();
+    signal?.throwIfAborted();
+  }
   const stored = await storagePut(`${folder}/${randomUUID()}.webp`, output, "image/webp", { signal });
   return { url: stored.url };
 }

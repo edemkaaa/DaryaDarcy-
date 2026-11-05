@@ -61,8 +61,10 @@ export const createAdminRouter = (
     )
     .mutation(({ input }) => uploads.importVideoFromUrl(input.url)),
 
-  // Upload photo (admin only)
-  uploadPhoto: adminProcedure.input(publicCoverPhotoInput).mutation(({ input, signal }) => uploads.uploadPhoto(input.base64, input.purpose, signal)),
+  uploadPhoto: adminProcedure.input(publicCoverPhotoInput)
+    .mutation(({ ctx, input, signal }) =>
+      uploads.uploadPhoto(input.base64, input.purpose, ctx.user, signal),
+    ),
   uploadPublicCover: adminProcedure.input(coverReceiptInput)
     .mutation(({ctx,input,signal})=>uploadPublicPhoto(ctx.user,"publicCover",input,signal)),
   publicCoverUploadStatus: adminProcedure.input(publicPhotoStatusInput)

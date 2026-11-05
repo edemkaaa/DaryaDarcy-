@@ -15,6 +15,7 @@ vi.mock("../apps/backend/src/db", () => ({
   isOwnerAccount: (user: User) => user.role === "admin",
   updateUserProfile: async () => undefined,
   getDb: async () => drizzle.mock(),
+  getUserById: async () => user,
 }));
 vi.mock("../apps/backend/src/profile/profile-writes", () => ({ saveProfile: async () => 1 }));
 import { appRouter } from "../apps/backend/src/routers";
