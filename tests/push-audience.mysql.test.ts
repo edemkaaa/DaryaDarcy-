@@ -92,6 +92,9 @@ describe.skipIf(!testDatabaseUrl)("push recipient access on disposable MySQL", (
   });
   it("preserves direct service recipients without requiring marketing consent", async () => {
     expect(await db.getPushTokensForUser(896)).toEqual(["fixture-push-no-consent"]);
+    expect(await db.getServicePushTokens("club", 896)).toEqual(["fixture-push-no-consent"]);
+    expect(await db.getServicePushTokens("club", 893)).toEqual([]);
+    expect(await db.getServicePushTokens("club", 892)).toEqual([]);
   });
   it("stops selecting recipients immediately after a new block", async () => {
     expect(await db.getMarketingPushTokens("club")).toContain("fixture-push-paid");

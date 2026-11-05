@@ -695,32 +695,28 @@ export async function getMarketingPushTokens(
 
 export async function getServicePushTokens(
   target: "feed" | "club" | "both" = "feed",
+  userId?: number,
 ): Promise<string[]> {
   const db = await getDb();
   if (!db) return [];
 
-  if (target === "club") {
-    const memberIds = await getClubMemberUserIds();
-    if (memberIds.size === 0) return [];
-    const results = await db
-      .select({ token: pushTokens.token })
-      .from(pushTokens)
-      .innerJoin(users, eq(users.id, pushTokens.userId))
-      .where(
-        and(
-          eq(pushTokens.enabled, true),
-          inArray(pushTokens.userId, [...memberIds]),
-          isNull(users.blockedAt),
-        ),
-      );
-    return results.map((r) => r.token);
-  }
+  const memberIds = target === "club" ? await getClubMemberUserIds() : undefined;
+  if (memberIds?.size === 0) return [];
 
+  // Для личного push проверяем текущую привязку токена вместе с доступом
+  // к аудитории. При смене аккаунта токен может остаться в общей аудитории.
   const results = await db
     .select({ token: pushTokens.token })
     .from(pushTokens)
     .innerJoin(users, eq(users.id, pushTokens.userId))
-    .where(and(eq(pushTokens.enabled, true), isNull(users.blockedAt)));
+    .where(
+      and(
+        eq(pushTokens.enabled, true),
+        isNull(users.blockedAt),
+        memberIds ? inArray(pushTokens.userId, [...memberIds]) : undefined,
+        userId !== undefined ? eq(pushTokens.userId, userId) : undefined,
+      ),
+    );
 
   return results.map((r) => r.token);
 }

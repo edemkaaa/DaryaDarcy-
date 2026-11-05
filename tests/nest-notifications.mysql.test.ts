@@ -14,10 +14,11 @@ import type { AddressInfo } from "node:net";
 import { createTRPCProxyClient, httpLink } from "@trpc/client";
 import superjson from "superjson";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
-import { getDb } from "../apps/backend/src/db";
+import * as db from "../apps/backend/src/db";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { sdk } from "../apps/backend/src/_core/sdk";
 import { SessionService } from "../apps/backend/src/identity/session.service";
+import { sendServicePushNotification } from "../apps/backend/src/push";
 import type { AppRouter } from "../apps/backend/src/routers";
 import * as capabilities from "../apps/backend/src/launch/capabilities";
 
@@ -93,7 +94,7 @@ describe.skipIf(!testDatabaseUrl)(
       await conn?.query("DELETE FROM users WHERE id BETWEEN 8430 AND 8433");
       await conn?.query("SELECT RELEASE_LOCK('backend_test_push_audience')");
       await conn?.end();
-      const database = await getDb();
+      const database = await db.getDb();
       await (
         database as unknown as { $client: { end(): Promise<void> } }
       )?.$client.end();
@@ -208,6 +209,72 @@ describe.skipIf(!testDatabaseUrl)(
         "SELECT userId FROM push_consent_events WHERE userId BETWEEN 8430 AND 8433",
       );
       expect(events).toEqual([]);
+    });
+    it("moves a device to the new account without carrying over marketing consent", async () => {
+      await client(8431).notifications.registerToken.mutate({
+        token: fixtureToken,
+      });
+      await client(8431).notifications.setMarketingConsent.mutate({
+        enabled: true,
+      });
+      expect(await db.getMarketingPushTokens()).toContain(fixtureToken);
+
+      await client(8432).notifications.registerToken.mutate({
+        token: fixtureToken,
+      });
+      await client().notifications.registerToken.mutate({ token: fixtureToken });
+
+      expect(await tokens()).toEqual([
+        { token: fixtureToken, userId: 8432, platform: null, enabled: 1 },
+      ]);
+      expect(await db.getPushTokensForUser(8431)).toEqual([]);
+      expect(await db.getPushTokensForUser(8432)).toEqual([fixtureToken]);
+      expect(await db.getMarketingPushTokens()).not.toContain(fixtureToken);
+    });
+    it("drops a personal push after the selected device switches accounts", async () => {
+      await client(8431).notifications.registerToken.mutate({
+        token: fixtureToken,
+      });
+      const readOwnerTokens = db.getPushTokensForUser;
+      // Перепривязываем устройство через HTTP после чтения старого владельца.
+      vi.spyOn(db, "getPushTokensForUser").mockImplementationOnce(
+        async (userId) => {
+          const selected = await readOwnerTokens(userId);
+          expect(selected).toEqual([fixtureToken]);
+          await client(8432).notifications.registerToken.mutate({
+            token: fixtureToken,
+          });
+          return selected;
+        },
+      );
+      const sendToExpo = vi.fn(async (_request: RequestInit | undefined) =>
+        Response.json({ data: [{ status: "ok", id: "synthetic-ticket" }] }),
+      );
+      const realFetch = globalThis.fetch;
+      vi.spyOn(globalThis, "fetch").mockImplementation((input, init) =>
+        input === "https://exp.host/--/api/v2/push/send"
+          ? sendToExpo(init)
+          : realFetch(input, init),
+      );
+
+      const message = {
+        title: "Synthetic push",
+        body: "Synthetic reply",
+        target: "feed",
+      } as const;
+      expect(
+        await sendServicePushNotification({ ...message, userId: 8431 }),
+      ).toBe(0);
+      expect(await db.getPushTokensForUser(8432)).toEqual([fixtureToken]);
+      expect(sendToExpo).not.toHaveBeenCalled();
+
+      expect(
+        await sendServicePushNotification({ ...message, userId: 8432 }),
+      ).toBe(1);
+      expect(sendToExpo).toHaveBeenCalledTimes(1);
+      expect(JSON.parse(String(sendToExpo.mock.calls[0][0]?.body))).toMatchObject([
+        { to: fixtureToken, body: message.body },
+      ]);
     });
     it("persists legal consent for the session actor and honors the last same-second choice", async () => {
       expect(

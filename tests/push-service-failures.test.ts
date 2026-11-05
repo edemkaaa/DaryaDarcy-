@@ -45,9 +45,7 @@ it("service notification contains a recipient-store failure without logging toke
 
 it("service notification contains an asynchronous audience recheck failure instead of rejecting after commit", async () => {
   vi.spyOn(db, "getPushTokensForUser").mockResolvedValue([token]);
-  vi.spyOn(db, "getServicePushTokens")
-    .mockResolvedValueOnce([token])
-    .mockRejectedValueOnce(privateFailure());
+  vi.spyOn(db, "getServicePushTokens").mockRejectedValueOnce(privateFailure());
 
   await expect(
     sendServicePushNotification({

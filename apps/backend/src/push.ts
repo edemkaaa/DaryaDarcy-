@@ -23,13 +23,14 @@ export async function sendExpoPushBatch(
   category: PushConsentType,
   messages: ExpoPushMessage[],
   target: "feed" | "club" | "both" = "feed",
+  serviceUserId?: number,
 ): Promise<number> {
   if (messages.length === 0) return 0;
 
   const allowed =
     category === "marketing"
       ? new Set(await db.getMarketingPushTokens(target))
-      : new Set(await db.getServicePushTokens(target));
+      : new Set(await db.getServicePushTokens(target, serviceUserId));
 
   const filtered = messages.filter((m) => allowed.has(m.to));
   if (filtered.length === 0) return 0;
@@ -114,18 +115,16 @@ export async function sendServicePushNotification(input: {
     const tokens = await db.getPushTokensForUser(input.userId);
     if (tokens.length === 0) return 0;
     const target = input.target ?? "club";
-    const allowed = new Set(await db.getServicePushTokens(target));
-    const messages: ExpoPushMessage[] = tokens
-      .filter((token) => allowed.has(token))
-      .map((token) => ({
-        to: token,
-        sound: "default",
-        title: input.title,
-        body: input.body,
-        data: { ...input.data, category: "service" },
-      }));
-    // Await here so a rejected audience recheck is contained after commit too.
-    return await sendExpoPushBatch("service", messages, target);
+    const messages: ExpoPushMessage[] = tokens.map((token) => ({
+      to: token,
+      sound: "default",
+      title: input.title,
+      body: input.body,
+      data: { ...input.data, category: "service" },
+    }));
+    // Повторная проверка аудитории включает владельца устройства. Await
+    // оставляет обработку ошибки проверки внутри этого фонового вызова.
+    return await sendExpoPushBatch("service", messages, target, input.userId);
   } catch {
     console.warn("[Push] Service notification failed");
     return 0;
