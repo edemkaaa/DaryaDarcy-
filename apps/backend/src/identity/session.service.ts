@@ -2,7 +2,11 @@ import { Injectable, ServiceUnavailableException } from "@nestjs/common";
 import type { Request } from "express";
 import { and, eq, sql } from "drizzle-orm";
 import { ONE_YEAR_MS } from "../../../../packages/shared/src/const";
-import { users, type User } from "../../../../packages/database/src/schema";
+import {
+  pushTokens,
+  users,
+  type User,
+} from "../../../../packages/database/src/schema";
 import { HttpError } from "../../../../packages/shared/src/_core/errors";
 import {
   emailToOpenId,
@@ -112,16 +116,30 @@ export class SessionService {
     try {
       const database = await getDb();
       if (!database) throw new Error("Database unavailable");
-      await database
-        .update(users)
-        .set({ sessionVersion: sql`${users.sessionVersion}+1` })
-        .where(
-          and(
-            eq(users.id, user.id),
-            eq(users.openId, user.openId),
-            eq(users.sessionVersion, user.sessionVersion),
-          ),
-        );
+      await database.transaction(
+        async (tx) => {
+          const [revoked] = await tx
+            .update(users)
+            .set({ sessionVersion: sql`${users.sessionVersion}+1` })
+            .where(
+              and(
+                eq(users.id, user.id),
+                eq(users.openId, user.openId),
+                eq(users.sessionVersion, user.sessionVersion),
+              ),
+            );
+          // Повтор старого выхода пропускает устройства, привязанные после нового входа.
+          if (revoked.affectedRows === 0) return;
+
+          // Выход завершает все сессии аккаунта. Отвязываем его устройства
+          // в той же транзакции, сохраняя токены для следующего входа.
+          await tx
+            .update(pushTokens)
+            .set({ userId: null })
+            .where(eq(pushTokens.userId, user.id));
+        },
+        { isolationLevel: "read committed" },
+      );
     } catch {
       throw new ServiceUnavailableException({
         error: "Не удалось завершить сессии",

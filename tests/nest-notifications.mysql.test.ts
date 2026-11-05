@@ -100,7 +100,7 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllEnvs();
     });
-    function client(userId?: number) {
+    function client(userId?: number, sessionVersion = 0) {
       return createTRPCProxyClient<AppRouter>({
         links: [
           httpLink({
@@ -110,10 +110,19 @@ describe.skipIf(!testDatabaseUrl)(
               userId === undefined
                 ? {}
                 : {
-                    Authorization: `Bearer ${await sdk.createSessionToken(`notification-http-${userId}`, { sessionVersion: 0 })}`,
+                    Authorization: `Bearer ${await sdk.createSessionToken(`notification-http-${userId}`, { sessionVersion })}`,
                   },
           }),
         ],
+      });
+    }
+    async function restLogout(userId: number) {
+      const token = await sdk.createSessionToken(`notification-http-${userId}`, {
+        sessionVersion: 0,
+      });
+      return fetch(`${base}/api/auth/logout`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
       });
     }
     async function tokens() {
@@ -230,6 +239,76 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await db.getPushTokensForUser(8431)).toEqual([]);
       expect(await db.getPushTokensForUser(8432)).toEqual([fixtureToken]);
       expect(await db.getMarketingPushTokens()).not.toContain(fixtureToken);
+    });
+    it.each(["REST", "tRPC"])(
+      "removes the signed-out account's devices from audiences through %s logout",
+      async (transport) => {
+        const firstAccount = client(8431);
+        const secondAccount = client(8432);
+        const secondDevice = device("-second");
+        const otherAccountDevice = device("-other-account");
+        await firstAccount.notifications.registerToken.mutate({
+          token: fixtureToken,
+        });
+        await firstAccount.notifications.registerToken.mutate({
+          token: secondDevice,
+        });
+        await secondAccount.notifications.registerToken.mutate({
+          token: otherAccountDevice,
+        });
+        await firstAccount.notifications.setMarketingConsent.mutate({
+          enabled: true,
+        });
+        const previousActor = await db.getUserByOpenId("notification-http-8431");
+        expect(previousActor?.sessionVersion).toBe(0);
+
+        if (transport === "REST") {
+          const response = await restLogout(8431);
+          expect(response.status).toBe(200);
+          expect(await response.json()).toEqual({ success: true });
+        } else {
+          expect(await firstAccount.auth.logout.mutate()).toEqual({
+            success: true,
+          });
+        }
+
+        expect(await db.getPushTokensForUser(8431)).toEqual([]);
+        expect(await db.getServicePushTokens("feed")).toEqual([otherAccountDevice]);
+        expect(await db.getMarketingPushTokens()).toEqual([]);
+        expect(await db.hasMarketingPushConsent(8431)).toBe(true);
+        await client().notifications.registerToken.mutate({ token: fixtureToken });
+        expect(await db.getPushTokensForUser(8431)).toEqual([]);
+
+        await secondAccount.notifications.registerToken.mutate({
+          token: fixtureToken,
+        });
+        await client(8431, 1).notifications.registerToken.mutate({
+          token: secondDevice,
+        });
+        // Повторяем уже начатый выход со снимком старой сессии.
+        await app.get(SessionService).revokeSessions(previousActor ?? null);
+        expect(await db.getPushTokensForUser(8431)).toEqual([secondDevice]);
+        expect((await db.getPushTokensForUser(8432)).sort()).toEqual(
+          [fixtureToken, otherAccountDevice].sort(),
+        );
+      },
+    );
+    it("keeps the session and device binding when logout cannot detach the device", async () => {
+      await client(8431).notifications.registerToken.mutate({
+        token: fixtureToken,
+      });
+      const before = await tokens();
+      await conn.query(`CREATE TRIGGER notification_http_write_refusal BEFORE UPDATE ON push_tokens FOR EACH ROW
+        BEGIN IF OLD.userId=8431 AND NEW.userId IS NULL THEN
+          SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='synthetic push detach refusal';
+        END IF; END`);
+
+      const response = await restLogout(8431);
+      expect(response.status).toBe(503);
+      expect(response.headers.get("set-cookie")).toBeNull();
+      expect(await response.text()).not.toContain("synthetic push detach refusal");
+      expect(await tokens()).toEqual(before);
+      expect(await client(8431).auth.me.query()).toMatchObject({ id: 8431 });
     });
     it("drops a personal push after the selected device switches accounts", async () => {
       await client(8431).notifications.registerToken.mutate({
@@ -384,13 +463,7 @@ describe.skipIf(!testDatabaseUrl)(
             }),
           ]);
           if (change === "logout") {
-            const token = await sdk.createSessionToken("notification-http-8431", {
-              sessionVersion: 0,
-            });
-            const response = await fetch(`${base}/api/auth/logout`, {
-              method: "POST",
-              headers: { Authorization: `Bearer ${token}` },
-            });
+            const response = await restLogout(8431);
             expect(response.status).toBe(200);
             expect(await response.json()).toEqual({ success: true });
           } else {
