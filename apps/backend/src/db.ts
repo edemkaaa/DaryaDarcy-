@@ -486,6 +486,7 @@ async function lockPushActor(tx: Pick<MySql2Database, "select">, actor: PushWrit
       openId: users.openId,
       sessionVersion: users.sessionVersion,
       blockedAt: users.blockedAt,
+      role: users.role,
     })
     .from(users)
     .where(eq(users.id, actor.id))
@@ -497,6 +498,7 @@ async function lockPushActor(tx: Pick<MySql2Database, "select">, actor: PushWrit
   )
     throw new TRPCError({ code: "UNAUTHORIZED" });
   if (current.blockedAt) throw new TRPCError({ code: "FORBIDDEN" });
+  return current;
 }
 
 export async function registerPushToken(
@@ -721,10 +723,22 @@ export async function getServicePushTokens(
   return results.map((r) => r.token);
 }
 
-export async function deletePushTokensForUser(userId: number): Promise<void> {
+export async function deletePushTokensForUser(
+  userId: number,
+  actor: PushWriteActor,
+): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.delete(pushTokens).where(eq(pushTokens.userId, userId));
+  await db.transaction(
+    async (tx) => {
+      // Роль могла измениться после входной проверки. Держим блокировку
+      // администратора до завершения удаления устройств выбранного пользователя.
+      const current = await lockPushActor(tx, actor);
+      if (!isOwnerAccount(current)) throw new TRPCError({ code: "FORBIDDEN" });
+      await tx.delete(pushTokens).where(eq(pushTokens.userId, userId));
+    },
+    { isolationLevel: "read committed" },
+  );
 }
 
 export async function getLatestPublishedPost(

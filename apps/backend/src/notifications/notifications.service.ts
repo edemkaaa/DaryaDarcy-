@@ -48,8 +48,11 @@ export class NotificationsService {
     return { success: true, enabled: input.enabled };
   }
 
-  async purgeUserPushData(userId: number): Promise<{ success: boolean }> {
-    await db.deletePushTokensForUser(userId);
+  async purgeUserPushData(
+    userId: number,
+    actor: db.PushWriteActor,
+  ): Promise<{ success: boolean }> {
+    await db.deletePushTokensForUser(userId, actor);
     return { success: true };
   }
 }

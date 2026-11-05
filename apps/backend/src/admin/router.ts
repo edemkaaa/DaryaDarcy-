@@ -231,5 +231,7 @@ export const createAdminRouter = (
   /** Remove push tokens when deleting/deactivating a user account (manual deletion workflow). */
   purgeUserPushData: adminProcedure
     .input(z.object({ userId: z.number() }))
-    .mutation(({ input }) => notifications.purgeUserPushData(input.userId)),
+    .mutation(({ input, ctx }) =>
+      notifications.purgeUserPushData(input.userId, ctx.user),
+    ),
 });

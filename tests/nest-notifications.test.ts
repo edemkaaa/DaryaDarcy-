@@ -405,7 +405,11 @@ describe("notifications over native HTTP", () => {
       want: { success: false, enabled: true },
       argument: [pushActor, { enabled: false }],
     },
-    { name: "purgeUserPushData", want: { success: false }, argument: [9601] },
+    {
+      name: "purgeUserPushData",
+      want: { success: false },
+      argument: [9601, pushActor],
+    },
   ])(
     "$name uses the supplied notification service, not hidden/global state",
     async ({ name, want, argument }) => {
@@ -573,13 +577,15 @@ describe("notifications over native HTTP", () => {
   it("purges the requested user's tokens, not the administrator's tokens", async () => {
     actor = { ...member, role: "admin" };
     let received: unknown;
-    vi.spyOn(db, "deletePushTokensForUser").mockImplementation(async (id) => {
-      received = id;
-    });
+    vi.spyOn(db, "deletePushTokensForUser").mockImplementation(
+      async (...args) => {
+        received = args;
+      },
+    );
     expect(
       await client().admin.purgeUserPushData.mutate({ userId: 9601 }),
     ).toEqual({ success: true });
-    expect(received).toBe(9601);
+    expect(received).toEqual([9601, pushActor]);
   });
 
   it("keeps marketing disabled by default when no database is available", async () => {

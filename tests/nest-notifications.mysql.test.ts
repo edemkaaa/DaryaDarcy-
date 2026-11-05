@@ -420,7 +420,10 @@ describe.skipIf(!testDatabaseUrl)(
       { operation: "consent", change: "block" },
       { operation: "registration", change: "logout" },
       { operation: "registration", change: "block" },
-    ])(
+      { operation: "purge", change: "logout" },
+      { operation: "purge", change: "block" },
+      { operation: "purge", change: "demotion to moderator" },
+    ] as const)(
       "refuses $operation after $change during the request",
       async ({ operation, change }) => {
         await conn.query(
@@ -428,6 +431,7 @@ describe.skipIf(!testDatabaseUrl)(
           [fixtureToken],
         );
         const before = await tokens();
+        const actorId = operation === "purge" ? 8430 : 8431;
         const sessions = app.get(SessionService);
         const readSession = sessions.optionalUser.bind(sessions);
         let entered!: () => void;
@@ -447,14 +451,18 @@ describe.skipIf(!testDatabaseUrl)(
             return user;
           },
         );
-        const notifications = client(8431).notifications;
-        const pending =
-          operation === "consent"
-            ? notifications.setMarketingConsent.mutate({ enabled: true })
-            : notifications.registerToken.mutate({
-                token: fixtureToken,
-                platform: "android",
-              });
+        const request = client(actorId);
+        const run = {
+          consent: () =>
+            request.notifications.setMarketingConsent.mutate({ enabled: true }),
+          registration: () =>
+            request.notifications.registerToken.mutate({
+              token: fixtureToken,
+              platform: "android",
+            }),
+          purge: () => request.admin.purgeUserPushData.mutate({ userId: 8432 }),
+        };
+        const pending = run[operation]();
         try {
           await Promise.race([
             authenticated,
@@ -463,18 +471,25 @@ describe.skipIf(!testDatabaseUrl)(
             }),
           ]);
           if (change === "logout") {
-            const response = await restLogout(8431);
+            const response = await restLogout(actorId);
             expect(response.status).toBe(200);
             expect(await response.json()).toEqual({ success: true });
+          } else if (change === "demotion to moderator") {
+            await conn.query("UPDATE users SET role='moderator' WHERE id=?", [
+              actorId,
+            ]);
           } else {
-            await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=8431");
+            await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=?", [
+              actorId,
+            ]);
           }
           release();
           await expect(pending).rejects.toMatchObject({
             data: { httpStatus: change === "logout" ? 401 : 403 },
           });
           const [events] = await conn.query<RowDataPacket[]>(
-            "SELECT userId FROM push_consent_events WHERE userId=8431",
+            "SELECT userId FROM push_consent_events WHERE userId=?",
+            [actorId],
           );
           expect(events).toEqual([]);
           expect(await tokens()).toEqual(before);
