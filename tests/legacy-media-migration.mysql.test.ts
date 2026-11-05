@@ -32,7 +32,7 @@ const source =
   "https://s3.twcstorage.ru/daryadarcy-s3/feed/photos/owned-synthetic.jpg";
 const actor = { id: 98851, sessionVersion: 0 };
 describe.skipIf(!uri)(
-  "legacy migration on fresh50 SQL, real API and owned SDK wire",
+  "legacy migration on current fresh SQL, real API and owned SDK wire",
   () => {
     let conn: Connection, app: INestApplication, base: string;
     let wire: Awaited<ReturnType<typeof openPrivateUploadWire>>;
@@ -160,7 +160,7 @@ describe.skipIf(!uri)(
         Number(
           (await rows("SELECT COUNT(*) n FROM __drizzle_migrations"))[0].n,
         ),
-      ).toBe(50);
+      ).toBe(52);
       wire = await openPrivateUploadWire({ content: true });
       for (const [key, value] of Object.entries({
         DATABASE_URL: uri!,
