@@ -28,7 +28,7 @@ export const createNotificationsRouter = (
       })
       .input(registerTokenInput)
       .mutation(({ input, ctx }) =>
-        notifications.registerToken(input, ctx.user?.id),
+        notifications.registerToken(input, ctx.user ?? undefined),
       ),
     marketingConsent: protectedProcedure.query(({ ctx }) =>
       notifications.marketingConsent(ctx.user.id),

@@ -109,13 +109,14 @@ describe("push registration admission", () => {
     "accepts bounded %s without accepting client ownership",
     async (prefix) => {
       enabled();
-      actor = { id: 98601 } as User;
+      const sessionActor = { id: 98601, openId: "push-test-user", sessionVersion: 3 };
+      actor = sessionActor as User;
       const value = `${prefix}[synthetic-device_2]`;
       expect(
         (await request({ token: value, platform: "android", userId: 98602 }))
           .status,
       ).toBe(200);
-      expect(writes).toEqual([[value, 98601, "android"]]);
+      expect(writes).toEqual([[value, sessionActor, "android"]]);
     },
   );
   it.each(["ExpoPushToken", "ExponentPushToken"])(

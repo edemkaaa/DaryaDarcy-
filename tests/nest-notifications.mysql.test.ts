@@ -17,7 +17,7 @@ import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 import { getDb } from "../apps/backend/src/db";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { sdk } from "../apps/backend/src/_core/sdk";
-import { NotificationsService } from "../apps/backend/src/notifications/notifications.service";
+import { SessionService } from "../apps/backend/src/identity/session.service";
 import type { AppRouter } from "../apps/backend/src/routers";
 import * as capabilities from "../apps/backend/src/launch/capabilities";
 
@@ -269,11 +269,21 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(events).toEqual([]);
     });
-    it.each(["session revoked", "account blocked"])(
-      "refuses to record consent after %s during the request",
-      async (change) => {
-        const service = app.get(NotificationsService);
-        const writeConsent = service.setMarketingConsent.bind(service);
+    it.each([
+      { operation: "consent", change: "logout" },
+      { operation: "consent", change: "block" },
+      { operation: "registration", change: "logout" },
+      { operation: "registration", change: "block" },
+    ])(
+      "refuses $operation after $change during the request",
+      async ({ operation, change }) => {
+        await conn.query(
+          "INSERT INTO push_tokens (token,userId,platform,enabled) VALUES (?,8432,'ios',FALSE)",
+          [fixtureToken],
+        );
+        const before = await tokens();
+        const sessions = app.get(SessionService);
+        const readSession = sessions.optionalUser.bind(sessions);
         let entered!: () => void;
         let release!: () => void;
         const authenticated = new Promise<void>((resolve) => {
@@ -283,38 +293,51 @@ describe.skipIf(!testDatabaseUrl)(
           release = resolve;
         });
         // Приостанавливаем запрос после настоящей проверки JWT, до записи в MySQL.
-        vi.spyOn(service, "setMarketingConsent").mockImplementationOnce(
-          async (...args) => {
+        vi.spyOn(sessions, "optionalUser").mockImplementationOnce(
+          async (req) => {
+            const user = await readSession(req);
             entered();
             await gate;
-            return writeConsent(...args);
+            return user;
           },
         );
-        const pending = client(8431).notifications.setMarketingConsent.mutate({
-          enabled: true,
-        });
+        const notifications = client(8431).notifications;
+        const pending =
+          operation === "consent"
+            ? notifications.setMarketingConsent.mutate({ enabled: true })
+            : notifications.registerToken.mutate({
+                token: fixtureToken,
+                platform: "android",
+              });
         try {
           await Promise.race([
             authenticated,
             pending.then(() => {
-              throw new Error("Expected consent writer to pause");
+              throw new Error("Expected authenticated request to pause");
             }),
           ]);
-          if (change === "session revoked") {
-            await conn.query(
-              "UPDATE users SET sessionVersion=sessionVersion+1 WHERE id=8431",
-            );
+          if (change === "logout") {
+            const token = await sdk.createSessionToken("notification-http-8431", {
+              sessionVersion: 0,
+            });
+            const response = await fetch(`${base}/api/auth/logout`, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            expect(response.status).toBe(200);
+            expect(await response.json()).toEqual({ success: true });
           } else {
             await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=8431");
           }
           release();
           await expect(pending).rejects.toMatchObject({
-            data: { httpStatus: change === "session revoked" ? 401 : 403 },
+            data: { httpStatus: change === "logout" ? 401 : 403 },
           });
           const [events] = await conn.query<RowDataPacket[]>(
             "SELECT userId FROM push_consent_events WHERE userId=8431",
           );
           expect(events).toEqual([]);
+          expect(await tokens()).toEqual(before);
         } finally {
           release();
           await pending.catch(() => {});

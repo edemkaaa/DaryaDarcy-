@@ -476,22 +476,60 @@ export async function getPostBySource(source: string): Promise<Post | undefined>
 
 // ── Push Tokens ──
 
-export async function registerPushToken(token: string, userId?: number, platform?: string) {
+export type PushWriteActor = Pick<User, "id" | "openId" | "sessionVersion">;
+
+async function lockPushActor(tx: Pick<MySql2Database, "select">, actor: PushWriteActor) {
+  // Та же блокировка, что при отзыве сессии и блокировке аккаунта.
+  // Проверка и запись push-данных выполняются в одной транзакции.
+  const [current] = await tx
+    .select({
+      openId: users.openId,
+      sessionVersion: users.sessionVersion,
+      blockedAt: users.blockedAt,
+    })
+    .from(users)
+    .where(eq(users.id, actor.id))
+    .for("update");
+  if (
+    !current ||
+    current.openId !== actor.openId ||
+    current.sessionVersion !== actor.sessionVersion
+  )
+    throw new TRPCError({ code: "UNAUTHORIZED" });
+  if (current.blockedAt) throw new TRPCError({ code: "FORBIDDEN" });
+}
+
+export async function registerPushToken(
+  token: string,
+  actor?: PushWriteActor,
+  platform?: string,
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  // Upsert: if token exists, update userId/platform
-  await db.insert(pushTokens).values({
-    token,
-    userId: userId ?? null,
-    platform: platform ?? null,
-    enabled: true,
-  }).onDuplicateKeyUpdate({
-    set: {
-      userId: userId ?? undefined,
-      platform: platform ?? undefined,
+  // Гость может зарегистрировать устройство. У существующего токена
+  // привязку к аккаунту меняет только запрос с действующей сессией.
+  const save = (writer: Pick<MySql2Database, "insert">) =>
+    writer.insert(pushTokens).values({
+      token,
+      userId: actor?.id ?? null,
+      platform: platform ?? null,
       enabled: true,
-    },
+    }).onDuplicateKeyUpdate({
+      set: {
+        userId: actor?.id,
+        platform,
+        enabled: true,
+      },
+    });
+
+  if (!actor) {
+    await save(db);
+    return;
+  }
+  await db.transaction(async (tx) => {
+    await lockPushActor(tx, actor);
+    await save(tx);
   });
 }
 
@@ -546,10 +584,8 @@ export async function getClubMemberPushTokens(): Promise<string[]> {
   return results.map((r) => r.token);
 }
 
-export type PushConsentActor = Pick<User, "id" | "openId" | "sessionVersion">;
-
 export async function logPushConsentEvent(
-  actor: PushConsentActor,
+  actor: PushWriteActor,
   consentType: PushConsentType,
   status: PushConsentStatus,
   platform?: string,
@@ -560,25 +596,7 @@ export async function logPushConsentEvent(
   if (!db) throw new Error("Database not available");
 
   await db.transaction(async (tx) => {
-    // Блокируем пользователя до записи согласия, чтобы увидеть отзыв сессии
-    // или блокировку, успевшие завершиться после проверки запроса.
-    const [current] = await tx
-      .select({
-        openId: users.openId,
-        sessionVersion: users.sessionVersion,
-        blockedAt: users.blockedAt,
-      })
-      .from(users)
-      .where(eq(users.id, actor.id))
-      .for("update");
-    if (
-      !current ||
-      current.openId !== actor.openId ||
-      current.sessionVersion !== actor.sessionVersion
-    )
-      throw new TRPCError({ code: "UNAUTHORIZED" });
-    if (current.blockedAt) throw new TRPCError({ code: "FORBIDDEN" });
-
+    await lockPushActor(tx, actor);
     await tx.insert(pushConsentEvents).values({
       userId: actor.id,
       consentType,

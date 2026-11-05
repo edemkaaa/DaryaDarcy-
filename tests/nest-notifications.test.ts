@@ -63,7 +63,7 @@ describe("notifications over native HTTP", () => {
     updatedAt: new Date(0),
     lastSignedIn: new Date(0),
   };
-  const consentActor = expect.objectContaining({
+  const pushActor = expect.objectContaining({
     id: member.id,
     openId: member.openId,
     sessionVersion: member.sessionVersion,
@@ -389,7 +389,7 @@ describe("notifications over native HTTP", () => {
     {
       name: "registerToken",
       want: { success: false },
-      argument: [{ token: "ExpoPushToken[synthetic-token]" }, 9600],
+      argument: [{ token: "ExpoPushToken[synthetic-token]" }, pushActor],
     },
     {
       name: "marketingConsent",
@@ -403,7 +403,7 @@ describe("notifications over native HTTP", () => {
     {
       name: "setMarketingConsent",
       want: { success: false, enabled: true },
-      argument: [consentActor, { enabled: false }],
+      argument: [pushActor, { enabled: false }],
     },
     { name: "purgeUserPushData", want: { success: false }, argument: [9601] },
   ])(
@@ -491,7 +491,7 @@ describe("notifications over native HTTP", () => {
         platform: "web",
         userId: 123,
       },
-      want: ["ExpoPushToken[synthetic-member-token]", 9600, "web"],
+      want: ["ExpoPushToken[synthetic-member-token]", pushActor, "web"],
     },
   ])(
     "registers a $name device using session ownership, not client ownership",
@@ -535,7 +535,7 @@ describe("notifications over native HTTP", () => {
         version: "client-version",
       },
       want: [
-        consentActor,
+        pushActor,
         "marketing",
         "granted",
         "ios",
@@ -546,7 +546,7 @@ describe("notifications over native HTTP", () => {
     {
       input: { enabled: false },
       want: [
-        consentActor,
+        pushActor,
         "marketing",
         "revoked",
         undefined,

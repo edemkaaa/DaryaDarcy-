@@ -15,10 +15,10 @@ import { requireCapability } from "../launch/capabilities";
 export class NotificationsService {
   async registerToken(
     input: RegisterTokenInput,
-    userId?: number,
+    actor?: db.PushWriteActor,
   ): Promise<{ success: boolean }> {
     requireCapability("webPush");
-    await db.registerPushToken(input.token, userId, input.platform);
+    await db.registerPushToken(input.token, actor, input.platform);
     return { success: true };
   }
 
@@ -34,7 +34,7 @@ export class NotificationsService {
   }
 
   async setMarketingConsent(
-    actor: db.PushConsentActor,
+    actor: db.PushWriteActor,
     input: SetMarketingConsentInput,
   ): Promise<{ success: boolean; enabled: boolean }> {
     await db.logPushConsentEvent(
