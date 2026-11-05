@@ -319,7 +319,6 @@ export async function findPenPalCards(actor: PenPalActor, limit = 2) {
           : await db
               .select({
                 userId: penPalProfiles.userId,
-                interests: penPalProfiles.interests,
                 score,
               })
               .from(penPalProfiles)
@@ -347,19 +346,16 @@ export async function findPenPalCards(actor: PenPalActor, limit = 2) {
               .limit(limit - cards.length);
 
       for (const row of ranked) {
-        const interests = asInterestList(row.interests);
-        const sharedInterests = interests.filter((i) =>
-          myInterests.includes(i),
-        );
-        if (sharedInterests.length === 0) continue;
-        // Между расчётом рейтинга и выдачей анкета может стать недоступной.
-        // Для новой карточки читаем только поля, которые разрешено показывать.
+        if (Number(row.score) === 0) break;
+        // После ранжирования анкета может стать недоступной или сменить интересы.
+        // Проверяем совпадения по той же свежей версии, из которой собираем карточку.
         const [currentProfile] = await db
           .select({
             name: users.name,
             avatarUrl: users.avatarUrl,
             fullName: penPalProfiles.fullName,
             city: penPalProfiles.city,
+            interests: penPalProfiles.interests,
           })
           .from(penPalProfiles)
           .innerJoin(users, eq(users.id, penPalProfiles.userId))
@@ -372,6 +368,11 @@ export async function findPenPalCards(actor: PenPalActor, limit = 2) {
           )
           .limit(1);
         if (!currentProfile) continue;
+        const interests = asInterestList(currentProfile.interests);
+        const sharedInterests = interests.filter((i) =>
+          myInterests.includes(i),
+        );
+        if (sharedInterests.length === 0) continue;
         // Показ записывается до возврата карточки. Ошибка записи прерывает подбор.
         await db
           .insert(penPalShown)

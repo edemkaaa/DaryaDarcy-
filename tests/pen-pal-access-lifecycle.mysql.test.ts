@@ -369,18 +369,19 @@ describe.skipIf(!testDatabaseUrl)(
       }
     });
     it.each([
-      { pauseOn: "match-list", revoke: "withdraw" },
-      { pauseOn: "own-profile", revoke: "withdraw" },
-      { pauseOn: "match-list", revoke: "block" },
-      { pauseOn: "ranked-candidates", revoke: "block" },
+      { pauseOn: "match-list", change: "withdraw" },
+      { pauseOn: "own-profile", change: "withdraw" },
+      { pauseOn: "match-list", change: "block" },
+      { pauseOn: "ranked-candidates", change: "block" },
+      { pauseOn: "ranked-candidates", change: "replace interests" },
     ])(
-      "honors $revoke committed after discovery reads $pauseOn",
-      async ({ pauseOn, revoke }) => {
+      "honors $change committed after discovery reads $pauseOn",
+      async ({ pauseOn, change }) => {
         if (pauseOn === "ranked-candidates")
           await conn.query("DELETE FROM pen_pal_matches WHERE id=?", [matchId]);
         else await prepare("find");
-        const caller = await captured(),
-          withdrawing = await captured("peer");
+        const caller = await captured();
+        const peerCaller = await captured("peer");
         const pool = (
           (await getDb()) as NonNullable<Awaited<ReturnType<typeof getDb>>> & {
             $client: Pool;
@@ -436,14 +437,23 @@ describe.skipIf(!testDatabaseUrl)(
               throw new Error("Expected a paused real SQL read");
             }),
           ]);
-          if (revoke === "withdraw") await withdrawing.penPals.remove();
-          else
+          if (change === "withdraw") {
+            await peerCaller.penPals.remove();
+          } else if (change === "replace interests") {
+            await peerCaller.penPals.upsert({
+              fullName: "Synthetic peer",
+              interests: ["Музыка", "Кино"],
+              address: "Synthetic address",
+              adultConsent: true,
+            });
+          } else {
             await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=?", [
               peer,
             ]);
+          }
           release();
           const result = await pending;
-          expect(result.matches.some((row) => row.userId === peer)).toBe(false);
+          expect(result.matches.map((row) => row.userId)).toEqual([other]);
           expect(
             (await snapshot()).shown.some((row) => row.matchUserId === peer),
           ).toBe(false);
