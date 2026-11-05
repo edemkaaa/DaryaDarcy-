@@ -310,7 +310,8 @@ export async function findPenPalCards(actor: PenPalActor, limit = 2) {
         WHERE JSON_TYPE(pen_interest.interest_value) = 'STRING'
           AND JSON_CONTAINS(${JSON.stringify(myInterests)}, pen_interest.interest_value)
       )`.as("pen_score");
-      // Исключаем уже показанных и связанных участниц до LIMIT.
+      // До LIMIT исключаем заблокированных, уже показанных и связанных участниц,
+      // чтобы они не занимали места доступных анкет.
       // При равном рейтинге порядок задаёт ID анкеты.
       const ranked =
         myInterests.length === 0
@@ -322,9 +323,11 @@ export async function findPenPalCards(actor: PenPalActor, limit = 2) {
                 score,
               })
               .from(penPalProfiles)
+              .innerJoin(users, eq(users.id, penPalProfiles.userId))
               .where(
                 and(
                   eq(penPalProfiles.active, true),
+                  isNull(users.blockedAt),
                   ne(penPalProfiles.userId, userId),
                   notInArray(penPalProfiles.userId, [...matchedIds]),
                   notExists(

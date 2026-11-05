@@ -320,14 +320,65 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query("DELETE FROM users WHERE id BETWEEN ? AND ?", range);
       }
     });
+    it("fills discovery slots when blocked profiles have a higher score", async () => {
+      const ids = [993401, 993402, 993403, 993404];
+      const [blockedFirst, blockedSecond, availableFirst, availableSecond] = ids;
+      try {
+        await conn.query("INSERT INTO users(id,openId,name) VALUES ?", [
+          ids.map((id) => [id, `pen-blocked-rank-${id}`, "Synthetic candidate"]),
+        ]);
+        await conn.query(
+          "UPDATE users SET blockedAt=NOW() WHERE id IN (?,?)",
+          [blockedFirst, blockedSecond],
+        );
+        await conn.query(
+          "INSERT INTO pen_pal_profiles(userId,city,interests,address,active) VALUES ?",
+          [
+            ids.map((id, index) => [
+              id,
+              "Synthetic city",
+              JSON.stringify(index < 2 ? ["Сад", "Сад", "Книги"] : ["Сад"]),
+              "Synthetic address",
+              1,
+            ]),
+          ],
+        );
+
+        const result = await (await captured()).penPals.find();
+        expect(result.matches.map((card) => card.userId)).toEqual([
+          peer,
+          other,
+          availableFirst,
+          availableSecond,
+        ]);
+        expect((await snapshot()).shown.map((row) => row.matchUserId)).toEqual([
+          other,
+          availableFirst,
+          availableSecond,
+        ]);
+      } finally {
+        await conn.query(
+          "DELETE FROM pen_pal_shown WHERE userId=? AND matchUserId IN (?,?,?,?)",
+          [owner, ...ids],
+        );
+        await conn.query(
+          "DELETE FROM pen_pal_profiles WHERE userId IN (?,?,?,?)",
+          ids,
+        );
+        await conn.query("DELETE FROM users WHERE id IN (?,?,?,?)", ids);
+      }
+    });
     it.each([
       { pauseOn: "match-list", revoke: "withdraw" },
       { pauseOn: "own-profile", revoke: "withdraw" },
       { pauseOn: "match-list", revoke: "block" },
+      { pauseOn: "ranked-candidates", revoke: "block" },
     ])(
       "honors $revoke committed after discovery reads $pauseOn",
       async ({ pauseOn, revoke }) => {
-        await prepare("find");
+        if (pauseOn === "ranked-candidates")
+          await conn.query("DELETE FROM pen_pal_matches WHERE id=?", [matchId]);
+        else await prepare("find");
         const caller = await captured(),
           withdrawing = await captured("peer");
         const pool = (
@@ -363,11 +414,13 @@ describe.skipIf(!testDatabaseUrl)(
             !paused &&
             /^select/i.test(sql) &&
             !sql.includes("for update") &&
-            (pauseOn === "match-list"
-              ? sql.includes("from `pen_pal_matches`")
-              : sql.includes("from `pen_pal_profiles`") &&
+            ((pauseOn === "match-list" &&
+              sql.includes("from `pen_pal_matches`")) ||
+              (pauseOn === "ranked-candidates" && sql.includes("JSON_TABLE")) ||
+              (pauseOn === "own-profile" &&
+                sql.includes("from `pen_pal_profiles`") &&
                 Array.isArray(values) &&
-                values[0] === owner)
+                values[0] === owner))
           ) {
             paused = true;
             enter();
@@ -391,6 +444,9 @@ describe.skipIf(!testDatabaseUrl)(
           release();
           const result = await pending;
           expect(result.matches.some((row) => row.userId === peer)).toBe(false);
+          expect(
+            (await snapshot()).shown.some((row) => row.matchUserId === peer),
+          ).toBe(false);
           expect(result.matches.every((row) => row.address === undefined)).toBe(
             true,
           );
