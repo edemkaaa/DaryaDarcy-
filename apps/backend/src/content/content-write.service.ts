@@ -78,7 +78,10 @@ export class ContentWriteService {
     return { ok: true };
   }
 
-  async importVideos(input: ImportVideosInput): Promise<{ imported: number }> {
+  async importVideos(
+    input: ImportVideosInput,
+    actor: ContentWriteActor,
+  ): Promise<{ imported: number }> {
     const items = input.videos.map((video, index) => ({
       youtubeId: video.youtubeId,
       title: video.title,
@@ -90,7 +93,7 @@ export class ContentWriteService {
       sortOrder: index,
       published: true,
     }));
-    const count = await db.bulkImportVideos(items);
+    const count = await db.bulkImportVideos(items, actor);
     return { imported: count };
   }
 

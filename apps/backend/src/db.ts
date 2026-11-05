@@ -774,8 +774,11 @@ export async function createVideo(data: InsertVideo): Promise<number> {
 }
 
 // Bulk import videos (skip duplicates)
-export async function bulkImportVideos(items: InsertVideo[]): Promise<number> {
-  return persistVideoImport(await getDb(), items);
+export async function bulkImportVideos(
+  items: InsertVideo[],
+  actor: ContentWriteActor,
+): Promise<number> {
+  return persistVideoImport(await getDb(), items, actor);
 }
 
 // Update video

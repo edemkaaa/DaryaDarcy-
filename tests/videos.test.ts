@@ -104,7 +104,7 @@ describe("Videos API", () => {
         { youtubeId: "test2", title: "Video 2", duration: "20:00", thumbnailUrl: null, videoUrl: null, views: null, publishedText: null, sortOrder: 1, published: true },
       ];
 
-      const result = await db.bulkImportVideos(items as any);
+      const result = await db.bulkImportVideos(items, { id: 1, sessionVersion: 0 });
       expect(result).toBe(5);
     });
   });

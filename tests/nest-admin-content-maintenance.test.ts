@@ -271,10 +271,12 @@ describe("native admin content maintenance service boundary", () => {
   describe("video metadata import", () => {
     it("returns the injected import service outcome with validated input", async () => {
       let received: unknown;
+      let receivedActor: unknown;
       Object.defineProperty(writes, "importVideos", {
         configurable: true,
-        value: async (input: unknown) => {
+        value: async (input: unknown, actor: unknown) => {
           received = input;
+          receivedActor = actor;
           return { imported: 7 };
         },
       });
@@ -288,6 +290,10 @@ describe("native admin content maintenance service boundary", () => {
         });
         expect(received).toEqual({
           videos: [{ youtubeId: "first", title: "Title" }],
+        });
+        expect(receivedActor).toMatchObject({
+          id: administrator.id,
+          sessionVersion: administrator.sessionVersion,
         });
       } finally {
         Reflect.deleteProperty(writes, "importVideos");

@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
+import { assertContentWriteActor, type ContentWriteActor } from "./content-write-actor";
 import { requireContentDatabase } from "./read-database";
 import {
   videos,
@@ -98,9 +99,13 @@ export async function createVideo(
 export async function bulkImportVideos(
   db: Database,
   items: InsertVideo[],
+  actor: ContentWriteActor,
 ): Promise<number> {
   if (!db) throw new Error("Database not available");
   return db.transaction(async (tx) => {
+    // Импорт читает права администратора до записи и удерживает блокировку
+    // до коммита. Блокировка на чтение позволяет двум импортам идти параллельно.
+    await assertContentWriteActor(tx, actor, "share");
     let imported = 0;
     for (const item of items) {
       if (typeof item.youtubeId !== "string" || !item.youtubeId)

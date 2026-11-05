@@ -33,7 +33,10 @@ it.each([
   {
     name: "bulk import",
     write: () =>
-      db.bulkImportVideos([{ youtubeId: "fixture", title: "Synthetic" }]),
+      db.bulkImportVideos([{ youtubeId: "fixture", title: "Synthetic" }], {
+        id: 1,
+        sessionVersion: 0,
+      }),
   },
 ])(
   "refuses $name instead of reporting a write without a database",

@@ -18,6 +18,7 @@ import { openVideoTestDatabase } from "./helpers/video-mysql";
 import { getDb } from "../apps/backend/src/db";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { sdk } from "../apps/backend/src/_core/sdk";
+import { SessionService } from "../apps/backend/src/identity/session.service";
 import type { AppRouter } from "../apps/backend/src/routers";
 
 describe.skipIf(!testDatabaseUrl)(
@@ -51,6 +52,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
     });
     afterEach(async () => {
+      vi.restoreAllMocks();
       await conn.query("DROP TRIGGER IF EXISTS bulk_video_import_refusal");
     });
     afterAll(async () => {
@@ -299,6 +301,55 @@ describe.skipIf(!testDatabaseUrl)(
           client(actor).admin.importVideos.mutate(input),
         ).rejects.toMatchObject({ data: { httpStatus: actor ? 403 : 401 } });
         expect(await rows()).toEqual(before);
+      },
+    );
+    it.each([
+      {
+        change: "session revoked",
+        sql: "sessionVersion=sessionVersion+1",
+        status: 401,
+      },
+      { change: "account blocked", sql: "blockedAt=NOW()", status: 403 },
+      { change: "demoted to moderator", sql: "role='moderator'", status: 403 },
+    ])(
+      "keeps the video catalog when the administrator is $change during import",
+      async ({ sql, status }) => {
+        const before = await rows();
+        const sessions = app.get(SessionService);
+        const authenticate = sessions.optionalUser.bind(sessions);
+        let entered!: () => void;
+        let release!: () => void;
+        const authenticated = new Promise<void>((resolve) => {
+          entered = resolve;
+        });
+        const gate = new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        // Пауза после проверки JWT позволяет изменить аккаунт до реального импорта.
+        vi.spyOn(sessions, "optionalUser").mockImplementationOnce(async (req) => {
+          const actor = await authenticate(req);
+          entered();
+          await gate;
+          return actor;
+        });
+        const pending = client().admin.importVideos.mutate(input);
+        try {
+          await Promise.race([
+            authenticated,
+            pending.then(() => {
+              throw new Error("Expected authenticated request to pause");
+            }),
+          ]);
+          await conn.query(`UPDATE users SET ${sql} WHERE id=8460`);
+          release();
+          await expect(pending).rejects.toMatchObject({
+            data: { httpStatus: status },
+          });
+          expect(await rows()).toEqual(before);
+        } finally {
+          release();
+          await pending.catch(() => {});
+        }
       },
     );
   },

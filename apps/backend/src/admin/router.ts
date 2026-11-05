@@ -222,7 +222,7 @@ export const createAdminRouter = (
   // Import YouTube videos (admin only)
   importVideos: adminProcedure
     .input(importVideosInput)
-    .mutation(({ input }) => posts.importVideos(input)),
+    .mutation(({ input, ctx }) => posts.importVideos(input, ctx.user)),
   upsertVkVideo: adminProcedure
     .input(vkVideoInput)
     .output(z.object({id:z.number().int().positive()}).strict())

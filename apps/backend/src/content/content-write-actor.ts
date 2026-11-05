@@ -8,8 +8,9 @@ export type ContentWriteActor = Pick<User, "id" | "sessionVersion">;
 export async function lockCurrentContentActor(
   tx: Pick<ContentTransaction, "select">,
   actor: ContentWriteActor,
+  lockMode: "update" | "share" = "update",
 ) {
-  const [current] = await tx.select().from(users).where(eq(users.id, actor.id)).for("update");
+  const [current] = await tx.select().from(users).where(eq(users.id, actor.id)).for(lockMode);
   if (!current || current.sessionVersion !== actor.sessionVersion)
     throw new TRPCError({ code: "UNAUTHORIZED" });
   if (current.blockedAt) throw new TRPCError({ code: "FORBIDDEN" });
@@ -20,9 +21,10 @@ export async function lockCurrentContentActor(
 export async function assertContentWriteActor(
   tx: Pick<ContentTransaction, "select">,
   actor: ContentWriteActor | undefined,
+  lockMode: "update" | "share" = "update",
 ) {
   if (!actor) return;
-  const current = await lockCurrentContentActor(tx, actor);
+  const current = await lockCurrentContentActor(tx, actor, lockMode);
   if (current.role !== "admin")
     throw new TRPCError({ code: "FORBIDDEN" });
   // Pending deletion timing/roles are unchanged. Final retirement changes the epoch.
