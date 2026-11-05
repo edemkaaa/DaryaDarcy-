@@ -198,6 +198,7 @@ export async function purgeStalePenPalData(): Promise<{
   const inactiveCutoff = new Date(Date.now() - 30 * MS_DAY);
   const clubExpiredCutoff = new Date(Date.now() - 90 * MS_DAY);
 
+  // Срок подтверждения ограничивает только незавершённые заявки.
   const expiredMatches = await db
     .delete(penPalMatches)
     .where(
@@ -219,8 +220,8 @@ export async function purgeStalePenPalData(): Promise<{
     );
   let profiles = 0;
   for (const row of inactiveProfiles) {
-    // Candidate selection is only a hint. A fresh upsert/withdrawal can commit
-    // before DELETE obtains the row lock; recheck its current retention state.
+    // Повторяем условия удаления, потому что после выборки анкету могли
+    // заново заполнить или отозвать. Учитываем только фактически удалённые строки.
     const [removed] = await db
       .delete(penPalProfiles)
       .where(
@@ -234,8 +235,8 @@ export async function purgeStalePenPalData(): Promise<{
     profiles += removed.affectedRows;
   }
 
-  // Filter by the latest paid expiry before locking any candidate. The
-  // transaction below still decides eligibility from current billing state.
+  // Отбираем анкеты по последнему оплаченному сроку, чтобы не блокировать
+  // всех пользователей. Итоговое решение принимаем внутри транзакции.
   const lapsedPayments = db
     .select({ userId: clubPayments.userId })
     .from(clubPayments)
@@ -246,6 +247,7 @@ export async function purgeStalePenPalData(): Promise<{
     )
     .as("lapsed_pen_pal_payments");
   const batchSize = 100;
+  // Переходим к следующей порции по ID. Состав списка меняется по мере деактивации.
   let afterId: number | undefined;
   while (true) {
     const activeProfiles = await db
@@ -265,8 +267,8 @@ export async function purgeStalePenPalData(): Promise<{
       .limit(batchSize);
     for (const profile of activeProfiles) {
       const deactivated = await db.transaction(async (tx) => {
-        // Settlement, grants and profile writes share this owner lock. Read paid
-        // expiry only after waiting, and deactivate on the same transaction.
+        // Оплата, ручное продление и запись анкеты используют ту же блокировку.
+        // После ожидания заново читаем анкету и срок, затем удаляем связи в той же транзакции.
         const [user] = await tx
           .select({ id: users.id })
           .from(users)

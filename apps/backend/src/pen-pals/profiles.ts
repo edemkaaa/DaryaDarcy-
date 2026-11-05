@@ -27,11 +27,11 @@ import {
   PEN_PAL_CONSENT_VERSION,
 } from "../../../../packages/shared/src/pen-pals";
 type Database = NonNullable<Awaited<ReturnType<typeof getDb>>>;
-type DataWriter =
-  | Database
-  | Parameters<Parameters<Database["transaction"]>[0]>[0];
+type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
+type DataWriter = Database | Transaction;
 
 function asInterestList(value: unknown): string[] {
+  // Старые анкеты могут содержать произвольный JSON. Сохраняем порядок и повторы строк.
   if (!Array.isArray(value)) return [];
   return value.filter((item): item is string => typeof item === "string");
 }
@@ -50,8 +50,6 @@ export type PenPalMatchCard = {
   mutualConfirmed: boolean;
   confirmDeadline: Date | null;
 };
-
-type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
 
 async function recordProfileConsent(
   tx: Transaction,
@@ -80,9 +78,11 @@ export async function upsertPenPalProfileV2(
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   return db.transaction(async (tx) => {
+    // Проверяем сессию под блокировкой пользователя. Анкета и согласие сохраняются вместе.
     await lockPenPalActor(tx, actor);
     const fields = {
       fullName: data.fullName,
+      // Сохраняем имя и в обязательном поле city, которое использовали старые анкеты.
       city: data.fullName,
       interests: data.interests,
       address: data.address,
@@ -105,12 +105,13 @@ export async function upsertPenPalProfileV2(
   });
 }
 
-/** User withdrawal remains available when discovery is disabled. */
+/** Отозвать участие можно и при выключенном подборе. */
 export async function withdrawPenPalProfile(actor: PenPalActor): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.transaction(async (tx) => {
     await lockPenPalActor(tx, actor);
+    // Анкета, связи и запись об отзыве согласия меняются одной транзакцией.
     await deactivatePenPalProfile(tx, actor.id);
     await recordProfileConsent(
       tx,
@@ -121,11 +122,12 @@ export async function withdrawPenPalProfile(actor: PenPalActor): Promise<void> {
   });
 }
 
-/** Trusted retention/maintenance: no user consent is asserted by this cleanup. */
+/** Служебная деактивация. Запись об отзыве согласия создаётся по запросу пользователя. */
 export async function deactivatePenPalProfileV2(userId: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.transaction(async (tx) => {
+    // Та же блокировка, что при сохранении анкеты и изменении связей.
     await tx
       .select({ id: users.id })
       .from(users)
@@ -139,6 +141,7 @@ export async function deactivatePenPalProfile(
   db: DataWriter,
   userId: number,
 ): Promise<void> {
+  // Деактивированная анкета хранится до очистки, а её связи убираются сразу.
   await db
     .update(penPalProfiles)
     .set({ active: false })
@@ -172,10 +175,11 @@ export async function readOwnPenPalProfile(actor: PenPalActor) {
   });
 }
 
-async function matchRowForUser(
+function matchInfoForUser(
   row: typeof penPalMatches.$inferSelect,
   userId: number,
 ) {
+  // Пара хранится по возрастанию ID. Для карточки определяем, чьё подтверждение в каждом поле.
   const isLow = row.userLowId === userId;
   return {
     myConfirmed: isLow ? row.userLowConfirmed : row.userHighConfirmed,
@@ -191,6 +195,7 @@ export async function findPenPalCards(actor: PenPalActor, limit = 2) {
   if (!database) throw new Error("Database not available");
   return database.transaction(
     async (db) => {
+      // Блокировка пользователя сериализует подбор между репликами API и проверяет отзыв сессии.
       await lockPenPalActor(db, actor);
       const userId = actor.id;
 
@@ -206,6 +211,7 @@ export async function findPenPalCards(actor: PenPalActor, limit = 2) {
           matches: [] as PenPalMatchCard[],
         };
 
+      // Освобождаем просроченные заявки. Состоявшиеся пары остаются в списке.
       const now = new Date();
       await db
         .delete(penPalMatches)
@@ -220,6 +226,7 @@ export async function findPenPalCards(actor: PenPalActor, limit = 2) {
           ),
         );
 
+      // Сначала собираем карточки существующих связей, затем заполняем остаток новыми анкетами.
       const myInterests = asInterestList(profile.interests);
       const matchRows = await db
         .select()
@@ -235,10 +242,10 @@ export async function findPenPalCards(actor: PenPalActor, limit = 2) {
       const matchedIds = new Set<number>();
 
       for (const row of matchRows) {
-        let info = await matchRowForUser(row, userId);
-        matchedIds.add(info.otherUserId);
-        // A single current read authorizes the relation and peer together.
-        // The initial match list must not retain access after withdrawal.
+        const { otherUserId } = matchInfoForUser(row, userId);
+        // Исключаем из нового подбора всю исходную пару, даже если её карточка уже недоступна.
+        matchedIds.add(otherUserId);
+        // Одним свежим чтением проверяем связь и доступность второй анкеты после возможного отзыва.
         const [current] = await db
           .select({
             match: penPalMatches,
@@ -248,7 +255,7 @@ export async function findPenPalCards(actor: PenPalActor, limit = 2) {
           .from(penPalMatches)
           .innerJoin(
             penPalProfiles,
-            eq(penPalProfiles.userId, info.otherUserId),
+            eq(penPalProfiles.userId, otherUserId),
           )
           .innerJoin(users, eq(users.id, penPalProfiles.userId))
           .where(
@@ -267,7 +274,7 @@ export async function findPenPalCards(actor: PenPalActor, limit = 2) {
             current.match.confirmDeadline <= new Date())
         )
           continue;
-        info = await matchRowForUser(current.match, userId);
+        const info = matchInfoForUser(current.match, userId);
         const interests = asInterestList(current.profile.interests);
         cards.push({
           userId: info.otherUserId,
@@ -277,6 +284,7 @@ export async function findPenPalCards(actor: PenPalActor, limit = 2) {
           fullName: current.profile.fullName || current.profile.city,
           interests,
           sharedInterests: interests.filter((i) => myInterests.includes(i)),
+          // Адрес виден только после взаимного подтверждения по актуальной записи связи.
           address: info.mutualConfirmed ? current.profile.address : undefined,
           myConfirmed: info.myConfirmed,
           theirConfirmed: info.theirConfirmed,
@@ -290,8 +298,8 @@ export async function findPenPalCards(actor: PenPalActor, limit = 2) {
       if (cards.length >= limit)
         return { needsProfile: false as const, matches: cards.slice(0, limit) };
 
-      // Count matching strings, including repeats from legacy profiles. A
-      // scalar aggregate keeps JSON_TABLE correlated to the current profile.
+      // JSON_TABLE разворачивает интересы одной анкеты. Считаем совпавшие строки,
+      // включая повторы, чтобы сохранить рейтинг старых анкет.
       const score = sql<number>`(
         SELECT COUNT(*)
         FROM JSON_TABLE(
@@ -302,6 +310,8 @@ export async function findPenPalCards(actor: PenPalActor, limit = 2) {
         WHERE JSON_TYPE(pen_interest.interest_value) = 'STRING'
           AND JSON_CONTAINS(${JSON.stringify(myInterests)}, pen_interest.interest_value)
       )`.as("pen_score");
+      // Исключаем уже показанных и связанных участниц до LIMIT.
+      // При равном рейтинге порядок задаёт ID анкеты.
       const ranked =
         myInterests.length === 0
           ? []
@@ -339,6 +349,8 @@ export async function findPenPalCards(actor: PenPalActor, limit = 2) {
           myInterests.includes(i),
         );
         if (sharedInterests.length === 0) continue;
+        // Между расчётом рейтинга и выдачей анкета может стать недоступной.
+        // Для новой карточки читаем только поля, которые разрешено показывать.
         const [currentProfile] = await db
           .select({
             name: users.name,
@@ -357,6 +369,7 @@ export async function findPenPalCards(actor: PenPalActor, limit = 2) {
           )
           .limit(1);
         if (!currentProfile) continue;
+        // Показ записывается до возврата карточки. Ошибка записи прерывает подбор.
         await db
           .insert(penPalShown)
           .values({ userId, matchUserId: row.userId })
@@ -378,6 +391,7 @@ export async function findPenPalCards(actor: PenPalActor, limit = 2) {
 
       return { needsProfile: false as const, matches: cards };
     },
+    // Каждая повторная проверка видит изменения, зафиксированные после первого чтения.
     { isolationLevel: "read committed" },
   );
 }
