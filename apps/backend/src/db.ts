@@ -1152,20 +1152,52 @@ export async function cancelClubSubscription(userId: number): Promise<{ cancelle
   return {cancelled:result.confirmed,expiresAt:result.expiresAt};
 }
 
-export async function createShopPurchase(data: {
-  userId?: number | null;
-  productId: string;
-  orderId: string;
-  email?: string | null;
-}): Promise<void> {
+export async function createShopPurchase(
+  data: {
+    userId?: number | null;
+    productId: string;
+    orderId: string;
+    email?: string | null;
+  },
+  actor?: Pick<User, "id" | "openId" | "sessionVersion">,
+): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.insert(shopPurchases).values({
+  const purchase = {
     userId: data.userId ?? null,
     productId: data.productId,
     orderId: data.orderId,
     email: data.email ?? null,
-    status: "pending",
+    status: "pending" as const,
+  };
+
+  if (purchase.userId === null) {
+    await db.insert(shopPurchases).values(purchase);
+    return;
+  }
+  if (!actor || actor.id !== purchase.userId)
+    throw new TRPCError({ code: "UNAUTHORIZED" });
+
+  await db.transaction(async (tx) => {
+    // Отзыв сессии и блокировка должны либо завершиться до проверки,
+    // либо дождаться записи заказа. Параллельные покупки могут читать аккаунт.
+    const [current] = await tx
+      .select({
+        openId: users.openId,
+        sessionVersion: users.sessionVersion,
+        blockedAt: users.blockedAt,
+      })
+      .from(users)
+      .where(eq(users.id, actor.id))
+      .for("share");
+    if (
+      !current ||
+      current.openId !== actor.openId ||
+      current.sessionVersion !== actor.sessionVersion
+    )
+      throw new TRPCError({ code: "UNAUTHORIZED" });
+    if (current.blockedAt) throw new TRPCError({ code: "FORBIDDEN" });
+    await tx.insert(shopPurchases).values(purchase);
   });
 }
 

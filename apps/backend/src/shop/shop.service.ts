@@ -44,12 +44,10 @@ export class ShopService {
         message: "Не удалось создать оплату",
       });
     }
-    await db.createShopPurchase({
-      userId: actor.id,
-      productId,
-      orderId,
-      email,
-    });
+    await db.createShopPurchase(
+      { userId: actor.id, productId, orderId, email },
+      actor,
+    );
     return { url };
   }
 }
