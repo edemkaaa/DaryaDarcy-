@@ -17,6 +17,7 @@ import { openContentTestDatabase } from "./helpers/content-mysql";
 import { testDatabaseUrl } from "./helpers/backend-mysql";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { ContentUploadService } from "../apps/backend/src/content/content-upload.service";
+import * as profileWrites from "../apps/backend/src/profile/profile-writes";
 import type { AppRouter } from "../apps/backend/src/routers";
 import { sdk } from "../apps/backend/src/_core/sdk";
 import { getDb } from "../apps/backend/src/db";
@@ -99,7 +100,7 @@ describe.skipIf(!testDatabaseUrl)(
         url: "https://assets.example.test/cover.webp",
       });
       await conn.query(
-        "UPDATE users SET role='admin',blockedAt=NULL,sessionVersion=0,accountDeletionRequestedAt=NULL WHERE id=9010",
+        "UPDATE users SET role='admin',blockedAt=NULL,sessionVersion=0,accountDeletionRequestedAt=NULL,profileRevision=0,avatarUrl=NULL WHERE id=9010",
       );
     });
     afterAll(async () => {
@@ -183,6 +184,38 @@ describe.skipIf(!testDatabaseUrl)(
       expect(response.status).toBe(403);
       expect(storage.put).not.toHaveBeenCalled();
     });
+    it.each([
+      ["sessionVersion=sessionVersion+1", 401],
+      ["blockedAt=NOW()", 403],
+      ["accountDeletionRequestedAt=NOW()", 403],
+      ["profileRevision=profileRevision+1", 409],
+    ] as const)(
+      "refuses to store an avatar when %s changes after the initial profile check",
+      async (change, status) => {
+        const saveProfile = profileWrites.saveProfile;
+        const initialCheck = vi.spyOn(profileWrites, "saveProfile")
+          .mockImplementationOnce(async (...args) => {
+            const revision = await saveProfile(...args);
+            // Меняем профиль после успешной проверки, пока загрузка ещё не началась.
+            await conn.query(`UPDATE users SET ${change} WHERE id=9010`);
+            return revision;
+          });
+        try {
+          const response = await post("profile.uploadAvatar", {
+            base64: photo,
+            filename: "avatar.jpg",
+          });
+          expect(response.status).toBe(status);
+          const [profiles] = await conn.query<RowDataPacket[]>(
+            "SELECT avatarUrl FROM users WHERE id=9010",
+          );
+          expect(profiles).toEqual([{ avatarUrl: null }]);
+          expect(storage.put).not.toHaveBeenCalled();
+        } finally {
+          initialCheck.mockRestore();
+        }
+      },
+    );
     it.each(["audio", "video", "document"] as const)(
       "retired %s media cannot create an object or association",
       async (type) => {

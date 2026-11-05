@@ -69,8 +69,17 @@ export class ProfileService {
     const database = await db.getDb();
     if (!database) throw new Error("Database not available");
     const precondition = { expectedRevision: actor.profileRevision };
-    await saveProfile(database, actor.id, actor.sessionVersion, precondition);
-    const result = await uploadPhoto(base64, `avatars/${actor.id}`, signal);
+    const checkProfile = async () => {
+      await saveProfile(database, actor.id, actor.sessionVersion, precondition);
+    };
+    await checkProfile();
+    // Пока фото декодировалось, сессия или версия профиля могли измениться.
+    const result = await uploadPhoto(
+      base64,
+      `avatars/${actor.id}`,
+      signal,
+      checkProfile,
+    );
     signal?.throwIfAborted();
     await saveProfile(database, actor.id, actor.sessionVersion, {
       ...precondition, avatarUrl: result.url,
