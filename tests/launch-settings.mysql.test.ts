@@ -1,5 +1,6 @@
 import {
   afterAll,
+  afterEach,
   beforeAll,
   beforeEach,
   describe,
@@ -20,6 +21,7 @@ import type { INestApplication } from "@nestjs/common";
 import type { AddressInfo } from "node:net";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { sdk } from "../apps/backend/src/_core/sdk";
+import { SessionService } from "../apps/backend/src/identity/session.service";
 
 describe.skipIf(!testDatabaseUrl)(
   "administrator launch settings on disposable MySQL",
@@ -28,6 +30,8 @@ describe.skipIf(!testDatabaseUrl)(
     let application: INestApplication;
     let base: string;
     let token: string;
+    const admin = { id: 783, openId: "settings-admin", sessionVersion: 0 };
+    const member = { id: 784, openId: "settings-member", sessionVersion: 0 };
     beforeAll(async () => {
       conn = await openTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -49,9 +53,10 @@ describe.skipIf(!testDatabaseUrl)(
         "DELETE FROM admin_audit_log WHERE actorUserId IN (783,784)",
       );
       await conn.query(
-        "UPDATE users SET blockedAt=NULL, role='admin' WHERE id=783",
+        "UPDATE users SET openId='settings-admin', sessionVersion=0, blockedAt=NULL, role='admin' WHERE id=783",
       );
     });
+    afterEach(() => vi.restoreAllMocks());
     afterAll(async () => {
       await application?.close();
       await conn?.end();
@@ -68,7 +73,7 @@ describe.skipIf(!testDatabaseUrl)(
         "https://assets.example.test/spring.webp";
       const saved = await saveLaunchConfiguration(
         (await getDb())!,
-        783,
+        admin,
         0,
         config,
       );
@@ -83,11 +88,11 @@ describe.skipIf(!testDatabaseUrl)(
       const results = await Promise.allSettled([
         saveLaunchConfiguration(
           (await getDb())!,
-          783,
+          admin,
           0,
           defaultLaunchConfiguration,
         ),
-        saveLaunchConfiguration((await getDb())!, 783, 0, {
+        saveLaunchConfiguration((await getDb())!, admin, 0, {
           ...defaultLaunchConfiguration,
           managerEmail: "other@example.test",
         }),
@@ -120,7 +125,7 @@ describe.skipIf(!testDatabaseUrl)(
       await expect(
         saveLaunchConfiguration(
           (await getDb())!,
-          784,
+          member,
           0,
           defaultLaunchConfiguration,
         ),
@@ -129,7 +134,7 @@ describe.skipIf(!testDatabaseUrl)(
       await expect(
         saveLaunchConfiguration(
           (await getDb())!,
-          783,
+          admin,
           0,
           defaultLaunchConfiguration,
         ),
@@ -178,7 +183,7 @@ describe.skipIf(!testDatabaseUrl)(
       "rejects invalid admin JSON without a settings row or audit event",
       async (patch) => {
         await expect(
-          saveLaunchConfiguration((await getDb())!, 783, 0, {
+          saveLaunchConfiguration((await getDb())!, admin, 0, {
             ...defaultLaunchConfiguration,
             ...patch,
           }),
@@ -233,6 +238,79 @@ describe.skipIf(!testDatabaseUrl)(
         },
         body: JSON.stringify(body),
       });
+    it.each(["logout", "account replacement"])(
+      "preserves settings and audit history after %s during a save",
+      async (change) => {
+        const initial = await update({
+          expectedRevision: 0,
+          config: defaultLaunchConfiguration,
+        });
+        expect(initial.status).toBe(200);
+        const before = await initial.json();
+        const readAudit = async () => {
+          const [audit] = await conn.query<RowDataPacket[]>(
+            "SELECT id,action,details FROM admin_audit_log WHERE actorUserId=783 ORDER BY id",
+          );
+          return audit;
+        };
+        const auditBefore = await readAudit();
+        expect(auditBefore).toHaveLength(1);
+        const sessions = application.get(SessionService);
+        const readSession = sessions.optionalUser.bind(sessions);
+        let entered!: () => void;
+        let release!: () => void;
+        const authenticated = new Promise<void>((resolve) => {
+          entered = resolve;
+        });
+        const gate = new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        // Останавливаем запрос после проверки JWT и до записи настроек.
+        vi.spyOn(sessions, "optionalUser").mockImplementationOnce(async (req) => {
+          const actor = await readSession(req);
+          entered();
+          await gate;
+          return actor;
+        });
+        const pending = update({
+          expectedRevision: 1,
+          config: {
+            ...defaultLaunchConfiguration,
+            managerEmail: "late-edit@example.test",
+          },
+        });
+        try {
+          await Promise.race([
+            authenticated,
+            pending.then(() => {
+              throw new Error("Expected authenticated request to pause");
+            }),
+          ]);
+          if (change === "logout") {
+            const logout = await fetch(`${base}/api/auth/logout`, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            expect(logout.status).toBe(200);
+            expect(await logout.json()).toEqual({ success: true });
+          } else {
+            await conn.query(
+              "UPDATE users SET openId='settings-replaced-admin' WHERE id=783",
+            );
+          }
+          release();
+          const response = await pending;
+          expect(response.status).toBe(401);
+          expect(response.headers.get("cache-control")).toBe("no-store");
+          expect(await response.json()).toEqual({ error: "Запрос недоступен" });
+          expect(await getLaunchConfiguration((await getDb())!)).toEqual(before);
+          expect(await readAudit()).toEqual(auditBefore);
+        } finally {
+          release();
+          await pending.catch(() => {});
+        }
+      },
+    );
     it("preserves HTTP revision conflict and does not overwrite or audit a stale edit", async () => {
       const first = await update({
         expectedRevision: 0,

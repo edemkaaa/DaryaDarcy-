@@ -5,6 +5,7 @@ import {
   currentSeason,
   getLaunchConfiguration,
   saveLaunchConfiguration,
+  type LaunchSettingsActor,
 } from "./settings";
 
 @Injectable()
@@ -33,12 +34,14 @@ export class LaunchService {
     return getLaunchConfiguration(await this.database());
   }
 
-  async save(actorId: number, expectedRevision: number, config: unknown) {
-    // The existing boundary validates untrusted JSON and atomically rechecks the
-    // actor, locks the revision, updates settings, and records the audit event.
+  async save(
+    actor: LaunchSettingsActor,
+    expectedRevision: number,
+    config: unknown,
+  ) {
     return saveLaunchConfiguration(
       await this.database(),
-      actorId,
+      actor,
       expectedRevision,
       config,
     );

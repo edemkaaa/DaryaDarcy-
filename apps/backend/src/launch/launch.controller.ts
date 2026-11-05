@@ -54,7 +54,7 @@ export class LaunchController {
     try {
       res.json(
         await this.launch.save(
-          req.authenticatedUser.id,
+          req.authenticatedUser,
           req.body?.expectedRevision,
           req.body?.config,
         ),
@@ -68,9 +68,12 @@ export class LaunchController {
     const status =
       error instanceof TRPCError
         ? ((
-            { BAD_REQUEST: 400, FORBIDDEN: 403, CONFLICT: 409 } as Partial<
-              Record<TRPCError["code"], number>
-            >
+            {
+              BAD_REQUEST: 400,
+              UNAUTHORIZED: 401,
+              FORBIDDEN: 403,
+              CONFLICT: 409,
+            } as Partial<Record<TRPCError["code"], number>>
           )[error.code] ?? 503)
         : 503;
     res.status(status).json({
