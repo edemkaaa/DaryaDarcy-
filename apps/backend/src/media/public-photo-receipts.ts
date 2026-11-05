@@ -13,6 +13,7 @@ import { digest, privateStorageNamespace } from "./private-upload-object";
 import { preparePhoto, photoInput } from "./photos";
 import { ensurePublicPhotoObject } from "./public-photo-object";
 import type { ContentTransaction } from "../content/post-deletion";
+import { MAX_PROFILE_REVISION } from "../profile/profile-input";
 
 export const publicPhotoStatusInput = z
   .object({ idempotencyKey: privateUploadKey })
@@ -189,11 +190,14 @@ export function uploadPublicPhoto(
       if (current.state === "ready") return result(current, user);
       const avatarApplied =
         purpose === "avatar" && user.avatarUrl === current.expectedAvatarUrl;
-      if (avatarApplied)
+      if (avatarApplied) {
+        if (user.profileRevision >= MAX_PROFILE_REVISION) throw unavailable();
+        // Меняем фото и версию под одной блокировкой, чтобы устаревшее сохранение получило конфликт.
         await tx
           .update(users)
-          .set({ avatarUrl: url })
+          .set({ avatarUrl: url, profileRevision: user.profileRevision + 1 })
           .where(eq(users.id, actor.id));
+      }
       await tx
         .update(publicPhotoUploads)
         .set({ state: "ready", url, avatarApplied })

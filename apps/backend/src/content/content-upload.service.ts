@@ -59,7 +59,11 @@ export class ContentUploadService {
       ) {
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
-      if (current.blockedAt || current.role !== "admin") {
+      if (
+        current.blockedAt ||
+        current.accountDeletionRequestedAt ||
+        current.role !== "admin"
+      ) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
     });

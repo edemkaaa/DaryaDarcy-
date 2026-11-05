@@ -99,7 +99,7 @@ describe.skipIf(!testDatabaseUrl)(
         url: "https://assets.example.test/cover.webp",
       });
       await conn.query(
-        "UPDATE users SET role='admin',blockedAt=NULL,sessionVersion=0 WHERE id=9010",
+        "UPDATE users SET role='admin',blockedAt=NULL,sessionVersion=0,accountDeletionRequestedAt=NULL WHERE id=9010",
       );
     });
     afterAll(async () => {
@@ -169,6 +169,18 @@ describe.skipIf(!testDatabaseUrl)(
           filename: "x.jpg",
         } as never),
       ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } });
+      expect(storage.put).not.toHaveBeenCalled();
+    });
+    it("refuses a public cover after the administrator requests account deletion", async () => {
+      expect(
+        (await post("profileExtras.requestAccountDeletion", null)).status,
+      ).toBe(200);
+      const response = await post("admin.uploadPhoto", {
+        base64: photo,
+        filename: "cover.jpg",
+        purpose: "publicCover",
+      });
+      expect(response.status).toBe(403);
       expect(storage.put).not.toHaveBeenCalled();
     });
     it.each(["audio", "video", "document"] as const)(

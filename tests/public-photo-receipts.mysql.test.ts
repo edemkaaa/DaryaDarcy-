@@ -17,6 +17,7 @@ import { openListPageFixture } from "./helpers/list-page-fixture";
 import { openPrivateUploadWire } from "./helpers/private-upload-wire";
 import { sdk } from "../apps/backend/src/_core/sdk";
 import type { AddressInfo } from "node:net";
+import type { RowDataPacket } from "mysql2/promise";
 
 describe.skipIf(!testDatabaseUrl)(
   "public photo recovery over native HTTP/SQL/loopback S3",
@@ -184,10 +185,43 @@ describe.skipIf(!testDatabaseUrl)(
       });
       expect((await call("avatar", "upload", oldKey)).data).toEqual(stale.data);
       const [rows] = await fixture.conn.query(
-        "SELECT avatarUrl FROM users WHERE id=?",
+        "SELECT avatarUrl, profileRevision FROM users WHERE id=?",
         [baseId],
       );
-      expect(rows).toEqual([{ avatarUrl: newer.data.url }]);
+      expect(rows).toEqual([{ avatarUrl: newer.data.url, profileRevision: 1 }]);
+    });
+    it("increments the profile revision once and rejects a stale avatar edit", async () => {
+      const key = randomUUID();
+      const uploaded = await call("avatar", "upload", key);
+      expect(uploaded.status).toBe(200);
+      expect(uploaded.data).toMatchObject({ state: "ready", avatarApplied: true });
+
+      const token = await sdk.createSessionToken("public-receipts-0", {
+        sessionVersion: 0,
+      });
+      const { port } = fixture.app.getHttpServer().address() as AddressInfo;
+      const stale = await fetch(`http://127.0.0.1:${port}/api/trpc/profile.update`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          json: {
+            expectedRevision: 0,
+            avatarUrl: "https://assets.example.test/old-form-avatar.webp",
+          },
+        }),
+      });
+      expect(stale.status).toBe(409);
+      expect(await call("avatar", "status", key)).toEqual(uploaded);
+      expect(await call("avatar", "upload", key)).toEqual(uploaded);
+      const [rows] = await fixture.conn.query<RowDataPacket[]>(
+        "SELECT avatarUrl, profileRevision FROM users WHERE id=?",
+        [baseId],
+      );
+      expect(rows).toEqual([{ avatarUrl: uploaded.data.url, profileRevision: 1 }]);
+      expect(wire.effects.filter(effect => effect.startsWith("PUT "))).toHaveLength(1);
     });
     it("keeps authorisation and input checks before storage; current role is rechecked after PUT", async () => {
       const key = randomUUID();
@@ -227,6 +261,11 @@ describe.skipIf(!testDatabaseUrl)(
       expect(a.status).toBe(200);
       expect(b.data).toEqual(a.data);
       expect(wire.objects.size).toBe(1);
+      const [rows] = await fixture.conn.query(
+        "SELECT profileRevision FROM users WHERE id=?",
+        [baseId],
+      );
+      expect(rows).toEqual([{ profileRevision: 1 }]);
       const other = await call("avatar", "upload", key, 1);
       expect(other.status).toBe(200);
       expect(other.data.url).not.toBe(a.data.url);
@@ -287,17 +326,23 @@ describe.skipIf(!testDatabaseUrl)(
           state: "pending",
         });
         const [rows] = await fixture.conn.query(
-          "SELECT avatarUrl FROM users WHERE id=?",
+          "SELECT avatarUrl, profileRevision FROM users WHERE id=?",
           [baseId],
         );
-        expect(rows).toEqual([{ avatarUrl: null }]);
+        expect(rows).toEqual([{ avatarUrl: null, profileRevision: 0 }]);
       } finally {
         await fixture.conn.query("DROP TRIGGER public_receipt_refusal");
       }
-      expect((await call("avatar", "upload", key)).data).toMatchObject({
+      const retried = await call("avatar", "upload", key);
+      expect(retried.data).toMatchObject({
         state: "ready",
         isCurrent: true,
       });
+      const [rows] = await fixture.conn.query(
+        "SELECT avatarUrl, profileRevision FROM users WHERE id=?",
+        [baseId],
+      );
+      expect(rows).toEqual([{ avatarUrl: retried.data.url, profileRevision: 1 }]);
       expect(
         wire.effects.filter((effect) => effect.startsWith("PUT ")),
       ).toHaveLength(1);

@@ -2,7 +2,7 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { TRPCError } from "@trpc/server";
 import { users } from "../../../../packages/database/src/schema";
-import type { ProfileUpdateInput } from "./profile-input";
+import { MAX_PROFILE_REVISION, type ProfileUpdateInput } from "./profile-input";
 
 /** Version and actor predicates fence delayed requests, including ABA changes. */
 export function saveProfile(
@@ -29,7 +29,7 @@ export function saveProfile(
       });
     const { expectedRevision, ...patch } = input;
     if (!Object.keys(patch).length) return current.profileRevision;
-    if (expectedRevision >= 2_147_483_647)
+    if (expectedRevision >= MAX_PROFILE_REVISION)
       throw new TRPCError({ code: "SERVICE_UNAVAILABLE" });
     const [result] = await tx
       .update(users)
