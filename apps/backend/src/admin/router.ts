@@ -198,7 +198,9 @@ export const createAdminRouter = (
   deleteArticle: adminProcedure
     .input(z.object({ id: z.number() }))
     .mutation(({ input, ctx }) => posts.deleteArticle(input.id, ctx.user)),
-  cleanupMediaNames: adminProcedure.mutation(() => posts.cleanupMediaNames()),
+  cleanupMediaNames: adminProcedure.mutation(({ ctx }) =>
+    posts.cleanupMediaNames(ctx.user),
+  ),
 
   // Confirm a scheduled post (publish it) (admin only)
   confirmPost: adminProcedure

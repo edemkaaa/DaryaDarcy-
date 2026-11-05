@@ -73,8 +73,8 @@ export class ContentWriteService {
     return db.deletePostMediaById(id, actor);
   }
 
-  async cleanupMediaNames(): Promise<{ ok: true }> {
-    await db.clearRawCameraFilenames();
+  async cleanupMediaNames(actor: ContentWriteActor): Promise<{ ok: true }> {
+    await db.clearRawCameraFilenames(actor);
     return { ok: true };
   }
 

@@ -18,6 +18,7 @@ import { testDatabaseUrl } from "./helpers/backend-mysql";
 import { getDb } from "../apps/backend/src/db";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { sdk } from "../apps/backend/src/_core/sdk";
+import { SessionService } from "../apps/backend/src/identity/session.service";
 import type { AppRouter } from "../apps/backend/src/routers";
 
 // Global SQL maintenance needs its own fresh disposable DB, never parallel publishers.
@@ -42,6 +43,8 @@ describe.skipIf(
     ["", ""],
     [null, null],
   ];
+  const firstMediaId = 8480;
+  const lastMediaId = firstMediaId + fixtures.length - 1;
   beforeAll(async () => {
     conn = await openContentTestDatabase();
     const [existing] = await conn.query<RowDataPacket[]>(
@@ -58,7 +61,10 @@ describe.skipIf(
   });
   async function cleanup() {
     await conn.query("DROP TRIGGER IF EXISTS media_names_refusal");
-    await conn.query("DELETE FROM post_media WHERE id BETWEEN 8480 AND 8494");
+    await conn.query("DELETE FROM post_media WHERE id BETWEEN ? AND ?", [
+      firstMediaId,
+      lastMediaId,
+    ]);
     await conn.query("DELETE FROM posts WHERE id IN (8480,8481)");
     await conn.query("DELETE FROM users WHERE id BETWEEN 8480 AND 8482");
   }
@@ -74,7 +80,7 @@ describe.skipIf(
       await conn.query(
         "INSERT INTO post_media (id,postId,type,url,filename,mimeType,fileSize,duration,sortOrder) VALUES (?,?, 'document',?,?, 'application/pdf',42,12,?)",
         [
-          8480 + index,
+          firstMediaId + index,
           8480 + (index % 2),
           `https://example.invalid/${index}.pdf`,
           filename,
@@ -84,6 +90,7 @@ describe.skipIf(
     }
   });
   afterEach(async () => {
+    vi.restoreAllMocks();
     await conn.query("DROP TRIGGER IF EXISTS media_names_refusal");
   });
   afterAll(async () => {
@@ -115,7 +122,8 @@ describe.skipIf(
   }
   async function rows() {
     const [result] = await conn.query<RowDataPacket[]>(
-      "SELECT id,postId,type,url,filename,mimeType,fileSize,duration,sortOrder,createdAt FROM post_media WHERE id BETWEEN 8480 AND 8494 ORDER BY id",
+      "SELECT id,postId,type,url,filename,mimeType,fileSize,duration,sortOrder,createdAt FROM post_media WHERE id BETWEEN ? AND ? ORDER BY id",
+      [firstMediaId, lastMediaId],
     );
     return result;
   }
@@ -168,4 +176,53 @@ describe.skipIf(
     ).rejects.toMatchObject({ data: { httpStatus: 401 } });
     expect(await rows()).toEqual(before);
   });
+  it.each([
+    {
+      change: "session revoked",
+      sql: "sessionVersion=sessionVersion+1",
+      status: 401,
+    },
+    { change: "account blocked", sql: "blockedAt=NOW()", status: 403 },
+    { change: "demoted to moderator", sql: "role='moderator'", status: 403 },
+  ])(
+    "keeps filenames when the administrator is $change during cleanup",
+    async ({ sql, status }) => {
+      const before = await rows();
+      const sessions = app.get(SessionService);
+      const authenticate = sessions.optionalUser.bind(sessions);
+      let entered!: () => void;
+      let release!: () => void;
+      const authenticated = new Promise<void>((resolve) => {
+        entered = resolve;
+      });
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      // Приостанавливаем запрос после чтения реальной сессии, перед записью в MySQL.
+      vi.spyOn(sessions, "optionalUser").mockImplementationOnce(async (req) => {
+        const actor = await authenticate(req);
+        entered();
+        await gate;
+        return actor;
+      });
+      const pending = client().admin.cleanupMediaNames.mutate();
+      try {
+        await Promise.race([
+          authenticated,
+          pending.then(() => {
+            throw new Error("Expected authenticated request to pause");
+          }),
+        ]);
+        await conn.query(`UPDATE users SET ${sql} WHERE id=8480`);
+        release();
+        await expect(pending).rejects.toMatchObject({
+          data: { httpStatus: status },
+        });
+        expect(await rows()).toEqual(before);
+      } finally {
+        release();
+        await pending.catch(() => {});
+      }
+    },
+  );
 });

@@ -19,7 +19,7 @@ import { publishDueScheduledPosts as persistDueScheduledPosts } from "./content/
 import { savePostEdit as persistPostEdit } from "./content/post-editor";
 import type { ContentEditPrecondition } from "./content/content-edit-revision";
 import { deletePost as persistPostDeletion } from "./content/post-deletion";
-import type { ContentWriteActor } from "./content/content-write-actor";
+import { assertContentWriteActor, type ContentWriteActor } from "./content/content-write-actor";
 import {
   getPostMediaByPostId as readPostMediaByPostId,
 } from "./content/post-media-repository";
@@ -858,13 +858,17 @@ export async function replacePostVideos(postId: number, urls: string[]): Promise
   await persistPostEdit(db, postId, {}, urls);
 }
 
-export async function clearRawCameraFilenames(): Promise<void> {
+export async function clearRawCameraFilenames(actor: ContentWriteActor): Promise<void> {
   const db = await getDb();
   if (!db) return;
-  await db
-    .update(postMedia)
-    .set({ filename: null })
-    .where(sql`${postMedia.filename} REGEXP '^(IMG|DSC|VID|MOV|PXL|Screenshot|Photo|Video)[-_ ]?[0-9]'`);
+  await db.transaction(async (tx) => {
+    // Повторно проверяем роль и сессию под блокировкой перед массовым обновлением.
+    await assertContentWriteActor(tx, actor);
+    await tx
+      .update(postMedia)
+      .set({ filename: null })
+      .where(sql`${postMedia.filename} REGEXP '^(IMG|DSC|VID|MOV|PXL|Screenshot|Photo|Video)[-_ ]?[0-9]'`);
+  });
 }
 
 // Update post status (for confirming scheduled posts)

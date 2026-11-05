@@ -68,7 +68,10 @@ describe("native admin content maintenance service boundary", () => {
       method: "cleanupMediaNames" as const,
       invoke: () => client().admin.cleanupMediaNames.mutate(),
       want: { ok: true },
-      argument: undefined,
+      argument: expect.objectContaining({
+        id: administrator.id,
+        sessionVersion: administrator.sessionVersion,
+      }),
     },
   ];
 
@@ -93,23 +96,18 @@ describe("native admin content maintenance service boundary", () => {
   it.each(operations)(
     "$method returns the injected content provider's outcome, not a direct SQL outcome",
     async ({ method, invoke, want, argument }) => {
-      // Define the new seam on the existing instance so RED exercises the old
-      // production route rather than failing because a method does not exist.
+      let received: unknown;
       const original = Object.getOwnPropertyDescriptor(writes, method);
       Object.defineProperty(writes, method, {
         configurable: true,
-        value: async (id?: number) => {
-          if (id !== argument) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "wrong resource",
-            });
-          }
+        value: async (input: unknown) => {
+          received = input;
           return want;
         },
       });
       try {
         expect(await invoke()).toEqual(want);
+        expect(received).toEqual(argument);
       } finally {
         if (original) Object.defineProperty(writes, method, original);
         else Reflect.deleteProperty(writes, method);
