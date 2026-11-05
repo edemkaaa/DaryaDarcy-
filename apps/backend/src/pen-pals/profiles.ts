@@ -1,4 +1,16 @@
-import { and, eq, isNull, lt, ne, or } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  isNull,
+  lt,
+  ne,
+  notExists,
+  notInArray,
+  or,
+  sql,
+} from "drizzle-orm";
 import {
   users,
   userConsentEvents,
@@ -278,74 +290,85 @@ export async function findPenPalCards(actor: PenPalActor, limit = 2) {
       if (cards.length >= limit)
         return { needsProfile: false as const, matches: cards.slice(0, limit) };
 
-      const [others, shownRows] = await Promise.all([
-        db
-          .select({
-            userId: penPalProfiles.userId,
-            interests: penPalProfiles.interests,
-          })
-          .from(penPalProfiles)
-          .where(
-            and(
-              eq(penPalProfiles.active, true),
-              ne(penPalProfiles.userId, userId),
-            ),
-          ),
-        db
-          .select({ matchUserId: penPalShown.matchUserId })
-          .from(penPalShown)
-          .where(eq(penPalShown.userId, userId)),
-      ]);
-      const shown = new Set(shownRows.map((r) => r.matchUserId));
-
-      const ranked = others
-        .filter((p) => !shown.has(p.userId) && !matchedIds.has(p.userId))
-        .map((p) => {
-          const interests = asInterestList(p.interests);
-          const shared = interests.filter((i) => myInterests.includes(i));
-          return {
-            profile: p,
-            interests,
-            sharedInterests: shared,
-            score: shared.length,
-          };
-        })
-        .filter((r) => r.score >= 1)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, limit - cards.length);
+      // Count matching strings, including repeats from legacy profiles. A
+      // scalar aggregate keeps JSON_TABLE correlated to the current profile.
+      const score = sql<number>`(
+        SELECT COUNT(*)
+        FROM JSON_TABLE(
+          CASE WHEN JSON_TYPE(${penPalProfiles.interests}) = 'ARRAY'
+            THEN ${penPalProfiles.interests} ELSE JSON_ARRAY() END,
+          '$[*]' COLUMNS(interest_value JSON PATH '$')
+        ) AS pen_interest
+        WHERE JSON_TYPE(pen_interest.interest_value) = 'STRING'
+          AND JSON_CONTAINS(${JSON.stringify(myInterests)}, pen_interest.interest_value)
+      )`.as("pen_score");
+      const ranked =
+        myInterests.length === 0
+          ? []
+          : await db
+              .select({
+                userId: penPalProfiles.userId,
+                interests: penPalProfiles.interests,
+                score,
+              })
+              .from(penPalProfiles)
+              .where(
+                and(
+                  eq(penPalProfiles.active, true),
+                  ne(penPalProfiles.userId, userId),
+                  notInArray(penPalProfiles.userId, [...matchedIds]),
+                  notExists(
+                    db
+                      .select({ id: penPalShown.id })
+                      .from(penPalShown)
+                      .where(
+                        and(
+                          eq(penPalShown.userId, userId),
+                          eq(penPalShown.matchUserId, penPalProfiles.userId),
+                        ),
+                      ),
+                  ),
+                ),
+              )
+              .orderBy(({ score }) => [desc(score), asc(penPalProfiles.id)])
+              .limit(limit - cards.length);
 
       for (const row of ranked) {
-        const [u] = await db
-          .select({
-            blockedAt: users.blockedAt,
-            name: users.name,
-            avatarUrl: users.avatarUrl,
-          })
-          .from(users)
-          .where(eq(users.id, row.profile.userId))
-          .limit(1);
+        const interests = asInterestList(row.interests);
+        const sharedInterests = interests.filter((i) =>
+          myInterests.includes(i),
+        );
+        if (sharedInterests.length === 0) continue;
         const [currentProfile] = await db
           .select({
-            active: penPalProfiles.active,
+            name: users.name,
+            avatarUrl: users.avatarUrl,
             fullName: penPalProfiles.fullName,
             city: penPalProfiles.city,
           })
           .from(penPalProfiles)
-          .where(eq(penPalProfiles.userId, row.profile.userId))
+          .innerJoin(users, eq(users.id, penPalProfiles.userId))
+          .where(
+            and(
+              eq(penPalProfiles.userId, row.userId),
+              eq(penPalProfiles.active, true),
+              isNull(users.blockedAt),
+            ),
+          )
           .limit(1);
-        if (!currentProfile?.active || !u || u.blockedAt) continue;
+        if (!currentProfile) continue;
         await db
           .insert(penPalShown)
-          .values({ userId, matchUserId: row.profile.userId })
-          .onDuplicateKeyUpdate({ set: { matchUserId: row.profile.userId } });
+          .values({ userId, matchUserId: row.userId })
+          .onDuplicateKeyUpdate({ set: { matchUserId: row.userId } });
         cards.push({
-          userId: row.profile.userId,
+          userId: row.userId,
           matchId: null,
-          name: u?.name ?? null,
-          avatarUrl: u?.avatarUrl ?? null,
+          name: currentProfile.name,
+          avatarUrl: currentProfile.avatarUrl,
           fullName: currentProfile.fullName || currentProfile.city,
-          interests: row.interests,
-          sharedInterests: row.sharedInterests,
+          interests,
+          sharedInterests,
           myConfirmed: false,
           theirConfirmed: false,
           mutualConfirmed: false,

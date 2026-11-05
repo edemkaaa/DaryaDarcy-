@@ -258,6 +258,68 @@ describe.skipIf(!testDatabaseUrl)(
         true,
       );
     });
+    it("keeps the candidate order with legacy interests and shown cards", async () => {
+      const ids = Array.from({ length: 260 }, (_, index) => 993100 + index);
+      const range = [ids[0], ids[259]];
+      try {
+        await conn.query("INSERT INTO users(id,openId,name) VALUES ?", [
+          ids.map((id) => [id, `pen-page-${id}`, "Synthetic candidate"]),
+        ]);
+        await conn.query(
+          "INSERT INTO pen_pal_profiles(userId,city,interests,address,active) VALUES ?",
+          [
+            ids.map((id, index) => {
+              let interests: unknown = ["Сад"];
+              if (index === 1) interests = ["Сад", ["Книги"], null];
+              if (index === 2) interests = ["сад", "книги"];
+              if (index === 3) interests = { first: "Сад" };
+              if (index === 0 || index === 259) interests = ["Сад", "Книги"];
+              if (index === 258) interests = ["Сад", "Сад", "Книги"];
+              return [
+                id,
+                "Synthetic city",
+                JSON.stringify(interests),
+                "Synthetic address",
+                1,
+              ];
+            }),
+          ],
+        );
+        await conn.query(
+          "INSERT INTO pen_pal_shown(userId,matchUserId) VALUES (?,?)",
+          [owner, other],
+        );
+        const caller = await captured();
+        const first = await caller.penPals.find();
+        expect(first.matches.map((card) => card.userId)).toEqual([
+          peer,
+          ids[258],
+          ids[0],
+          ids[259],
+        ]);
+        expect(first.matches.every((card) => card.address === undefined)).toBe(
+          true,
+        );
+        const second = await caller.penPals.find();
+        expect(second.matches.map((card) => card.userId)).toEqual([
+          peer,
+          ids[1],
+          ids[4],
+          ids[5],
+        ]);
+        expect(second.matches[1].sharedInterests).toEqual(["Сад"]);
+      } finally {
+        await conn.query(
+          "DELETE FROM pen_pal_shown WHERE userId=? AND matchUserId BETWEEN ? AND ?",
+          [owner, ...range],
+        );
+        await conn.query(
+          "DELETE FROM pen_pal_profiles WHERE userId BETWEEN ? AND ?",
+          range,
+        );
+        await conn.query("DELETE FROM users WHERE id BETWEEN ? AND ?", range);
+      }
+    });
     it.each([
       { pauseOn: "match-list", revoke: "withdraw" },
       { pauseOn: "own-profile", revoke: "withdraw" },
