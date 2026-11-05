@@ -201,7 +201,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
       const [history] = await conn.query<RowDataPacket[]>(
         "SELECT COUNT(*) AS n FROM __drizzle_migrations",
       );
-      expect(history[0].n).toBe(51);
+      expect(history[0].n).toBe(52);
       const [existing] = await conn.query<RowDataPacket[]>(
         "SELECT COUNT(*) AS n FROM users",
       );
@@ -1455,7 +1455,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
       const [history] = await conn.query<RowDataPacket[]>(
         "SELECT COUNT(*) AS n FROM __drizzle_migrations",
       );
-      expect(history[0].n).toBe(51);
+      expect(history[0].n).toBe(52);
       expect(
         JSON.parse(
           docker(
@@ -1748,7 +1748,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
       const [history] = await conn.query<RowDataPacket[]>(
         "SELECT COUNT(*) AS n FROM backend_image_restore.__drizzle_migrations",
       );
-      expect(history[0].n).toBe(51);
+      expect(history[0].n).toBe(52);
       const [user] = await conn.query<RowDataPacket[]>(
         "SELECT role FROM backend_image_restore.users WHERE openId='image-admin'",
       );

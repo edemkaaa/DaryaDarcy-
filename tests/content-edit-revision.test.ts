@@ -12,6 +12,7 @@ import type {
 
 const post: Post = {
   id: 1,
+  publicId: "c22db58f-698b-41ea-8e12-524d8323b034",
   text: "Body",
   photos: [],
   tags: [],

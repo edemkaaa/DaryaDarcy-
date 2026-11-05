@@ -407,7 +407,8 @@ export function usePostManagement(onRefresh: () => void) {
     void utils.admin.postCounts.invalidate();
     void utils.admin.postCalendar.invalidate();
     void utils.admin.stats.invalidate();
-    void utils.feed.getById.invalidate({ id });
+    // Одна публикация может быть закэширована по старой ссылке и по UUID.
+    void utils.feed.getById.invalidate();
     void utils.feed.list.invalidate();
     void utils.feed.listPaginated.invalidate();
     void utils.club.listByCategory.invalidate();

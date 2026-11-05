@@ -39,6 +39,7 @@ export async function getPosts(
   let query = db
     .select({
       id: posts.id,
+      publicId: posts.publicId,
       text: posts.text,
       photos: posts.photos,
       tags: posts.tags,
@@ -71,6 +72,7 @@ export async function getPosts(
 
 const postListColumns = {
   id: posts.id,
+  publicId: posts.publicId,
   text: posts.text,
   photos: posts.photos,
   tags: posts.tags,

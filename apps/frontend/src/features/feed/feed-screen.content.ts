@@ -8,6 +8,7 @@ export interface Tag {
 }
 export interface FeedPost {
   id: number;
+  publicId?: string;
   text: string;
   photos: string[];
   tags: string[];

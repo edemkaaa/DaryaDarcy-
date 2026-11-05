@@ -61,6 +61,15 @@ export const adminActionOperations = mysqlTable("admin_action_operations", {
 // ── Feed: Posts ──
 export const posts = mysqlTable("posts", {
   id: int("id").autoincrement().primaryKey(),
+  // MySQL также выдаёт UUIDv4 старым импортерам, которые не передают publicId.
+  publicId: varchar("publicId", { length: 36 }).notNull().default(sql`(
+    LOWER(CONCAT(
+      HEX(RANDOM_BYTES(4)), '-', HEX(RANDOM_BYTES(2)), '-4',
+      RIGHT(HEX(RANDOM_BYTES(2)), 3), '-',
+      SUBSTRING('89ab', 1 + (ORD(RANDOM_BYTES(1)) & 3), 1),
+      RIGHT(HEX(RANDOM_BYTES(2)), 3), '-', HEX(RANDOM_BYTES(6))
+    ))
+  )`).unique("posts_public_id_unique"),
   /** Post text content (supports multiline, markdown-like) */
   text: text("text").notNull(),
   /** JSON array of photo URLs */

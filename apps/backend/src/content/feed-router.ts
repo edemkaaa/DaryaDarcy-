@@ -27,10 +27,16 @@ export const createFeedRouter = (
       )
       .query(({ input }) => content.listFeedPage(input)),
 
-    // Get single post by ID (public feed; club posts only for subscribers)
+    // Оба вида ссылок используют одну проверку публикации и доступа к Клубу.
     getById: publicProcedure
-      .input(z.object({ id: z.number().int().positive().safe() }))
-      .query(({ input, ctx }) => content.postById(input.id, ctx.user)),
+      .input(z.union([
+        z.object({ id: z.number().int().positive().safe() }),
+        z.object({ publicId: z.uuidv4() }).strict(),
+      ]))
+      .query(({ input, ctx }) => content.postById(
+        "id" in input ? input.id : input.publicId.toLowerCase(),
+        ctx.user,
+      )),
 
     // Get all tags (public)
     tags: publicProcedure.query(() => content.listTags()),

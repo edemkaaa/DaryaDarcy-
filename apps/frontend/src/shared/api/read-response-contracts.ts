@@ -2,6 +2,11 @@ import { z } from "zod";
 import { invalidResponse } from "./errors";
 
 const id = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
+const publicPostId = z.uuidv4();
+const postAddress = z.union([
+  z.object({ id }),
+  z.object({ publicId: publicPostId }).strict(),
+]);
 const count = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 // SuperJSON supplies Date; older JSON readers also supply ISO timestamps.
 const date = z.union([z.date(), z.iso.datetime({ offset: true })]);
@@ -70,6 +75,7 @@ const media = z.object({
 });
 const post = z.object({
   id,
+  publicId: publicPostId.optional(),
   text: z.string(),
   photos: strings,
   tags: strings,
@@ -243,9 +249,19 @@ export function validateReadResponse(
     ["articles.getById", "videos.getById", "feed.getById"].includes(path) &&
     value != null
   ) {
-    const expected = z.object({ id }).safeParse(input);
-    if (!expected.success || (value as { id: number }).id !== expected.data.id)
-      throw invalidResponse();
+    if (path === "feed.getById") {
+      const expected = postAddress.safeParse(input);
+      if (!expected.success) throw invalidResponse();
+      const received = value as { id: number; publicId?: string };
+      const matches = "id" in expected.data
+        ? received.id === expected.data.id
+        : received.publicId === expected.data.publicId.toLowerCase();
+      if (!matches) throw invalidResponse();
+    } else {
+      const expected = z.object({ id }).safeParse(input);
+      if (!expected.success || (value as { id: number }).id !== expected.data.id)
+        throw invalidResponse();
+    }
   }
   if (path === "admin.postCalendar") {
     const requested = z.object({ days: z.array(z.unknown()) }).safeParse(input);

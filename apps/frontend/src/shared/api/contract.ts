@@ -229,6 +229,7 @@ export type AppRouter = BuiltRouter<
             text: string;
             createdAt: Date;
             updatedAt: Date;
+            publicId: string;
             tags: Array<string>;
             target: "feed" | "club" | "both";
             photos: Array<string>;
@@ -255,6 +256,7 @@ export type AppRouter = BuiltRouter<
           posts: Array<
             {
               id: number;
+              publicId: string;
               text: string;
               photos: Array<string>;
               tags: Array<string>;
@@ -278,10 +280,11 @@ export type AppRouter = BuiltRouter<
         meta: unknown;
       }>;
       getById: QueryProcedure<{
-        input: { id: number };
+        input: { id: number } | { publicId: string };
         output:
           | ({
               id: number;
+              publicId: string;
               text: string;
               photos: Array<string>;
               tags: Array<string>;
@@ -337,6 +340,7 @@ export type AppRouter = BuiltRouter<
         output: Array<
           {
             id: number;
+            publicId: string;
             text: string;
             photos: Array<string>;
             tags: Array<string>;
@@ -368,6 +372,7 @@ export type AppRouter = BuiltRouter<
           items: Array<
             {
               id: number;
+              publicId: string;
               text: string;
               photos: Array<string>;
               tags: Array<string>;
@@ -478,6 +483,7 @@ export type AppRouter = BuiltRouter<
             text: string;
             createdAt: Date;
             updatedAt: Date;
+            publicId: string;
             tags: Array<string>;
             target: "feed" | "club" | "both";
             photos: Array<string>;
@@ -530,6 +536,7 @@ export type AppRouter = BuiltRouter<
               text: string;
               createdAt: Date;
               updatedAt: Date;
+              publicId: string;
               tags: Array<string>;
               target: "feed" | "club" | "both";
               photos: Array<string>;
@@ -828,6 +835,7 @@ export type AppRouter = BuiltRouter<
           text: string;
           createdAt: Date;
           updatedAt: Date;
+          publicId: string;
           tags: Array<string>;
           target: "feed" | "club" | "both";
           photos: Array<string>;
@@ -1099,6 +1107,7 @@ export type AppRouter = BuiltRouter<
           text: string;
           createdAt: Date;
           updatedAt: Date;
+          publicId: string;
           tags: Array<string>;
           target: "feed" | "club" | "both";
           photos: Array<string>;
@@ -1203,6 +1212,7 @@ export type AppRouter = BuiltRouter<
           posts: Array<
             {
               id: number;
+              publicId: string;
               text: string;
               photos: Array<string>;
               tags: Array<string>;
@@ -1258,6 +1268,7 @@ export type AppRouter = BuiltRouter<
           posts: Array<
             {
               id: number;
+              publicId: string;
               text: string;
               photos: Array<string>;
               tags: Array<string>;

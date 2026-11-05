@@ -9,13 +9,14 @@ type Database = MySql2Database | null;
 
 export async function getPostById(
   db: Database,
-  id: number,
+  id: number | string,
 ) {
   if (!db) throw new Error("Database not available");
 
   const result = await db
     .select({
       id: posts.id,
+      publicId: posts.publicId,
       text: posts.text,
       photos: posts.photos,
       tags: posts.tags,
@@ -36,7 +37,7 @@ export async function getPostById(
         ),
     })
     .from(posts)
-    .where(eq(posts.id, id))
+    .where(typeof id === "number" ? eq(posts.id, id) : eq(posts.publicId, id))
     .limit(1);
 
   const row = result[0];

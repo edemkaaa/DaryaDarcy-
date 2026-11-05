@@ -309,7 +309,7 @@ export async function getPostsPaginated(options: {
 }
 
 // Get a single post by ID
-export async function getPostById(id: number) {
+export async function getPostById(id: number | string) {
   return readPostDetail(await getDb(), id);
 }
 

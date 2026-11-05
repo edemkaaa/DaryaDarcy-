@@ -384,7 +384,7 @@ function CommentThread({
   };
   const refreshCounts = () => {
     void utils.club.listByCategory.invalidate();
-    void utils.feed.getById.invalidate({ id: postId });
+    void utils.feed.getById.invalidate();
   };
   const refreshMissingBranch = async (parentId: number) => {
     const task = operation.begin("refresh-comments");

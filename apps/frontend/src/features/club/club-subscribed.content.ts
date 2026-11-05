@@ -62,6 +62,7 @@ export const MAILBOX_URI =
 export const PEN_PALS_ENABLED = false;
 export interface ClubPost {
   id: string;
+  publicId?: string;
   target: "feed" | "club" | "both";
   title: string;
   preview: string;

@@ -13,6 +13,15 @@ export async function openContentTestDatabase() {
       target ENUM('feed','club','both') DEFAULT 'feed', scheduledAt TIMESTAMP NULL, publishedAt TIMESTAMP NULL,
       richText JSON, createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB`);
+    const [publicIdMigration] = await conn.query<RowDataPacket[]>(
+      "SELECT name FROM backend_test_migrations WHERE name='0051_post_public_id'",
+    );
+    if (!publicIdMigration.length) {
+      const sql = await readFile(new URL("../../packages/database/drizzle/0051_post_public_id.sql", import.meta.url), "utf8");
+      for (const statement of sql.split("--> statement-breakpoint"))
+        await conn.query(statement);
+      await conn.query("INSERT INTO backend_test_migrations VALUES('0051_post_public_id')");
+    }
     await conn.query(`CREATE TABLE IF NOT EXISTS post_media (
       id INT PRIMARY KEY,postId INT NOT NULL,type ENUM('video','audio','document') NOT NULL,url TEXT NOT NULL,
       filename VARCHAR(512),mimeType VARCHAR(128),fileSize INT,duration INT,sortOrder INT DEFAULT 0,createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP

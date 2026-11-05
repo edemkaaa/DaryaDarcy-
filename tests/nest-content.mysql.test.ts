@@ -9,7 +9,7 @@ import {
 } from "vitest";
 import type { INestApplication } from "@nestjs/common";
 import type { AddressInfo } from "node:net";
-import type { Connection } from "mysql2/promise";
+import type { Connection, RowDataPacket } from "mysql2/promise";
 import { createTRPCProxyClient, httpLink } from "@trpc/client";
 import superjson from "superjson";
 import { openContentTestDatabase } from "./helpers/content-mysql";
@@ -141,6 +141,50 @@ describe.skipIf(!testDatabaseUrl)(
         text: "public body",
       });
       expect(await client().feed.getById.query({ id: 8971 })).toBeUndefined();
+    });
+
+    it("keeps the public post ID stable and applies the same access by UUID", async () => {
+      const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+      const guest = client();
+      const publicPost = await guest.feed.getById.query({ id: 8970 });
+      expect(publicPost).toMatchObject({ publicId: expect.stringMatching(uuid) });
+      const member = client(bearer);
+      const clubPost = await member.feed.getById.query({ id: 8971 });
+      expect(clubPost).toMatchObject({ publicId: expect.stringMatching(uuid) });
+      const publicId = publicPost!.publicId;
+      const clubId = clubPost!.publicId;
+      expect(publicId).not.toBe(clubId);
+      const byPublicId = (id: string, caller = guest) =>
+        caller.feed.getById.query({ publicId: id });
+      expect(await byPublicId(publicId)).toEqual(publicPost);
+      expect(await byPublicId(clubId)).toBeUndefined();
+      expect(await byPublicId(clubId, member)).toEqual(clubPost);
+      expect((await guest.feed.listPaginated.query({ limit: 50 })).posts)
+        .toContainEqual(expect.objectContaining({ id: 8970, publicId }));
+      expect((await member.club.list.query()).posts)
+        .toContainEqual(expect.objectContaining({ id: 8971, publicId: clubId }));
+      await conn.query("INSERT INTO saved_posts(userId,postId) VALUES(8970,8970)");
+      expect((await member.feed.savedPostsPage.query({ target: "feed" })).items)
+        .toContainEqual(expect.objectContaining({ id: 8970, publicId }));
+
+      const [[draft]] = await conn.query<(RowDataPacket & { publicId: string })[]>(
+        "SELECT publicId FROM posts WHERE id=8972",
+      );
+      await conn.query("UPDATE club_payments SET expiresAt=NOW() WHERE userId=8970");
+      expect(await byPublicId(clubId, member)).toBeUndefined();
+      await conn.query("UPDATE users SET role='admin' WHERE id=8970");
+      expect(await byPublicId(clubId, member)).toEqual(clubPost);
+      expect(await byPublicId(draft.publicId, member)).toBeUndefined();
+
+      await conn.query("UPDATE posts SET text='edited public body' WHERE id=8970");
+      try {
+        expect(await byPublicId(publicId)).toMatchObject({
+          publicId,
+          text: "edited public body",
+        });
+      } finally {
+        await conn.query("UPDATE posts SET text='public body' WHERE id=8970");
+      }
     });
 
     const clubVk =

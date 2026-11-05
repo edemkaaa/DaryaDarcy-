@@ -19,6 +19,7 @@ import {
   type CSSProperties,
 } from "react";
 import { postDisplayDate } from "@/domain/post/post-date";
+import { postHref } from "@/shared/navigation/post-address";
 import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
@@ -91,6 +92,7 @@ function normalizeFeedPost(
       : "feed";
   return {
     id: Number(p.id),
+    publicId: p.publicId,
     text,
     photos,
     tags,
@@ -381,7 +383,7 @@ export default function FeedScreen() {
       href={
         item.articleId
           ? `/library/article/${item.articleId}`
-          : `/post/${item.id}`
+          : postHref(item)
       }
     />
   );
@@ -415,7 +417,7 @@ export default function FeedScreen() {
       router.push(`/library/article/${post.articleId}`);
       return;
     }
-    router.push(`/post/${postId}`);
+    router.push(postHref(post ?? { id: postId }));
   };
   // Post management (owner only)
   const { openMenu, ManagementModals } = usePostManagement(onRefresh);

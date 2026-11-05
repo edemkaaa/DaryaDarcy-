@@ -45,6 +45,7 @@ import type { ApiOutputs } from "@/shared/api/types";
 import { useCapabilities } from "@/shared/api/capabilities";
 import { friendlyMediaName } from "@/shared/media/media-label";
 import { resolvePostVideos } from "@/domain/post/resolve-post-video";
+import { postHref } from "@/shared/navigation/post-address";
 import { articleIdFromSource } from "@/domain/content/article-blocks";
 import { sanitizePlainPostText } from "@/domain/content/post-text-sanitize";
 import { truncateSelectionPreview } from "@shared/rich-text-edit";
@@ -276,7 +277,7 @@ export default function ProfileScreen() {
   const handlePostPress = (post: SavedPost) => {
     const articleId = articleIdFromSource(post.source);
     if (articleId) router.push(`/library/article/${articleId}`);
-    else if (post.id) router.push(`/post/${post.id}`);
+    else if (post.id) router.push(postHref(post));
   };
   const renderSavedPost = ({ item }: { item: SavedPost }) => {
     const preview = truncateSelectionPreview(

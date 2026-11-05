@@ -37,6 +37,14 @@ const post = {
   likeCount: 0,
   commentCount: 0,
 };
+it("checks that a UUID detail response matches the requested post", () => {
+  const publicId = "c22db58f-698b-41ea-8e12-524d8323b034";
+  expect(() => validateReadResponse("feed.getById", { ...post, publicId }, { publicId })).not.toThrow();
+  expect(() => validateReadResponse("feed.getById", post, { publicId })).toThrow();
+  expect(() => validateReadResponse("feed.getById", { ...post, publicId }, {
+    publicId: "a71ccf8d-4744-40e3-a6e8-57bb355c90d7",
+  })).toThrow();
+});
 const card = {
   id: 7,
   text: "Post",

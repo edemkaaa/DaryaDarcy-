@@ -3,8 +3,9 @@ import { layoutApi, gotoWithSession } from "./layout-fixtures";
 import { failure, ok } from "./editor-fixtures";
 
 // Real profile/router/query state; only HTTP responses are synthetic.
-const post = (id: number, text: string, target: "feed" | "club" | "both") => ({
+const post = (id: number, text: string, target: "feed" | "club" | "both", publicId?: string) => ({
   id,
+  publicId,
   text,
   target,
   photos: [] as string[],
@@ -49,7 +50,7 @@ async function fixture(page: Page, state: State) {
               name: "Saved member",
               email: "saved@example.test",
               phone: null,
-              gender: null,
+              gender: state.access ? "female" : null,
               avatarUrl: null,
               loginMethod: "email",
               role: state.role ?? "user",
@@ -100,19 +101,18 @@ async function fixture(page: Page, state: State) {
               nextCursor: null,
             });
       }
+      if (name === "feed.listPaginated" || name === "club.listByCategory")
+        return ok({ posts: state.savedPosts ?? [], nextCursor: null });
       if (name === "feed.getById") {
-        const id = (
+        const input = (
           url.searchParams.has("batch") ? inputs[index]?.json : inputs.json
-        )?.id;
-        return ok(
-          id === 42
-            ? openPost
-            : id === 43
-              ? bothPost
-              : id === 44 && state.access
-                ? clubPost
-                : null,
+        ) ?? {};
+        const row = (state.savedPosts ?? [openPost, bothPost, clubPost]).find(
+          (item) => input.publicId
+            ? item.publicId === input.publicId
+            : item.id === input.id,
         );
+        return ok(row && (row.target !== "club" || state.access) ? row : null);
       }
       if (name === "feed.interactionsForPosts") {
         const input = url.searchParams.has("batch")
@@ -136,6 +136,24 @@ async function fixture(page: Page, state: State) {
 }
 const card = (page: Page, text: string) =>
   page.getByRole("main").getByRole("button").filter({ hasText: text });
+
+for (const section of ["profile", "feed", "club"] as const) {
+  test(`${section} opens a post by UUID and keeps its old link working`, async ({ page }) => {
+    const publicId = "c22db58f-698b-41ea-8e12-524d8323b034";
+    const saved = post(42, "OPEN_SAVED_POST", "both", publicId);
+    await fixture(page, { access: section === "club", savedPosts: [saved] });
+    await gotoWithSession(page, `/${section}`);
+    const link = section === "profile"
+      ? card(page, saved.text)
+      : page.getByLabel("Открыть публикацию", { exact: true });
+    await link.click();
+    await expect(page).toHaveURL(new RegExp(`/post/${publicId}$`));
+    const detail = page.getByText(saved.text, { exact: true }).filter({ visible: true });
+    await expect(detail).toBeVisible();
+    await page.goto("/post/42");
+    await expect(detail).toBeVisible();
+  });
+}
 
 test("an unpaid member opens saved public posts without opening club-only content", async ({
   page,

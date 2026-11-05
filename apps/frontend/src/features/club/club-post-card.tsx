@@ -21,6 +21,7 @@ import {
 } from "@/domain/post/club-tags";
 import { ClubComments } from "@/features/club/club-comments";
 import { useRouter } from "@/shared/navigation/router";
+import { postHref } from "@/shared/navigation/post-address";
 import {
   PAPER_TEXTURE_URI,
   STICKER_LIKE,
@@ -55,7 +56,7 @@ export function ClubPostCard({
   const canOpen = Number.isFinite(postId) && postId > 0;
   const openPost = () => {
     if (!canOpen) return;
-    router.push(`/post/${postId}`);
+    router.push(postHref({ id: postId, publicId: item.publicId }));
   };
   const likeAnimStyle = useAnimatedStyle(() => ({
     transform: cssTransform([{ scale: likeScale.value }]),

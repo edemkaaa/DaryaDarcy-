@@ -188,6 +188,7 @@ export function ClubSubscribed({
     const rawText = sanitizePlainPostText(String(p.text || ""));
     return {
       id: String(p.id),
+      publicId: p.publicId,
       target: p.target,
       title: displayPostTitle(rawText),
       preview: sanitizePlainPostText(body),

@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import mysql, { type Connection, type RowDataPacket } from "mysql2/promise";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { readFile } from "node:fs/promises";
 import { assertTestDatabase } from "../tooling/scripts/test-database-policy";
 import { drizzle } from "drizzle-orm/mysql2";
 import { is } from "drizzle-orm";
@@ -70,14 +71,14 @@ describe.skipIf(!uri || !container)(
         await conn.query("DROP TABLE fresh_owned_sentinel");
       }
     });
-    it("initializes all 51 migrations from an actually empty owned database", async () => {
+    it("initializes all 52 migrations from an actually empty owned database", async () => {
       expect((await conn.query<RowDataPacket[]>("SHOW TABLES"))[0]).toEqual([]);
       const result = await run();
       expect(result.output).not.toContain("fresh-fixture-only");
       expect(result.code, result.output).toBe(0);
       expect(JSON.parse(result.output)).toMatchObject({
         profile: "fresh-install-local",
-        migrations: 51,
+        migrations: 52,
         initialized: true,
         releaseApproval: false,
       });
@@ -87,7 +88,7 @@ describe.skipIf(!uri || !container)(
             "SELECT hash,created_at FROM __drizzle_migrations",
           )
         )[0],
-      ).toHaveLength(51);
+      ).toHaveLength(52);
     });
     it("refuses a repeat without changing the initialized schema/history", async () => {
       const [before] = await conn.query<RowDataPacket[]>(
@@ -108,11 +109,42 @@ describe.skipIf(!uri || !container)(
       expect(result.code, result.output).toBe(0);
       expect(JSON.parse(result.output)).toMatchObject({
         profile: "fresh-install-local",
-        migrations: 51,
+        migrations: 52,
         initialized: false,
         pending: [],
         releaseApproval: false,
       });
+    });
+    it("backfills distinct UUIDs and preserves publication dates on an existing posts table", async () => {
+      const sql = await readFile(new URL("../packages/database/drizzle/0051_post_public_id.sql", import.meta.url), "utf8");
+      await conn.query("CREATE TABLE posts_uuid_upgrade_fixture LIKE posts");
+      try {
+        await conn.query("ALTER TABLE posts_uuid_upgrade_fixture DROP COLUMN publicId");
+        await conn.query(`INSERT INTO posts_uuid_upgrade_fixture
+          (id,text,photos,tags,createdAt,updatedAt,publishedAt) VALUES
+          (1,'first',JSON_ARRAY(),JSON_ARRAY(),'2026-01-01','2026-02-01','2026-03-01'),
+          (2,'second',JSON_ARRAY(),JSON_ARRAY(),'2026-01-02','2026-02-02','2026-03-02')`);
+        const read = async () => (await conn.query<RowDataPacket[]>(
+          "SELECT id,text,createdAt,updatedAt,publishedAt FROM posts_uuid_upgrade_fixture ORDER BY id",
+        ))[0];
+        const before = await read();
+        for (const statement of sql.replaceAll("`posts`", "`posts_uuid_upgrade_fixture`").split("--> statement-breakpoint"))
+          await conn.query(statement);
+        expect(await read()).toEqual(before);
+        await conn.query("INSERT INTO posts_uuid_upgrade_fixture (id,text,photos,tags) VALUES(3,'legacy writer',JSON_ARRAY(),JSON_ARRAY())");
+        const [rows] = await conn.query<RowDataPacket[]>(
+          "SELECT publicId FROM posts_uuid_upgrade_fixture ORDER BY id",
+        );
+        const ids = rows.map((row) => row.publicId);
+        expect(ids).toHaveLength(3);
+        expect(new Set(ids).size).toBe(3);
+        for (const id of ids)
+          expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+        await expect(conn.query("UPDATE posts_uuid_upgrade_fixture SET publicId=? WHERE id=3", [ids[0]]))
+          .rejects.toMatchObject({ code: "ER_DUP_ENTRY" });
+      } finally {
+        await conn.query("DROP TABLE posts_uuid_upgrade_fixture");
+      }
     });
     it("reads every current ORM table/column without fixture DDL", async () => {
       const db = drizzle(conn);

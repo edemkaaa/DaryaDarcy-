@@ -1,9 +1,19 @@
 import { expect, it } from "vitest";
 import { safeNextPath } from "../apps/frontend/src/shared/navigation/paths";
+import { parsePostAddress, postHref } from "../apps/frontend/src/shared/navigation/post-address";
 import {
   safeExternalUrl,
   requirePaymentUrl,
 } from "../apps/frontend/src/shared/navigation/external-url";
+
+it("prefers a post UUID and still resolves older numeric links", () => {
+  const publicId = "c22db58f-698b-41ea-8e12-524d8323b034";
+  expect(postHref({ id: 706, publicId })).toBe(`/post/${publicId}`);
+  expect(postHref({ id: 706 })).toBe("/post/706");
+  expect(parsePostAddress("706")).toEqual({ id: 706 });
+  expect(parsePostAddress(publicId.toUpperCase())).toEqual({ publicId });
+  expect(parsePostAddress("706?invalid")).toBeNull();
+});
 
 it.each(["/admin", "/shop/book?paid=1", "/feed#new"])(
   "preserves an internal return path: %s",

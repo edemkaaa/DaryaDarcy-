@@ -23,7 +23,7 @@ import { ClubComments } from "@/features/club/club-comments";
 import { trpc } from "@/shared/api/trpc";
 import { contentRefreshOptions } from "@/shared/api/content-refresh";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
-import { parseContentId } from "@/shared/navigation/content-id";
+import { parsePostAddress, postHref } from "@/shared/navigation/post-address";
 import { useBackgroundNotice } from "@/shared/ui/background-notice";
 import { ContentRequestState } from "@/shared/ui/content-request-state";
 import { useAuth } from "@/domain/session/session-context";
@@ -64,22 +64,21 @@ function PostDetailScreenInner({ id }: { id: string }) {
 
   const router = useRouter();
   const { user } = useAuth();
-  const postId = parseContentId(id) ?? 0;
   const [viewerVisible, setViewerVisible] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
   const utils = trpc.useUtils();
-  const input = { id: postId };
+  const input = parsePostAddress(id);
   const {
     data: post,
     isLoading,
     error,
     refetch,
   } = useQuery({
-    queryKey: getQueryKey(trpc.feed.getById, input, "query"),
+    queryKey: getQueryKey(trpc.feed.getById, input ?? undefined, "query"),
     // Missing/hidden posts are successful absence, never a stale cached copy.
     queryFn: async ({ signal }) =>
-      (await utils.client.feed.getById.query(input, { signal })) ?? null,
-    ...contentRefreshOptions(active && postId > 0),
+      input ? (await utils.client.feed.getById.query(input, { signal })) ?? null : null,
+    ...contentRefreshOptions(active && input !== null),
     staleTime: 30_000,
     refetchOnMount: "always",
     refetchOnWindowFocus: "always",
@@ -87,6 +86,7 @@ function PostDetailScreenInner({ id }: { id: string }) {
   });
   const denied = [401, 403, 404].includes(getHttpStatus(error) ?? 0);
   const unavailable = !post || denied;
+  const postId = post?.id ?? 0;
   const interactions = usePostInteractions(unavailable ? [] : [postId]);
   const isLiked = interactions.likedIds.has(postId);
   const isSaved = interactions.savedIds.has(postId);
@@ -97,20 +97,20 @@ function PostDetailScreenInner({ id }: { id: string }) {
   });
   useEffect(() => {
     setViewerVisible(false);
-  }, [postId, unavailable]);
+  }, [id, unavailable]);
   useClubContentProtection(
     Boolean(post && (post.target === "club" || post.target === "both")),
   );
   const handleLike = () => {
     if (!user) {
-      router.login(`/post/${postId}`);
+      router.login(postHref({ id: postId, publicId: post?.publicId }));
       return;
     }
     interactions.like(postId);
   };
   const handleSave = () => {
     if (!user) {
-      router.login(`/post/${postId}`);
+      router.login(postHref({ id: postId, publicId: post?.publicId }));
       return;
     }
     interactions.save(postId);

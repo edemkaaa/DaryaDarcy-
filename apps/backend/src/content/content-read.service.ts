@@ -109,7 +109,7 @@ export class ContentReadService {
     return db.getVideoById(id);
   }
 
-  async postById(id: number, user: User | null) {
+  async postById(id: number | string, user: User | null) {
     const post = await db.getPostById(id);
     if (!post || !post.published || post.status !== "published")
       return undefined;
