@@ -271,6 +271,8 @@ export async function findPenPalCards(actor: PenPalActor, limit = 2) {
           mutualConfirmed: info.mutualConfirmed,
           confirmDeadline: info.confirmDeadline,
         });
+        if (cards.length === limit)
+          return { needsProfile: false as const, matches: cards };
       }
 
       if (cards.length >= limit)
@@ -278,7 +280,10 @@ export async function findPenPalCards(actor: PenPalActor, limit = 2) {
 
       const [others, shownRows] = await Promise.all([
         db
-          .select()
+          .select({
+            userId: penPalProfiles.userId,
+            interests: penPalProfiles.interests,
+          })
           .from(penPalProfiles)
           .where(
             and(
@@ -311,12 +316,20 @@ export async function findPenPalCards(actor: PenPalActor, limit = 2) {
 
       for (const row of ranked) {
         const [u] = await db
-          .select()
+          .select({
+            blockedAt: users.blockedAt,
+            name: users.name,
+            avatarUrl: users.avatarUrl,
+          })
           .from(users)
           .where(eq(users.id, row.profile.userId))
           .limit(1);
         const [currentProfile] = await db
-          .select()
+          .select({
+            active: penPalProfiles.active,
+            fullName: penPalProfiles.fullName,
+            city: penPalProfiles.city,
+          })
           .from(penPalProfiles)
           .where(eq(penPalProfiles.userId, row.profile.userId))
           .limit(1);

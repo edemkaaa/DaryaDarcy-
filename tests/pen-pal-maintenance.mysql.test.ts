@@ -270,6 +270,56 @@ describe.skipIf(!testDatabaseUrl)(
         )[0],
       ).toHaveLength(0);
     });
+    it("reaches expired profiles beyond the first page and preserves a renewed profile", async () => {
+      const ids = Array.from({ length: 105 }, (_, index) => 992400 + index);
+      const renewed = ids[100];
+      const range = [ids[0], ids[ids.length - 1]];
+      try {
+        await conn.query("INSERT INTO users(id,openId) VALUES ?", [
+          ids.map((id) => [id, `pen-maint-page-${id}`]),
+        ]);
+        await conn.query(
+          "INSERT INTO pen_pal_profiles(userId,city,interests,address,active) VALUES ?",
+          [
+            ids.map((id) => [
+              id,
+              "Synthetic city",
+              "[]",
+              "Synthetic address",
+              1,
+            ]),
+          ],
+        );
+        const expired = new Date(Date.now() - 100 * 86_400_000);
+        await conn.query(
+          "INSERT INTO club_payments(userId,orderId,status,expiresAt) VALUES ?",
+          [ids.map((id) => [id, `pen-maint-page-${id}`, "paid", expired])],
+        );
+        await conn.query(
+          "INSERT INTO club_payments(userId,orderId,status,expiresAt) VALUES (?,'pen-maint-page-renewal','paid',DATE_ADD(NOW(),INTERVAL 1 DAY))",
+          [renewed],
+        );
+        expect(await purgeStalePenPalData()).toEqual({
+          profiles: 104,
+          matches: 0,
+        });
+        const [active] = await conn.query<RowDataPacket[]>(
+          "SELECT userId FROM pen_pal_profiles WHERE userId BETWEEN ? AND ? AND active=TRUE",
+          range,
+        );
+        expect(active).toEqual([{ userId: renewed }]);
+      } finally {
+        await conn.query(
+          "DELETE FROM club_payments WHERE userId BETWEEN ? AND ?",
+          range,
+        );
+        await conn.query(
+          "DELETE FROM pen_pal_profiles WHERE userId BETWEEN ? AND ?",
+          range,
+        );
+        await conn.query("DELETE FROM users WHERE id BETWEEN ? AND ?", range);
+      }
+    });
     it("rolls back deactivation when deleting its links fails", async () => {
       await oldExpiry();
       await conn.query(

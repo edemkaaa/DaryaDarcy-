@@ -1,5 +1,16 @@
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  isNotNull,
+  isNull,
+  lt,
+  or,
+  sql,
+} from "drizzle-orm";
 import {
   users,
   type User,
@@ -223,43 +234,71 @@ export async function purgeStalePenPalData(): Promise<{
     profiles += removed.affectedRows;
   }
 
-  const activeProfiles = await db
-    .select({ userId: penPalProfiles.userId })
-    .from(penPalProfiles)
-    .where(eq(penPalProfiles.active, true));
-  for (const profile of activeProfiles) {
-    const deactivated = await db.transaction(async (tx) => {
-      // Settlement, grants and profile writes share this owner lock. Read paid
-      // expiry only after waiting, and deactivate on the same transaction.
-      const [user] = await tx
-        .select({ id: users.id })
-        .from(users)
-        .where(eq(users.id, profile.userId))
-        .for("update");
-      if (!user) return false;
-      const [current] = await tx
-        .select({ active: penPalProfiles.active })
-        .from(penPalProfiles)
-        .where(eq(penPalProfiles.userId, profile.userId))
-        .for("update");
-      if (!current?.active) return false;
-      const [latest] = await tx
-        .select({ expiresAt: clubPayments.expiresAt })
-        .from(clubPayments)
-        .where(
-          and(
-            eq(clubPayments.userId, profile.userId),
-            eq(clubPayments.status, "paid"),
-          ),
-        )
-        .orderBy(desc(clubPayments.expiresAt))
-        .limit(1);
-      if (!latest?.expiresAt || latest.expiresAt >= clubExpiredCutoff)
-        return false;
-      await deactivatePenPalProfile(tx, profile.userId);
-      return true;
-    });
-    if (deactivated) profiles += 1;
+  // Filter by the latest paid expiry before locking any candidate. The
+  // transaction below still decides eligibility from current billing state.
+  const lapsedPayments = db
+    .select({ userId: clubPayments.userId })
+    .from(clubPayments)
+    .where(eq(clubPayments.status, "paid"))
+    .groupBy(clubPayments.userId)
+    .having(
+      sql`max(${clubPayments.expiresAt}) < ${sql.param(clubExpiredCutoff, clubPayments.expiresAt)}`,
+    )
+    .as("lapsed_pen_pal_payments");
+  const batchSize = 100;
+  let afterId: number | undefined;
+  while (true) {
+    const activeProfiles = await db
+      .select({ id: penPalProfiles.id, userId: penPalProfiles.userId })
+      .from(penPalProfiles)
+      .innerJoin(
+        lapsedPayments,
+        eq(lapsedPayments.userId, penPalProfiles.userId),
+      )
+      .where(
+        and(
+          eq(penPalProfiles.active, true),
+          afterId === undefined ? undefined : gt(penPalProfiles.id, afterId),
+        ),
+      )
+      .orderBy(asc(penPalProfiles.id))
+      .limit(batchSize);
+    for (const profile of activeProfiles) {
+      const deactivated = await db.transaction(async (tx) => {
+        // Settlement, grants and profile writes share this owner lock. Read paid
+        // expiry only after waiting, and deactivate on the same transaction.
+        const [user] = await tx
+          .select({ id: users.id })
+          .from(users)
+          .where(eq(users.id, profile.userId))
+          .for("update");
+        if (!user) return false;
+        const [current] = await tx
+          .select({ active: penPalProfiles.active })
+          .from(penPalProfiles)
+          .where(eq(penPalProfiles.userId, profile.userId))
+          .for("update");
+        if (!current?.active) return false;
+        const [latest] = await tx
+          .select({ expiresAt: clubPayments.expiresAt })
+          .from(clubPayments)
+          .where(
+            and(
+              eq(clubPayments.userId, profile.userId),
+              eq(clubPayments.status, "paid"),
+            ),
+          )
+          .orderBy(desc(clubPayments.expiresAt))
+          .limit(1);
+        if (!latest?.expiresAt || latest.expiresAt >= clubExpiredCutoff)
+          return false;
+        await deactivatePenPalProfile(tx, profile.userId);
+        return true;
+      });
+      if (deactivated) profiles += 1;
+    }
+    if (activeProfiles.length < batchSize) break;
+    afterId = activeProfiles[activeProfiles.length - 1].id;
   }
 
   return { profiles, matches };
