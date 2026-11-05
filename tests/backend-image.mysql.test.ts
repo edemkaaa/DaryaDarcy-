@@ -244,6 +244,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         API_COORDINATION_MODE: "mysql",
         API_REPLICA_COUNT: "2",
         ENABLE_SMS_LOGIN: "false",
+        ENABLE_PEN_PALS: "true",
         PRIVATE_CONTENT_FILES_ENABLED: "false",
         PRIVATE_LIBRARY_FILES_ENABLED: "false",
         PRODAMUS_TEST_ENABLED: "false",
@@ -2026,5 +2027,52 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         }
       });
     }, 180000);
+    it("ranks Pen Pals candidates and shares shown cards across built replicas", () => {
+      const otherCookie = otherSession();
+      for (const [cookie, fullName, interests] of [
+        [memberCookie, "Fixture member", ["Сад", "Книги"]],
+        [otherCookie, "Fixture other", ["Сад", "Музыка"]],
+        [adminCookie, "Fixture admin", ["Сад", "Книги"]],
+      ] as const) {
+        const saved = trpc(
+          api,
+          "penPals.upsert",
+          {
+            fullName,
+            interests,
+            address: "Private synthetic address",
+            adultConsent: true,
+          },
+          cookie,
+        );
+        expect(saved.response.status).toBe(200);
+      }
+
+      const first = trpc(api, "penPals.find", undefined, memberCookie);
+      expect(first.response.status).toBe(200);
+      const data = first.data as {
+        needsProfile: boolean;
+        matches: {
+          fullName: string;
+          sharedInterests: string[];
+          address?: string;
+        }[];
+      };
+      expect(data.needsProfile).toBe(false);
+      expect(
+        data.matches.map(({ fullName, sharedInterests }) => ({
+          fullName,
+          sharedInterests,
+        })),
+      ).toEqual([
+        { fullName: "Fixture admin", sharedInterests: ["Сад", "Книги"] },
+        { fullName: "Fixture other", sharedInterests: ["Сад"] },
+      ]);
+      expect(data.matches.every((card) => card.address === undefined)).toBe(true);
+
+      const repeated = trpc(second, "penPals.find", undefined, memberCookie);
+      expect(repeated.response.status).toBe(200);
+      expect(repeated.data).toEqual({ needsProfile: false, matches: [] });
+    });
   },
 );
