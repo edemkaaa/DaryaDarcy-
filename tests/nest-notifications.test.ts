@@ -63,6 +63,11 @@ describe("notifications over native HTTP", () => {
     updatedAt: new Date(0),
     lastSignedIn: new Date(0),
   };
+  const consentActor = expect.objectContaining({
+    id: member.id,
+    openId: member.openId,
+    sessionVersion: member.sessionVersion,
+  });
   const client = () =>
     createTRPCProxyClient<AppRouter>({
       links: [httpLink({ url: base + "/api/trpc", transformer: superjson })],
@@ -398,7 +403,7 @@ describe("notifications over native HTTP", () => {
     {
       name: "setMarketingConsent",
       want: { success: false, enabled: true },
-      argument: [9600, { enabled: false }],
+      argument: [consentActor, { enabled: false }],
     },
     { name: "purgeUserPushData", want: { success: false }, argument: [9601] },
   ])(
@@ -530,7 +535,7 @@ describe("notifications over native HTTP", () => {
         version: "client-version",
       },
       want: [
-        9600,
+        consentActor,
         "marketing",
         "granted",
         "ios",
@@ -541,7 +546,7 @@ describe("notifications over native HTTP", () => {
     {
       input: { enabled: false },
       want: [
-        9600,
+        consentActor,
         "marketing",
         "revoked",
         undefined,

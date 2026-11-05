@@ -36,7 +36,7 @@ export const createNotificationsRouter = (
     setMarketingConsent: protectedProcedure
       .input(setMarketingConsentInput)
       .mutation(({ input, ctx }) =>
-        notifications.setMarketingConsent(ctx.user.id, input),
+        notifications.setMarketingConsent(ctx.user, input),
       ),
     latest: publicProcedure.query(({ ctx }) =>
       content.latestNotification(ctx.user),

@@ -17,6 +17,7 @@ import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 import { getDb } from "../apps/backend/src/db";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { sdk } from "../apps/backend/src/_core/sdk";
+import { NotificationsService } from "../apps/backend/src/notifications/notifications.service";
 import type { AppRouter } from "../apps/backend/src/routers";
 import * as capabilities from "../apps/backend/src/launch/capabilities";
 
@@ -268,6 +269,58 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(events).toEqual([]);
     });
+    it.each(["session revoked", "account blocked"])(
+      "refuses to record consent after %s during the request",
+      async (change) => {
+        const service = app.get(NotificationsService);
+        const writeConsent = service.setMarketingConsent.bind(service);
+        let entered!: () => void;
+        let release!: () => void;
+        const authenticated = new Promise<void>((resolve) => {
+          entered = resolve;
+        });
+        const gate = new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        // Приостанавливаем запрос после настоящей проверки JWT, до записи в MySQL.
+        vi.spyOn(service, "setMarketingConsent").mockImplementationOnce(
+          async (...args) => {
+            entered();
+            await gate;
+            return writeConsent(...args);
+          },
+        );
+        const pending = client(8431).notifications.setMarketingConsent.mutate({
+          enabled: true,
+        });
+        try {
+          await Promise.race([
+            authenticated,
+            pending.then(() => {
+              throw new Error("Expected consent writer to pause");
+            }),
+          ]);
+          if (change === "session revoked") {
+            await conn.query(
+              "UPDATE users SET sessionVersion=sessionVersion+1 WHERE id=8431",
+            );
+          } else {
+            await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=8431");
+          }
+          release();
+          await expect(pending).rejects.toMatchObject({
+            data: { httpStatus: change === "session revoked" ? 401 : 403 },
+          });
+          const [events] = await conn.query<RowDataPacket[]>(
+            "SELECT userId FROM push_consent_events WHERE userId=8431",
+          );
+          expect(events).toEqual([]);
+        } finally {
+          release();
+          await pending.catch(() => {});
+        }
+      },
+    );
     it("purges only the requested user's tokens and retains consent history", async () => {
       await client(8431).notifications.registerToken.mutate({
         token: fixtureToken,

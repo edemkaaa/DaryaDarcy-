@@ -546,8 +546,10 @@ export async function getClubMemberPushTokens(): Promise<string[]> {
   return results.map((r) => r.token);
 }
 
+export type PushConsentActor = Pick<User, "id" | "openId" | "sessionVersion">;
+
 export async function logPushConsentEvent(
-  userId: number,
+  actor: PushConsentActor,
   consentType: PushConsentType,
   status: PushConsentStatus,
   platform?: string,
@@ -557,13 +559,34 @@ export async function logPushConsentEvent(
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db.insert(pushConsentEvents).values({
-    userId,
-    consentType,
-    status,
-    consentVersion,
-    consentText: consentText?.slice(0, 8000) ?? null,
-    platform: platform ?? null,
+  await db.transaction(async (tx) => {
+    // Блокируем пользователя до записи согласия, чтобы увидеть отзыв сессии
+    // или блокировку, успевшие завершиться после проверки запроса.
+    const [current] = await tx
+      .select({
+        openId: users.openId,
+        sessionVersion: users.sessionVersion,
+        blockedAt: users.blockedAt,
+      })
+      .from(users)
+      .where(eq(users.id, actor.id))
+      .for("update");
+    if (
+      !current ||
+      current.openId !== actor.openId ||
+      current.sessionVersion !== actor.sessionVersion
+    )
+      throw new TRPCError({ code: "UNAUTHORIZED" });
+    if (current.blockedAt) throw new TRPCError({ code: "FORBIDDEN" });
+
+    await tx.insert(pushConsentEvents).values({
+      userId: actor.id,
+      consentType,
+      status,
+      consentVersion,
+      consentText: consentText?.slice(0, 8000) ?? null,
+      platform: platform ?? null,
+    });
   });
 }
 

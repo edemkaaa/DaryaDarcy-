@@ -34,11 +34,11 @@ export class NotificationsService {
   }
 
   async setMarketingConsent(
-    userId: number,
+    actor: db.PushConsentActor,
     input: SetMarketingConsentInput,
   ): Promise<{ success: boolean; enabled: boolean }> {
     await db.logPushConsentEvent(
-      userId,
+      actor,
       "marketing",
       input.enabled ? "granted" : "revoked",
       input.platform,
