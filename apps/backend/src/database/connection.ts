@@ -23,6 +23,11 @@ export async function getDb() {
       charset: "utf8mb4_unicode_ci",
       timezone: "Z",
       connectionLimit: 10,
+      // Одна очередь размером с пул сглаживает короткие всплески. mysql2 не
+      // отменяет getConnection после таймаута вызывающего кода, поэтому нулевой
+      // (неограниченный) предел удерживал ожидания уже отклонённых запросов.
+      waitForConnections: true,
+      queueLimit: 10,
     });
     pool.on("connection", (connection) => {
       // mysql2 queues this before the first command on each new connection.
