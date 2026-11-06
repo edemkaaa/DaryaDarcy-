@@ -5,6 +5,10 @@ import type { TrpcContext } from "./context";
 import * as db from "../db";
 import { userHasClubAccess } from "../identity/club-access";
 import { PUBLIC_CONTACT_EMAIL } from "../../../../packages/shared/src/contact";
+import {
+  isServiceUnavailable,
+  SERVICE_UNAVAILABLE_MESSAGE,
+} from "./service-availability";
 export { userHasClubAccess } from "../identity/club-access";
 
 const t = initTRPC.context<TrpcContext>().create({
@@ -21,7 +25,22 @@ const t = initTRPC.context<TrpcContext>().create({
 });
 
 export const router = t.router;
-export const publicProcedure = t.procedure;
+export const publicProcedure = t.procedure.use(async ({ next }) => {
+  const result = await next();
+  // Сохраняем явные доменные отказы. Только потерянный в обёртке признак
+  // недоступности переводим из общего 500 в 503, не раскрывая SQL или cause.
+  if (
+    !result.ok &&
+    result.error.code === "INTERNAL_SERVER_ERROR" &&
+    isServiceUnavailable(result.error)
+  )
+    throw new TRPCError({
+      code: "SERVICE_UNAVAILABLE",
+      message: SERVICE_UNAVAILABLE_MESSAGE,
+      cause: result.error,
+    });
+  return result;
+});
 
 function isAdminUser(user: { role?: string | null; email?: string | null; openId?: string | null }) {
   return db.isOwnerAccount(user);
@@ -49,7 +68,7 @@ const requireUser = t.middleware(async (opts) => {
   });
 });
 
-export const protectedProcedure = t.procedure.use(requireUser);
+export const protectedProcedure = publicProcedure.use(requireUser);
 
 function isModeratorUser(user: { role?: string | null; email?: string | null; openId?: string | null }) {
   if (user.role === "moderator" || user.role === "admin") return true;

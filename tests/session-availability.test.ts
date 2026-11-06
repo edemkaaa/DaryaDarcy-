@@ -61,6 +61,18 @@ afterAll(async () => {
 });
 const me = (session = cookie) =>
   fetch(`${base}/api/auth/me`, { headers: session ? { cookie: session } : {} });
+it("returns 503 without issuing a session when login exhausts the SQL queue", async () => {
+  vi.spyOn(db, "getUserByEmail").mockRejectedValueOnce(
+    new Error("Failed query: PRIVATE_LOGIN_SQL_SENTINEL", { cause: new Error("Queue limit reached.") }),
+  );
+  const response = await fetch(`${base}/api/auth/login`, {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email: "pressure@example.test", password: "test-password" }),
+  });
+  expect(response.status).toBe(503);
+  expect(response.headers.get("set-cookie")).toBeNull();
+  expect(await response.text()).not.toMatch(/PRIVATE_LOGIN_SQL_SENTINEL|Queue limit|stack/);
+});
 const exchange = (token = cookie.slice(COOKIE_NAME.length + 1)) =>
   fetch(`${base}/api/auth/session`, {
     method: "POST",
@@ -188,7 +200,7 @@ it.each(["lookup", "activity", "untyped-denial"])(
     if (boundary === "activity")
       vi.mocked(db.recordAuthenticatedActivity).mockRejectedValueOnce(fault);
     else vi.mocked(db.getUserByOpenId).mockRejectedValueOnce(fault);
-    await expect(legacyContext()).rejects.toMatchObject({ status: 503 });
+    await expect(legacyContext()).rejects.toMatchObject({ code: "SERVICE_UNAVAILABLE" });
     expect((await legacyContext()).user?.id).toBe(301);
   },
 );
@@ -249,13 +261,13 @@ it.each(["lookup", "activity", "untyped-denial"])("does not return a successful 
   const response = await fetch(`${base}/api/trpc/auth.me`, {
     headers: { cookie },
   });
-  // tRPC's existing error formatter maps a context exception to a safe 500.
-  expect(response.status).toBe(500);
+  // Transient infrastructure failure must remain retryable through tRPC.
+  expect(response.status).toBe(503);
   expect(response.headers.get("cache-control")).toBe("no-store");
   expect(response.headers.get("set-cookie")).toBeNull();
   const error = await response.text();
   expect(error).not.toMatch(/PRIVATE_SESSION_SENTINEL|stack|passwordHash/);
-  expect(JSON.parse(error).error.json.data.code).toBe("INTERNAL_SERVER_ERROR");
+  expect(JSON.parse(error).error.json.data.code).toBe("SERVICE_UNAVAILABLE");
   const recovered = await fetch(`${base}/api/trpc/auth.me`, {
     headers: { cookie },
   });

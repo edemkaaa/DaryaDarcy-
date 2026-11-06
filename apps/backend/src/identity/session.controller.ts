@@ -26,6 +26,10 @@ import {
 import { adminTotpEnabled, verifyTotp } from "../_core/totp";
 import { publicUser, SessionService } from "./session.service";
 import { beginLoginAccount } from "./login-account-limit";
+import {
+  isServiceUnavailable,
+  SERVICE_UNAVAILABLE_MESSAGE,
+} from "../_core/service-availability";
 
 function verifyStaffTotp(req: Request, res: Response): boolean {
   if (!adminTotpEnabled()) return true;
@@ -191,7 +195,10 @@ export class SessionController {
       res.json(session);
     } catch (error) {
       console.error("[Auth] Login failed");
-      res.status(500).json({ error: "Не удалось войти" });
+      const unavailable = isServiceUnavailable(error);
+      res.status(unavailable ? 503 : 500).json({
+        error: unavailable ? SERVICE_UNAVAILABLE_MESSAGE : "Не удалось войти",
+      });
     }
   }
 

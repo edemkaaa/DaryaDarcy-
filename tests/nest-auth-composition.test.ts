@@ -97,7 +97,7 @@ it("a refusal from one app does not clear its cookie or prevent logout in the ot
   const working = await application(member(22));
 
   await expect(failing.client.auth.logout.mutate()).rejects.toMatchObject({
-    data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
+    data: { code: "SERVICE_UNAVAILABLE", httpStatus: 503 },
   });
   expect(failing.received[0].cookie).toBeNull();
   expect(failing.received[0].body).not.toContain("PRIVATE_AUTH_FIXTURE");
