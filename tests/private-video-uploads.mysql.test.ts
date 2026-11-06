@@ -214,6 +214,36 @@ describe.skipIf(!testDatabaseUrl)(
         wire.effects.filter((effect) => effect.startsWith("PUT ")),
       ).toHaveLength(1);
     });
+    it("cancels a slow S3 request on HTTP disconnect and recovers an accepted object without another PUT", async () => {
+      const gate = wire.pausePut();
+      const client = rawRequest(`${base}/api/admin/private-video-uploads?filename=lesson.mp4`, {
+        method: "POST",
+        headers: { authorization: `Bearer ${token}`, "content-type": "video/mp4", "idempotency-key": key },
+      });
+      client.on("error", () => {});
+      client.end(mp4Fixture);
+      try {
+        await gate.entered;
+        client.destroy();
+        await vi.waitFor(() => expect(gate.isDisconnected()).toBe(true), { timeout: 1500 });
+        const [intent] = await rows();
+        expect(intent.state).toBe("pending");
+        expect((await status()).data).toMatchObject({ state: "pending", assetId: intent.assetId });
+        // The provider may accept bytes even after its response socket closes.
+        gate.release();
+        await vi.waitFor(() => expect(wire.objects.size).toBe(1));
+        const resumed = await upload();
+        expect(resumed.status).toBe(200);
+        expect(await resumed.json()).toMatchObject({ state: "ready", assetId: intent.assetId });
+        expect(await rows()).toHaveLength(1);
+        expect(wire.effects.filter(effect => effect.startsWith("PUT "))).toHaveLength(1);
+      } finally {
+        client.destroy();
+        gate.release();
+        // Await the synthetic provider completion even on a failing assertion.
+        await vi.waitFor(() => expect(wire.objects.size).toBe(1));
+      }
+    });
     it("rejects changed bytes and filenames under the original key", async () => {
       expect((await upload()).status).toBe(200);
       expect((await upload(movFixture)).status).toBe(409);

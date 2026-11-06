@@ -24,7 +24,16 @@ export class PrivateVideoUploadController {
   @HttpCode(200)
   async upload(@Req() req: Request, @Res() res: Response) {
     res.setHeader("Cache-Control", "no-store");
+    const controller = new AbortController();
+    // Тело уже прочитано raw-парсером: req.close здесь не означает отмену.
+    // Прерываем S3 только при незавершённом ответе клиенту.
+    const disconnect = () => {
+      if (!res.writableFinished) controller.abort();
+    };
+    res.once("close", disconnect);
+    if (res.destroyed) disconnect();
     try {
+      controller.signal.throwIfAborted();
       if (!privateVideoUploadEnabled())
         throw new TRPCError({ code: "NOT_FOUND" });
       const actor = await this.identity.optionalUser(req);
@@ -54,27 +63,31 @@ export class PrivateVideoUploadController {
         )
       )
         throw new TRPCError({ code: "BAD_REQUEST" });
-      res.json(
-        await storePrivateAttachment(
-          actor,
-          {
-            idempotencyKey: parsed.data.idempotencyKey,
-            filename: parsed.data.query.filename,
-            type: "video",
-            mimeType,
-          },
-          req.body,
-        ),
+      const receipt = await storePrivateAttachment(
+        actor,
+        {
+          idempotencyKey: parsed.data.idempotencyKey,
+          filename: parsed.data.query.filename,
+          type: "video",
+          mimeType,
+        },
+        req.body,
+        controller.signal,
       );
+      if (!res.destroyed && !controller.signal.aborted) res.json(receipt);
     } catch (error) {
       const known =
         error instanceof TRPCError
           ? error
           : new TRPCError({ code: "SERVICE_UNAVAILABLE" });
-      res.status(getHTTPStatusCodeFromError(known)).json({ error: known.code });
+      if (!res.destroyed && !controller.signal.aborted)
+        res
+          .status(getHTTPStatusCodeFromError(known))
+          .json({ error: known.code });
     } finally {
-      // A disconnected client does not cancel the SQL/storage operation. Keep
-      // its admission until the operation settles, not merely until res.close.
+      res.off("close", disconnect);
+      // Слот освобождаем после завершения работы, включая отмену S3.
+      // Само закрытие сокета ещё не гарантирует освобождения тела загрузки.
       releaseVideoUpload(req);
     }
   }
