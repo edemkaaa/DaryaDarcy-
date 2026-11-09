@@ -65,7 +65,8 @@ async function main() {
     },
   };
   const jobs = new WorkerJobs(operations);
-  await app.listen(0, "127.0.0.1");
+  const container = process.env.WORKER_RESTART_CONTAINER === "1";
+  await app.listen(container ? 3000 : 0, container ? "0.0.0.0" : "127.0.0.1");
   if (actor === "a") jobs.start();
   process.send?.({
     base: `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`,

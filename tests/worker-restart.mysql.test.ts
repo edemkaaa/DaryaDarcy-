@@ -16,6 +16,7 @@ import {
   type RowDataPacket,
 } from "mysql2/promise";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
+import { dockerRestartFixture } from "./helpers/worker-restart-docker";
 
 type Ready = { base: string; boot: string; generation: number };
 
@@ -97,6 +98,7 @@ async function supervisedReplica(actor: string, restart: boolean) {
     throw error;
   }
   return {
+    async refresh() {},
     get current() {
       if (failure) throw failure;
       return current!;
@@ -114,6 +116,9 @@ describe.skipIf(!testDatabaseUrl)(
   () => {
     let conn: Connection;
     let lockName: string;
+    let containerFixture:
+      | Awaited<ReturnType<typeof dockerRestartFixture>>
+      | undefined;
     async function health(base: string) {
       const response = await fetch(base + "/api/trpc/auth.me", {
         signal: AbortSignal.timeout(2000),
@@ -151,6 +156,8 @@ describe.skipIf(!testDatabaseUrl)(
           ]),
         )
         .digest("hex");
+      if (process.env.WORKER_RESTART_DOCKER_IMAGE)
+        containerFixture = await dockerRestartFixture(testDatabaseUrl!, conn);
     });
     beforeEach(async () => {
       for (const table of [
@@ -162,6 +169,7 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query("INSERT INTO backend_restart_work(id) VALUES(1)");
     });
     afterAll(async () => {
+      await containerFixture?.cleanup();
       for (const table of [
         "backend_restart_events",
         "backend_restart_boots",
@@ -176,9 +184,10 @@ describe.skipIf(!testDatabaseUrl)(
         const replicas: Awaited<ReturnType<typeof supervisedReplica>>[] = [];
         let contender: Connection | undefined;
         try {
-          const a = await supervisedReplica("a", true);
+          const launch = containerFixture?.launch ?? supervisedReplica;
+          const a = await launch("a", true);
           replicas.push(a);
-          const b = await supervisedReplica("b", false);
+          const b = await launch("b", false);
           replicas.push(b);
           const first = a.current;
           expect(first.generation).toBe(1);
@@ -219,6 +228,7 @@ describe.skipIf(!testDatabaseUrl)(
             expect(((await wait) as RowDataPacket[][])[0][0].acquired).toBe(1);
           await vi.waitFor(
             async () => {
+              await a.refresh();
               expect(a.restarts).toBe(1);
               expect(a.current.generation).toBe(2);
               await health(a.current.base);
@@ -226,6 +236,7 @@ describe.skipIf(!testDatabaseUrl)(
             { timeout: 15000, interval: 100 },
           );
           expect(a.exits).toEqual([{ code: 1, signal: null }]);
+          await b.refresh();
           await health(b.current.base);
           expect(b.restarts).toBe(0);
           const second = a.current;
@@ -252,7 +263,10 @@ describe.skipIf(!testDatabaseUrl)(
           );
           expect(work).toEqual([{ commits: 1, actor: "a", boot: second.boot }]);
           expect(await phase(first.boot, "completed")).toBe(0);
+          await a.refresh();
+          await b.refresh();
           expect(a.restarts).toBe(1);
+          expect(b.restarts).toBe(0);
           expect(b.current.generation).toBe(1);
           await health(a.current.base);
           await health(b.current.base);
@@ -261,7 +275,7 @@ describe.skipIf(!testDatabaseUrl)(
           await Promise.all(replicas.map((replica) => replica.stop()));
         }
       },
-      95000,
+      125000,
     );
   },
 );
