@@ -19,10 +19,9 @@ const harness = vi.hoisted(() => ({
   scenario: "success",
   launches: [] as Array<{
     args: string[];
-    configPath?: string;
     config?: string;
     mode?: number;
-    dirMode?: number;
+    linkCount?: number;
     env?: NodeJS.ProcessEnv;
   }>,
   children: [] as ChildProcess[],
@@ -32,7 +31,6 @@ const harness = vi.hoisted(() => ({
 vi.mock("node:child_process", async (importOriginal) => {
   const original = await importOriginal<typeof import("node:child_process")>();
   const files = await import("node:fs");
-  const paths = await import("node:path");
   return {
     ...original,
     spawn: (
@@ -42,23 +40,15 @@ vi.mock("node:child_process", async (importOriginal) => {
     ) => {
       let child: ChildProcess;
       if (command === "mysqldump") {
-        const configPath = args
-          .find((arg) => arg.startsWith("--defaults-extra-file="))
-          ?.split("=")
-          .slice(1)
-          .join("=");
+        const fd = (options.stdio as [number])[0];
+        const stat = files.fstatSync(fd);
+        const config = Buffer.alloc(stat.size);
+        files.readSync(fd, config, 0, config.length, 0);
         harness.launches.push({
           args,
-          configPath,
-          config: configPath
-            ? files.readFileSync(configPath, "utf8")
-            : undefined,
-          mode: configPath
-            ? files.statSync(configPath).mode & 0o777
-            : undefined,
-          dirMode: configPath
-            ? files.statSync(paths.dirname(configPath)).mode & 0o777
-            : undefined,
+          config: config.toString("utf8"),
+          mode: stat.mode & 0o777,
+          linkCount: stat.nlink,
           env: options.env,
         });
         if (harness.scenario === "missing") {
@@ -81,7 +71,7 @@ vi.mock("node:child_process", async (importOriginal) => {
             ],
             { ...options, stdio: ["pipe", "pipe", "pipe"] },
           );
-          child.stdin!.end(files.readFileSync(configPath!));
+          child.stdin!.end(config);
         } else if (harness.scenario === "mysql-dump") {
           child = original.spawn(
             "docker",
@@ -102,7 +92,7 @@ vi.mock("node:child_process", async (importOriginal) => {
             ],
             { ...options, stdio: ["pipe", "pipe", "pipe"] },
           );
-          child.stdin!.end(files.readFileSync(configPath!));
+          child.stdin!.end(config);
         } else if (harness.scenario === "throw") {
           throw new Error("launch failed password=BACKUP_TEST_SECRET");
         } else {
@@ -134,6 +124,7 @@ describe("MySQL backup credentials and completion", () => {
       path.join(os.tmpdir(), "daryadarcy-backup-test-"),
     );
     vi.spyOn(process, "cwd").mockReturnValue(directory);
+    vi.spyOn(os, "tmpdir").mockReturnValue(directory);
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
     vi.spyOn(console, "log").mockImplementation(() => undefined);
     vi.stubEnv(
@@ -173,11 +164,11 @@ describe("MySQL backup credentials and completion", () => {
   const copies = (directory: string) =>
     fs.readdirSync(path.join(directory, "backups"));
 
-  it("passes credentials through an owner-only temporary file, not process arguments", async () => {
+  it("passes credentials through an unlinked owner-only file", async () => {
     await runBackup();
     const launch = harness.launches[0];
     expect(launch.args.join(" ")).not.toContain("BACKUP_TEST_SECRET");
-    expect(launch.args[0]).toMatch(/^--defaults-extra-file=/);
+    expect(launch.args[0]).toBe("--defaults-extra-file=/dev/stdin");
     expect(launch.args.slice(1)).toEqual([
       "-h127.0.0.1",
       "-P33317",
@@ -189,10 +180,10 @@ describe("MySQL backup credentials and completion", () => {
     ]);
     expect(launch.config).toBe('[client]\npassword="BACKUP_TEST_SECRET"\n');
     expect(launch.mode).toBe(0o600);
-    expect(launch.dirMode).toBe(0o700);
+    expect(launch.linkCount).toBe(0);
     expect(launch.env?.DATABASE_URL).toBeUndefined();
     expect(launch.env?.MYSQL_PWD).toBeUndefined();
-    expect(fs.existsSync(launch.configPath!)).toBe(false);
+    expect(fs.readdirSync(directory)).toEqual(["backups"]);
     const [name] = copies(directory);
     expect(name).toMatch(/^daryadarcy-.*\.sql\.gz$/);
     const fullPath = path.join(directory, "backups", name);
@@ -200,6 +191,30 @@ describe("MySQL backup credentials and completion", () => {
       "CREATE TABLE backup_fixture (id INT);\n",
     );
     expect(fs.statSync(fullPath).mode & 0o777).toBe(0o600);
+  });
+
+  it("removes interrupted dump files and preserves completed and unrelated files", async () => {
+    const dir = path.join(directory, "backups");
+    const name =
+      "daryadarcy-2026-11-09T12-00-00-000Z-0c7b8740-0f11-4cf1-8964-74c7224a3442.sql.gz";
+    fs.mkdirSync(dir);
+    fs.writeFileSync(path.join(dir, name), "previous complete backup");
+    fs.writeFileSync(path.join(dir, name + ".partial"), "interrupted backup");
+    fs.writeFileSync(path.join(dir, "other.sql.gz.partial"), "unrelated file");
+    const symlink = name.replace("0c7b8740", "1c7b8740") + ".partial";
+    fs.symlinkSync(name, path.join(dir, symlink));
+
+    await runBackup();
+
+    expect(copies(directory)).not.toContain(name + ".partial");
+    expect(copies(directory)).toHaveLength(4);
+    expect(fs.readFileSync(path.join(dir, name), "utf8")).toBe(
+      "previous complete backup",
+    );
+    expect(
+      fs.readFileSync(path.join(dir, "other.sql.gz.partial"), "utf8"),
+    ).toBe("unrelated file");
+    expect(fs.readlinkSync(path.join(dir, symlink))).toBe(name);
   });
 
   it("does not expose spawn arguments or credentials when mysqldump is missing", async () => {
@@ -210,7 +225,7 @@ describe("MySQL backup credentials and completion", () => {
       /BACKUP_TEST_SECRET|spawnargs|mysql:\/\//,
     );
     expect(copies(directory)).toEqual([]);
-    expect(fs.existsSync(harness.launches[0].configPath!)).toBe(false);
+    expect(fs.readdirSync(directory)).toEqual(["backups"]);
   });
 
   it("rejects partial dumps without returning sensitive stderr or keeping a usable-looking file", async () => {
@@ -338,7 +353,7 @@ describe("MySQL backup credentials and completion", () => {
           fs.readFileSync(path.join(directory, "backups", name)),
         ).toString(),
       ).toBe("CREATE TABLE backup_fixture (id INT);\n");
-      expect(fs.existsSync(harness.launches[0].configPath!)).toBe(false);
+      expect(fs.readdirSync(directory)).toEqual(["backups"]);
       const warnings = inspect(vi.mocked(console.warn).mock.calls, {
         depth: null,
       });
@@ -361,7 +376,7 @@ describe("MySQL backup credentials and completion", () => {
     expect(error).toBeInstanceOf(Error);
     expect(inspect(error)).not.toContain("BACKUP_TEST_SECRET");
     expect(copies(directory)).toEqual([]);
-    expect(fs.existsSync(harness.launches[0].configPath!)).toBe(false);
+    expect(fs.readdirSync(directory)).toEqual(["backups"]);
     expect(harness.children[0].signalCode).toBe("SIGKILL");
   });
 
@@ -369,7 +384,7 @@ describe("MySQL backup credentials and completion", () => {
     harness.scenario = "throw";
     await expect(runBackup()).rejects.toThrow();
     expect(copies(directory)).toEqual([]);
-    expect(fs.existsSync(harness.launches[0].configPath!)).toBe(false);
+    expect(fs.readdirSync(directory)).toEqual(["backups"]);
   });
 
   it("quotes option-file metacharacters without injecting extra settings", async () => {
@@ -433,7 +448,7 @@ describe("MySQL backup credentials and completion", () => {
         await conn.query(sql);
         const [rows] = await conn.query("SELECT * FROM backup_roundtrip");
         expect(rows).toEqual([{ id: 41, value: "backup-roundtrip" }]);
-        expect(fs.existsSync(harness.launches[0].configPath!)).toBe(false);
+        expect(fs.readdirSync(directory)).toEqual(["backups"]);
       } finally {
         try {
           if (ownsTable)

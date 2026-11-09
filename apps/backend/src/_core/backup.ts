@@ -61,18 +61,29 @@ async function writeMysqlDump(
   filePath: string,
 ): Promise<void> {
   const options = optionFilePassword(cfg.password);
-  const credentialsDir = fs.mkdtempSync(
-    path.join(os.tmpdir(), "daryadarcy-mysql-"),
-  );
-  const configPath = path.join(credentialsDir, "client.cnf");
   const partialPath = `${filePath}.partial`;
+  let credentialsDir: string | undefined;
+  let credentialsFd: number | undefined;
   let ownsPartial = false;
   try {
-    fs.writeFileSync(configPath, options, { flag: "wx", mode: 0o600 });
+    credentialsDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "daryadarcy-mysql-"),
+    );
+    const configPath = path.join(credentialsDir, "client.cnf");
+    credentialsFd = fs.openSync(configPath, "wx+", 0o600);
+    // Unlink before writing so a crash can never strand a named password file.
+    fs.unlinkSync(configPath);
+    fs.rmdirSync(credentialsDir);
+    credentialsDir = undefined;
+    if (
+      fs.writeSync(credentialsFd, options, 0, "utf8") !==
+      Buffer.byteLength(options)
+    )
+      throw new Error("MySQL backup option file write was incomplete");
     const dump = spawn(
       "mysqldump",
       [
-        `--defaults-extra-file=${configPath}`, // MySQL requires this option first.
+        "--defaults-extra-file=/dev/stdin", // MySQL requires this option first.
         `-h${cfg.host}`,
         `-P${cfg.port}`,
         `-u${cfg.user}`,
@@ -82,12 +93,12 @@ async function writeMysqlDump(
         cfg.database,
       ],
       {
-        stdio: ["ignore", "pipe", "pipe"],
+        stdio: [credentialsFd, "pipe", "pipe"],
         env: { ...process.env, DATABASE_URL: undefined, MYSQL_PWD: undefined },
       },
     );
     // Drain diagnostics without retaining or logging data from the DB tool.
-    dump.stderr.resume();
+    dump.stderr!.resume();
     const closed = new Promise<void>((resolve, reject) => {
       dump.once("error", () =>
         reject(new Error("MySQL backup dump could not start")),
@@ -105,7 +116,7 @@ async function writeMysqlDump(
       const fd = fs.openSync(partialPath, "wx", 0o600);
       ownsPartial = true;
       const out = fs.createWriteStream(partialPath, { fd });
-      streamed = pipeline(dump.stdout, createGzip(), out);
+      streamed = pipeline(dump.stdout!, createGzip(), out);
       await Promise.all([closed, streamed]);
     } catch {
       if (dump.exitCode === null && dump.signalCode === null)
@@ -121,9 +132,16 @@ async function writeMysqlDump(
   } finally {
     // Only exact files created for this invocation; never a broad recursive delete.
     let cleanupFailed = false;
+    if (credentialsFd !== undefined) {
+      try {
+        fs.closeSync(credentialsFd);
+      } catch {
+        cleanupFailed = true;
+      }
+    }
     for (const target of [
       ownsPartial ? partialPath : undefined,
-      configPath,
+      credentialsDir && path.join(credentialsDir, "client.cnf"),
       credentialsDir,
     ]) {
       if (!target) continue;
@@ -250,6 +268,13 @@ async function runMysqlBackup(dbUrl: string): Promise<void> {
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const dir = path.join(process.cwd(), "backups");
   fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+  // The backup worker holds its exclusive lock before entering this function.
+  const interrupted =
+    /^daryadarcy-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z-[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\.sql\.gz\.partial$/;
+  for (const file of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (file.isFile() && interrupted.test(file.name))
+      fs.rmSync(path.join(dir, file.name), { force: true });
+  }
   const filePath = path.join(dir, `daryadarcy-${stamp}-${randomUUID()}.sql.gz`);
   await writeMysqlDump(cfg, filePath);
   lastBackupAt = Date.now();
