@@ -8,6 +8,7 @@ import {
   describe,
   expect,
   it,
+  onTestFinished,
   vi,
 } from "vitest";
 import {
@@ -116,9 +117,7 @@ describe.skipIf(!testDatabaseUrl)(
   () => {
     let conn: Connection;
     let lockName: string;
-    let containerFixture:
-      | Awaited<ReturnType<typeof dockerRestartFixture>>
-      | undefined;
+    let containerFixture: ReturnType<typeof dockerRestartFixture> | undefined;
     async function health(base: string) {
       const response = await fetch(base + "/api/trpc/auth.me", {
         signal: AbortSignal.timeout(2000),
@@ -134,6 +133,8 @@ describe.skipIf(!testDatabaseUrl)(
       return Number(rows[0].n);
     }
     beforeAll(async () => {
+      if (process.env.WORKER_RESTART_DOCKER_IMAGE)
+        containerFixture = dockerRestartFixture(testDatabaseUrl!);
       conn = await openTestDatabase();
       await conn.query(
         "CREATE TABLE backend_restart_boots(id INT AUTO_INCREMENT PRIMARY KEY,actor VARCHAR(10),boot VARCHAR(36))",
@@ -156,8 +157,6 @@ describe.skipIf(!testDatabaseUrl)(
           ]),
         )
         .digest("hex");
-      if (process.env.WORKER_RESTART_DOCKER_IMAGE)
-        containerFixture = await dockerRestartFixture(testDatabaseUrl!, conn);
     });
     beforeEach(async () => {
       for (const table of [
@@ -169,111 +168,111 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query("INSERT INTO backend_restart_work(id) VALUES(1)");
     });
     afterAll(async () => {
-      await containerFixture?.cleanup();
-      for (const table of [
-        "backend_restart_events",
-        "backend_restart_boots",
-        "backend_restart_work",
-      ])
-        await conn?.query(`DROP TABLE IF EXISTS ${table}`);
-      await conn?.end();
+      try {
+        containerFixture?.cleanup();
+      } finally {
+        try {
+          for (const table of [
+            "backend_restart_events",
+            "backend_restart_boots",
+            "backend_restart_work",
+          ])
+            await conn?.query(`DROP TABLE IF EXISTS ${table}`);
+        } finally {
+          await conn?.end();
+        }
+      }
     });
     it.each([false, true])(
       "resumes publication after restart (lock occupied on restart: %s)",
       async (occupied) => {
-        const replicas: Awaited<ReturnType<typeof supervisedReplica>>[] = [];
-        let contender: Connection | undefined;
-        try {
-          const launch = containerFixture?.launch ?? supervisedReplica;
-          const a = await launch("a", true);
-          replicas.push(a);
-          const b = await launch("b", false);
-          replicas.push(b);
-          const first = a.current;
-          expect(first.generation).toBe(1);
-          await vi.waitFor(
-            async () => expect(await phase(first.boot, "entered")).toBe(1),
-            { timeout: 5000 },
-          );
-          const [owners] = await conn.query<RowDataPacket[]>(
-            "SELECT IS_USED_LOCK(?) AS owner",
-            [lockName],
-          );
-          const id = Number(owners[0].owner);
-          if (!Number.isSafeInteger(id) || id <= 0)
-            throw new Error("Missing owned fixture lock");
-          contender = occupied
-            ? await createConnection(testDatabaseUrl!)
-            : undefined;
-          let wait: Promise<unknown> | undefined;
-          if (contender) {
-            wait = contender.query("SELECT GET_LOCK(?,10) AS acquired", [
-              lockName,
-            ]);
-            void wait.catch(() => {});
-            const waitingId = contender.threadId;
-            await vi.waitFor(
-              async () => {
-                const [rows] = await conn.query<RowDataPacket[]>(
-                  "SELECT STATE FROM information_schema.PROCESSLIST WHERE ID=?",
-                  [waitingId],
-                );
-                expect(rows[0]?.STATE).toBe("User lock");
-              },
-              { timeout: 3000 },
-            );
-          }
-          await conn.query(`KILL CONNECTION ${id}`);
-          if (wait)
-            expect(((await wait) as RowDataPacket[][])[0][0].acquired).toBe(1);
+        const launch = containerFixture?.launch ?? supervisedReplica;
+        const a = await launch("a", true, conn);
+        onTestFinished(a.stop);
+        const b = await launch("b", false, conn);
+        onTestFinished(b.stop);
+        const first = a.current;
+        expect(first.generation).toBe(1);
+        await vi.waitFor(
+          async () => expect(await phase(first.boot, "entered")).toBe(1),
+          { timeout: 5000 },
+        );
+        const [owners] = await conn.query<RowDataPacket[]>(
+          "SELECT IS_USED_LOCK(?) AS owner",
+          [lockName],
+        );
+        const id = Number(owners[0].owner);
+        if (!Number.isSafeInteger(id) || id <= 0)
+          throw new Error("Missing owned fixture lock");
+        const contender = occupied
+          ? await createConnection(testDatabaseUrl!)
+          : undefined;
+        let wait: Promise<unknown> | undefined;
+        if (contender) {
+          onTestFinished(() => contender.end());
+          wait = contender.query("SELECT GET_LOCK(?,10) AS acquired", [
+            lockName,
+          ]);
+          void wait.catch(() => {});
+          const waitingId = contender.threadId;
           await vi.waitFor(
             async () => {
-              await a.refresh();
-              expect(a.restarts).toBe(1);
-              expect(a.current.generation).toBe(2);
-              await health(a.current.base);
+              const [rows] = await conn.query<RowDataPacket[]>(
+                "SELECT STATE FROM information_schema.PROCESSLIST WHERE ID=?",
+                [waitingId],
+              );
+              expect(rows[0]?.STATE).toBe("User lock");
             },
-            { timeout: 15000, interval: 100 },
+            { timeout: 3000 },
           );
-          expect(a.exits).toEqual([{ code: 1, signal: null }]);
-          await b.refresh();
-          await health(b.current.base);
-          expect(b.restarts).toBe(0);
-          const second = a.current;
-          expect(second.boot).not.toBe(first.boot);
-          if (contender) {
-            await vi.waitFor(
-              async () => expect(await phase(second.boot, "settled")).toBe(1),
-              { timeout: 5000 },
-            );
-            expect(await phase(second.boot, "entered")).toBe(0);
-            const [before] = await conn.query<RowDataPacket[]>(
-              "SELECT commits FROM backend_restart_work WHERE id=1",
-            );
-            expect(before[0].commits).toBe(0); // Первая незавершённая транзакция откатилась.
-            await contender.query("SELECT RELEASE_LOCK(?)", [lockName]);
-          }
-          // Не меняем часы: ждём настоящий следующий 60-секундный тик WorkerJobs.
-          await vi.waitFor(
-            async () => expect(await phase(second.boot, "completed")).toBe(1),
-            { timeout: occupied ? 70000 : 5000, interval: 250 },
-          );
-          const [work] = await conn.query<RowDataPacket[]>(
-            "SELECT commits,actor,boot FROM backend_restart_work WHERE id=1",
-          );
-          expect(work).toEqual([{ commits: 1, actor: "a", boot: second.boot }]);
-          expect(await phase(first.boot, "completed")).toBe(0);
-          await a.refresh();
-          await b.refresh();
-          expect(a.restarts).toBe(1);
-          expect(b.restarts).toBe(0);
-          expect(b.current.generation).toBe(1);
-          await health(a.current.base);
-          await health(b.current.base);
-        } finally {
-          await contender?.end();
-          await Promise.all(replicas.map((replica) => replica.stop()));
         }
+        await conn.query(`KILL CONNECTION ${id}`);
+        if (wait)
+          expect(((await wait) as RowDataPacket[][])[0][0].acquired).toBe(1);
+        await vi.waitFor(
+          async () => {
+            await a.refresh();
+            expect(a.restarts).toBe(1);
+            expect(a.current.generation).toBe(2);
+            await health(a.current.base);
+          },
+          { timeout: 15000, interval: 100 },
+        );
+        expect(a.exits).toEqual([{ code: 1, signal: null }]);
+        await b.refresh();
+        await health(b.current.base);
+        expect(b.restarts).toBe(0);
+        const second = a.current;
+        expect(second.boot).not.toBe(first.boot);
+        if (contender) {
+          await vi.waitFor(
+            async () => expect(await phase(second.boot, "settled")).toBe(1),
+            { timeout: 5000 },
+          );
+          expect(await phase(second.boot, "entered")).toBe(0);
+          const [before] = await conn.query<RowDataPacket[]>(
+            "SELECT commits FROM backend_restart_work WHERE id=1",
+          );
+          expect(before[0].commits).toBe(0); // Первая незавершённая транзакция откатилась.
+          await contender.query("SELECT RELEASE_LOCK(?)", [lockName]);
+        }
+        // Не меняем часы: ждём настоящий следующий 60-секундный тик WorkerJobs.
+        await vi.waitFor(
+          async () => expect(await phase(second.boot, "completed")).toBe(1),
+          { timeout: occupied ? 70000 : 5000, interval: 250 },
+        );
+        const [work] = await conn.query<RowDataPacket[]>(
+          "SELECT commits,actor,boot FROM backend_restart_work WHERE id=1",
+        );
+        expect(work).toEqual([{ commits: 1, actor: "a", boot: second.boot }]);
+        expect(await phase(first.boot, "completed")).toBe(0);
+        await a.refresh();
+        await b.refresh();
+        expect(a.restarts).toBe(1);
+        expect(b.restarts).toBe(0);
+        expect(b.current.generation).toBe(1);
+        await health(a.current.base);
+        await health(b.current.base);
       },
       125000,
     );

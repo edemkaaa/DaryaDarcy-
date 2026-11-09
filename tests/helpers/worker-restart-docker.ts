@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { buildSync } from "esbuild";
 import type { Connection, RowDataPacket } from "mysql2/promise";
+import { assertTestDatabase } from "../../tooling/scripts/test-database-policy";
 
 const docker = (args: string[]) => {
   try {
@@ -19,12 +20,20 @@ const docker = (args: string[]) => {
   }
 };
 
-// Явный opt-in. Подключать можно только новую tmpfs-БД нашего local harness.
-// Docker-сборок, pull, удаления images/volumes и чтения .env здесь нет.
-export async function dockerRestartFixture(
-  databaseUrl: string,
-  control: Connection,
-) {
+function cleanupAfterFailure(error: unknown, cleanup: () => void): never {
+  try {
+    cleanup();
+  } catch (cleanupError) {
+    throw new AggregateError(
+      [error, cleanupError],
+      "Docker fixture failed and cleanup also failed",
+    );
+  }
+  throw error;
+}
+
+// Проверяем контейнер и URL до открытия SQL-соединения в тесте.
+export function dockerRestartFixture(databaseUrl: string) {
   const database = process.env.WORKER_RESTART_MYSQL_CONTAINER!;
   const image = process.env.WORKER_RESTART_DOCKER_IMAGE!;
   const nativeModules = process.env.WORKER_RESTART_LINUX_MODULES!;
@@ -36,40 +45,73 @@ export async function dockerRestartFixture(
     throw new Error(
       "Explicit local image, Linux modules and disposable MySQL required",
     );
+  const url = assertTestDatabase(databaseUrl);
+  const endpoint =
+    !process.env.DOCKER_CONTEXT && process.env.DOCKER_HOST
+      ? process.env.DOCKER_HOST
+      : docker([
+          "context",
+          "inspect",
+          "--format",
+          "{{.Endpoints.docker.Host}}",
+        ]);
+  if (!endpoint.startsWith("unix://"))
+    throw new Error("Docker fixture requires a local Unix socket");
+
   const [meta] = JSON.parse(docker(["inspect", database]));
+  const databaseOwner = meta.Config.Labels?.["codex.owner"];
+  const bindings = meta.NetworkSettings.Ports?.["3306/tcp"];
   if (
-    !String(meta.Config.Labels?.["codex.owner"]).startsWith(
-      "daryadarcy-fresh-backend-audit-",
-    ) ||
+    !databaseOwner?.startsWith("daryadarcy-fresh-backend-audit-") ||
+    meta.Name !== `/${databaseOwner}` ||
     !meta.HostConfig.Tmpfs?.["/var/lib/mysql"] ||
-    new URL(databaseUrl).pathname !== "/backend_test"
+    meta.Mounts.length !== 0 ||
+    url.hostname !== "127.0.0.1" ||
+    bindings?.length !== 1 ||
+    bindings[0].HostIp !== url.hostname ||
+    bindings[0].HostPort !== url.port
   )
-    throw new Error("Refusing non-disposable database");
+    throw new Error(
+      "Database URL must match the owned disposable MySQL container",
+    );
   const owner = `darcy-worker-restart-${randomUUID()}`;
   const scratch = mkdtempSync(join(tmpdir(), owner));
   const containers = new Set<string>();
   let networkCreated = false;
   let databaseConnected = false;
-  async function cleanup() {
-    for (const name of containers) {
-      const [state] = JSON.parse(docker(["inspect", name]));
-      if (state.Config.Labels?.["codex.owner"] !== owner)
-        throw new Error("Container ownership changed");
-      docker(["rm", "-f", name]);
-      containers.delete(name);
+  function removeContainer(name: string) {
+    const [state] = JSON.parse(docker(["inspect", name]));
+    if (state.Config.Labels?.["codex.owner"] !== owner)
+      throw new Error("Container ownership changed");
+    docker(["rm", "-f", name]);
+    containers.delete(name);
+  }
+  function cleanup() {
+    const errors: unknown[] = [];
+    function attempt(step: () => void) {
+      try {
+        step();
+      } catch (error) {
+        errors.push(error);
+      }
     }
-    if (databaseConnected) {
-      docker(["network", "disconnect", owner, database]);
-      databaseConnected = false;
-    }
-    if (networkCreated) {
-      const [network] = JSON.parse(docker(["network", "inspect", owner]));
-      if (network.Labels?.["codex.owner"] !== owner)
-        throw new Error("Network ownership changed");
-      docker(["network", "rm", owner]);
-      networkCreated = false;
-    }
-    rmSync(scratch, { recursive: true, force: true });
+    for (const name of containers) attempt(() => removeContainer(name));
+    if (databaseConnected)
+      attempt(() => {
+        docker(["network", "disconnect", owner, database]);
+        databaseConnected = false;
+      });
+    if (networkCreated)
+      attempt(() => {
+        const [network] = JSON.parse(docker(["network", "inspect", owner]));
+        if (network.Labels?.["codex.owner"] !== owner)
+          throw new Error("Network ownership changed");
+        docker(["network", "rm", owner]);
+        networkCreated = false;
+      });
+    attempt(() => rmSync(scratch, { recursive: true, force: true }));
+    if (errors.length)
+      throw new AggregateError(errors, "Docker fixture cleanup failed");
   }
   try {
     buildSync({
@@ -85,15 +127,13 @@ export async function dockerRestartFixture(
     docker(["network", "connect", "--alias", "fixture-mysql", owner, database]);
     databaseConnected = true;
   } catch (error) {
-    await cleanup();
-    throw error;
+    cleanupAfterFailure(error, cleanup);
   }
-  const url = new URL(databaseUrl);
   url.hostname = "fixture-mysql";
   url.port = "3306";
   return {
     cleanup,
-    async launch(actor: string, restart: boolean) {
+    async launch(actor: string, restart: boolean, control: Connection) {
       const name = `${owner}-${actor}-${randomUUID().slice(0, 8)}`;
       // create/start отдельно: даже ошибка запуска оставляет известный объект
       // для адресной уборки; никакого глобального prune.
@@ -146,13 +186,6 @@ export async function dockerRestartFixture(
       containers.add(name);
       // Модуль лежит рядом с node_modules для стандартного ESM resolution.
       // Корень проекта и файлы секретов не передаются.
-      async function stop() {
-        const [state] = JSON.parse(docker(["inspect", name]));
-        if (state.Config.Labels?.["codex.owner"] !== owner)
-          throw new Error("Container ownership changed");
-        docker(["rm", "-f", name]);
-        containers.delete(name);
-      }
       try {
         docker(["start", name]);
         let current: { base: string; boot: string; generation: number };
@@ -228,11 +261,10 @@ export async function dockerRestartFixture(
                 }))
               : [];
           },
-          stop,
+          stop: async () => removeContainer(name),
         };
       } catch (error) {
-        await stop();
-        throw error;
+        cleanupAfterFailure(error, () => removeContainer(name));
       }
     },
   };
