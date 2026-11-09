@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { ServiceUnavailableException } from "@nestjs/common";
 import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
 import { getDb } from "./connection";
+import { runWithWorkerLock } from "./worker-lock-guard";
 
 export function coordinationMode(): "local" | "mysql" {
   const count = Number(process.env.API_REPLICA_COUNT || "1");
@@ -57,7 +58,7 @@ async function borrowConnection(): Promise<PoolConnection> {
 export async function withDatabaseLock<T>(
   scope: string,
   waitSeconds: number,
-  run: (connection: PoolConnection) => Promise<T>,
+  run: (connection: PoolConnection, lockName: string) => Promise<T>,
 ): Promise<{ acquired: false } | { acquired: true; value: T }> {
   const connection = await borrowConnection();
   let locked = false;
@@ -83,7 +84,7 @@ export async function withDatabaseLock<T>(
     }
     if (Number(result[0]?.acquired) !== 1) throw coordinationUnavailable();
     locked = true;
-    return { acquired: true, value: await run(connection) };
+    return { acquired: true, value: await run(connection, name) };
   } finally {
     if (locked) {
       try {
@@ -130,5 +131,7 @@ export async function runExclusiveWorker(
     await run();
     return;
   }
-  await withDatabaseLock(`worker:${name}`, 0, run);
+  await withDatabaseLock(`worker:${name}`, 0, (connection, lockName) =>
+    runWithWorkerLock(connection, lockName, run),
+  );
 }

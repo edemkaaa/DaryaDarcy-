@@ -75,6 +75,7 @@ it("compiled ESM composes inert workers and only runs explicitly supplied local 
       cwd: tmpdir(),
       env: {
         NODE_ENV: "production",
+        JWT_SECRET: "owned-compiled-worker-fixture-secret-32-bytes",
         DATABASE_URL: "",
         PUBLIC_APP_URL: "https://club.example.test",
       },
