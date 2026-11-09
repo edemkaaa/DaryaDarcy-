@@ -1,5 +1,14 @@
 # Backend: карта модулей и открытый аудит — 3 ноября 2026
 
+## Согласованность карточки и вложений — 9 ноября
+
+`post-catalog-repository` и `post-detail-repository`: найдена и исправлена
+выдача старой карточки с медиа новой ревизии. Шесть маршрутов проверены через
+HTTP/JWT/SQL, чтения объединены в read-only snapshot без изменения DTO.
+`feed.listPaginated`, `club.list`, `club.listByCategory`: подтверждены
+повторы/пропуски offset между запросами; требуется отдельный контракт курсора.
+[Доказательства и приоритеты](backend-post-read-concurrency-2026-11-09.md).
+
 ## Завершение процессов API — 6 ноября
 
 Связка `_core/api-shutdown → workers/worker-jobs → database/coordination`
