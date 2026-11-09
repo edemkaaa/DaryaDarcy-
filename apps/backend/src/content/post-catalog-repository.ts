@@ -36,38 +36,42 @@ export async function getPosts(
 ): Promise<(Post & { likeCount: number; media: PostMedia[] })[]> {
   if (!db) throw new Error("Database not available");
 
-  let query = db
-    .select({
-      id: posts.id,
-      publicId: posts.publicId,
-      text: posts.text,
-      photos: posts.photos,
-      tags: posts.tags,
-      source: posts.source,
-      instagramId: posts.instagramId,
-      sortOrder: posts.sortOrder,
-      published: posts.published,
-      status: posts.status,
-      target: posts.target,
-      scheduledAt: posts.scheduledAt,
-      publishedAt: posts.publishedAt,
-      richText: posts.richText,
-      createdAt: posts.createdAt,
-      updatedAt: posts.updatedAt,
-      likeCount:
-        sql<number>`(SELECT COUNT(*) FROM likes WHERE likes.postId = posts.id)`.as(
-          "likeCount",
+  // Карточка и вложения принадлежат одному снимку: параллельная правка
+  // не должна подмешать закрытые файлы к ещё открытой версии поста.
+  return db.transaction(async (tx) => {
+    let query = tx
+      .select({
+        id: posts.id,
+        publicId: posts.publicId,
+        text: posts.text,
+        photos: posts.photos,
+        tags: posts.tags,
+        source: posts.source,
+        instagramId: posts.instagramId,
+        sortOrder: posts.sortOrder,
+        published: posts.published,
+        status: posts.status,
+        target: posts.target,
+        scheduledAt: posts.scheduledAt,
+        publishedAt: posts.publishedAt,
+        richText: posts.richText,
+        createdAt: posts.createdAt,
+        updatedAt: posts.updatedAt,
+        likeCount:
+          sql<number>`(SELECT COUNT(*) FROM likes WHERE likes.postId = posts.id)`.as(
+            "likeCount",
+          ),
+      })
+      .from(posts)
+      .where(
+        and(
+          ...feedFilterConditions({ tagFilter }),
         ),
-    })
-    .from(posts)
-    .where(
-      and(
-        ...feedFilterConditions({ tagFilter }),
-      ),
-    )
-    .orderBy(...postListOrder).limit(LEGACY_LIST_CAP + 1);
+      )
+      .orderBy(...postListOrder).limit(LEGACY_LIST_CAP + 1);
 
-  return attachPostMedia(db, boundedLegacyList(await query));
+    return attachPostMedia(tx, boundedLegacyList(await query));
+  }, { isolationLevel: "repeatable read", accessMode: "read only" });
 }
 
 const postListColumns = {
@@ -129,21 +133,25 @@ export async function getPostsPaginated(
 ) {
   if (!db) throw new Error("Database not available");
 
-  const offset = options.cursor ?? 0;
-  const rows = await db
-    .select(postListColumns)
-    .from(posts)
-    .where(and(...feedFilterConditions(options)))
-    .orderBy(...postListOrder)
-    .limit(options.limit + 1)
-    .offset(offset);
+  // Карточка и вложения принадлежат одному снимку: параллельная правка
+  // не должна подмешать закрытые файлы к ещё открытой версии поста.
+  return db.transaction(async (tx) => {
+    const offset = options.cursor ?? 0;
+    const rows = await tx
+      .select(postListColumns)
+      .from(posts)
+      .where(and(...feedFilterConditions(options)))
+      .orderBy(...postListOrder)
+      .limit(options.limit + 1)
+      .offset(offset);
 
-  const hasMore = rows.length > options.limit;
-  const page = hasMore ? rows.slice(0, options.limit) : rows;
-  return {
-    posts: await attachPostMedia(db, page),
-    nextCursor: hasMore ? offset + options.limit : null,
-  };
+    const hasMore = rows.length > options.limit;
+    const page = hasMore ? rows.slice(0, options.limit) : rows;
+    return {
+      posts: await attachPostMedia(tx, page),
+      nextCursor: hasMore ? offset + options.limit : null,
+    };
+  }, { isolationLevel: "repeatable read", accessMode: "read only" });
 }
 
 export async function getPostsByIds(
@@ -152,21 +160,26 @@ export async function getPostsByIds(
 ) {
   if (ids.length === 0) return [];
   if (!db) throw new Error("Database not available");
-  const rows = await db
-    .select(postListColumns)
-    .from(posts)
-    .where(
-      and(
-        inArray(posts.id, ids),
-        eq(posts.published, true),
-        eq(posts.status, "published"),
-      ),
-    );
-  const withMedia = await attachPostMedia(db, rows);
-  const byId = new Map(withMedia.map((row) => [row.id, row]));
-  return ids
-    .map((id) => byId.get(id))
-    .filter((row): row is NonNullable<typeof row> => Boolean(row));
+
+  // Карточка и вложения принадлежат одному снимку: параллельная правка
+  // не должна подмешать закрытые файлы к ещё открытой версии поста.
+  return db.transaction(async (tx) => {
+    const rows = await tx
+      .select(postListColumns)
+      .from(posts)
+      .where(
+        and(
+          inArray(posts.id, ids),
+          eq(posts.published, true),
+          eq(posts.status, "published"),
+        ),
+      );
+    const withMedia = await attachPostMedia(tx, rows);
+    const byId = new Map(withMedia.map((row) => [row.id, row]));
+    return ids
+      .map((id) => byId.get(id))
+      .filter((row): row is NonNullable<typeof row> => Boolean(row));
+  }, { isolationLevel: "repeatable read", accessMode: "read only" });
 }
 
 export async function getPostsForTarget(
@@ -183,37 +196,41 @@ export async function getPostsForTarget(
 ) {
   if (!db) throw new Error("Database not available");
 
-  const offset = options?.cursor ?? 0;
-  const limit = options?.limit ?? 20;
-  const conditions = [
-    eq(posts.published, true),
-    eq(posts.status, "published"),
-    or(eq(posts.target, target), eq(posts.target, "both")),
-  ];
-  if (options?.category) conditions.push(clubCategoryCondition(options.category));
-  if (options?.clubTag) conditions.push(clubBoardTagCondition(options.clubTag));
-  if (options?.tagFilter && options.tagFilter !== "all") {
-    conditions.push(
-      sql`JSON_CONTAINS(${posts.tags}, JSON_QUOTE(${options.tagFilter}))`,
-    );
-  }
-  if (options?.search && options.search.trim().length > 0) {
-    const query = `%${options.search.trim().toLowerCase()}%`;
-    conditions.push(sql`LOWER(${posts.text}) LIKE ${query}`);
-  }
+  // Карточка и вложения принадлежат одному снимку: параллельная правка
+  // не должна подмешать закрытые файлы к ещё открытой версии поста.
+  return db.transaction(async (tx) => {
+    const offset = options?.cursor ?? 0;
+    const limit = options?.limit ?? 20;
+    const conditions = [
+      eq(posts.published, true),
+      eq(posts.status, "published"),
+      or(eq(posts.target, target), eq(posts.target, "both")),
+    ];
+    if (options?.category) conditions.push(clubCategoryCondition(options.category));
+    if (options?.clubTag) conditions.push(clubBoardTagCondition(options.clubTag));
+    if (options?.tagFilter && options.tagFilter !== "all") {
+      conditions.push(
+        sql`JSON_CONTAINS(${posts.tags}, JSON_QUOTE(${options.tagFilter}))`,
+      );
+    }
+    if (options?.search && options.search.trim().length > 0) {
+      const query = `%${options.search.trim().toLowerCase()}%`;
+      conditions.push(sql`LOWER(${posts.text}) LIKE ${query}`);
+    }
 
-  const rows = await db
-    .select(postListColumns)
-    .from(posts)
-    .where(and(...conditions))
-    .orderBy(...(target === "club" ? clubPostListOrder : postListOrder))
-    .limit(limit + 1)
-    .offset(offset);
+    const rows = await tx
+      .select(postListColumns)
+      .from(posts)
+      .where(and(...conditions))
+      .orderBy(...(target === "club" ? clubPostListOrder : postListOrder))
+      .limit(limit + 1)
+      .offset(offset);
 
-  const hasMore = rows.length > limit;
-  const page = hasMore ? rows.slice(0, limit) : rows;
-  return {
-    posts: await attachPostMedia(db, page),
-    nextCursor: hasMore ? offset + limit : null,
-  };
+    const hasMore = rows.length > limit;
+    const page = hasMore ? rows.slice(0, limit) : rows;
+    return {
+      posts: await attachPostMedia(tx, page),
+      nextCursor: hasMore ? offset + limit : null,
+    };
+  }, { isolationLevel: "repeatable read", accessMode: "read only" });
 }

@@ -13,37 +13,41 @@ export async function getPostById(
 ) {
   if (!db) throw new Error("Database not available");
 
-  const result = await db
-    .select({
-      id: posts.id,
-      publicId: posts.publicId,
-      text: posts.text,
-      photos: posts.photos,
-      tags: posts.tags,
-      source: posts.source,
-      instagramId: posts.instagramId,
-      sortOrder: posts.sortOrder,
-      published: posts.published,
-      status: posts.status,
-      target: posts.target,
-      scheduledAt: posts.scheduledAt,
-      publishedAt: posts.publishedAt,
-      richText: posts.richText,
-      createdAt: posts.createdAt,
-      updatedAt: posts.updatedAt,
-      likeCount:
-        sql<number>`(SELECT COUNT(*) FROM likes WHERE likes.postId = posts.id)`.as(
-          "likeCount",
-        ),
-    })
-    .from(posts)
-    .where(typeof id === "number" ? eq(posts.id, id) : eq(posts.publicId, id))
-    .limit(1);
+  // Карточка и вложения принадлежат одному снимку: параллельная правка
+  // не должна подмешать закрытые файлы к ещё открытой версии поста.
+  return db.transaction(async (tx) => {
+    const result = await tx
+      .select({
+        id: posts.id,
+        publicId: posts.publicId,
+        text: posts.text,
+        photos: posts.photos,
+        tags: posts.tags,
+        source: posts.source,
+        instagramId: posts.instagramId,
+        sortOrder: posts.sortOrder,
+        published: posts.published,
+        status: posts.status,
+        target: posts.target,
+        scheduledAt: posts.scheduledAt,
+        publishedAt: posts.publishedAt,
+        richText: posts.richText,
+        createdAt: posts.createdAt,
+        updatedAt: posts.updatedAt,
+        likeCount:
+          sql<number>`(SELECT COUNT(*) FROM likes WHERE likes.postId = posts.id)`.as(
+            "likeCount",
+          ),
+      })
+      .from(posts)
+      .where(typeof id === "number" ? eq(posts.id, id) : eq(posts.publicId, id))
+      .limit(1);
 
-  const row = result[0];
-  if (!row) return undefined;
-  const [withMedia] = await attachPostMedia(db, [row]);
-  return withMedia;
+    const row = result[0];
+    if (!row) return undefined;
+    const [withMedia] = await attachPostMedia(tx, [row]);
+    return withMedia;
+  }, { isolationLevel: "repeatable read", accessMode: "read only" });
 }
 
 export async function getLatestPublishedPost(

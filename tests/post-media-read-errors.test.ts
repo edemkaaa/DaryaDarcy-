@@ -83,6 +83,9 @@ beforeEach(async () => {
   transport.query
     .mockReset()
     .mockImplementation(async ({ sql }: { sql: string }) => {
+      if (/^(set transaction|start transaction|begin|commit|rollback)/i.test(sql)) {
+        return [[], []];
+      }
       if (sql.includes("from `tags`")) {
         if (transport.tagError) throw transport.tagError;
         return [[[71, "winter", "Зима", "season", 3]], []];
@@ -172,7 +175,11 @@ describe("post media read integrity", () => {
       posts: [],
       nextCursor: null,
     });
-    expect(transport.query).toHaveBeenCalledOnce();
+    const selects = transport.query.mock.calls
+      .map(([query]) => query.sql as string)
+      .filter(sql => /^select\b/i.test(sql));
+    expect(selects).toHaveLength(1);
+    expect(selects[0]).not.toContain("post_media");
   });
   it("keeps an empty saved-ID selection successful without a database", async () => {
     vi.stubEnv("DATABASE_URL", "");
