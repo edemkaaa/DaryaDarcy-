@@ -1,3 +1,4 @@
+/** Атомарно связывает receipt оплаты, период доступа, контакт пользователя и письмо в outbox. */
 import { and, desc, eq, isNull } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import {
@@ -15,6 +16,7 @@ import {
   type ClubSettlementInput,
 } from "./settlement-request";
 
+/** Повтор paymentKey сверяется с receipt; новый оплаченный период и письмо фиксируются одним коммитом. */
 export async function settleClubOrder(
   database: MySql2Database,
   input: ClubSettlementInput,
@@ -35,8 +37,8 @@ export async function settleClubOrder(
         .limit(1);
   if (!recipient) return false;
   return database.transaction(async (tx) => {
-    // Lock the owner before reading expiry: different payments for one member
-    // must serialize as well as replays of the same payment.
+    // Срок читаем после блокировки владельца: разные оплаты одного пользователя
+    // должны сериализоваться так же, как повторы одного платежа.
     const [user] = await tx
       .select()
       .from(users)
@@ -130,8 +132,8 @@ export async function settleClubOrder(
         ),
       )
       .limit(1);
-    // A saved cancellation request is not confirmation, including when a real
-    // charge arrives while setActivity is still being retried.
+    // Сохранённый запрос отмены не равен подтверждению провайдера, в том числе
+    // если реальное списание пришло во время повторов setActivity.
     const cancellationConfirmed = Boolean(proof.profileId && !activeProfile);
     await tx
       .update(clubPayments)
@@ -150,8 +152,8 @@ export async function settleClubOrder(
       payloadHash,
       amountMinor: amount,
     });
-    // The user lock prevents concurrent payments from replacing the first
-    // contact. Only this validated order's saved contact is eligible.
+    // Блокировка пользователя защищает первый контакт от конкурирующих оплат.
+    // Можно использовать лишь номер, сохранённый у этого проверенного заказа.
     const contactPhone = payment.contactPhone
       ? normalizeContactPhone(payment.contactPhone)
       : null;

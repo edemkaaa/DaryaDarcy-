@@ -1,3 +1,4 @@
+/** Перенос файлов Библиотеки и откат только тех привязок, которые принадлежат данной операции. */
 export { inspectLibraryMigration } from "./library-migration-manifest";
 import { randomUUID } from "node:crypto";
 import { and, eq, sql } from "drizzle-orm";
@@ -296,6 +297,7 @@ export async function applyLibraryMigration(actor: Actor, input: unknown) {
   }
 }
 
+/** Восстанавливаем привязки только при сохранении условий отката данного плана. */
 export async function rollbackLibraryMigration(
   actor: Actor,
   idempotencyKey: string,

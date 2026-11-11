@@ -1,3 +1,4 @@
+/** Правила выбора цели модерации и согласованный порядок блокировки actor и target. */
 import type { ContentWriteActor } from "../content/content-write-actor";
 import { TRPCError } from "@trpc/server";
 import { asc, inArray } from "drizzle-orm";
@@ -26,7 +27,7 @@ export function canModerateUserTarget(
   );
 }
 
-/** Lock in ID order; roles may have changed since the request authenticated. */
+/** Блокируем по ID: роли могли измениться после аутентификации HTTP-запроса. */
 export async function lockUserModerationTarget(
   tx: Transaction,
   requestActor: ContentWriteActor,

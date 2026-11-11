@@ -1,3 +1,4 @@
+/** Адресная служебная обработка восстановления загрузок; ограничиваем объём и проверяем текущий статус. */
 import { and, asc, eq, gt } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import {

@@ -1,3 +1,4 @@
+/** Публичные и пользовательские tRPC-операции Ленты; схемы и middleware отделены от SQL-реализации. */
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import type { ContentReadService } from "./content-read.service";

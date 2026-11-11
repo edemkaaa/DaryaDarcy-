@@ -1,3 +1,4 @@
+/** Совместимый фасад старых вызовов. Владение пулом и доменные правила остаются в отдельных модулях. */
 import { createHash } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { eq, inArray } from "drizzle-orm";
@@ -295,11 +296,13 @@ import { posts, Post, InsertPost, Tag, Video, InsertVideo, penPalProfiles, penPa
 import { desc, and, sql, or, ne, gte, isNull } from "drizzle-orm";
 
 // Get all published posts, optionally filtered by tag
+/** Совместимое чтение списка сохраняет существующие фильтры и ограничение размера. */
 export async function getPosts(tagFilter?: string): Promise<(Post & { likeCount: number; media: PostMedia[] })[]> {
   return readPosts(await getDb(), tagFilter);
 }
 
 // Get paginated published posts (offset-based with SQL limit)
+/** Старый числовой курсор остаётся offset; единый снимок защищает ответ, но не всю цепочку страниц. */
 export async function getPostsPaginated(options: {
   tagFilter?: string;
   search?: string;
@@ -310,11 +313,13 @@ export async function getPostsPaginated(options: {
 }
 
 // Get a single post by ID
+/** Пост и медиа читаем из одного снимка; окончательное решение о доступе остаётся у сервиса. */
 export async function getPostById(id: number | string) {
   return readPostDetail(await getDb(), id);
 }
 
 // Get all tags ordered by sortOrder
+/** Справочник включает и ещё неиспользованные теги; это не выборка только по опубликованным постам. */
 export async function getAllTags(): Promise<Tag[]> {
   return readAllTags(await getDb());
 }
@@ -336,20 +341,24 @@ export async function toggleSave(actor: ContentWriteActor, postId: number, hasCl
 }
 
 // Get user's liked post IDs
+/** Личные лайки выбираем по владельцу, не смешивая состояние разных аккаунтов. */
 export async function getUserLikedPostIds(userId: number): Promise<number[]> {
   return readUserLikedPostIds(await getDb(), userId);
 }
 
 // Get user's saved post IDs
+/** Личные сохранения выбираем по владельцу для последующей разрешённой выдачи. */
 export async function getUserSavedPostIds(userId: number): Promise<number[]> {
   return readUserSavedPostIds(await getDb(), userId);
 }
 
+/** Восстанавливаем ограниченный набор карточек по известным ID через общий путь чтения медиа. */
 export async function getPostsByIds(ids: number[]) {
   if (ids.length === 0) return [];
   return readPostsByIds(await getDb(), ids);
 }
 
+/** Читаем административную проекцию участников через переданный клиент БД. */
 export async function listAdminMembers(): Promise<{
   id: number;
   email: string | null;
@@ -365,6 +374,7 @@ export async function listAdminMembers(): Promise<{
   return readAdminMembers(db);
 }
 
+/** Чтение истории не вызывает провайдера и не меняет оплаченный срок. */
 export async function listAdminPayments(limit = 50) {
   const db = await getDb();
   return readAdminPayments(db, limit);
@@ -387,6 +397,7 @@ export async function createPost(data: InsertPost): Promise<number> {
   return Number(result[0].insertId);
 }
 
+/** Сохраняем публикацию и связанные медиа через переданный контекст записи. */
 export async function createPostWithVideos(
   data: InsertPost,
   videos: string[],
@@ -404,6 +415,7 @@ export async function updatePost(id: number, data: Partial<InsertPost>): Promise
   await db.update(posts).set(data).where(eq(posts.id, id));
 }
 
+/** Один ключ принятого намерения восстанавливает прежний результат, вместо создания дубля. */
 export async function createPostOnce(
   data: InsertPost,
   videos: string[],
@@ -427,6 +439,7 @@ export async function savePostEdit(
   return persistPostEdit(db, id, data, videos, attachments, condition);
 }
 
+/** Проверяем актуальное состояние публикации и удаляем её зависимости согласованно. */
 export async function deletePost(id: number, actor?: ContentWriteActor): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -434,22 +447,27 @@ export async function deletePost(id: number, actor?: ContentWriteActor): Promise
 }
 
 // Get all posts for admin (including unpublished)
+/** Совместимый список админки сохраняет её правила видимости и ограничение старого контракта. */
 export async function getAllPostsAdmin(): Promise<(Post & { media: PostMedia[] })[]> {
   return readAllAdminPosts(await getDb());
 }
 
+/** Читаем только страницу административного списка; календарь и счётчики запрашиваются отдельно. */
 export async function getAdminPostsPage(input: z.infer<typeof adminPostsPageInput>) {
   return readAdminPostsPage(await getDb(), input);
 }
 
+/** Детали и вложения читаем согласованно, включая скрытые от общего каталога записи. */
 export async function getAdminPostDetail(id: number) {
   return readAdminPostDetail(await getDb(), id);
 }
 
+/** Считаем состояния постов на сервере без передачи всего списка в браузер. */
 export async function getAdminPostCounts() {
   return readAdminPostCounts(await getDb());
 }
 
+/** Возвращаем данные выбранного интервала календаря, а не полные тела всех публикаций. */
 export async function getAdminPostCalendar(input: z.infer<typeof adminPostCalendarInput>) {
   return readAdminPostCalendar(await getDb(), input);
 }
@@ -742,6 +760,7 @@ export async function deletePushTokensForUser(
   );
 }
 
+/** Находим последнюю публикацию по серверному порядку выдачи. */
 export async function getLatestPublishedPost(
   target: "feed" | "club",
 ): Promise<{ id: number; text: string } | undefined> {
@@ -795,6 +814,7 @@ export async function deleteVideo(id: number): Promise<void> {
 // ── Enhanced Admin: Post queries with target/status ──
 
 // Get published posts for a specific target (feed or club)
+/** Фильтруем назначение Лента/Клуб до пагинации и гидратации вложений. */
 export async function getPostsForTarget(target: "feed" | "club", options?: {
   tagFilter?: string;
   search?: string;
@@ -807,6 +827,7 @@ export async function getPostsForTarget(target: "feed" | "club", options?: {
 }
 
 // Get admin posts with filters (all statuses)
+/** Фильтры административного списка применяются до выдачи результата. */
 export async function getAdminPostsFiltered(options?: {
   status?: "draft" | "scheduled" | "published";
   target?: "feed" | "club" | "both";
@@ -816,6 +837,7 @@ export async function getAdminPostsFiltered(options?: {
 }
 
 // Get scheduled posts (for calendar tracker)
+/** Читаем отложенные публикации отдельно от общего пользовательского списка. */
 export async function getScheduledPosts(): Promise<Post[]> {
   const db = await getDb();
   return readScheduledPosts(db);
@@ -831,6 +853,7 @@ export async function createPostMedia(data: InsertPostMedia): Promise<number> {
   return Number(result[0].insertId);
 }
 
+/** Читаем вложения одного родительского поста в установленном порядке. */
 export async function getPostMediaByPostId(postId: number): Promise<PostMedia[]> {
   const db = await getDb();
   return readPostMediaByPostId(db, postId);
@@ -903,6 +926,7 @@ export interface PostStatistics {
   topLikedPosts: { id: number; text: string; likeCount: number }[];
 }
 
+/** Считаем агрегаты публикаций на стороне БД. */
 export async function getPostStatistics(): Promise<PostStatistics> {
   const db = await getDb();
   return readPostStatistics(db);
@@ -1253,29 +1277,35 @@ export async function userOwnsShopProduct(userId: number, productId: string): Pr
 }
 
 
+/** Читаем опубликованные статьи; окончательное правило выдачи тела задаёт сервис. */
 export async function listPublishedArticles(): Promise<Article[]> {
   const db = await getDb();
   return readPublishedArticles(db);
 }
 
+/** Карточки списка отделены от полного содержимого статьи. */
 export async function listPublishedArticleCards() {
   return readPublishedArticleCards(await getDb());
 }
 
+/** Совместимое административное чтение сохраняет и неопубликованные статьи. */
 export async function listAllArticles(): Promise<Article[]> {
   const db = await getDb();
   return readAllArticles(db);
 }
 
+/** Находим одну статью; отсутствие строки не должно подменять ошибку инфраструктуры. */
 export async function getArticleById(id: number): Promise<Article | undefined> {
   const db = await getDb();
   return readArticleById(db, id);
 }
 
+/** Читаем полное состояние статьи для редактора, сохраняя возможность увидеть черновик. */
 export async function getAdminArticleDetail(id: number) {
   return readAdminArticleDetail(await getDb(), id);
 }
 
+/** Создание статьи, запись намерения и связанные изменения выполняются согласованно. */
 export async function createArticle(data: CreateArticleInput, intent?: ArticleCreationIntent, actor?: ContentWriteActor): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -1288,12 +1318,14 @@ export async function getArticleCreationStatus(actorUserId: number, key: string)
   return readArticleCreationStatus(db, actorUserId, key);
 }
 
+/** Проверяем ожидаемую версию и сохраняем изменение статьи вместе с её зависимостями. */
 export async function updateArticle(id: number, data: UpdateArticleInput, actor?: ContentWriteActor, condition?: ContentEditPrecondition): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await persistArticleUpdate(db, id, data, actor, condition);
 }
 
+/** Удаляем статью через её текущие связи; доступ проверяется на административной границе. */
 export async function deleteArticle(id: number, actor?: ContentWriteActor): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

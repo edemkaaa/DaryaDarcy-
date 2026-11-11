@@ -1,13 +1,14 @@
+/** Серверные возможности выпуска ограничивают API независимо от видимости кнопок клиента. */
 import type { Express } from "express";
 import { TRPCError } from "@trpc/server";
 import type { LaunchCapabilities } from "../../../../packages/shared/src/capabilities";
 
-/** Server-owned release policy, not client visibility flags. */
+/** Политика включения функций принадлежит серверу, а не флагам видимости клиента. */
 export function getCapabilities(): LaunchCapabilities {
   return {
     smsLogin: process.env.ENABLE_SMS_LOGIN === "true",
     penPals: process.env.ENABLE_PEN_PALS === "true",
-    // No opt-in until shop has its own validated, atomic settlement/outbox.
+    // Включение недоступно до отдельного проверенного атомарного settlement/outbox магазина.
     shopOnlinePayment: false,
     webPush: false,
     privateContentUploads: process.env.PRIVATE_CONTENT_FILES_ENABLED === "true",

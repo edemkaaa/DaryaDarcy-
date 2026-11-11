@@ -1,3 +1,4 @@
+/** Бинарная HTTP-загрузка закрытого видео с ограничениями размера и отменой запроса. */
 import { Controller, HttpCode, Inject, Post, Req, Res } from "@nestjs/common";
 import { TRPCError } from "@trpc/server";
 import { getHTTPStatusCodeFromError } from "@trpc/server/http";

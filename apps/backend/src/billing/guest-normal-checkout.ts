@@ -1,3 +1,4 @@
+/** Восстановление гостевой оплаты по ограниченному proof; ссылка результата не является входом в аккаунт. */
 import { createHash, randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
@@ -79,7 +80,7 @@ function enabled() {
     throw unavailable();
 }
 
-/** Bounded existing counters; neither raw proof nor email enters keys or URLs. */
+/** Ограниченные счётчики не включают исходный proof или email в свои ключи и URL. */
 export async function enforceGuestCheckoutLimit(
   req: Request,
   res: Response,
@@ -163,10 +164,11 @@ async function replay(
     throw unavailable();
   return { state: "pending" as const, orderId: previous.orderId, url };
 }
-// Match the existing ledger's SHA-256 URL format, not billingKey's array encoding.
+// Сохраняем SHA-256-формат URL старого журнала, не заменяя его array-кодированием billingKey.
 const billingKeyForUrl = (url: string) =>
   createHash("sha256").update(url).digest("hex");
 
+/** Гостевой proof разрешает чтение результата конкретного заказа, но не заменяет сессию пользователя. */
 export async function guestNormalCheckoutStatus(
   input: Proof,
   actor: User | null,
@@ -192,6 +194,7 @@ function duplicate(error: unknown): boolean {
   }
   return false;
 }
+/** Согласует получателя и уникальный intent; повтор неизвестного результата не присваивает чужой аккаунт. */
 export async function createGuestNormalCheckout(
   input: Input,
   testHeader: unknown,
@@ -219,8 +222,8 @@ export async function createGuestNormalCheckout(
     );
   const previous = await recover();
   if (previous) return previous;
-  // A login may follow a lost guest response. Permit only recovery of that
-  // existing owned intent; a fresh authenticated purchase uses normal checkout.
+  // После потери гостевого ответа пользователь мог войти. Разрешаем только
+  // восстановление принадлежащего ему intent; новая покупка идёт через normal checkout.
   if (actor)
     throw new TRPCError({
       code: "BAD_REQUEST",
@@ -228,7 +231,7 @@ export async function createGuestNormalCheckout(
     });
   const contactPhone = requireCheckoutContact(input.contactPhone);
   assertClubCheckoutConfigured(input.plan);
-  // Preserve existing guest registration policy. No session, credentials or grant.
+  // Сохраняем политику гостевого создания аккаунта без выдачи сессии, пароля или доступа.
   const user = await ensureUserByEmail(input.email);
   try {
     return await database.transaction(
@@ -239,8 +242,8 @@ export async function createGuestNormalCheckout(
         await requireNormalCheckoutSchema(tx);
         const existing = await read(tx, key);
         if (existing) {
-          // A different payload may win while email resolution is in progress.
-          // Reject it before taking a second recipient lock.
+          // Во время определения email мог победить другой payload.
+          // Отклоняем его до захвата второй блокировки получателя.
           if (existing.actorUserId !== current.id) throw conflict();
           return replay(tx, existing, input);
         }
@@ -278,8 +281,8 @@ export async function createGuestNormalCheckout(
       { isolationLevel: "read committed" },
     );
   } catch (error) {
-    // Different recipients can race on one pair: the unique ledger wins, the
-    // losing order rolls back. Reconcile that winner without creating another.
+    // Разные получатели могут конкурировать за одну пару: побеждает уникальный
+    // журнал, проигравший заказ откатывается; восстанавливаем победивший без нового.
     if (duplicate(error)) {
       const winner = await recover();
       if (winner) return winner;

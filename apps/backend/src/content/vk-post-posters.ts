@@ -1,3 +1,4 @@
+/** Извлекаем превью VK как данные, до SQL-транзакции. Сбой обложки не подменяет адрес воспроизводимого видео. */
 import { z } from "zod";
 import { parseVkEmbed } from "./vk-video-input";
 import { saveVkPoster } from "../media/vk-poster-object";

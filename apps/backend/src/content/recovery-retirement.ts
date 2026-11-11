@@ -1,3 +1,4 @@
+/** Отзываем состояние восстановления с сохранением следа завершённой или использованной операции. */
 import { createHash } from "node:crypto";
 import { and, asc, eq, sql } from "drizzle-orm";
 import {

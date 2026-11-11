@@ -1,3 +1,4 @@
+/** Погашает одноразовое доказательство привязки почты; подтверждение адреса не создаёт сессию. */
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { eq, sql } from "drizzle-orm";
 import { createHash } from "node:crypto";
@@ -10,7 +11,7 @@ import { isValidEmail, normalizeEmail } from "../_core/password";
 import { EmailBindingError, isEmailBindingDuplicate } from "./email-binding";
 import { completeMemberEmailBinding as completeIntent } from "./email-binding-lifecycle";
 
-/** Internal-only; confirmation does not authenticate or issue a session. */
+/** Внутренняя операция подтверждения адреса: не аутентифицирует и не выдаёт сессию. */
 export async function confirmMemberEmailBinding(
   database: MySql2Database,
   token: string,
@@ -21,8 +22,8 @@ export async function confirmMemberEmailBinding(
     .update(`email-binding:v1:${token}`)
     .digest("hex");
   try {
-    // Only route to the recipient here. All authority and proof state are read
-    // again under locks; no candidate email/state may authorize the write.
+    // Здесь определяем лишь получателя; права и proof повторно читаются под
+    // блокировками, предварительная выборка не разрешает запись.
     const [candidate] = await database
       .select({
         requestKey: memberEmailBindings.requestKey,
@@ -33,7 +34,7 @@ export async function confirmMemberEmailBinding(
       .limit(1);
     if (!candidate) return false;
     return await database.transaction(async (tx) => {
-      // Same user -> binding -> outbox order as requesting and future deletion.
+      // Порядок user → binding → outbox общий с созданием заявки и удалением аккаунта.
       const [recipient] = await tx
         .select()
         .from(users)
@@ -80,22 +81,22 @@ export async function confirmMemberEmailBinding(
         return false;
       }
       try {
-        // The unique normalized index, not the snapshot SELECT above, decides
-        // ownership in races with registration/checkout or another binding.
+        // Владение email при гонке с регистрацией, оплатой или другой привязкой
+        // определяет уникальный нормализованный индекс, а не предварительный SELECT.
         await tx
           .update(users)
           .set({ email: binding.email, updatedAt: recipient.updatedAt })
           .where(eq(users.id, recipient.id));
       } catch (error) {
-        // MySQL duplicate-entry aborts this statement, not the transaction.
-        // Scrub the losing intent in the same tx. Other failures must rollback.
+        // duplicate-entry прерывает SQL-команду, но не транзакцию: здесь же очищаем
+        // проигравшую заявку. Остальные ошибки требуют полного отката.
         if (!isEmailBindingDuplicate(error)) throw error;
         await completeIntent(tx, binding.requestKey, "cancelled");
         return false;
       }
       if (binding.expiresAt.getTime() <= Date.now()) {
-        // A unique-index wait can outlive the proof. Undo our uncommitted
-        // email write before expiring; no outside reader sees a bound address.
+        // Ожидание уникального индекса может пережить proof: отменяем ещё
+        // незафиксированную запись email до истечения заявки.
         await tx
           .update(users)
           .set({ email: recipient.email, updatedAt: recipient.updatedAt })
@@ -104,8 +105,8 @@ export async function confirmMemberEmailBinding(
         return false;
       }
       await completeIntent(tx, binding.requestKey, "confirmed");
-      // The original requesting administrator is recorded as intent provenance,
-      // not as an authenticated caller of this proof-only operation.
+      // Администратор-инициатор записывается как происхождение заявки,
+      // а не как аутентифицированный исполнитель подтверждения по proof.
       await tx.insert(adminAuditLog).values({
         actorUserId: binding.actorUserId,
         action: "confirm_member_email_binding",
@@ -115,7 +116,7 @@ export async function confirmMemberEmailBinding(
       return true;
     });
   } catch {
-    // Bound SQL may include email/proof material. Never propagate/log its cause.
+    // SQL-параметры могут содержать email/proof; не передаём и не журналируем исходную причину.
     throw new EmailBindingError("unavailable");
   }
 }

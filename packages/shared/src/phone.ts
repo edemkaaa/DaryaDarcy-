@@ -1,9 +1,11 @@
+/** Форматирование российского номера отделено от проверки владения телефоном. */
 /** Russian mobile numbers as 11 digits: 79XXXXXXXXX */
 
 export function digitsOnly(value: string): string {
   return value.replace(/\D/g, "");
 }
 
+/** Приводим российский номер к принятому формату; владение телефоном здесь не подтверждается. */
 export function normalizeRuPhone(input: string): string | null {
   let digits = digitsOnly(input);
   if (digits.startsWith("8") && digits.length === 11) {
@@ -16,6 +18,7 @@ export function normalizeRuPhone(input: string): string | null {
   return null;
 }
 
+/** Форматируем уже переданный номер для отображения. */
 export function formatRuPhone(phone: string): string {
   const digits = digitsOnly(phone);
   if (digits.length === 11 && digits.startsWith("7")) {
@@ -24,6 +27,7 @@ export function formatRuPhone(phone: string): string {
   return phone;
 }
 
+/** Поддерживаем ввод номера, сохраняя принятую нормализацию интерфейса. */
 export function formatPhoneInput(input: string): string {
   const digits = digitsOnly(input);
   let rest = digits;

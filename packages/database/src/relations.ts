@@ -1,3 +1,4 @@
+/** Описание навигационных связей Drizzle дополняет таблицы; само по себе не применяет ограничения в MySQL. */
 import { relations } from "drizzle-orm";
 import { users, posts, likes, savedPosts } from "./schema";
 

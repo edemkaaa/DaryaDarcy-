@@ -1,3 +1,4 @@
+/** Планировщик возвращает только те посты, публикацию которых зафиксировал данный запуск. */
 import { and, asc, eq, inArray, isNotNull, lte, sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { posts } from "../../../../packages/database/src/schema";

@@ -1,3 +1,4 @@
+/** Создаёт обычный заказ один раз и восстанавливает его результат по журналу подтверждённых данных. */
 import { createHash, randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
@@ -76,7 +77,7 @@ const requestKeyFor = (actor: User, key: string) =>
   hash(JSON.stringify(["club.normalCheckout:v1", actor.id, key]));
 type Reader = Pick<MySql2Database, "select">;
 async function requireSchema(tx: Reader & Pick<MySql2Database, "execute">) {
-  // Acquire a metadata lock before inspecting guards; never repair schema at runtime.
+  // До проверки ограничений берём metadata lock; рабочий запрос схему не исправляет.
   await tx.select().from(normalCheckoutRequests).limit(0);
   const [result] = await tx.execute(sql`
     SELECT s.INDEX_NAME AS name, s.COLUMN_NAME AS columnName, s.SEQ_IN_INDEX AS position, t.ENGINE AS engine
@@ -181,6 +182,7 @@ async function orderState(
   return { state: "pending" as const, orderId: payment.orderId };
 }
 
+/** Только восстанавливает записанный результат: новый заказ и ссылка оплаты здесь не создаются. */
 export async function normalCheckoutStatus(actor: User, key: string) {
   if (process.env.NORMAL_CHECKOUT_RECOVERY_ENABLED !== "true")
     throw unavailable();
@@ -200,6 +202,7 @@ export async function normalCheckoutStatus(actor: User, key: string) {
   });
 }
 
+/** Один idempotencyKey принадлежит одному actor и неизменяемому intent; конфликт не создаёт второй заказ. */
 export async function createNormalCheckout(
   actor: User,
   input: z.infer<typeof normalCheckoutInput>,
@@ -280,8 +283,8 @@ export async function createNormalCheckout(
       )
         throw unavailable();
     } else {
-      // A fresh authenticated intent updates the owner contact atomically.
-      // Replaying an older intent must not revert a newer contact.
+      // Новый авторизованный intent атомарно обновляет контакт владельца.
+      // Повтор старого intent не должен откатывать более новый номер.
       await tx.update(users).set({ contactPhone }).where(eq(users.id, current.id));
       await tx
         .insert(clubPayments)
@@ -300,7 +303,7 @@ export async function createNormalCheckout(
   });
 }
 
-// Guest recovery shares evidence checks, never the authenticated actor namespace.
+// Гостевое восстановление использует общие проверки доказательств, но отдельное пространство actor.
 export {
   requireSchema as requireNormalCheckoutSchema,
   orderState as readNormalCheckoutOrderState,

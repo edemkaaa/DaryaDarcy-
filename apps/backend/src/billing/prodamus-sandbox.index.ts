@@ -1,8 +1,9 @@
+/** Отдельная точка запуска диагностического приёмника Prodamus. */
 import { createProdamusSandboxApplication } from "./prodamus-sandbox.application";
 import { ProdamusSandboxService } from "./prodamus-sandbox.service";
 
 async function start(): Promise<void> {
-  // Reject disabled/incomplete configuration before opening any listener.
+  // Выключенная или неполная конфигурация отклоняется до открытия listener.
   new ProdamusSandboxService(process.env).buildLink();
   const application = await createProdamusSandboxApplication();
   try {

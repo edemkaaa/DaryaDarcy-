@@ -1,3 +1,4 @@
+/** Потоковая HTTP-граница закрытых вложений: проверка доступа предшествует чтению хранилища. */
 import { Controller, Get, Inject, Param, Req, Res } from "@nestjs/common";
 import type { Request, Response } from "express";
 import { Readable } from "node:stream";

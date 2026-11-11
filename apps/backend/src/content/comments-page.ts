@@ -1,3 +1,4 @@
+/** Постраничное чтение обсуждения с проверкой доступа к публикации и привязкой курсора к списку. */
 import { and, asc, count, eq, gt, inArray, isNull, or } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { TRPCError } from "@trpc/server";
@@ -27,6 +28,7 @@ export const commentsPageInput = z
   })
   .strict();
 
+/** Ограничиваем страницу и проверяем контекст курсора перед возвратом обсуждения. */
 export async function commentsPage(
   database: MySql2Database | null,
   actor: User,

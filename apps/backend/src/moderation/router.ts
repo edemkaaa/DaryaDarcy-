@@ -1,3 +1,4 @@
+/** tRPC-маршруты модератора с проверкой роли и входных идентификаторов. */
 import { z } from "zod";
 import { router, moderatorProcedure } from "../_core/trpc";
 import type { ModerationService } from "./moderation.service";

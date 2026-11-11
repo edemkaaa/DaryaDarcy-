@@ -1,3 +1,4 @@
+/** Версия и текст согласия на маркетинговые push отделены от служебных уведомлений. */
 /** Current version of marketing push consent text (bump when legal copy changes). */
 export const MARKETING_PUSH_CONSENT_VERSION = "2026-08-1";
 

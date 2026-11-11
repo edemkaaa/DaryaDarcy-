@@ -1,3 +1,4 @@
+/** Транзакционная запись статей, вложений и связанных публикаций с проверкой редакторской ревизии. */
 import { TRPCError } from "@trpc/server";
 import { asc, eq, inArray, sql } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
@@ -148,6 +149,7 @@ export async function createArticle(
   });
 }
 
+/** Проверяем ожидаемую версию и сохраняем изменение статьи вместе с её зависимостями. */
 export async function updateArticle(
   database: MySql2Database,
   id: number,
@@ -183,6 +185,7 @@ export async function updateArticle(
   });
 }
 
+/** Удаляем статью через её текущие связи; доступ проверяется на административной границе. */
 export async function deleteArticle(
   database: MySql2Database,
   id: number,

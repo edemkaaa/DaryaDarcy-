@@ -1,3 +1,4 @@
+/** Нормализует контактный телефон оплаты и сохраняет совместимость хеша старых заказов без номера. */
 import { TRPCError } from "@trpc/server";
 import { contactPhoneSchema } from "../../../../packages/shared/src/checkout-contact";
 import { billingKey } from "./protocol";
@@ -11,7 +12,7 @@ export function requireCheckoutContact(value: unknown): string {
     });
   return parsed.data;
 }
-/** NULL keeps the hash of pre-contact orders valid for recovery. */
+/** NULL сохраняет пригодность хеша старых заказов без контактного номера. */
 export function checkoutRequestHash(
   plan: string,
   email: string,

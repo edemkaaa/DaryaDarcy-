@@ -1,7 +1,9 @@
+/** SQL-очередь доставки материалов магазина: постановка, просмотр ожидания и подтверждение отправки. */
 import { asc, eq, isNull } from "drizzle-orm";
 import { shopDeliveryEmails } from "../../../../packages/database/src/schema";
 import { getDb } from "../database/connection";
 
+/** Уникальный orderId сохраняет одну запись очереди при повторном подтверждении покупки. */
 export async function queueShopDeliveryEmail(input: {
   orderId: string;
   userId: number | null;
@@ -36,6 +38,7 @@ export async function isShopDeliveryEmailSent(
   return Boolean(rows[0]?.sentAt);
 }
 
+/** Фиксирует подтверждение уже выполненной отправки; саму почту этот helper не отправляет. */
 export async function markShopDeliveryEmailSent(
   orderId: string,
 ): Promise<void> {

@@ -1,3 +1,4 @@
+/** Состав серверных гидов эстетики по устойчивым ключам материала. */
 import { COTTAGECORE_RESULT } from "./cottagecore";
 import { GOBLINCORE_RESULT } from "./goblincore";
 import { WITCHCORE_RESULT } from "./witchcore";

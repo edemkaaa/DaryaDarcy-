@@ -1,3 +1,4 @@
+/** SQL-журнал TEST-намерений YooKassa для восстановления результата без слепого создания нового заказа. */
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { and, eq, sql } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
@@ -180,8 +181,8 @@ export class YookassaIntentRepository {
       const now = new Date();
       const elapsed =
         now.getTime() - (intent.firstSentAt?.getTime() ?? now.getTime());
-      // Deliberately stop an hour before provider idempotence expires. A later
-      // repeat of an unresolved create could be a NEW payment, even with its key.
+      // Останавливаемся за час до истечения идемпотентности провайдера: поздний
+      // повтор неизвестного результата может создать НОВУЮ оплату даже с прежним ключом.
       if (elapsed < 0 || elapsed >= 23 * 60 * 60 * 1000)
         throw new TRPCError({
           code: "PRECONDITION_FAILED",

@@ -1,3 +1,4 @@
+/** Отсутствие доступной БД превращается в ошибку инфраструктуры, а не в успешный пустой каталог. */
 import { TRPCError } from "@trpc/server";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 

@@ -1,3 +1,4 @@
+/** Маршруты магазина учитывают владельца покупки и серверный запрет online-checkout до выпуска. */
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import { requireCapability } from "../launch/capabilities";
@@ -18,5 +19,5 @@ export const createShopRouter = (
       }),
   });
 
-// Standalone callers share the implementation; HTTP supplies Nest's instance.
+// Отдельные вызовы используют ту же реализацию; HTTP передаёт экземпляр Nest.
 export const shopRouter = createShopRouter(new ShopService());

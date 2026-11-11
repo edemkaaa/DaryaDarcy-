@@ -1,3 +1,4 @@
+/** Страница статей для администратора: ограничиваем выборку и передаём курсор следующей страницы. */
 import { and, asc, desc, eq, gt, lt, or } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { TRPCError } from "@trpc/server";
@@ -35,6 +36,7 @@ function readCursor(value: string | null | undefined, scope: string) {
     });
   }
 }
+/** Выдаём ограниченную страницу редакторского списка с курсором следующей порции. */
 export async function adminArticlesPage(
   database: MySql2Database | null,
   actorId: number,

@@ -1,3 +1,4 @@
+/** Оркестрация TEST-заказа YooKassa и согласование подтверждения с существующим settlement. */
 import { Injectable } from "@nestjs/common";
 import { TRPCError } from "@trpc/server";
 import { randomUUID } from "node:crypto";

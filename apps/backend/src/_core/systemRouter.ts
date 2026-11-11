@@ -1,3 +1,4 @@
+/** Служебные tRPC-процедуры для проверки состояния и существующих уведомлений владельцу. */
 import { z } from "zod";
 import { notifyOwner } from "./notification";
 import { adminProcedure, publicProcedure, router } from "./trpc";

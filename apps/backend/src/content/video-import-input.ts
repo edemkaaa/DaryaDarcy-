@@ -1,3 +1,4 @@
+/** Схема существующего контракта импорта видео проверяется до вызова сервиса. */
 import { z } from "zod";
 
 // Existing wire contract; the service accepts its validated output.

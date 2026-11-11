@@ -1,3 +1,4 @@
+/** Хеширование паролей, проверка старых хешей и единая нормализация email для identity-границ. */
 import { randomBytes, scrypt, timingSafeEqual, type ScryptOptions } from "node:crypto";
 
 function scryptAsync(password: string, salt: Buffer, keylen: number, options: ScryptOptions): Promise<Buffer> {

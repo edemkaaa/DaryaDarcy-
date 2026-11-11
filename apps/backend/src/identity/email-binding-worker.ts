@@ -1,3 +1,4 @@
+/** Включаемая отдельно фоновая очистка и доставка привязок; проверка схемы не применяет миграции. */
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { sql } from "drizzle-orm";
 import {
@@ -10,7 +11,7 @@ import { EmailBindingError } from "./email-binding";
 import { processMemberEmailBindingEmails } from "./email-binding-delivery";
 import { maintainMemberEmailBindings } from "./email-binding-lifecycle";
 
-/** Presence guard only: never substitutes for reviewed migration/data preflight. */
+/** Только проверка наличия схемы, не замена проверенной миграционной истории и preflight данных. */
 async function requireBindingSchema(database: MySql2Database) {
   await database.select().from(users).limit(0);
   await database.select().from(memberEmailBindings).limit(0);
@@ -47,7 +48,7 @@ async function requireBindingSchema(database: MySql2Database) {
   if (expected.size) throw new EmailBindingError("unavailable");
 }
 
-/** Internal worker entry: default-off, bounded cleanup before leased delivery. */
+/** Внутренний worker выключен по умолчанию; ограниченная очистка предшествует доставке по lease. */
 export async function processMemberEmailBindingJobs(
   database: MySql2Database,
   send: (mail: Mail) => Promise<boolean>,

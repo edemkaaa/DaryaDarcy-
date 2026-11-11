@@ -1,3 +1,4 @@
+/** Читает действующий доступ на переданном соединении или транзакции, не открывая другой пул. */
 import { and, desc, eq } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import {
@@ -5,7 +6,7 @@ import {
   type ClubPayment,
 } from "../../../../packages/database/src/schema";
 
-/** Read on the supplied pool/transaction, never reacquire the global database. */
+/** Читает на переданном пуле/транзакции без повторного получения глобальной БД. */
 export async function readActiveClubSubscription(
   db: Pick<MySql2Database, "select">,
   userId: number,
@@ -18,7 +19,7 @@ export async function readActiveClubSubscription(
       and(eq(clubPayments.userId, userId), eq(clubPayments.status, "paid")),
     )
     .orderBy(desc(clubPayments.expiresAt));
-  // Locked reads observe current access even after an earlier snapshot read.
+  // Блокирующее чтение видит текущий доступ даже после более раннего snapshot-чтения.
   const rows = await (lockMode ? query.for(lockMode) : query);
   const now = Date.now();
   return rows.find(

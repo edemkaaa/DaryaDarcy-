@@ -1,3 +1,4 @@
+/** Операции редактора постов: проверяем вход, сохраняем материал и отдельно выполняем последующие эффекты. */
 import type { ContentWriteActor } from "./content-write-actor";
 import { Injectable } from "@nestjs/common";
 import { articleCreationIntent } from "./article-creation-request";

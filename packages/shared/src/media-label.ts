@@ -1,6 +1,8 @@
+/** Показываем понятное название материала вместо технического имени загруженного файла. */
 const RAW_NAME =
   /^(img|dsc|vid|mov|pxl|screenshot|photo|video)[-_\s]?\d/i;
 
+/** Отличаем техническое имя файла от человеческого заголовка. */
 export function isRawMediaFilename(name?: string | null): boolean {
   if (!name) return true;
   const base = name.trim().split(/[\\/]/).pop() || "";
@@ -10,6 +12,7 @@ export function isRawMediaFilename(name?: string | null): boolean {
   return false;
 }
 
+/** Подбираем понятную подпись, когда исходное имя выглядит техническим. */
 export function friendlyMediaName(
   filename: string | null | undefined,
   type: "video" | "audio" | "document",
@@ -20,6 +23,7 @@ export function friendlyMediaName(
   return base.replace(/\.[a-z0-9]{2,4}$/i, "") || fallback;
 }
 
+/** Готовим видимый заголовок поста без использования технических имён вложений. */
 export function displayPostTitle(text?: string | null): string {
   const lines = (text || "").split("\n").map((line) => line.trim()).filter(Boolean);
   const first = lines[0] || "";

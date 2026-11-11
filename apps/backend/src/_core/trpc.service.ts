@@ -1,3 +1,4 @@
+/** Собирает дерево tRPC-процедур из сервисов приложения без глобального поиска Nest-провайдеров. */
 import { Inject, Injectable } from "@nestjs/common";
 import { ContentReadService } from "../content/content-read.service";
 import { ContentWriteService } from "../content/content-write.service";
@@ -13,7 +14,7 @@ import { ProfileService } from "../profile/profile.service";
 import { ModerationService } from "../moderation/moderation.service";
 import { ShopService } from "../shop/shop.service";
 
-/** Application-scoped composition; domain services never look up Nest globally. */
+/** Композиция принадлежит приложению; доменные сервисы не ищут Nest-провайдеры глобально. */
 @Injectable()
 export class TrpcService {
   readonly router: AppRouter;

@@ -1,3 +1,4 @@
+/** Общие обращения к S3 и допустимым источникам; секреты берутся из серверного окружения. */
 // Storage module with Timeweb S3 support + fallback to Manus built-in storage
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { ENV } from "./_core/env";

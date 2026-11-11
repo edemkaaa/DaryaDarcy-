@@ -1,3 +1,4 @@
+/** Общие лимиты нескольких API хранят хеши ключей и поколение попытки, не исходные email или секреты. */
 import { createHash, randomUUID } from "node:crypto";
 import type { PoolConnection, RowDataPacket } from "mysql2/promise";
 import { normalizeEmail } from "../_core/password";
@@ -14,8 +15,8 @@ const query = <T extends RowDataPacket[]>(
   values: unknown[] = [],
 ) => connection.query<T>({ sql, values, timeout: 5000 });
 
-/** All writes for one kind hold the same database-scoped lock, including
- * capacity admission and success cleanup. No secret/plain contact is stored.
+/** Проверка вместимости и изменение счётчика используют одну named lock для вида лимита.
+ * В таблице остаётся хеш ключа, исходный контакт и секрет не сохраняются.
  */
 async function reserve(
   kind: Kind,
@@ -97,6 +98,7 @@ async function reserve(
   }
 }
 
+/** Резервирует попытку в общем окне; отказ хранилища не превращает квоту в разрешение. */
 export async function checkSharedRateLimit(
   key: string,
   max: number,
@@ -115,6 +117,7 @@ export async function checkSharedRateLimit(
   return result.ok ? { ok: true } : result;
 }
 
+/** Возвращает завершение только этой попытки: старый успешный вход не обнуляет новое поколение лимита. */
 export async function beginSharedLogin(
   email: string,
 ): Promise<

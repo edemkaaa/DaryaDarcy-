@@ -1,3 +1,4 @@
+/** Выведенные из схемы типы строк и записи используются без копирования модели данных в приложениях. */
 /**
  * Unified type exports
  * Import shared types from this single entry point.

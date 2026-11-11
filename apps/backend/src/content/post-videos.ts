@@ -1,3 +1,4 @@
+/** Согласуем старые и новые видео поста внутри транзакции; сохранённые метаданные не восстанавливаются из имени URL. */
 import { and, asc, eq, inArray } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { postMedia } from "../../../../packages/database/src/schema";

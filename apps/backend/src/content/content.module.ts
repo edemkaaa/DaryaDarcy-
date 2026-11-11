@@ -1,3 +1,4 @@
+/** Состав домена контента в Nest: сервисы и контроллеры используют общие правила чтения и записи. */
 import { Module } from "@nestjs/common";
 import { ContentReadService } from "./content-read.service";
 import { ContentWriteService } from "./content-write.service";

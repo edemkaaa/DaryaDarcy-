@@ -1,3 +1,4 @@
+/** Распознаёт известные инфраструктурные отказы для ответа 503, не скрывая остальные ошибки под ним. */
 import { ServiceUnavailableException } from "@nestjs/common";
 
 export const SERVICE_UNAVAILABLE_MESSAGE =

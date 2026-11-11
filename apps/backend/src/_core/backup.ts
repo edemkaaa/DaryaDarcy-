@@ -1,3 +1,4 @@
+/** Создаёт сжатые MySQL-бэкапы отдельным процессом и ограничивает срок хранения локальных и S3-копий. */
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -13,9 +14,9 @@ import {
 } from "@aws-sdk/client-s3";
 import { ENV } from "./env";
 
-/** Local VPS copies — align with nginx/PM2 log retention (~14 days). */
+/** Локальные VPS-копии сохраняются 14 дней, в том же масштабе, что и журналы сервера. */
 export const LOCAL_BACKUP_RETAIN_MS = 14 * 24 * 60 * 60_000;
-/** S3 copies — long-term off-site retention for recovery. */
+/** S3-копии обеспечивают более длительное внешнее хранение для восстановления. */
 export const S3_BACKUP_RETAIN_MS = 90 * 24 * 60 * 60_000;
 
 let lastBackupAt = 0;
@@ -37,7 +38,7 @@ function parseDatabaseUrl(url: string) {
       throw new Error();
     return cfg;
   } catch {
-    // URL/decoding errors can carry the original credential-bearing input.
+    // Ошибка URL/декодирования может содержать исходную строку с учётными данными.
     throw new Error("MySQL backup configuration is invalid");
   }
 }
@@ -71,7 +72,7 @@ async function writeMysqlDump(
     );
     const configPath = path.join(credentialsDir, "client.cnf");
     credentialsFd = fs.openSync(configPath, "wx+", 0o600);
-    // Unlink before writing so a crash can never strand a named password file.
+    // Удаляем имя файла до записи: после аварии не должен остаться именованный файл пароля.
     fs.unlinkSync(configPath);
     fs.rmdirSync(credentialsDir);
     credentialsDir = undefined;
@@ -97,7 +98,7 @@ async function writeMysqlDump(
         env: { ...process.env, DATABASE_URL: undefined, MYSQL_PWD: undefined },
       },
     );
-    // Drain diagnostics without retaining or logging data from the DB tool.
+    // Считываем диагностический поток, не накапливая и не журналируя вывод утилиты БД.
     dump.stderr!.resume();
     const closed = new Promise<void>((resolve, reject) => {
       dump.once("error", () =>
@@ -127,10 +128,10 @@ async function writeMysqlDump(
     fs.renameSync(partialPath, filePath);
     ownsPartial = false;
   } catch {
-    // Do not attach raw spawn/stream errors as causes; callers log this error.
+    // Не прикладываем исходные ошибки процесса/потока: вызывающий код может их журналировать.
     throw new Error("MySQL backup dump or output failed");
   } finally {
-    // Only exact files created for this invocation; never a broad recursive delete.
+    // Удаляем только точные файлы этого запуска, без широкого рекурсивного удаления.
     let cleanupFailed = false;
     if (credentialsFd !== undefined) {
       try {
@@ -153,7 +154,7 @@ async function writeMysqlDump(
       }
     }
     if (cleanupFailed)
-      // Credential-file cleanup failure must override even a failed dump; never report success.
+      // Сбой удаления файла доступа важнее результата dump и никогда не считается успехом.
       // eslint-disable-next-line no-unsafe-finally
       throw new Error("MySQL backup temporary-file cleanup failed");
   }
@@ -192,7 +193,7 @@ function s3Client(): S3Client | null {
   });
 }
 
-/** Remove local .sql.gz older than LOCAL_BACKUP_RETAIN_MS. */
+/** Удаляет локальные .sql.gz только после истечения LOCAL_BACKUP_RETAIN_MS. */
 export function pruneLocalBackups(
   dir = path.join(process.cwd(), "backups"),
   retainMs = LOCAL_BACKUP_RETAIN_MS,
@@ -217,7 +218,7 @@ export function pruneLocalBackups(
   return removed;
 }
 
-/** Remove S3 backups/mysql/* older than S3_BACKUP_RETAIN_MS. */
+/** Удаляет из S3 только backups/mysql/* старше S3_BACKUP_RETAIN_MS. */
 export async function pruneS3Backups(
   retainMs = S3_BACKUP_RETAIN_MS,
 ): Promise<number> {
@@ -248,6 +249,7 @@ export async function pruneS3Backups(
   return removed;
 }
 
+/** Один локальный Promise исключает параллельный dump; интервал считается после успешной локальной копии. */
 export async function runMysqlBackupIfDue(
   minIntervalMs = 24 * 60 * 60_000,
 ): Promise<void> {
@@ -268,7 +270,7 @@ async function runMysqlBackup(dbUrl: string): Promise<void> {
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const dir = path.join(process.cwd(), "backups");
   fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
-  // The backup worker holds its exclusive lock before entering this function.
+  // При вызове из worker эксклюзивная блокировка бэкапа уже должна удерживаться.
   const interrupted =
     /^daryadarcy-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z-[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\.sql\.gz\.partial$/;
   for (const file of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -282,7 +284,7 @@ async function runMysqlBackup(dbUrl: string): Promise<void> {
   try {
     await uploadBackup(filePath);
   } catch {
-    // SDK errors may include signed requests, credentials or nested causes.
+    // Ошибки SDK могут содержать подписанные запросы, учётные данные и вложенные причины.
     console.warn("[backup] upload failed:");
   }
 

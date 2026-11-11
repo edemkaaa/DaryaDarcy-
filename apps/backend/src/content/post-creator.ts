@@ -1,3 +1,4 @@
+/** Создание поста и медиа с журналом операции; повтор исходного ключа восстанавливает сохранённый результат. */
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { eq, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
@@ -52,6 +53,7 @@ export async function createPostWithVideos(
   });
 }
 
+/** Один ключ принятого намерения восстанавливает прежний результат, вместо создания дубля. */
 export async function createPostOnce(
   database: MySql2Database,
   data: InsertPost,

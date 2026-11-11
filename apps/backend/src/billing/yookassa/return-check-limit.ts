@@ -1,3 +1,4 @@
+/** Отдельная HTTP-квота проверки возврата из оплаты; не меняет обработку webhook. */
 import { TRPCError } from "@trpc/server";
 import type { Request, Response } from "express";
 import { z } from "zod";
@@ -5,7 +6,7 @@ import { checkRequestRateLimit } from "../../_core/request-rate-limit";
 import { clientIp } from "../../sms-auth";
 import { billingKey } from "../protocol";
 
-/** HTTP-only quota; webhook settlement and payment creation are separate flows. */
+/** Только HTTP-квота проверки возврата; settlement webhook и создание оплаты — отдельные потоки. */
 export async function enforceReturnCheckLimit(req: Request, res: Response): Promise<void> {
   if (req.query?.batch !== undefined)
     throw new TRPCError({
@@ -24,7 +25,7 @@ export async function enforceReturnCheckLimit(req: Request, res: Response): Prom
       code: "BAD_REQUEST",
       message: "Нужен ключ платёжной заявки",
     });
-  // Keep bearer intent keys out of the short-lived in-memory counter keys.
+  // Bearer-ключ intent не должен попадать даже в краткоживущие ключи счётчика памяти.
   const keyLimit = await checkRequestRateLimit(
     `yookassa-return-intent:${billingKey([key.data.toLowerCase()])}`,
     12,

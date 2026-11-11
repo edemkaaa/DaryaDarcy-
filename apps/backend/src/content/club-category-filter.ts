@@ -1,3 +1,4 @@
+/** Общие условия выборки клубных рубрик и тегов с учётом названий из старого импорта. */
 import { and, not, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { posts } from "../../../../packages/database/src/schema";
@@ -33,6 +34,7 @@ function hasTag(values: string[]) {
       sql`, `,
     )})) > 0`;
 }
+/** Сопоставляем рубрику с сохранёнными тегами, включая данные прежнего импорта. */
 export function clubCategoryCondition(category: ClubTabId) {
   const earlier = SECTION_ORDER.slice(0, SECTION_ORDER.indexOf(category));
   // Explicit section tags win over fallback aliases; earlier sections win ties.
@@ -48,5 +50,6 @@ export function clubCategoryCondition(category: ClubTabId) {
     ),
   )!;
 }
+/** Ограничиваем выборку выбранным тегом клубной подборки. */
 export const clubBoardTagCondition = (tag: string) =>
   hasTag(postFilterTagAliases(tag));

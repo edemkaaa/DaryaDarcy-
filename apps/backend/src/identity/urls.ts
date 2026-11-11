@@ -1,4 +1,5 @@
-/** Public navigation is configured by operators, never by request Host/Origin. */
+/** Строит публичные ссылки только из доверенной настройки оператора, а не Host/Origin клиента. */
+/** Публичную навигацию задаёт оператор, а не заголовки Host/Origin запроса. */
 export function publicAccessUrl(token?: string): URL {
   const configured = process.env.PUBLIC_APP_URL || "";
   let base: URL;

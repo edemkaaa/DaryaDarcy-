@@ -1,3 +1,4 @@
+/** Корневой состав tRPC объединяет доменные роутеры в общий контракт клиента. */
 import { router } from "./_core/trpc";
 import { systemRouter } from "./_core/systemRouter";
 import { createAuthRouter } from "./identity/router";

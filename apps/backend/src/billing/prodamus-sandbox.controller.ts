@@ -1,8 +1,9 @@
+/** Принимает только диагностический webhook, не создавая заказов, покупок и сессий. */
 import { Controller, Inject, Post, Req, Res } from "@nestjs/common";
 import type { Request, Response } from "express";
 import { ProdamusSandboxService } from "./prodamus-sandbox.service";
 
-/** Separate diagnostic ingress: no GET, sessions, purchase or settlement. */
+/** Отдельный диагностический вход без GET, сессий, покупок и settlement. */
 @Controller("api/prodamus/sandbox/webhook")
 export class ProdamusSandboxController {
   constructor(

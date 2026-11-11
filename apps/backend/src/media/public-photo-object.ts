@@ -1,3 +1,4 @@
+/** Неизменяемые публичные фото используют отдельные ключи; HEAD помогает восстановить потерянный ответ PUT. */
 import { createHash } from "node:crypto";
 import {
   HeadObjectCommand,

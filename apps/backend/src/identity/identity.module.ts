@@ -1,3 +1,4 @@
+/** Собирает сервисы и HTTP-контроллеры identity внутри одного Nest-приложения. */
 import { Module } from "@nestjs/common";
 import { PasswordController } from "./password.controller";
 import { PasswordService } from "./password.service";

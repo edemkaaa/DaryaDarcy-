@@ -1,3 +1,4 @@
+/** tRPC-входы чтения сессии и выхода используют тот же сервис сессий, что и REST. */
 import { router, publicProcedure } from "../_core/trpc";
 import { clearSessionCookie } from "../_core/cookies";
 import { publicUser, SessionService } from "./session.service";
@@ -20,5 +21,5 @@ export const createAuthRouter = (
     }),
   });
 
-// Compatibility caller; HTTP supplies its application-owned session service.
+// Совместимый отдельный вызов; HTTP передаёт сервис сессий своего приложения.
 export const authRouter = createAuthRouter(new SessionService());

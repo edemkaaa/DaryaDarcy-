@@ -1,3 +1,4 @@
+/** Ограниченный HTTP-клиент отмены Prodamus; полученный ответ ещё требует фиксации в локальном журнале. */
 import type { Profile } from "./cancellation";
 import { createProdamusSign } from "./prodamus-signature";
 import { buildProdamusQuery } from "./prodamus-query";
@@ -46,7 +47,7 @@ export async function cancelProdamusProfile(
   try {
     const response = await send(url, {
       method: "POST",
-      // Only the configured endpoint may receive or confirm this signed request.
+      // Получить и подтвердить подписанный запрос может лишь настроенный endpoint.
       redirect: "error",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: buildProdamusQuery(data),

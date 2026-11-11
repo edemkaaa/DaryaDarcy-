@@ -1,3 +1,4 @@
+/** Входные схемы редактора отделяют создание от частичного изменения поста и его вложений. */
 import { z } from "zod";
 import { postAttachmentInput } from "./post-attachments";
 import { postTextInput } from "./post-text-limit";

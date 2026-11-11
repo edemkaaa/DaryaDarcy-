@@ -1,3 +1,4 @@
+/** Связывает публичные операции привязки с жизненным циклом и хранилищем, не смешивая транспорт и SQL. */
 import { Injectable } from "@nestjs/common";
 import { getDb } from "../db";
 import {

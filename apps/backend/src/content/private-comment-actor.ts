@@ -1,3 +1,4 @@
+/** Проверяем актуальную сессию и доступ к обсуждению перед операциями с закрытым фото комментария. */
 import { eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { posts, type User } from "../../../../packages/database/src/schema";

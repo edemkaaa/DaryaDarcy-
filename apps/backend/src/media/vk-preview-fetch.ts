@@ -1,3 +1,4 @@
+/** Чтение обложек VK ограничено разрешёнными источниками, размером и временем запроса. */
 /** The isolated API may use its private, fixed-host egress gateway. Browser
  * cookies, auth headers and redirects never cross this provider boundary. */
 export function fetchVkPreview(

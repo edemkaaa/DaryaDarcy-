@@ -1,3 +1,4 @@
+/** Входные схемы и административные tRPC-операции; права проверяются до доменных действий. */
 import { z } from "zod";
 import { membersPageInput } from "./members-page";
 import { paymentsPageInput } from "./payments-page";

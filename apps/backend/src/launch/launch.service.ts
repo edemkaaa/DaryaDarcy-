@@ -1,3 +1,4 @@
+/** Отбирает публичную часть оформления и передаёт административные изменения в атомарное сохранение. */
 import { Injectable } from "@nestjs/common";
 import { getDb } from "../db";
 import { getCapabilities } from "./capabilities";
@@ -11,7 +12,7 @@ import {
 @Injectable()
 export class LaunchService {
   private async database() {
-    // Transitional Drizzle pool; ownership/lifecycle moves separately from HTTP.
+    // Пул Drizzle общий; его жизненный цикл не принадлежит HTTP-методу сервиса.
     const database = await getDb();
     if (!database) throw new Error("Database unavailable");
     return database;

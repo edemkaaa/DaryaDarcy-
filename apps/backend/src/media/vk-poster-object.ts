@@ -1,3 +1,4 @@
+/** Сохраняем отдельную публичную WebP-копию обложки VK под ключом исходного видео и хеша результата. */
 import { createHash } from "node:crypto";
 import {
   HeadObjectCommand,

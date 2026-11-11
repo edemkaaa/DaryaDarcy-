@@ -1,3 +1,4 @@
+/** Анкета, согласие и отзыв участия сохраняются согласованно с изменениями пар. */
 import {
   and,
   asc,
@@ -66,6 +67,7 @@ async function recordProfileConsent(
   });
 }
 
+/** Анкета и согласие записываются вместе после повторной проверки автора. */
 export async function upsertPenPalProfileV2(
   actor: PenPalActor,
   data: {
@@ -156,6 +158,7 @@ export async function deactivatePenPalProfile(
     );
 }
 
+/** Возвращаем собственную анкету через текущую сессию, а не через произвольный userId. */
 export async function readOwnPenPalProfile(actor: PenPalActor) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -190,6 +193,7 @@ function matchInfoForUser(
   };
 }
 
+/** Подбираем ограниченный набор карточек без выдачи адреса до взаимного подтверждения. */
 export async function findPenPalCards(actor: PenPalActor, limit = 2) {
   const database = await getDb();
   if (!database) throw new Error("Database not available");
@@ -400,6 +404,7 @@ export async function findPenPalCards(actor: PenPalActor, limit = 2) {
   );
 }
 
+/** Совместимая граница создания заявки использует общие проверки пары. */
 export async function requestPenPalMatch(
   actor: PenPalActor,
   targetUserId: number,
@@ -409,6 +414,7 @@ export async function requestPenPalMatch(
   return requestMatch(db, actor, targetUserId);
 }
 
+/** Совместимая граница ответа использует общую проверку участия и срока заявки. */
 export async function respondPenPalMatch(
   actor: PenPalActor,
   matchId: number,

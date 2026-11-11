@@ -1,9 +1,10 @@
+/** Считает вызовы старого checkout до валидации и внешней работы, включая элементы batch-запроса. */
 import { TRPCError } from "@trpc/server";
 import type { Request, Response } from "express";
 import { checkRequestRateLimit } from "../_core/request-rate-limit";
 import { clientIp } from "../sms-auth";
 
-/** Each invocation counts before validation/provider work, including batches. */
+/** Каждый вызов, включая batch, учитывается до валидации и работы с провайдером. */
 export async function enforceLegacyCheckoutLimit(
   req: Request,
   res: Response,

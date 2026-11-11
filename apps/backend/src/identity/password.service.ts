@@ -1,3 +1,4 @@
+/** Сервис восстановления пароля поверх существующих одноразовых токенов и outbox. */
 import { Injectable } from "@nestjs/common";
 import { getDb } from "../db";
 import type { User } from "../../../../packages/database/src/schema";

@@ -1,3 +1,4 @@
+/** Служебные и маркетинговые уведомления используют отдельные правила выбора получателей. */
 import type { PushConsentType } from "../../../packages/shared/src/push-consent";
 import * as db from "./db";
 import { z } from "zod";

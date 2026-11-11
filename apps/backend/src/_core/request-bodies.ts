@@ -1,3 +1,4 @@
+/** Выбирает ограниченный парсер тела по маршруту, сохраняя отдельные границы медиа и подписанных webhook. */
 import express, { type Express, type Request, type Response } from "express";
 import { SessionService } from "../identity/session.service";
 import { privateVideoMetadata, privateVideoUploadEnabled } from "../content/private-video-input";
@@ -34,6 +35,7 @@ function isProviderWebhook(req: Request): boolean {
     (req.method === "GET" || req.method === "HEAD" || req.method === "POST");
 }
 
+/** Порядок middleware важен: signed raw и большие медиа не должны попадать под обычный JSON-парсер. */
 export function registerRequestBodies(app: Express, sessions: Pick<SessionService, "optionalUser"> = new SessionService()) {
   app.post("/api/admin/private-video-uploads", asyncHandler(async (req, res, next) => {
     res.setHeader("Cache-Control", "no-store");
@@ -52,13 +54,13 @@ export function registerRequestBodies(app: Express, sessions: Pick<SessionServic
     res.status(404).json({ error: retiredUploadMessage });
   });
   app.use(asyncHandler(async (req, res, next) => {
-    // POST has its bounded raw parser; GET/its implicit HEAD use query only.
-    // Ordinary JSON/form parsers must not change what the provider signature binds.
+    // POST имеет собственный ограниченный raw-парсер, GET/HEAD используют query.
+    // Общие JSON/form-парсеры не должны менять данные, покрываемые подписью провайдера.
     if (isProviderWebhook(req)) { next(); return; }
     let path: string;
     try { path = decodeURIComponent(req.path); } catch { res.sendStatus(400); return; }
     const names = path.startsWith("/api/trpc/") ? path.slice("/api/trpc/".length).split(",") : [];
-    // Reject amplification before parsing a body or entering any procedure.
+    // Отклоняем усиление batch-запросом до чтения тела и входа в процедуры.
     if (names.length > 20 || names.filter(name => name === "feed.list").length > 1) {
       res.status(400).json({ error: "Слишком много операций в запросе" }); return;
     }
@@ -69,14 +71,14 @@ export function registerRequestBodies(app: Express, sessions: Pick<SessionServic
     if (privateUpload && process.env.PRIVATE_POST_MEDIA_UPLOAD_ENABLED !== "true") { res.status(404).json({ error: "Загрузка недоступна" }); return; }
     const privateContentUpload = names.includes("admin.uploadPrivateContentFile") || names.includes("club.uploadPrivateCommentPhoto");
     if (privateContentUpload && process.env.PRIVATE_CONTENT_FILES_ENABLED !== "true") { res.status(404).json({ error: "Загрузка недоступна" }); return; }
-    // Base64 envelopes need room above the existing decoded 4/32 MiB quotas.
+    // Base64 требует большего JSON-конверта, чем лимиты декодированных файлов 4/32 МиБ.
     const media = privateUpload || names.includes("admin.uploadPrivateContentFile");
     const photo = names.some(name => photoProcedures.has(name));
     if ((media || photo) && !(await requireUploadIdentity(req, res, media || names.includes("admin.uploadPhoto") || names.includes("admin.uploadPublicCover"), sessions))) return;
-    // tRPC 11 stringifies an Express-parsed object and parses it again. Let its
-    // bounded stream reader handle standard UTF-8 JSON once, after admission.
-    // Other charsets retain the existing Express JSON path. Encoded bodies
-    // have already been rejected by the HTTP security boundary.
+    // tRPC 11 повторно сериализует уже разобранный Express-объект. После admission
+    // обычный UTF-8 JSON читает один ограниченный потоковый парсер tRPC.
+    // Другие кодировки сохраняют Express-путь; сжатые тела уже отклонены
+    // общей HTTP-границей безопасности.
     if (media && req.method === "POST" &&
         /^application\/json(?:\s*;\s*charset\s*=\s*(?:utf-8|"utf-8"))?\s*$/i.test(req.headers["content-type"] ?? "") &&
         (!req.headers["content-encoding"] || req.headers["content-encoding"] === "identity")) {
@@ -92,8 +94,8 @@ export function registerRequestBodies(app: Express, sessions: Pick<SessionServic
   const formParser = express.urlencoded({ limit: "16kb", extended: false, parameterLimit: 100 });
   const providerReturn = express.urlencoded({ limit: "2mb", extended: false, parameterLimit: 100 });
   app.use((req, res, next) => {
-    // urlencoded() otherwise creates req.body={} even for JSON, hiding the
-    // unread stream from tRPC's Node adapter.
+    // Иначе urlencoded() создаёт req.body={} даже для JSON и скрывает
+    // непрочитанный поток от Node-адаптера tRPC.
     if (isProviderWebhook(req) || streamedMediaRequests.has(req)) { next(); return; }
     const parser = /^\/api\/prodamus\/return\/?$/.test(req.path) ? providerReturn : formParser;
     parser(req, res, error => { if (error) bodyError(res, error); else next(); });

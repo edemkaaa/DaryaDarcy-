@@ -1,3 +1,4 @@
+/** Входные схемы Почтового отделения и проверка доступности функции на API-границе. */
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";

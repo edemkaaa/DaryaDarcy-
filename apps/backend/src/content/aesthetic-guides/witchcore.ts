@@ -1,3 +1,4 @@
+/** Серверное содержимое гида witchcore; право выдачи проверяет контроллер эстетик. */
 import type { AestheticGuideContent } from "../../../../../packages/shared/src/aesthetic-guide";
 export const WITCHCORE_RESULT: AestheticGuideContent = {
   style: {

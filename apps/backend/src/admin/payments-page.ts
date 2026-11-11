@@ -1,3 +1,4 @@
+/** Постраничная история оплат только читает данные и не подтверждает платёж у провайдера. */
 import { and, desc, eq, lt, or } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { z } from "zod";

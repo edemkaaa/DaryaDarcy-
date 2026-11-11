@@ -1,3 +1,4 @@
+/** Ключ операции связывает административное действие и его сохранённый результат после потери ответа. */
 import { lockAdminActionActor, requireAdminActionActor } from "./action-actor";
 import { createHash } from "node:crypto";
 import { and, desc, eq } from "drizzle-orm";
@@ -23,6 +24,7 @@ function requireKey(key: string) {
     throw new TRPCError({ code: "BAD_REQUEST" });
 }
 
+/** Результат административного намерения сохраняем рядом с изменением его цели. */
 export async function executeAdminAction(
   database: MySql2Database,
   actor: User,

@@ -1,3 +1,4 @@
+/** Отказ для выведенных публичных загрузок предотвращает появление новых незащищённых клубных файлов. */
 import { TRPCError } from "@trpc/server";
 
 export const retiredPublicUploads = new Set([

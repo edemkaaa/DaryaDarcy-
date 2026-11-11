@@ -1,3 +1,4 @@
+/** Совместимые чтения участников и оплат из переданного клиента БД. */
 import { and, desc, eq, gt, inArray, sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { clubPayments, users } from "../../../../packages/database/src/schema";
@@ -6,6 +7,7 @@ import { boundedLegacyList, LEGACY_LIST_CAP } from "../content/legacy-list-limit
 // The compatibility facade owns the lazy connection; this module only reads it.
 type Database = MySql2Database | null;
 
+/** Читаем административную проекцию участников через переданный клиент БД. */
 export async function listAdminMembers(db: Database) {
   if (!db) throw new Error("Database not available");
   const allUsers = boundedLegacyList(await db
@@ -43,6 +45,7 @@ export async function listAdminMembers(db: Database) {
   }));
 }
 
+/** Чтение истории не вызывает провайдера и не меняет оплаченный срок. */
 export async function listAdminPayments(db: Database, limit = 50) {
   if (!db) throw new Error("Database not available");
   return db

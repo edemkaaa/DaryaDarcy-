@@ -1,3 +1,4 @@
+/** Создаёт новый email-аккаунт либо повторяет доказательство владения; чужой аккаунт не присваивается. */
 import { and, desc, eq, like, or } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import {
@@ -43,7 +44,7 @@ async function recordRegistrationConsent(tx: Transaction, userId: number) {
   });
 }
 
-/** Resume proof by email, including identities created by a recorded checkout. */
+/** Повторяет доказательство email, в том числе для аккаунта, созданного записанной оплатой. */
 export async function retryEmailRegistration(
   database: MySql2Database,
   email: string,
@@ -99,8 +100,8 @@ export async function retryEmailRegistration(
       .limit(1);
     if (normalizeEmail(checkout?.email || "") !== email) return false;
 
-    // A previous recovery may already have queued a usable link. Record
-    // consent once and share the existing recipient budget for setup mail.
+    // Рабочая ссылка могла попасть в очередь при предыдущем восстановлении.
+    // Согласие записываем один раз, бюджет писем первого пароля общий для получателя.
     const [consent] = await tx
       .select({ status: userConsentEvents.status })
       .from(userConsentEvents)
@@ -117,7 +118,7 @@ export async function retryEmailRegistration(
   });
 }
 
-/** Registration may insert an account, never update or claim a pre-existing one. */
+/** Регистрация может создать аккаунт, но не обновить и не присвоить уже существующий. */
 export async function createEmailAccount(
   database: MySql2Database,
   input: {
@@ -159,8 +160,8 @@ export async function createEmailAccount(
       return user;
     });
   } catch (error) {
-    // The deterministic email openId's unique constraint arbitrates concurrent
-    // registration/checkout. A losing request cannot overwrite password or role.
+    // Уникальный детерминированный openId email разрешает гонку регистрации и оплаты.
+    // Проигравший запрос не меняет пароль и роль существующей записи.
     if (isDuplicateAccount(error)) return null;
     throw error;
   }

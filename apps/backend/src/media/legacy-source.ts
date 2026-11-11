@@ -1,3 +1,4 @@
+/** Проверяем происхождение старого объекта перед переносом в закрытое хранилище. */
 const root = "https://s3.twcstorage.ru/daryadarcy-s3/";
 
 /** Exact old bucket only. Retain the DB string; decode each key segment exactly once. */

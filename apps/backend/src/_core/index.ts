@@ -1,3 +1,4 @@
+/** Точка запуска API: проверка конфигурации, listener, запуск работников и обработка завершения. */
 ﻿import "./load-env";
 import type { Server } from "node:http";
 import net from "net";

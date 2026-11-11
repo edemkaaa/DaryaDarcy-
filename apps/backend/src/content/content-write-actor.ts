@@ -1,3 +1,4 @@
+/** Перед записью заново проверяем текущую сессию и права автора под блокировкой строки пользователя. */
 import { eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { users, type User } from "../../../../packages/database/src/schema";
@@ -5,6 +6,7 @@ import type { ContentTransaction } from "./post-deletion";
 
 export type ContentWriteActor = Pick<User, "id" | "sessionVersion">;
 
+/** Заново читаем текущую сессию под блокировкой пользователя перед записью материала. */
 export async function lockCurrentContentActor(
   tx: Pick<ContentTransaction, "select">,
   actor: ContentWriteActor,

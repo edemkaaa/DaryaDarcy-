@@ -1,3 +1,4 @@
+/** Один пакетный путь чтения вложений используется списком, деталями и админкой. */
 import { asc, eq, inArray } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import {
@@ -36,6 +37,7 @@ export async function attachPostMedia<T extends { id: number }>(
   }
 }
 
+/** Читаем вложения одного родительского поста в установленном порядке. */
 export async function getPostMediaByPostId(
   db: MySql2Database | null,
   postId: number,

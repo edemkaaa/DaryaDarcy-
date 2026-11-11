@@ -1,3 +1,4 @@
+/** Ограниченный список участников для админки с курсором и безопасной проекцией полей. */
 import { and, desc, eq, gt, inArray, lt, max, or } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { z } from "zod";
@@ -18,6 +19,7 @@ export const membersPageInput = z
   .strict()
   .default({ limit: 20 });
 
+/** Ограничиваем страницу участников и сохраняем контекст курсора. */
 export async function membersPage(
   database: MySql2Database | null,
   actorId: number,

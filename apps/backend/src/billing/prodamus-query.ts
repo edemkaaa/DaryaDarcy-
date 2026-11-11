@@ -1,4 +1,5 @@
-/** PHP-style query encoding shared by signed links and cancellation requests. */
+/** Единое PHP-совместимое кодирование параметров для подписанных ссылок и запросов отмены. */
+/** PHP-совместимое кодирование общее для подписанных ссылок и запросов отмены. */
 export function buildProdamusQuery(data: Record<string, unknown>): string {
   const parts: string[] = [];
   const append = (key: string, value: unknown) => {

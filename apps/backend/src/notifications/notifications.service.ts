@@ -1,3 +1,4 @@
+/** Регистрация токенов, согласия и очистка push-данных через общие SQL-операции. */
 import { Injectable } from "@nestjs/common";
 import * as db from "../db";
 import {
@@ -10,9 +11,10 @@ import type {
 } from "./notification-input";
 import { requireCapability } from "../launch/capabilities";
 
-/** Adapters authorize/validate; existing helpers own SQL and upsert semantics. */
+/** Адаптер проверяет вход и права; SQL и семантика upsert принадлежат существующим helpers. */
 @Injectable()
 export class NotificationsService {
+  /** Флаг выпуска проверяется до записи; принадлежность токена фиксируют общие SQL-операции. */
   async registerToken(
     input: RegisterTokenInput,
     actor?: db.PushWriteActor,

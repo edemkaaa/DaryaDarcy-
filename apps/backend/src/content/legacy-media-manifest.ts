@@ -1,3 +1,4 @@
+/** Подготавливаем проверяемый план переноса старых вложений до изменения файлов и привязок. */
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import sharp from "sharp";
@@ -218,6 +219,7 @@ async function prepareLegacyStream(raw: unknown) {
   };
 }
 
+/** Подготавливаем план до применения изменений; наличие плана само по себе ничего не переносит. */
 export async function prepareLegacyMigration(raw: unknown) {
   return z.object({ transport: z.literal("s3Stream") }).safeParse(raw).success
     ? prepareLegacyStream(raw)

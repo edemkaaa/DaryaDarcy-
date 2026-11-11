@@ -1,3 +1,4 @@
+/** Правки текста пересчитывают диапазоны форматирования и выделение в редакторе. */
 type Range = [number, number];
 
 /** Shift formatting ranges after a single contiguous text edit. */
@@ -34,6 +35,7 @@ export function adjustRangesOnTextChange(
     .filter((r): r is Range => r !== null && r[1] > r[0] && r[0] >= 0 && r[1] <= newText.length);
 }
 
+/** Ограничиваем форматирование фактическими границами текста. */
 export function clampRanges(value: string, ranges: Range[]): Range[] {
   const len = value.length;
   return mergeRanges(
@@ -43,6 +45,7 @@ export function clampRanges(value: string, ranges: Range[]): Range[] {
   );
 }
 
+/** Объединяем совместимые диапазоны, не меняя смысл форматирования. */
 export function mergeRanges(ranges: Range[]): Range[] {
   if (ranges.length === 0) return [];
   const sorted = [...ranges].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
@@ -59,6 +62,7 @@ export function mergeRanges(ranges: Range[]): Range[] {
   return merged;
 }
 
+/** Меняем формат выбранного диапазона редактора. */
 export function toggleRangeFormat(ranges: Range[], start: number, end: number): Range[] {
   const covered = ranges.some((r) => r[0] <= start && r[1] >= end);
   if (covered) {
@@ -80,6 +84,7 @@ function splitRange(ranges: Range[], start: number, end: number): Range[] {
   return next;
 }
 
+/** Ограничиваем превью выделения без изменения самого текста. */
 export function truncateSelectionPreview(text: string, maxLen = 72): string {
   const oneLine = text.replace(/\s+/g, " ").trim();
   if (oneLine.length <= maxLen) return oneLine;

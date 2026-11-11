@@ -1,3 +1,4 @@
+/** Каталог принимает только точные публичные пути обложек; подписанные и закрытые адреса не рекламируются клиенту. */
 /** Only existing public image namespaces; never advertise private/signed media
  * or a player URL as a cover. This function does not fetch external content. */
 export function publicCatalogThumbnail(raw: string | null) {

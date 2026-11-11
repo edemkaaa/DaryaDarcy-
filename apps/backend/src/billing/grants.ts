@@ -1,3 +1,4 @@
+/** Выдаёт отдельное административное продление с проверкой действующего actor и владельца доступа. */
 import { lockAdminActionActor } from "../admin/action-actor";
 import { randomUUID } from "node:crypto";
 import { TRPCError } from "@trpc/server";
@@ -5,7 +6,7 @@ import { and, desc, eq } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { clubPayments, users, type User } from "../../../../packages/database/src/schema";
 
-/** Distinct grants. Trusted maintenance may omit actor; HTTP must supply its session actor. */
+/** Отдельные продления: доверенная maintenance может не передавать actor, HTTP обязан передать его сессию. */
 export async function grantClubAccess(
   database: MySql2Database,
   userId: number,
@@ -18,6 +19,7 @@ export async function grantClubAccess(
   });
 }
 
+/** Административный доступ продлевается от актуального срока под общей с settlement блокировкой пользователя. */
 export async function grantClubAccessInTransaction(
   tx: Parameters<Parameters<MySql2Database["transaction"]>[0]>[0],
   userId: number,
@@ -33,7 +35,7 @@ export async function grantClubAccessInTransaction(
       "Grant duration must be a positive whole number of days",
     );
 
-  // Use the settlement/retention owner lock before computing the new expiry.
+  // До расчёта срока берём ту же блокировку владельца, что и settlement/retention.
   const [user] = await tx
     .select()
     .from(users)

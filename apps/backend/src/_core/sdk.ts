@@ -1,3 +1,4 @@
+/** Проверяет JWT сессии и актуальную запись пользователя; внешняя identity-интеграция изолирована здесь. */
 import { AXIOS_TIMEOUT_MS, COOKIE_NAME, ONE_YEAR_MS } from "../../../../packages/shared/src/const.js";
 import { ForbiddenError } from "../../../../packages/shared/src/_core/errors.js";
 import axios, { type AxiosInstance } from "axios";
@@ -14,7 +15,7 @@ import type {
   GetUserInfoWithJwtRequest,
   GetUserInfoWithJwtResponse,
 } from "./types/manusTypes";
-// Utility function
+// Общая проверка обязательных строк в данных внешнего identity-адаптера.
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.length > 0;
 
@@ -96,7 +97,7 @@ class SDKServer {
   }
 
   /**
-   * Exchange OAuth authorization code for access token
+   * Обменивает OAuth authorization code на access token.
    * @example
    * const tokenResponse = await sdk.exchangeCodeForToken(code, state);
    */
@@ -105,7 +106,7 @@ class SDKServer {
   }
 
   /**
-   * Get user information using access token
+   * Получает данные пользователя по access token внешнего сервиса.
    * @example
    * const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
    */
@@ -139,7 +140,7 @@ class SDKServer {
   }
 
   /**
-   * Create a session token for a Manus user openId
+   * Создаёт токен сессии по openId; полномочия проверяются по текущей записи БД.
    * @example
    * const sessionToken = await sdk.createSessionToken(userInfo.openId);
    */
@@ -232,8 +233,9 @@ class SDKServer {
     } as GetUserInfoWithJwtResponse;
   }
 
+  /** Доверие к JWT дополняется текущим аккаунтом и epoch; ошибки БД не означают недействительную сессию. */
   async authenticateRequest(req: Request): Promise<User> {
-    // Regular authentication flow
+    // После проверки токена читаем текущий аккаунт, а не полагаемся на старые поля JWT.
     const authHeader = req.headers.authorization || req.headers.Authorization;
     let token: string | undefined;
     if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {

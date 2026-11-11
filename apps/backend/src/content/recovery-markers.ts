@@ -1,3 +1,4 @@
+/** Маркеры использованных намерений не позволяют повторно создать результат после компактации журнала. */
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { contentRecoveryMarkers } from "../../../../packages/database/src/schema";

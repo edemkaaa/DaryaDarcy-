@@ -1,3 +1,4 @@
+/** Разрешённые MIME вложений задают допустимую выдачу закрытых файлов. */
 import { AUDIO_MIMES } from "../../../../packages/shared/src/audio-formats";
 // Keep private upload acceptance aligned with the existing closed read boundary.
 const DELIVERABLE_MIMES = new Set([
@@ -12,6 +13,7 @@ const DELIVERABLE_MIMES = new Set([
   "application/octet-stream",
 ]);
 
+/** Проверяем возможность безопасной выдачи данного MIME по принятому контракту. */
 export function isDeliverableAttachmentMime(mime: string): boolean {
   return DELIVERABLE_MIMES.has(mime.split(";")[0].trim().toLowerCase());
 }

@@ -1,3 +1,4 @@
+/** Сервис загрузок связывает административный API с проверкой файлов и существующими хранилищами. */
 import { Injectable } from "@nestjs/common";
 import { TRPCError } from "@trpc/server";
 import { uploadPhoto } from "../media/photos";

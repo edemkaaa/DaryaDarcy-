@@ -1,3 +1,4 @@
+/** Общий тип HTTP-ошибки позволяет отличать отказ доступа от сбоя инфраструктуры. */
 /**
  * Base HTTP error class with status code.
  * Throw this from route handlers to send specific HTTP errors.

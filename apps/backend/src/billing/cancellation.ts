@@ -1,3 +1,4 @@
+/** Хранит запрос отмены, повторяет внешнюю отмену по lease и отдельно фиксирует подтверждение провайдера. */
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import {
   and,
@@ -28,7 +29,7 @@ export type Profile = typeof billingProfiles.$inferSelect & {
   manager?: boolean;
 };
 
-/** Expected pre-effect refusal; SQL/worker failures must remain server errors. */
+/** Ожидаемый отказ до внешнего эффекта; ошибки SQL/worker должны оставаться серверными. */
 export class CancellationUnavailableError extends Error {}
 
 export type CancellationActor = Pick<User, "id" | "openId" | "sessionVersion">;
@@ -38,8 +39,8 @@ export class CancellationActorError extends Error {
   }
 }
 
-/** Read-only recovery after an unknown/lost cancellation response. A stored
- * request is not proof that the provider has disabled future charges.
+/** Восстанавливает результат неизвестного ответа отмены только чтением.
+ * Записанный запрос не доказывает отключение будущих списаний у провайдера.
  */
 export async function readClubCancellationStatus(
   database: Pick<MySql2Database, "select">,
@@ -70,6 +71,7 @@ export async function readClubCancellationStatus(
     : "none";
 }
 
+/** Записывает намерение отмены, но не выставляет подтверждённое прекращение будущих списаний. */
 export async function queueCancellationForUser(
   tx: Transaction,
   userId: number,
@@ -114,6 +116,7 @@ async function markPaidPeriodConfirmed(tx: Transaction, userId: number) {
     );
 }
 
+/** Сначала фиксирует запрос, затем пытается связаться с провайдером и перечитывает итоговое состояние. */
 export async function requestClubCancellation(
   database: MySql2Database,
   owner: number | CancellationActor,
@@ -185,6 +188,7 @@ export async function requestClubCancellation(
   return { confirmed, expiresAt: paid.expiresAt };
 }
 
+/** Только подтверждение провайдера завершает профиль и согласует оплаченный период пользователя. */
 export async function confirmProviderCancellation(
   database: MySql2Database,
   proof: Pick<PaymentProof, "domain" | "subscriptionId" | "profileId">,
@@ -214,6 +218,7 @@ export async function confirmProviderCancellation(
     return true;
   });
 }
+/** Ограниченные повторы по lease; поздний ответ не должен перезаписать работу заменяющего worker. */
 export async function processCancellations(
   database: MySql2Database,
   send: (profile: Profile) => Promise<boolean>,
@@ -260,8 +265,8 @@ export async function processCancellations(
       .where(eq(users.id, profile.userId));
     let success = false;
     try {
-      // Final state writes already compare leaseId. The external request must
-      // also be refused if this worker lost ownership while reading the actor.
+      // Финальная запись уже сравнивает leaseId, но и внешний запрос запрещён,
+      // если worker потерял владение во время чтения actor.
       const [owned] = await database
         .select({ profileKey: billingProfiles.profileKey })
         .from(billingProfiles)

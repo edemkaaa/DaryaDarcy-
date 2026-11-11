@@ -1,3 +1,4 @@
+/** Точные ссылки приложения привязываются к квитанциям файлов; произвольный URL не заменяет такую привязку. */
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { postMedia, privateContentFiles, type ArticleBlock } from "../../../../packages/database/src/schema";
@@ -22,6 +23,7 @@ export function contentAssetId(raw: string): string | undefined {
   return match[1];
 }
 export const postPhotoReferences = (photos: string[]): ContentFileReference[] => photos.map(url => ({ url, usage: "postPhoto" }));
+/** Собираем текущие ссылки вложений поста в контексте переданной транзакции. */
 export async function postFileReferences(tx: Pick<Writer, "select">,
   postId: number, photos: string[]): Promise<ContentFileReference[]> {
   const media = await tx.select({ posterUrl: postMedia.posterUrl }).from(postMedia)
@@ -29,6 +31,7 @@ export async function postFileReferences(tx: Pick<Writer, "select">,
   return postPhotoReferences([...photos, ...media.flatMap(row => row.posterUrl ? [row.posterUrl] : [])]);
 }
 export function hasPrivateContent(references: ContentFileReference[]): boolean { return references.some(ref => Boolean(contentAssetId(ref.url))); }
+/** Собираем ссылки из структурированных блоков статьи для проверки привязок. */
 export function articleFileReferences(blocks: ArticleBlock[]): ContentFileReference[] {
   return blocks.flatMap((block): ContentFileReference[] => {
     if (block.type === "photo" || block.type === "png") return [{ url: block.url ?? "", usage: "articlePhoto" }];
@@ -37,6 +40,7 @@ export function articleFileReferences(blocks: ArticleBlock[]): ContentFileRefere
     return [];
   });
 }
+/** Публичная обложка не должна ссылаться на зарезервированный закрытый маршрут. */
 export function assertPublicContentCover(url: string | null | undefined) {
   if (url && contentAssetId(url)) throw new TRPCError({ code: "BAD_REQUEST", message: "Закрытый файл нельзя использовать как публичную обложку" });
 }

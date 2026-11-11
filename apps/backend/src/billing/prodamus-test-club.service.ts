@@ -1,3 +1,4 @@
+/** Одноразовая TEST-оплата с собственной привязкой и явной проверкой режима. */
 import { TRPCError } from "@trpc/server";
 import { randomUUID } from "node:crypto";
 import type { User } from "../../../../packages/database/src/schema";
@@ -27,7 +28,7 @@ const notificationMinor = (value: unknown) =>
     ? moneyMinor(String(value))
     : null;
 
-/** Original signed sum/products bind the RUB order; no guessed FX conversion. */
+/** Исходные подписанные сумма/товары связывают RUB-заказ; курс валют не угадывается. */
 function testAccountingProof(
   body: Record<string, unknown>,
   proof: PaymentProof,
@@ -63,7 +64,7 @@ function testAccountingProof(
   };
 }
 
-/** Exclusive dev binding; never falls back to a live key/merchant or YooKassa. */
+/** Отдельная dev-привязка без подстановки LIVE-ключа, merchant или YooKassa. */
 export function requireProdamusTestConfiguration() {
   const key = process.env.PRODAMUS_TEST_SECRET || "";
   const demoSign = process.env.PRODAMUS_TEST_DEMO_SIGN;
@@ -79,7 +80,7 @@ export function requireProdamusTestConfiguration() {
   return { key, signingKey: demoSign === "true" ? `${key}demo` : key };
 }
 
-/** Dev-only one-off access; diagnostic and live receivers remain unchanged. */
+/** Разовый dev-доступ; диагностический и LIVE-приёмники сохраняют свои границы. */
 export class ProdamusTestClubService {
   async result(token: string) {
     const configured = requireProdamusTestConfiguration();

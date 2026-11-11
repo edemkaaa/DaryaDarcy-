@@ -1,3 +1,4 @@
+/** Объединяет расписание с распределённым владением задачами публикации, оплаты, очистки и бэкапа. */
 import { Inject, Injectable } from "@nestjs/common";
 import {
   IntervalJobs,
@@ -40,7 +41,7 @@ export class WorkerJobs {
     );
   }
 
-  /** Activation belongs to the executable after a successful listen, not init. */
+  /** Расписание включает точка запуска после успешного listen, а не инициализация Nest-модуля. */
   start(): void {
     this.jobs.start();
   }
@@ -53,8 +54,8 @@ export class WorkerJobs {
     const published = await this.operations.publishDueScheduledPosts();
     for (const post of published) {
       console.log(`[schedule] published post #${post.id}`);
-      // Include delivery in this running job so graceful shutdown can await it.
-      // This still does not claim a durable publication notification outbox.
+      // Включаем отправку в Promise задачи, чтобы shutdown мог её дождаться.
+      // Это не добавляет долговечный outbox для уведомлений о публикации.
       await this.operations.sendMarketingPostNotification(
         post.text,
         post.id,

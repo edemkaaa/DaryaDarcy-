@@ -1,5 +1,7 @@
+/** Преобразуем представление форматирования между блоками текста и диапазонами. */
 import type { RichTextBlock } from "./rich-text-types";
 
+/** Преобразуем блочную разметку в диапазоны для интерактивного редактирования. */
 export function richTextToRanges(richText: RichTextBlock[] | null | undefined) {
   const boldRanges: [number, number][] = [];
   const italicRanges: [number, number][] = [];
@@ -24,6 +26,7 @@ export function richTextToRanges(richText: RichTextBlock[] | null | undefined) {
   return { boldRanges, italicRanges, linkRanges };
 }
 
+/** Восстанавливаем структурированную разметку из диапазонов форматирования. */
 export function rangesToRichText(
   rawText: string,
   boldRanges: [number, number][],

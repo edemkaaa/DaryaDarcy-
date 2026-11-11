@@ -1,3 +1,4 @@
+/** Локальное окно ограничения частоты для одного процесса; выбор общего режима выполняется выше. */
 type Bucket = { count: number; resetAt: number };
 
 const buckets = new Map<string, Bucket>();

@@ -1,3 +1,4 @@
+/** Проверяем экспортированный адрес VK, сохраняем предоставленный hash и не придумываем отсутствующий. */
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { publicCatalogThumbnail } from "./video-thumbnail";

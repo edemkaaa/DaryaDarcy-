@@ -1,3 +1,4 @@
+/** Проверка и нормализация фото отделены от публичной загрузки с явным назначением. */
 import { randomUUID } from "node:crypto";
 import sharp from "sharp";
 import { TRPCError } from "@trpc/server";
@@ -56,6 +57,7 @@ export async function preparePhoto(base64: string): Promise<Buffer> {
   return output;
 }
 
+/** Публичная загрузка требует разрешённого назначения; произвольный каталог недопустим. */
 export async function uploadPhoto(
   base64: string,
   folder: string,

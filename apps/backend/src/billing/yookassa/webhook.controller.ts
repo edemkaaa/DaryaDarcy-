@@ -1,3 +1,4 @@
+/** HTTP-граница TEST-уведомлений YooKassa с последующей серверной проверкой платежа. */
 import { Controller, Inject, Post, Req, Res } from "@nestjs/common";
 import type { Request, Response } from "express";
 import { z } from "zod";

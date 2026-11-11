@@ -1,3 +1,4 @@
+/** Жизненный цикл закрытой загрузки: ключ операции, проверка владельца, готовность и чтение результата. */
 import { randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
@@ -59,6 +60,7 @@ export function requirePrivateUploadEnabled() {
   if (process.env.PRIVATE_POST_MEDIA_UPLOAD_ENABLED !== "true")
     throw new TRPCError({ code: "NOT_FOUND" });
 }
+/** Проверяем актуальную сессию владельца под SQL-блокировкой до изменения квитанции. */
 export async function lockPrivateAttachmentActor(
   tx: PrivateAttachmentTransaction,
   actor: PrivateAttachmentActor,
@@ -104,6 +106,7 @@ export async function requirePrivateAttachmentSchema(
 function requestKey(actor: PrivateAttachmentActor, key: string) {
   return digest(JSON.stringify(["admin.privateAttachment:v1", actor.id, key]));
 }
+/** Возвращаем клиентский статус операции без раскрытия секретов хранилища. */
 export function privateUploadReceipt(row: Receipt) {
   assertContentRecoveryWindow(row.createdAt);
   if (row.state === "ready" && !row.etag) throw unavailable();
@@ -130,6 +133,7 @@ function assertIntent(
   if (row.namespaceHash !== namespaceHash) throw unavailable();
   assertContentRecoveryWindow(row.createdAt);
 }
+/** Проверяем загружаемые данные и направляем их в общий журнал закрытых загрузок. */
 export async function uploadPrivateAttachment(
   actor: PrivateAttachmentActor,
   input: z.output<typeof privateUploadInput>,
@@ -261,6 +265,7 @@ export async function storePrivateAttachment(
     throw unavailable();
   }
 }
+/** Читаем результат исходного ключа операции после неизвестного исхода запроса. */
 export async function privateAttachmentStatus(
   actor: PrivateAttachmentActor,
   key: string,

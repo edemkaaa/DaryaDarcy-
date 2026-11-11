@@ -1,3 +1,4 @@
+/** Нормализуем структурированные блоки статьи, их ссылки и встроенное форматирование. */
 export type ArticleBlockType = "heading" | "text" | "photo" | "png" | "link" | "carousel";
 
 export interface ArticleBlock {
@@ -20,6 +21,7 @@ function asUrlList(value: unknown): string[] {
   return value.filter((item): item is string => typeof item === "string" && Boolean(item.trim()));
 }
 
+/** Создаём пустой блок выбранного поддерживаемого типа для редактора статьи. */
 export function emptyBlock(type: ArticleBlock["type"]): ArticleBlock {
   if (type === "photo" || type === "png") return { type, url: "", caption: "" };
   if (type === "link") return { type, url: "", label: "" };
@@ -27,6 +29,7 @@ export function emptyBlock(type: ArticleBlock["type"]): ArticleBlock {
   return { type, text: "" };
 }
 
+/** Извлекаем идентификатор связанной статьи только из ожидаемого формата источника. */
 export function articleIdFromSource(source?: string | null): number | null {
   const match = /^article:(\d+)$/.exec(source || "");
   if (!match) return null;
@@ -34,6 +37,7 @@ export function articleIdFromSource(source?: string | null): number | null {
   return Number.isFinite(id) && id > 0 ? id : null;
 }
 
+/** Приводим сохранённые блоки к допустимой структуре перед дальнейшей обработкой. */
 export function normalizeArticleBlocks(value: unknown): ArticleBlock[] {
   if (!Array.isArray(value)) return [];
   const blocks: ArticleBlock[] = [];
@@ -94,6 +98,7 @@ export type ArticleInline =
   | { kind: "bold"; text: string }
   | { kind: "link"; text: string; url: string };
 
+/** Разбираем встроенное форматирование текстового блока статьи. */
 export function parseArticleInlines(text: string): ArticleInline[] {
   const parts: ArticleInline[] = [];
   const pattern = /(\[[^\]]+\]\([^)\s]+\)|\*\*[^*]+\*\*)/g;

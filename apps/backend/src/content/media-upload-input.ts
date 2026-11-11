@@ -1,3 +1,4 @@
+/** Граничная схема загрузки медиа: согласуем поля запроса до обращения к хранилищу. */
 import { z } from "zod";
 
 // Preserve the existing upload wire contract; stronger media validation is separate.

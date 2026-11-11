@@ -1,3 +1,4 @@
+/** Явная служебная компактация журналов восстановления оставляет маркеры использованных намерений. */
 import { and, asc, eq, lte, sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import {

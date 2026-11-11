@@ -1,3 +1,4 @@
+/** После проверки входа ждёт долговечной записи подтверждения отмены перед успешным ответом. */
 import {
   readProdamusCancellationProfile,
   type ProdamusCancellationProfile,
@@ -13,7 +14,7 @@ export type ProdamusCancellationNotificationPorts = {
   confirm: (profile: ProdamusCancellationProfile) => Promise<boolean>;
 };
 
-/** Runs after authenticated ingress selects a cancellation action; waits for durable confirmation. */
+/** После аутентификации ingress ждёт долговечного подтверждения выбранной операции отмены. */
 export async function processProdamusCancellationNotification(
   body: Record<string, unknown>,
   signature: string,

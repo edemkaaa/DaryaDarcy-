@@ -1,3 +1,4 @@
+/** Регистрирует платёжные сервисы и их порты: проверка уведомления отделена от выдачи доступа. */
 import { Module } from "@nestjs/common";
 import { ClubCheckoutService } from "./club-checkout.service";
 import { ClubSubscriptionService } from "./club-subscription.service";
@@ -70,7 +71,7 @@ export type BillingServices = ClubBillingServices & {
     },
     {
       provide: PRODAMUS_WEBHOOK_HANDLER,
-      // Allocate the binding per application, not as mutable process-global state.
+      // Binding создаётся для приложения, а не как изменяемое состояние всего процесса.
       useFactory: (
         settlement: ClubSettlementService,
         cancellation: ClubCancellationService,

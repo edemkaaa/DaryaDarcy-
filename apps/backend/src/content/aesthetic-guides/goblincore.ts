@@ -1,3 +1,4 @@
+/** Серверное содержимое гида goblincore; право выдачи проверяет контроллер эстетик. */
 import type { AestheticGuideContent } from "../../../../../packages/shared/src/aesthetic-guide";
 export const GOBLINCORE_RESULT: AestheticGuideContent = {
   style: {

@@ -1,3 +1,4 @@
+/** Переключает HTTP-лимиты между локальным и общим MySQL-режимом без обхода отказавшего хранилища. */
 import { checkRateLimit } from "./rate-limit";
 import { coordinationMode } from "../database/coordination";
 import {
@@ -5,7 +6,7 @@ import {
   type LimitDecision,
 } from "../database/shared-limits";
 
-/** All HTTP admissions await the same mode; never bypass a failed shared store. */
+/** Все HTTP-квоты ждут выбранное хранилище; сбой общей БД не разрешает обойти лимит. */
 export async function checkRequestRateLimit(
   key: string,
   max: number,

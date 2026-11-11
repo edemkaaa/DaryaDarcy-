@@ -1,3 +1,4 @@
+/** Чистые проверки ролей и блокировки, общие для транспортных и доменных вызовов. */
 import type { User } from "../../../../packages/database/src/schema";
 
 export function isModeratorAccount(user: {

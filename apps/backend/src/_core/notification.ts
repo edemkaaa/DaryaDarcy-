@@ -1,3 +1,4 @@
+/** Доставляет служебное уведомление владельцу через существующий интеграционный канал. */
 import { TRPCError } from "@trpc/server";
 import { ENV } from "./env";
 
@@ -55,11 +56,9 @@ const validatePayload = (input: NotificationPayload): NotificationPayload => {
   return { title, content };
 };
 
-/**
- * Dispatches a project-owner notification through the Manus Notification Service.
- * Returns `true` if the request was accepted, `false` when the upstream service
- * cannot be reached (callers can fall back to email/slack). Validation errors
- * bubble up as TRPC errors so callers can fix the payload.
+/** Отправляет уведомление владельцу через Manus Notification Service.
+ * true означает принятие запроса сервисом, false — отказ внешней доставки.
+ * Ошибки входных данных остаются tRPC-ошибками для исправления вызывающим кодом.
  */
 export async function notifyOwner(
   payload: NotificationPayload,
@@ -99,7 +98,7 @@ export async function notifyOwner(
     });
 
     if (!response.ok) {
-      // Provider bodies/errors can contain credentials or recipient data.
+      // Тела и ошибки провайдера могут содержать доступы и данные получателя.
       console.warn(`[Notification] Provider rejected: HTTP ${response.status}`);
       return false;
     }

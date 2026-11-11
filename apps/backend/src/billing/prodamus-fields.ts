@@ -1,3 +1,4 @@
+/** Читает совместимые варианты полей Prodamus и различает paid, demo и действия подписки. */
 import { asProdamusRecord as asRecord } from "./prodamus-payload";
 
 export function pickString(
@@ -36,7 +37,7 @@ export function isPaidStatus(body: Record<string, unknown>): boolean {
   return status === "success";
 }
 
-/** A valid ordinary-key signature does not turn a demo payment into real money. */
+/** Правильная подпись обычным ключом не превращает demo-платёж в реальную оплату. */
 export function hasProdamusDemoMarker(body: Record<string, unknown>): boolean {
   const enabled = (record: Record<string, unknown>, names: string[]) =>
     Object.entries(record).some(

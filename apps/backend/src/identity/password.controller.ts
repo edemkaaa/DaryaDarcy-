@@ -1,3 +1,4 @@
+/** HTTP-запрос и завершение восстановления, повтор письма и самостоятельная страница ввода пароля. */
 import {
   Controller,
   Get,
@@ -68,6 +69,7 @@ export class PasswordController {
   @Post("auth/password/request")
   @HttpCode(200)
   @Header("Cache-Control", "no-store")
+  /** Одинаковый ответ для неизвестной почты; отправка работает через журнал получателя. */
   async request(@Req() req: Request, @Res() res: Response) {
     const email =
       typeof req.body?.email === "string" ? normalizeEmail(req.body.email) : "";
@@ -106,6 +108,7 @@ export class PasswordController {
   @Post("auth/password/complete")
   @HttpCode(200)
   @Header("Cache-Control", "no-store")
+  /** Принимает одноразовый proof из тела; открытие страницы само пароль не меняет. */
   async complete(@Req() req: Request, @Res() res: Response) {
     if (!(await checkRequestRateLimit(`password-complete:${clientIp(req)}`, 20, 900000)).ok) {
       res.sendStatus(429);

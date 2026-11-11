@@ -1,3 +1,4 @@
+/** REST-регистрация, вход и выход: лимиты, cookie и публичный профиль отделены от внутренних токенов. */
 import {
   Controller,
   Get,
@@ -81,6 +82,7 @@ export class SessionController {
 
   @Post("register")
   @HttpCode(200)
+  /** Публичный ответ не сообщает, существовал ли адрес; создание и доказательство владения разделены. */
   async register(@Req() req: Request, @Res() res: Response) {
     try {
       const ip = clientIp(req);
@@ -139,6 +141,7 @@ export class SessionController {
 
   @Post("login")
   @HttpCode(200)
+  /** IP-квота и лимит аккаунта применяются до дорогой проверки пароля; JWT уходит в HttpOnly-cookie. */
   async login(@Req() req: Request, @Res() res: Response) {
     try {
       const ip = clientIp(req);
@@ -166,8 +169,8 @@ export class SessionController {
       }
 
       const candidate = await this.identity.findByEmail(email);
-      // Use the stored address: SQL collations can equate spelling variants
-      // that lowercasing alone does not (for example accented characters).
+      // Используем сохранённый адрес: SQL-collation может считать равными варианты,
+      // которые простой lower-case не объединяет, например буквы с акцентами.
       const attempt = await beginLoginAccount(candidate?.email ?? email);
       if (!attempt.ok) {
         res.setHeader("Retry-After", attempt.retryAfterSec);
@@ -204,6 +207,7 @@ export class SessionController {
 
   @Post("logout")
   @HttpCode(200)
+  /** Отзыв на сервере предшествует очистке cookie, чтобы старый токен не продолжал работать. */
   async logout(@Req() req: Request, @Res() res: Response) {
     await this.identity.revokeSessions(await this.identity.optionalUser(req));
     clearSessionCookie(req, res);

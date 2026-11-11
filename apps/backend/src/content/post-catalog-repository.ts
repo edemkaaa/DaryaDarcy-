@@ -1,3 +1,4 @@
+/** Списки публикаций читаются вместе с медиа в согласованном снимке; старый числовой cursor остаётся offset. */
 import { and, asc, eq, inArray, or, sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { requireContentDatabase } from "./read-database";
@@ -18,6 +19,7 @@ import { boundedLegacyList, LEGACY_LIST_CAP } from "./legacy-list-limit";
 type Database = MySql2Database | null;
 
 // The full reference catalog includes tags not yet used by published posts.
+/** Справочник включает и ещё неиспользованные теги; это не выборка только по опубликованным постам. */
 export async function getAllTags(db: Database): Promise<Tag[]> {
   requireContentDatabase(db);
 
@@ -30,6 +32,7 @@ export async function getAllTags(db: Database): Promise<Tag[]> {
 }
 
 // Legacy list keeps its own fields; filter before the bounded SQL read.
+/** Совместимое чтение списка сохраняет существующие фильтры и ограничение размера. */
 export async function getPosts(
   db: Database,
   tagFilter?: string,
@@ -122,6 +125,7 @@ function feedFilterConditions(options: {
   return conditions;
 }
 
+/** Старый числовой курсор остаётся offset; единый снимок защищает ответ, но не всю цепочку страниц. */
 export async function getPostsPaginated(
   db: Database,
   options: {
@@ -156,6 +160,7 @@ export async function getPostsPaginated(
   }, { isolationLevel: "repeatable read", accessMode: "read only" });
 }
 
+/** Восстанавливаем ограниченный набор карточек по известным ID через общий путь чтения медиа. */
 export async function getPostsByIds(
   db: Database,
   ids: number[],
@@ -184,6 +189,7 @@ export async function getPostsByIds(
   }, { isolationLevel: "repeatable read", accessMode: "read only" });
 }
 
+/** Фильтруем назначение Лента/Клуб до пагинации и гидратации вложений. */
 export async function getPostsForTarget(
   db: Database,
   target: "feed" | "club",

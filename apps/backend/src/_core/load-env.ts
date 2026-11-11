@@ -1,3 +1,4 @@
+/** Подготавливает окружение исполняемого процесса до импорта приложения. */
 import fs from "node:fs";
 import path from "node:path";
 

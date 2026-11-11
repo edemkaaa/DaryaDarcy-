@@ -1,3 +1,4 @@
+/** Актуальность администратора и целевого пользователя проверяется под согласованными блокировками. */
 import { TRPCError } from "@trpc/server";
 import { asc, inArray } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
@@ -6,6 +7,7 @@ import type { AdminActionKind } from "../../../../packages/shared/src/admin-acti
 
 type Transaction = Parameters<Parameters<MySql2Database["transaction"]>[0]>[0];
 
+/** Проверяем допустимость текущего административного автора до операции. */
 export function requireAdminActionActor(
   current: User | undefined,
   actor: User,

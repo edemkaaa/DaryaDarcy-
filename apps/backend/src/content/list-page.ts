@@ -1,3 +1,4 @@
+/** Непрозрачные курсоры ограниченных списков привязаны к контексту. Сам курсор не выдаёт право доступа. */
 import { createHash } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -17,9 +18,11 @@ const boundary = z
   .strict();
 
 // Scope prevents accidental cross-list/account reuse; it is not authorization.
+/** Привязываем курсор к выбранному списку и контексту пользователя, без выдачи дополнительных прав. */
 export function listPageScope(...context: (string | number | null)[]) {
   return createHash("sha256").update(JSON.stringify(context)).digest("hex");
 }
+/** Принимаем только ожидаемую структуру и scope; повреждённый курсор возвращает ошибку входа. */
 export function readListCursor(
   cursor: string | null | undefined,
   scope: string,
@@ -39,6 +42,7 @@ export function readListCursor(
     });
   }
 }
+/** Кодируем границу следующей страницы без изменения порядка сортировки. */
 export function writeListCursor(scope: string, at: Date, id: number) {
   return Buffer.from(
     JSON.stringify({ v: 1, scope, at: at.toISOString(), id }),

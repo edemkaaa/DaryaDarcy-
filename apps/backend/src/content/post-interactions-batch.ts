@@ -1,3 +1,4 @@
+/** Ограниченный пакет состояний лайков и сохранений для уже известных клиенту постов. */
 import { and, asc, eq, inArray, ne } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { z } from "zod";
@@ -15,6 +16,7 @@ export const postInteractionsInput = z
   .object({ postIds: z.array(z.number().int().positive().safe()).max(50) })
   .strict();
 
+/** Возвращаем только ограниченный пакет состояний взаимодействий, не тела публикаций. */
 export async function postInteractionsForIds(
   database: MySql2Database | null,
   actor: User,

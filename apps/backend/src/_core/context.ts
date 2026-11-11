@@ -1,3 +1,4 @@
+/** Получает пользователя для tRPC через сервис сессий, принадлежащий экземпляру приложения. */
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import type { User } from "../../../../packages/database/src/schema";
 import { SessionService } from "../identity/session.service";
@@ -34,5 +35,5 @@ export const createContextFactory =
     }
   };
 
-// Standalone compatibility entry; HTTP binds its existing Nest provider.
+// Совместимый отдельный вход; HTTP использует уже созданный Nest-провайдер.
 export const createContext = createContextFactory(new SessionService());

@@ -1,9 +1,11 @@
+/** Drizzle-модель хранения: таблицы, типы и ограничения. История изменения схемы хранится отдельно в SQL-миграциях. */
 import { bigint, int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, boolean, unique, index, uniqueIndex, primaryKey } from "drizzle-orm/mysql-core";
 import { sql } from "drizzle-orm";
 import type { AdminActionOutcome } from "../../shared/src/admin-action";
 import type { RichTextBlock, RichTextInline } from "../../shared/src/rich-text-types";
 import type { LaunchConfiguration } from "../../shared/src/launch-settings";
 
+/** Одна ревизия настроек запуска связывает оформление, автора изменения и конфигурацию. */
 export const launchSettings = mysqlTable("launch_settings", {
   id: int("id").primaryKey(),
   revision: int("revision").default(0).notNull(),
@@ -17,6 +19,7 @@ export type { RichTextBlock, RichTextInline } from "../../shared/src/rich-text-t
 /**
  * Core user table backing auth flow.
  */
+/** Идентичность, права и состояние аккаунта. Контактный номер не заменяет способ входа. */
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
   openId: varchar("openId", { length: 64 }).notNull().unique(),
@@ -48,6 +51,7 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
 /** Durable intent receipts contain IDs/results only; never mail tokens or personal contacts. */
+/** Квитанции административных намерений хранят результат для восстановления после потери ответа. */
 export const adminActionOperations = mysqlTable("admin_action_operations", {
   actorUserId: int("actorUserId").notNull(),
   operationKey: varchar("operationKey", { length: 36 }).notNull(),
@@ -59,6 +63,7 @@ export const adminActionOperations = mysqlTable("admin_action_operations", {
 }, table => [primaryKey({ columns: [table.actorUserId, table.operationKey] }), index("admin_action_target").on(table.targetUserId)]);
 
 // ── Feed: Posts ──
+/** Публикация хранит содержимое, назначение, состояние и отдельный публичный идентификатор. */
 export const posts = mysqlTable("posts", {
   id: int("id").autoincrement().primaryKey(),
   // MySQL также выдаёт UUIDv4 старым импортерам, которые не передают publicId.
@@ -112,6 +117,7 @@ export type Post = typeof posts.$inferSelect;
 export type InsertPost = typeof posts.$inferInsert;
 
 // A committed request survives post edits/deletion so a late retry cannot recreate it.
+/** Журнал создания постов связывает ключ автора с принятым payload и результатом. */
 export const postCreationRequests = mysqlTable("post_creation_requests", {
   requestKey: varchar("requestKey", { length: 64 }).primaryKey(),
   actorUserId: int("actorUserId").notNull(),
@@ -121,6 +127,7 @@ export const postCreationRequests = mysqlTable("post_creation_requests", {
 }, table => [index("post_creation_retention").on(table.createdAt, table.requestKey), index("post_creation_owner_key").on(table.actorUserId, table.requestKey)]);
 
 // Keep committed results after article deletion: replay must never resurrect it.
+/** Журнал создания статей сохраняет результат исходного намерения. */
 export const articleCreationRequests = mysqlTable("article_creation_requests", {
   requestKey: varchar("requestKey", { length: 64 }).primaryKey(),
   actorUserId: int("actorUserId").notNull(),
@@ -131,6 +138,7 @@ export const articleCreationRequests = mysqlTable("article_creation_requests", {
 }, table => [index("article_creation_retention").on(table.createdAt, table.requestKey), index("article_creation_owner_key").on(table.actorUserId, table.requestKey)]);
 
 // Expired intents remain spent after their detailed recovery row is compacted.
+/** Компактный след использованной операции не позволяет повтору создать новый результат. */
 export const contentRecoveryMarkers = mysqlTable("content_recovery_markers", {
   kind: mysqlEnum("kind", ["post", "article", "private_attachment"]).notNull(),
   requestKey: varchar("requestKey", { length: 64 }).notNull(),
@@ -143,6 +151,7 @@ export const contentRecoveryMarkers = mysqlTable("content_recovery_markers", {
 ]);
 
 // ── Post Media (video, audio, documents — photos stay in posts.photos for backward compat) ──
+/** Вложения принадлежат родительскому посту и имеют собственный порядок показа. */
 export const postMedia = mysqlTable("post_media", {
   id: int("id").autoincrement().primaryKey(),
   postId: int("postId").notNull(),
@@ -169,6 +178,7 @@ export type PostMedia = typeof postMedia.$inferSelect;
 export type InsertPostMedia = typeof postMedia.$inferInsert;
 
 // Recovery evidence survives detachment/deletion. Never auto-expire or rebind it.
+/** Квитанция закрытой загрузки связывает владельца, namespace, хеши и состояние объекта. */
 export const privateAttachmentUploads = mysqlTable("private_attachment_uploads", {
   requestKey: varchar("requestKey", { length: 64 }).primaryKey(),
   actorUserId: int("actorUserId"),
@@ -194,6 +204,7 @@ export const privateAttachmentUploads = mysqlTable("private_attachment_uploads",
 ]);
 
 // New content only. Parent identity survives detachment, preventing late replay/rebind.
+/** Закрытые фото и файлы учитывают назначение, владение и актуальную привязку. */
 export const privateContentFiles = mysqlTable("private_content_files", {
   requestKey: varchar("requestKey", { length: 64 }).primaryKey(),
   actorUserId: int("actorUserId"),
@@ -217,6 +228,7 @@ export const privateContentFiles = mysqlTable("private_content_files", {
   index("private_content_parent").on(table.parentKind, table.parentId),
 ]);
 
+/** Логический материал и ключ файла указывают на текущую квитанцию закрытого объекта. */
 export const libraryFileBindings = mysqlTable("library_file_bindings", {
   id: int("id").autoincrement().primaryKey(),
   materialKey: varchar("materialKey", { length: 32 }).notNull(),
@@ -231,6 +243,7 @@ export const libraryFileBindings = mysqlTable("library_file_bindings", {
 ]);
 
 /** Operation journal stores opaque references, never source paths, URLs or file bytes. */
+/** След переноса Библиотеки сохраняет ожидаемые и применённые привязки. */
 export const libraryFileMigrations = mysqlTable("library_file_migrations", {
   requestKey: varchar("requestKey", { length: 64 }).primaryKey(),
   payloadHash: varchar("payloadHash", { length: 64 }).notNull(),
@@ -242,6 +255,7 @@ export const libraryFileMigrations = mysqlTable("library_file_migrations", {
 });
 
 // ── Feed: Tags (reference table for available tags) ──
+/** Идемпотентное создание комментария связывает пользователя, ключ и результат. */
 export const commentCreationRequests = mysqlTable("comment_creation_requests", {
   requestKey: varchar("requestKey", { length: 64 }).primaryKey(),
   actorUserId: int("actorUserId"),
@@ -251,6 +265,7 @@ export const commentCreationRequests = mysqlTable("comment_creation_requests", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, table => [index("comment_creation_owner_key").on(table.actorUserId, table.requestKey)]);
 
+/** Справочник тегов и их административного порядка. */
 export const tags = mysqlTable("tags", {
   id: int("id").autoincrement().primaryKey(),
   /** Unique slug used in code (e.g. "spring", "home", "recipes") */
@@ -267,6 +282,7 @@ export type Tag = typeof tags.$inferSelect;
 export type InsertTag = typeof tags.$inferInsert;
 
 // ── Feed: Likes ──
+/** Реакции пользователя на посты. Повтор toggle не равен повтору keyed-create. */
 export const likes = mysqlTable("likes", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
@@ -281,6 +297,7 @@ export type Like = typeof likes.$inferSelect;
 export type InsertLike = typeof likes.$inferInsert;
 
 // ── Feed: Saved/Bookmarks ──
+/** Личные сохранения связывают пользователя и публикацию. */
 export const savedPosts = mysqlTable("saved_posts", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
@@ -295,6 +312,7 @@ export type SavedPost = typeof savedPosts.$inferSelect;
 export type InsertSavedPost = typeof savedPosts.$inferInsert;
 
 // New public-purpose uploads only; receipt retention never authorizes object deletion.
+/** Квитанции только явно публичных фото: аватаров и обложек. */
 export const publicPhotoUploads = mysqlTable("public_photo_uploads", {
   requestId: varchar("requestId", { length: 64 }).primaryKey(),
   actorUserId: int("actorUserId"),
@@ -312,6 +330,7 @@ export const publicPhotoUploads = mysqlTable("public_photo_uploads", {
 }, table => [uniqueIndex("public_photo_asset").on(table.assetId), index("public_photo_owner").on(table.actorUserId)]);
 
 // ── Push Notification Tokens ──
+/** Устройство или подписка push отделены от согласия на маркетинговую рассылку. */
 export const pushTokens = mysqlTable("push_tokens", {
   id: int("id").autoincrement().primaryKey(),
   /** Expo push token (e.g. ExponentPushToken[xxx]) */
@@ -330,6 +349,7 @@ export type PushToken = typeof pushTokens.$inferSelect;
 export type InsertPushToken = typeof pushTokens.$inferInsert;
 
 // ── Push consent audit log (service vs marketing) ──
+/** История явного выбора маркетингового согласия. */
 export const pushConsentEvents = mysqlTable("push_consent_events", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
@@ -345,6 +365,7 @@ export type PushConsentEvent = typeof pushConsentEvents.$inferSelect;
 export type InsertPushConsentEvent = typeof pushConsentEvents.$inferInsert;
 
 // ── Videos (YouTube imports) ──
+/** Каталог провайдеров, публикация и правила доступа отделены от карточки просмотра. */
 export const videos = mysqlTable("videos", {
   id: int("id").autoincrement().primaryKey(),
   editRevision: int("editRevision").notNull().default(0),
@@ -378,6 +399,7 @@ export type Video = typeof videos.$inferSelect;
 export type InsertVideo = typeof videos.$inferInsert;
 
 // ── Club: Pen pals ("Почтовое отделение") ──
+/** Анкета Почтового отделения хранится вместе с признаком участия и версией согласия. */
 export const penPalProfiles = mysqlTable("pen_pal_profiles", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull().unique(),
@@ -395,6 +417,7 @@ export const penPalProfiles = mysqlTable("pen_pal_profiles", {
 export type PenPalProfile = typeof penPalProfiles.$inferSelect;
 export type InsertPenPalProfile = typeof penPalProfiles.$inferInsert;
 
+/** История уже показанных собеседников используется подбором карточек. */
 export const penPalShown = mysqlTable("pen_pal_shown", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
@@ -407,6 +430,7 @@ export const penPalShown = mysqlTable("pen_pal_shown", {
 export type PenPalShown = typeof penPalShown.$inferSelect;
 export type InsertPenPalShown = typeof penPalShown.$inferInsert;
 
+/** Одна упорядоченная пара хранит взаимное подтверждение и срок незавершённой заявки. */
 export const penPalMatches = mysqlTable("pen_pal_matches", {
   id: int("id").autoincrement().primaryKey(),
   userLowId: int("userLowId").notNull(),
@@ -424,6 +448,7 @@ export const penPalMatches = mysqlTable("pen_pal_matches", {
 export type PenPalMatch = typeof penPalMatches.$inferSelect;
 export type InsertPenPalMatch = typeof penPalMatches.$inferInsert;
 
+/** История оплат и сроков доступа; запись pending ещё не доказывает получение денег. */
 export const clubPayments = mysqlTable("club_payments", {
   contactPhone: varchar("contactPhone", { length: 16 }),
   id: int("id").autoincrement().primaryKey(),
@@ -443,6 +468,7 @@ export const clubPayments = mysqlTable("club_payments", {
 export type ClubPayment = typeof clubPayments.$inferSelect;
 export type InsertClubPayment = typeof clubPayments.$inferInsert;
 
+/** Намерение checkout фиксирует происхождение заказа и согласованные параметры. */
 export const billingCheckoutIntents = mysqlTable("billing_checkout_intents", {
   intentKeyHash: varchar("intentKeyHash", { length: 64 }).primaryKey(),
   userId: int("userId").notNull(),
@@ -466,6 +492,7 @@ export const billingCheckoutIntents = mysqlTable("billing_checkout_intents", {
 
 export type BillingCheckoutIntent = typeof billingCheckoutIntents.$inferSelect;
 
+/** Восстановление обычного checkout использует ключ принятого запроса и результат. */
 export const normalCheckoutRequests = mysqlTable("normal_checkout_requests", {
   requestKey: varchar("requestKey", { length: 64 }).primaryKey(),
   actorUserId: int("actorUserId").notNull(),
@@ -477,6 +504,7 @@ export const normalCheckoutRequests = mysqlTable("normal_checkout_requests", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+/** Свидетельства обработки провайдера помогают сопоставлять повторные уведомления. */
 export const billingReceipts = mysqlTable("billing_receipts", {
   paymentKey: varchar("paymentKey", { length: 64 }).primaryKey(),
   userId: int("userId").notNull(),
@@ -486,6 +514,7 @@ export const billingReceipts = mysqlTable("billing_receipts", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+/** Профили автопродления и отмены хранят состояние взаимодействия с провайдером. */
 export const billingProfiles = mysqlTable("billing_profiles", {
   profileKey: varchar("profileKey", { length: 64 }).primaryKey(),
   userId: int("userId").notNull(),
@@ -502,6 +531,7 @@ export const billingProfiles = mysqlTable("billing_profiles", {
   leaseUntil: timestamp("leaseUntil"),
 }, (table) => [index("billing_profiles_user").on(table.userId)]);
 
+/** Одноразовые ссылки хранятся как проверяемое серверное состояние с ограниченным сроком. */
 export const passwordTokens = mysqlTable("password_tokens", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
@@ -514,6 +544,7 @@ export const passwordTokens = mysqlTable("password_tokens", {
 }, (table) => [index("password_tokens_user").on(table.userId)]);
 
 // First email binding has a separate proof namespace and cannot reset credentials.
+/** Намерение привязки почты содержит одноразовый proof и текущее состояние подтверждения. */
 export const memberEmailBindings = mysqlTable("member_email_bindings", {
   requestKey: varchar("requestKey", { length: 36 }).primaryKey(),
   payloadHash: varchar("payloadHash", { length: 64 }).notNull(),
@@ -532,6 +563,7 @@ export const memberEmailBindings = mysqlTable("member_email_bindings", {
 
 // Dedicated outbox: its recipient must be checked against the pending binding,
 // not the user's still-absent email. Existing password-mail checks stay intact.
+/** Очередь писем привязки отделяет заявку от попыток SMTP и владения lease. */
 export const memberEmailBindingOutbox = mysqlTable("member_email_binding_outbox", {
   requestKey: varchar("requestKey", { length: 36 }).primaryKey(),
   tokenCipher: text("tokenCipher"),
@@ -545,6 +577,7 @@ export const memberEmailBindingOutbox = mysqlTable("member_email_binding_outbox"
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => [index("member_email_binding_outbox_due").on(table.sentAt, table.nextAttemptAt)]);
 
+/** Письма регистрации, пароля и доступа имеют долговечный журнал попыток. */
 export const accessEmailOutbox = mysqlTable("access_email_outbox", {
   id: int("id").autoincrement().primaryKey(),
   eventKey: varchar("eventKey", { length: 128 }).notNull().unique(),
@@ -565,6 +598,7 @@ export const accessEmailOutbox = mysqlTable("access_email_outbox", {
   index("access_email_outbox_user").on(table.userId),
 ]);
 
+/** История прежнего онлайн-заказа магазина отделена от текущей ручной отправки заказа. */
 export const shopPurchases = mysqlTable("shop_purchases", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId"),
@@ -581,6 +615,7 @@ export const shopPurchases = mysqlTable("shop_purchases", {
 export type ShopPurchase = typeof shopPurchases.$inferSelect;
 export type InsertShopPurchase = typeof shopPurchases.$inferInsert;
 
+/** Комментарии и ответы связаны с постом, автором и родительским комментарием. */
 export const postComments = mysqlTable("post_comments", {
   id: int("id").autoincrement().primaryKey(),
   postId: int("postId").notNull(),
@@ -596,6 +631,7 @@ export const postComments = mysqlTable("post_comments", {
 export type PostComment = typeof postComments.$inferSelect;
 export type InsertPostComment = typeof postComments.$inferInsert;
 
+/** Реакции на комментарии принадлежат конкретному пользователю. */
 export const commentLikes = mysqlTable("comment_likes", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
@@ -608,6 +644,7 @@ export const commentLikes = mysqlTable("comment_likes", {
 export type CommentLike = typeof commentLikes.$inferSelect;
 export type InsertCommentLike = typeof commentLikes.$inferInsert;
 
+/** Жалобы отделены от текста обсуждения и доступны административному разбору. */
 export const commentReports = mysqlTable("comment_reports", {
   id: int("id").autoincrement().primaryKey(),
   commentId: int("commentId").notNull(),
@@ -620,6 +657,7 @@ export const commentReports = mysqlTable("comment_reports", {
 
 export type CommentReport = typeof commentReports.$inferSelect;
 
+/** История согласий сохраняет версию, действие и текст принятого условия. */
 export const userConsentEvents = mysqlTable("user_consent_events", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
@@ -632,6 +670,7 @@ export const userConsentEvents = mysqlTable("user_consent_events", {
 
 export type UserConsentEvent = typeof userConsentEvents.$inferSelect;
 
+/** Аудит сохраняет административного автора, цель и описание действия. */
 export const adminAuditLog = mysqlTable("admin_audit_log", {
   id: int("id").autoincrement().primaryKey(),
   actorUserId: int("actorUserId").notNull(),
@@ -644,6 +683,7 @@ export const adminAuditLog = mysqlTable("admin_audit_log", {
 
 export type AdminAuditLog = typeof adminAuditLog.$inferSelect;
 
+/** Очередь доставки материалов магазина не доказывает получение письма адресатом. */
 export const shopDeliveryEmails = mysqlTable("shop_delivery_emails", {
   id: int("id").autoincrement().primaryKey(),
   orderId: varchar("orderId", { length: 128 }).notNull().unique(),
@@ -668,6 +708,7 @@ export interface ArticleBlock {
 
 export type ArticleSection = ArticleBlock;
 
+/** Структурированные блоки статьи, доступ и состояние публикации сохраняются вместе. */
 export const articles = mysqlTable("articles", {
   id: int("id").autoincrement().primaryKey(),
   title: varchar("title", { length: 255 }).notNull(),
@@ -683,6 +724,7 @@ export const articles = mysqlTable("articles", {
 export type Article = typeof articles.$inferSelect;
 export type InsertArticle = typeof articles.$inferInsert;
 
+/** Ограниченные по сроку коды прежнего SMS-сценария; наличие таблицы не включает вход по SMS. */
 export const smsCodes = mysqlTable("sms_codes", {
   id: int("id").autoincrement().primaryKey(),
   phone: varchar("phone", { length: 16 }).notNull(),
@@ -697,6 +739,7 @@ export type SmsCode = typeof smsCodes.$inferSelect;
 export type InsertSmsCode = typeof smsCodes.$inferInsert;
 
 /** Expiring coordination counters. Keys contain hashes, never contact details. */
+/** Общие счётчики ограничений нужны для согласованной защиты нескольких API-процессов. */
 export const apiRateLimits = mysqlTable("api_rate_limits", {
   kind: mysqlEnum("kind", ["rate", "login"]).notNull(),
   keyHash: varchar("keyHash", { length: 64 }).notNull(),

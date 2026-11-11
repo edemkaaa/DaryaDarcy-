@@ -1,3 +1,4 @@
+/** Перед сохранением согласуем текст и форматирование, не теряя границы после нормализации. */
 import type { RichTextBlock } from "./rich-text-types";
 import { adjustRangesOnTextChange, clampRanges } from "./rich-text-edit";
 import { sanitizePlainPostText, sanitizeRichTextForDisplay } from "./post-text-sanitize";
@@ -47,6 +48,7 @@ function adjustLinkRanges(
   return adjusted.sort((a, b) => a.start - b.start || a.end - b.end);
 }
 
+/** Согласуем границы блоков с подготовленным текстом перед сохранением. */
 export function realignRichTextBlocks(
   blocks: RichTextBlock[],
   targetPlain: string,

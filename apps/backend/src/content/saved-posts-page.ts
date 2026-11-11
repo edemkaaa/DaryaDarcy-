@@ -1,3 +1,4 @@
+/** Постраничное Сохранённое учитывает владельца, доступ к постам и контекст курсора. */
 import { and, desc, eq, gt, lt, ne, notExists, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
 import type { MySql2Database } from "drizzle-orm/mysql2";

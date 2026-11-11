@@ -1,3 +1,4 @@
+/** Определяем бинарный тип по сигнатуре файла, а не по переданному клиентом расширению. */
 import { TRPCError } from "@trpc/server";
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";

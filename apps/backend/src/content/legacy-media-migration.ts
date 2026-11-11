@@ -1,3 +1,4 @@
+/** Применение и откат согласованного переноса старых медиа через сохранённые квитанции. */
 import { TRPCError } from "@trpc/server";
 import type { PrivateAttachmentActor } from "./private-attachment-uploads";
 import { lockPrivateAttachmentActor } from "./private-attachment-uploads";
@@ -150,6 +151,7 @@ export async function applyLegacyMedia(
   }
 }
 
+/** Откатываем только согласованные изменения данной операции переноса. */
 export async function rollbackLegacyMedia(
   actor: PrivateAttachmentActor,
   input: unknown,

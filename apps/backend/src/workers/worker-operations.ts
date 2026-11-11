@@ -1,3 +1,4 @@
+/** Типизированные порты фоновых задач позволяют собирать worker без выполнения доменных операций. */
 import type * as db from "../db";
 import type { processCancellations } from "../billing/cancellation";
 import type { cancelProdamusSubscription } from "../prodamus";
@@ -11,7 +12,7 @@ import type { processMemberEmailBindingJobs } from "../identity/email-binding-wo
 
 export const WORKER_OPERATIONS = Symbol("WORKER_OPERATIONS");
 
-/** Existing domain boundaries; constructing this binding must not call them. */
+/** Контракты существующих доменов: создание binding не вызывает сами операции. */
 export type WorkerOperations = Readonly<{
   runExclusiveJob(name: string, run: () => Promise<void>): Promise<void>;
   publishDueScheduledPosts: typeof db.publishDueScheduledPosts;

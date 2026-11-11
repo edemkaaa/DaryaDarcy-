@@ -1,3 +1,4 @@
+/** Создание и подтверждение пары проверяют участников, актуальные анкеты и срок заявки. */
 import { TRPCError } from "@trpc/server";
 import { and, eq, gt, or, sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
@@ -99,6 +100,7 @@ async function confirm(tx: Transaction, row: Match, actorId: number) {
     });
 }
 
+/** Перед созданием пары проверяем текущих участников и активность обеих анкет. */
 export async function requestMatch(
   database: MySql2Database,
   actor: PenPalActor,
@@ -145,6 +147,7 @@ export async function requestMatch(
   });
 }
 
+/** Даже отказ доступен только участнику пары; проверка владельца предшествует удалению заявки. */
 export async function respondMatch(
   database: MySql2Database,
   actor: PenPalActor,

@@ -1,3 +1,4 @@
+/** tRPC-границы push учитывают серверную возможность, владельца токена и входную валидацию. */
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import type { ContentReadService } from "../content/content-read.service";
 import type { NotificationsService } from "./notifications.service";

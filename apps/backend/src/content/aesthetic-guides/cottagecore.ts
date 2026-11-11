@@ -1,3 +1,4 @@
+/** Серверное содержимое гида cottagecore; право выдачи проверяет контроллер эстетик. */
 import type { AestheticGuideContent } from "../../../../../packages/shared/src/aesthetic-guide";
 export const COTTAGECORE_RESULT: AestheticGuideContent = {
   style: {

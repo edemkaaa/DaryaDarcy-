@@ -1,3 +1,4 @@
+/** Разбирает идентификаторы отменяемого профиля без самостоятельной аутентификации webhook. */
 import { asProdamusRecord } from "./prodamus-payload";
 import { pickString } from "./prodamus-fields";
 
@@ -7,7 +8,7 @@ export type ProdamusCancellationProfile = Readonly<{
   profileId: string;
 }>;
 
-/** Field matching only; caller must authenticate the original notification. */
+/** Только сопоставление полей; исходное уведомление аутентифицирует вызывающая граница. */
 export function readProdamusCancellationProfile(
   body: Record<string, unknown>,
   configured: Readonly<{ domain: string; subscriptionId: string }>,

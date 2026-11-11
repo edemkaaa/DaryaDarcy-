@@ -1,3 +1,4 @@
+/** Правила источников видео исключают неподходящие страницы и отличают собственное хранилище. */
 import { ENV } from "../_core/env";
 
 /** User guidance only; storage-origin validation below is the acceptance boundary. */

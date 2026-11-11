@@ -1,3 +1,4 @@
+/** Доставка материалов магазина обрабатывает отложенные письма; запись задания не доказывает получение адресатом. */
 import { PUBLIC_CONTACT_EMAIL } from "../../../packages/shared/src/contact";
 import { sendTransactionalEmail } from "./_core/email";
 import { sendServicePushNotification } from "./push";

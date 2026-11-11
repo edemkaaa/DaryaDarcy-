@@ -1,3 +1,4 @@
+/** Формат ключа повторяемой загрузки общий для API и хранения квитанций. */
 import { z } from "zod";
 
 // Keep input validation independent of upload services and the database facade.

@@ -1,3 +1,4 @@
+/** Совместимый маршрут прежнего видеопровайдера; каталог VK использует другой путь воспроизведения. */
 import { execFile } from "node:child_process";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";

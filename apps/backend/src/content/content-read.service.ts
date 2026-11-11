@@ -1,3 +1,4 @@
+/** Правила видимости публикаций, статей и видео применяются до возврата данных клиенту. */
 import { Injectable } from "@nestjs/common";
 import type { User } from "../../../../packages/database/src/schema";
 import { userHasClubAccess } from "../identity/club-access";

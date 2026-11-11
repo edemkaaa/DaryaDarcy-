@@ -1,3 +1,4 @@
+/** Перенос большого объекта идёт потоком с проверкой результата и без перекодирования. */
 import { createHash } from "node:crypto";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";

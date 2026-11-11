@@ -1,3 +1,4 @@
+/** Проверяем, что у поста есть содержимое после нормализации текста и учёта вложений. */
 import { and, eq, sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { TRPCError } from "@trpc/server";

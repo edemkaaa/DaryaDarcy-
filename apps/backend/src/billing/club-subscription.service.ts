@@ -1,3 +1,4 @@
+/** Пользовательские операции с подпиской: её состояние, отмена и явные результаты ожидания. */
 import { Injectable } from "@nestjs/common";
 import { TRPCError } from "@trpc/server";
 import type { User } from "../../../../packages/database/src/schema";
@@ -12,7 +13,7 @@ import {
   requestClubCancellation,
 } from "./cancellation";
 
-/** Protected adapters supply the actor; helpers own durable state. */
+/** Защищённый адаптер передаёт actor; долговечным состоянием владеют доменные helpers. */
 @Injectable()
 export class ClubSubscriptionService {
   async subscription(actor: User | null) {
@@ -30,8 +31,8 @@ export class ClubSubscriptionService {
     const owner = db.isOwnerAccount(actor);
     const database = await db.getDb();
     if (!database) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-    // Paid flags and pending profiles must describe the same read snapshot.
-    // Otherwise a worker confirming between the two reads can fabricate "none".
+    // Флаги оплаченного периода и pending-профили читаются одним snapshot.
+    // Иначе подтверждение worker между чтениями могло бы создать ложное "none".
     const { paid, cancellationStatus } = await database.transaction(
       async (tx) => {
         const paid = await db.getActiveClubSubscription(actor.id, tx);
@@ -84,8 +85,8 @@ export class ClubSubscriptionService {
     } catch (error) {
       if (error instanceof CancellationActorError)
         throw new TRPCError({ code: error.code });
-      // A request may already be committed when a worker/SQL failure occurs.
-      // Do not turn an unknown result into a terminal client-side rejection.
+      // При сбое worker/SQL запрос уже мог быть зафиксирован.
+      // Неизвестный результат нельзя превращать в окончательный отказ клиента.
       if (!(error instanceof CancellationUnavailableError))
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       throw new TRPCError({

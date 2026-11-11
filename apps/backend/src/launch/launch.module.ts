@@ -1,3 +1,4 @@
+/** Регистрирует контроллеры настроек и публичный endpoint возможностей выпуска. */
 import { Controller, Get, Header, Module } from "@nestjs/common";
 import { getCapabilities } from "./capabilities";
 import { LaunchController } from "./launch.controller";

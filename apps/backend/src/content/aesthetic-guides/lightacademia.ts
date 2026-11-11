@@ -1,3 +1,4 @@
+/** Серверное содержимое гида lightacademia; право выдачи проверяет контроллер эстетик. */
 import type { AestheticGuideContent } from "../../../../../packages/shared/src/aesthetic-guide";
 export const LIGHT_ACADEMIA_RESULT: AestheticGuideContent = {
   style: {

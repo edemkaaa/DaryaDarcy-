@@ -1,3 +1,4 @@
+/** Единые границы tRPC: формат ошибок, аутентификация и роли, затем доступ по подписке. */
 import { NOT_ADMIN_ERR_MSG, UNAUTHED_ERR_MSG } from "../../../../packages/shared/src/const.js";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
@@ -102,7 +103,7 @@ export const adminProcedure = protectedProcedure.use(
   }),
 );
 
-/** Authenticated users with an active club subscription (or staff). */
+/** Только действующая сессия с клубным доступом либо разрешённая служебная роль. */
 export const clubMemberProcedure = protectedProcedure.use(
   t.middleware(async (opts) => {
     const { ctx, next } = opts;

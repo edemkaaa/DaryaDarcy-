@@ -1,3 +1,4 @@
+/** Проверяем параметры текстовой кодировки после нормализации MIME; это не проверка безопасности разметки. */
 import { TRPCError } from "@trpc/server";
 import { MIMEType } from "node:util";
 

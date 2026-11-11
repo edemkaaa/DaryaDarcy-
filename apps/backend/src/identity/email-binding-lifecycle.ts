@@ -1,3 +1,4 @@
+/** Общие переходы состояния привязки почты и очистка её одноразового доказательства. */
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { and, asc, eq, lte, ne, or } from "drizzle-orm";
 import {
@@ -11,7 +12,7 @@ import { EmailBindingError } from "./email-binding";
 type Transaction = Parameters<Parameters<MySql2Database["transaction"]>[0]>[0];
 const HISTORY_MS = 30 * 24 * 60 * 60 * 1000;
 
-/** Caller holds the recipient and binding locks, in that order. */
+/** Вызывающий код удерживает блокировки получателя и затем заявки, именно в этом порядке. */
 export async function completeMemberEmailBinding(
   tx: Transaction,
   requestKey: string,
@@ -39,7 +40,7 @@ export async function completeMemberEmailBinding(
     .where(eq(memberEmailBindingOutbox.requestKey, requestKey));
 }
 
-/** Internal bounded maintenance; worker registration stays flag/schema-gated. */
+/** Ограниченная внутренняя очистка; включение worker по-прежнему зависит от флага и схемы. */
 export async function maintainMemberEmailBindings(
   database: MySql2Database,
   limit = 100,
@@ -77,8 +78,8 @@ export async function maintainMemberEmailBindings(
       .limit(limit);
     for (const candidate of candidates) {
       const outcome = await database.transaction(async (tx) => {
-        // Serialize with requests, confirmation and account deletion. Candidate
-        // reads are only routing hints; never act on their pre-lock state.
+        // Сериализуемся с созданием, подтверждением и удалением аккаунта.
+        // Выборка кандидатов лишь направляет поиск, её состояние не разрешает запись.
         await tx
           .select({ id: users.id })
           .from(users)
@@ -118,7 +119,7 @@ export async function maintainMemberEmailBindings(
     }
     return result;
   } catch {
-    // SQL parameters may contain proof/email material. Expose no driver cause.
+    // Параметры SQL могут содержать proof/email; причина драйвера наружу не передаётся.
     throw new EmailBindingError("unavailable");
   }
 }

@@ -1,3 +1,4 @@
+/** HTTP-граница запроса, статуса и подтверждения привязки email с ограничением частоты. */
 import { Controller, Get, Inject, Post, Req, Res } from "@nestjs/common";
 import type { Request, Response } from "express";
 import { SessionService } from "./session.service";
@@ -69,7 +70,7 @@ export class EmailBindingController {
   @Get("auth/email-binding")
   page(@Req() req: Request, @Res() res: Response) {
     if (!ready(req, res)) return;
-    // Proof belongs in the browser fragment, never in a forwarded query.
+    // Proof остаётся во fragment браузера, а не в передаваемом серверу query.
     if (req.originalUrl.includes("?")) {
       reject(res, 400);
       return;
@@ -77,8 +78,8 @@ export class EmailBindingController {
     try {
       const target = publicAccessUrl();
       target.pathname = "/email-binding";
-      // The browser retains its fragment across this empty-fragment redirect.
-      // No session or database operation is performed by opening the email.
+      // Браузер сохраняет fragment при этом redirect без нового fragment.
+      // Само открытие письма не создаёт сессию и не обращается к БД.
       res.status(302).setHeader("Location", target.toString());
       res.end();
     } catch {
@@ -96,7 +97,7 @@ export class EmailBindingController {
       reject(res, 403);
       return null;
     }
-    // Core operations revalidate this actor under the current database lock.
+    // Доменная операция повторно проверяет actor под текущей блокировкой БД.
     return { userId: user.id, sessionVersion: user.sessionVersion };
   }
 

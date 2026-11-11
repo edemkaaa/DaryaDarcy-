@@ -1,3 +1,4 @@
+/** Проверяет capability результата TEST-заказа без раскрытия identity и секретов восстановления. */
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { and, desc, eq, sql } from "drizzle-orm";
 import {
@@ -34,7 +35,7 @@ export function createProdamusTestReturnProof(
   return `${payload}.${createHmac("sha256", key).update(`${purpose}${payload}`).digest("hex")}`;
 }
 
-/** Read-only order capability, never an identity/session/password credential. */
+/** Capability только чтения заказа, не учётные данные identity, сессии или пароля. */
 function readProof(token: string, key: string): string | null {
   const parts = token.split(".");
   if (parts.length !== 3) return null;
@@ -57,6 +58,7 @@ function readProof(token: string, key: string): string | null {
     : null;
 }
 
+/** Для succeeded нужны согласованные заказ, receipt и письмо, а не один браузерный возврат. */
 export async function readProdamusTestResult(
   token: string,
   key: string,
@@ -94,8 +96,8 @@ export async function readProdamusTestResult(
   if (row.status === "pending")
     return { state: "pending", nextAction: null, emailStatus: null };
   if (row.status !== "paid" || !row.paidAt || !row.expiresAt) return unknown;
-  // The atomic settlement creates this exact order's mail and receipt together.
-  // Use its unique event key to read the receipt by PK, not scan all receipts.
+  // Settlement атомарно создаёт письмо и receipt именно этого заказа.
+  // По уникальному event key читаем receipt через PK, не сканируя все квитанции.
   const [mail] = await database
     .select({
       eventKey: accessEmailOutbox.eventKey,

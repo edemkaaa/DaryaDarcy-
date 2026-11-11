@@ -1,3 +1,4 @@
+/** Сопоставляем старые и текущие обозначения тегов при фильтрации публикаций. */
 import { clubTagLabel, normalizeClubTag } from "./club-tags";
 
 // Existing board-filter labels, not the broader rubric fallback aliases.
@@ -40,6 +41,7 @@ const labels: Record<string, string> = {
   letter: "письмо месяца",
 };
 
+/** Фильтр учитывает совместимые обозначения тегов старого наполнения. */
 export function postFilterTagAliases(value: string): string[] {
   const tag = normalizeClubTag(value);
   for (const slug of slugs) {

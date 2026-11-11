@@ -1,3 +1,4 @@
+/** Удаляем строки публикации и связанные записи согласованно с порядком блокировок редактора. */
 import { asc, eq, inArray } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { assertContentWriteActor, type ContentWriteActor } from "./content-write-actor";
@@ -51,6 +52,7 @@ export async function deletePostRows(
   await tx.delete(posts).where(eq(posts.id, id));
 }
 
+/** Проверяем актуальное состояние публикации и удаляем её зависимости согласованно. */
 export async function deletePost(
   database: MySql2Database,
   id: number,

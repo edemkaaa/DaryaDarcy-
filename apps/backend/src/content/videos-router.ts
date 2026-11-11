@@ -1,3 +1,4 @@
+/** tRPC-чтение каталога и разрешённого воспроизведения видео через сервис контента. */
 import { z } from "zod";
 import { router, publicProcedure } from "../_core/trpc";
 import type { ContentReadService } from "./content-read.service";

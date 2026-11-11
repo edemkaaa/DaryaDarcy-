@@ -1,3 +1,4 @@
+/** Создаёт заявку привязки почты с проверкой администратора, аккаунта и идемпотентного ключа. */
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { createCipheriv, createHash, randomBytes } from "node:crypto";
@@ -80,8 +81,8 @@ function encryptedProof(requestKey: string, payloadHash: string) {
   const token = randomBytes(32).toString("base64url");
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", key, iv);
-  // Purpose and immutable intent are authenticated: a cipher copied from
-  // another request or from password mail cannot become a binding proof.
+  // Шифротекст связан с назначением и неизменяемой заявкой: копия из другого
+  // запроса или письма пароля не может стать proof привязки адреса.
   cipher.setAAD(Buffer.from(`email-binding:v1:${requestKey}:${payloadHash}`));
   const tokenCipher = Buffer.concat([
     iv,
@@ -92,7 +93,7 @@ function encryptedProof(requestKey: string, payloadHash: string) {
   return { tokenCipher, proofHash: digest(`email-binding:v1:${token}`) };
 }
 
-/** Internal-only until confirmation, delivery and retention gates are accepted. */
+/** Внутренняя операция до принятия границ подтверждения, доставки и очистки. */
 export async function requestMemberEmailBinding(
   database: MySql2Database,
   actor: EmailBindingActor,
@@ -114,8 +115,8 @@ export async function requestMemberEmailBinding(
   );
   try {
     return await database.transaction(async (tx) => {
-      // Lock current actor and recipient in one stable order before claiming
-      // an intent. Shared user locks serialize competing first bindings.
+      // До захвата заявки блокируем текущего actor и получателя в стабильном порядке.
+      // Общие блокировки пользователей сериализуют конкурирующие первые привязки.
       const locked = new Map<number, User>();
       for (const id of [...new Set([principal.userId, request.userId])].sort(
         (a, b) => a - b,
@@ -140,8 +141,8 @@ export async function requestMemberEmailBinding(
 
       let claimed = true;
       try {
-        // Only the primary key can conflict in this initial claim: no proof
-        // or recipient PII exists until the claim is accepted in this tx.
+        // На первом захвате конфликтует только primary key: proof и данные
+        // получателя появляются лишь после принятия заявки в этой транзакции.
         await tx.insert(memberEmailBindings).values({
           requestKey: request.requestKey,
           payloadHash,
@@ -165,7 +166,7 @@ export async function requestMemberEmailBinding(
         binding.userId !== request.userId
       )
         throw new EmailBindingError("conflict");
-      // Replays do not recreate PII/proofs or need a currently configured key.
+      // Повтор не создаёт заново персональные данные/proof и не требует текущего ключа шифрования.
       if (!claimed)
         return { requestKey: binding.requestKey, state: binding.state };
 
@@ -222,8 +223,8 @@ export async function requestMemberEmailBinding(
     });
   } catch (error) {
     if (error instanceof EmailBindingError) throw error;
-    // Drizzle errors may contain bound SQL values. Keep PII/proofs out of the
-    // caller's logs/response and never retry an uncertain intent with a new key.
+    // Drizzle-ошибка может содержать SQL-параметры: не раскрываем email/proof
+    // и не повторяем неизвестный результат заявки с новым ключом.
     throw new EmailBindingError("unavailable");
   }
 }

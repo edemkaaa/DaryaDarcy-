@@ -1,3 +1,4 @@
+/** Системные HTTP-границы доступности приложения и описания возможностей сервера. */
 import { Controller, Get, Module } from "@nestjs/common";
 
 @Controller("api/health")

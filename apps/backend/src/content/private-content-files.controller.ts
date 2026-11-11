@@ -1,3 +1,4 @@
+/** HTTP-выдача закрытых фото и файлов с авторизацией через серверный сервис. */
 import { Controller, Get, Inject, Param, Req, Res } from "@nestjs/common";
 import type { Request, Response } from "express";
 import { PrivateContentFilesService } from "./private-content-files.service";

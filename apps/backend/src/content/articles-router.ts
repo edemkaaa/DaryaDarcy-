@@ -1,3 +1,4 @@
+/** Схемы и tRPC-маршруты статей; чтение и правила видимости передаются сервису контента. */
 import { z } from "zod";
 import { router, publicProcedure } from "../_core/trpc";
 import type { ContentReadService } from "./content-read.service";

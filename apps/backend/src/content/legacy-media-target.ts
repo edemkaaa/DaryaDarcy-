@@ -1,3 +1,4 @@
+/** Блокируем родительский материал и проверяем исходные привязки перед переносом вложения. */
 import { eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import {

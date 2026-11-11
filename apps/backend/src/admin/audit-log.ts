@@ -1,3 +1,4 @@
+/** Журнал административных действий записывает автора и цель отдельно от бизнес-результата. */
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { adminAuditLog } from "../../../../packages/database/src/schema";
 import { getDb } from "../database/connection";
@@ -11,6 +12,7 @@ export type AdminActionInput = {
   details?: string | null;
 };
 
+/** Добавляем аудит через переданный контекст записи, чтобы вызывающий код мог включить его в транзакцию. */
 export async function writeAdminAction(
   db: DataWriter,
   input: AdminActionInput,
@@ -24,6 +26,7 @@ export async function writeAdminAction(
   });
 }
 
+/** Совместимая запись административного аудита использует общую реализацию. */
 export async function logAdminAction(input: AdminActionInput): Promise<void> {
   const db = await getDb();
   if (!db) return;

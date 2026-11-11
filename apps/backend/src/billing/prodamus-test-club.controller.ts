@@ -1,3 +1,4 @@
+/** HTTP-граница отдельной TEST-оплаты клуба; рабочие платёжные настройки не подставляются. */
 import { Controller, Inject, Post, Req, Res } from "@nestjs/common";
 import type { Request, Response } from "express";
 import { ProdamusTestClubService } from "./prodamus-test-club.service";

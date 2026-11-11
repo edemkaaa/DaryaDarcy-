@@ -1,3 +1,4 @@
+/** Запрос удаления аккаунта и последующая очистка с сохранением необходимой технической истории. */
 import { TRPCError } from "@trpc/server";
 import {
   and,
@@ -37,7 +38,7 @@ type DataWriter =
   | Database
   | Parameters<Parameters<Database["transaction"]>[0]>[0];
 
-/** Preserve the first request and fence actors invalidated while awaiting SQL. */
+/** Сохраняет первый запрос удаления и отклоняет actor, отозванного за время ожидания SQL. */
 export async function requestAccountDeletion(
   actor: Pick<User, "id" | "openId" | "sessionVersion">,
 ): Promise<void> {
@@ -119,6 +120,7 @@ async function purgeUserActivity(
     .where(eq(commentReports.reporterUserId, userId));
 }
 
+/** Повторно проверяет оплаченный срок под блокировкой пользователя перед окончательной очисткой. */
 export async function processScheduledAccountDeletions(): Promise<number> {
   const db = await getDb();
   if (!db) return 0;
@@ -132,15 +134,15 @@ export async function processScheduledAccountDeletions(): Promise<number> {
 
   for (const candidate of candidates) {
     const deleted = await db.transaction(async (tx) => {
-      // Settlement locks this same owner. Re-read after waiting, not from the
-      // candidate snapshot, and keep every scrub operation on this transaction.
+      // Settlement блокирует того же владельца: после ожидания читаем текущее
+      // состояние заново, а всю очистку выполняем в этой же транзакции.
       const [user] = await tx
         .select()
         .from(users)
         .where(eq(users.id, candidate.id))
         .for("update");
       if (!user?.accountDeletionRequestedAt) return false;
-      // Include requests accepted before cancellation was wired to deletion.
+      // Учитываем и запросы, принятые до связывания удаления аккаунта с отменой подписки.
       await queueCancellationForUser(tx, user.id);
       const [latest] = await tx
         .select({ expiresAt: clubPayments.expiresAt })
@@ -184,13 +186,13 @@ export async function processScheduledAccountDeletions(): Promise<number> {
           blockedReason: null,
           accountDeletionRequestedAt: null,
           openId: `deleted-${user.id}-${Date.now()}`,
-          // Fence contexts authenticated before final retirement, not only new logins.
+          // Отзываем и контексты, прошедшие аутентификацию до окончательного удаления.
           sessionVersion: sql`${users.sessionVersion}+1`,
         })
         .where(eq(users.id, user.id));
       return true;
     }).catch((error: unknown) => {
-      // This account rolled back. Finish the batch, then surface the failure.
+      // Для этого аккаунта транзакция откатилась: завершаем порцию и затем сообщаем об отказе.
       failure ??= { error };
       return false;
     });
@@ -318,6 +320,7 @@ export async function purgeStalePenPalData(): Promise<{
   return { profiles, matches };
 }
 
+/** Последовательно запускает действующие политики очистки, не обходя их флаги и транзакции. */
 export async function runDataRetentionMaintenance(): Promise<void> {
   const comments = await purgeOldPostComments();
   let deleted;

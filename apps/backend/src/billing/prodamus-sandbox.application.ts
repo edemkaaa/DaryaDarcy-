@@ -1,3 +1,4 @@
+/** Собирает отдельное диагностическое приложение без рабочей identity, БД и фоновых задач. */
 import "reflect-metadata";
 import { Module, type INestApplication } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
@@ -22,7 +23,7 @@ import {
 })
 class ProdamusSandboxModule {}
 
-/** Diagnostic-only composition; never imports AppModule, DB, identity or workers. */
+/** Только диагностическая сборка без импорта AppModule, БД, identity и workers. */
 export async function createProdamusSandboxApplication(): Promise<INestApplication> {
   const adapter = new ExpressAdapter();
   const http = adapter.getInstance<Express>();

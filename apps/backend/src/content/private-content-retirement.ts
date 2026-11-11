@@ -1,3 +1,4 @@
+/** Отмечаем отозванные квитанции и привязки закрытых файлов, сохраняя правила восстановления операций. */
 import { asc, eq, sql } from "drizzle-orm";
 import {
   commentCreationRequests,

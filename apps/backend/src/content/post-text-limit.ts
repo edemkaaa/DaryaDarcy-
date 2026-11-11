@@ -1,3 +1,4 @@
+/** Ограничение текста учитывает размер UTF-8, соответствующий полю MySQL, а не только число символов. */
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 

@@ -1,7 +1,8 @@
+/** Ограничивает число одновременно удерживаемых больших видеотел в памяти одного API. */
 import type { Request, Response } from "express";
 
-// express.raw holds up to 80 MiB, plus signature/storage buffers. Never queue
-// another body in this process while the first one is being handled.
+// express.raw удерживает до 80 МиБ плюс буферы проверки и хранения. Пока
+// обрабатывается одно тело, второе не ставим в очередь памяти этого процесса.
 const active = new WeakSet<Request>();
 let occupied = false;
 export function admitVideoUpload(req: Request, res: Response): boolean {

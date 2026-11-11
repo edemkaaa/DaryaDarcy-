@@ -1,3 +1,4 @@
+/** Логические ключи материалов Библиотеки преобразуются в актуальные защищённые привязки файлов. */
 import { and, asc, eq, gt, or } from "drizzle-orm";
 import {
   libraryFileBindings,
@@ -46,6 +47,7 @@ export async function libraryFileActive(
   );
 }
 
+/** Разрешаем логическую пару материал/файл через актуальную серверную привязку. */
 export async function libraryFile(material: string, key: string) {
   const database = await getDb();
   if (!database) throw new Error("Database unavailable");
@@ -83,6 +85,7 @@ export async function libraryFile(material: string, key: string) {
   };
 }
 
+/** Выдаём метаданные актуальных файлов материала; произвольный путь в бакете этим не разрешается. */
 export async function listLibraryFiles(
   material: string,
   cursor: [number, number] | null,

@@ -1,3 +1,4 @@
+/** Сохраняем изменение списка вложений под правилами родительского поста. */
 import { and, eq, inArray, max } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { TRPCError } from "@trpc/server";

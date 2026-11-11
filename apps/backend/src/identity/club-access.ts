@@ -1,7 +1,8 @@
+/** Совместимый вход в политику доступа с возможностью сохранить транзакционный контекст читателя. */
 import * as db from "../db";
 import { hasClubAccess } from "./club-access-policy";
 
-/** Shared policy; an injected reader keeps checks on the caller's SQL transaction. */
+/** Общая политика; переданный reader сохраняет проверки в SQL-транзакции вызывающего кода. */
 export async function userHasClubAccess(
   user: {
     id: number;

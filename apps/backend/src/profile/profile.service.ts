@@ -1,3 +1,4 @@
+/** Изменение профиля, аватар, экспорт и запрос удаления опираются на существующие политики владельца. */
 import type { User } from "../../../../packages/database/src/schema";
 import { Injectable } from "@nestjs/common";
 import * as db from "../db";
@@ -14,7 +15,7 @@ import type { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { saveProfile } from "./profile-writes";
 
-/** Adapters authorize/validate; SQL and photo helpers retain their policies. */
+/** Адаптер проверяет вход и права; транзакции и обработка фото сохраняют собственные политики. */
 @Injectable()
 export class ProfileService {
   async recoveryExport(
@@ -34,6 +35,7 @@ export class ProfileService {
       });
     }
   }
+  /** Сохранение проверяет sessionVersion и ревизию профиля, чтобы поздний ответ не затирал новые данные. */
   async update(
     userId: number,
     input: ProfileUpdateInput,
@@ -59,13 +61,14 @@ export class ProfileService {
     }
   }
 
+  /** Подготовка файла отделена от записи профиля; перед внешней записью повторно проверяются права. */
   async uploadAvatar(
     actor: Pick<User, "id" | "sessionVersion" | "profileRevision">,
     base64: string,
     signal?: AbortSignal,
   ): Promise<{ url: string }> {
-    // Avoid an external write when persistence is already known to be unavailable.
-    // Client acquisition is not a connection probe or a guarantee of the write.
+    // Не выполняем внешнюю запись, если сохранение заведомо недоступно.
+    // Получение клиента БД само по себе ещё не проверяет соединение и не гарантирует запись.
     const database = await db.getDb();
     if (!database) throw new Error("Database not available");
     const precondition = { expectedRevision: actor.profileRevision };

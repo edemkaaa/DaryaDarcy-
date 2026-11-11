@@ -1,3 +1,4 @@
+/** Номер для связи нормализуется без подтверждения и не становится способом входа. */
 import { z } from "zod";
 
 /** Contact only: no ownership, login, SMS or provider side effects. */

@@ -1,3 +1,4 @@
+/** Регистрирует сервис существующих push-операций без автоматического включения выпуска. */
 import { Module } from "@nestjs/common";
 import { NotificationsService } from "./notifications.service";
 

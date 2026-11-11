@@ -1,3 +1,4 @@
+/** Проверяет синтетические диагностические уведомления без выдачи доступа и отправки писем. */
 import { timingSafeEqual } from "node:crypto";
 import { createProdamusSign } from "./prodamus-signature";
 import { buildProdamusQuery } from "./prodamus-query";
@@ -55,7 +56,7 @@ function configuration(
   return { secret, orderId, sys, demoSign: demoSign === "true" };
 }
 
-/** Stateless synthetic diagnostic only; no settlement, identity, DB or mail port. */
+/** Только синтетическая диагностика без состояния и портов settlement, identity, БД и почты. */
 export class ProdamusSandboxService {
   private readonly config: Configuration | null;
   constructor(env: Record<string, string | undefined>) {

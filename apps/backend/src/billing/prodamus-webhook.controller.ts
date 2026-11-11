@@ -1,3 +1,4 @@
+/** Транспортная граница рабочего webhook; проверкой подписи и settlement владеет подключённый обработчик. */
 import { Controller, Get, Inject, Post, Req, Res } from "@nestjs/common";
 import type { Request, Response } from "express";
 
@@ -6,7 +7,7 @@ export type ProdamusWebhookHandler = {
   handle(request: Request, response: Response): Promise<void>;
 };
 
-/** Native ingress only; the existing handler owns verification and settlement. */
+/** Только транспортный вход; проверкой и settlement владеет существующий обработчик. */
 @Controller("api/prodamus/webhook")
 export class ProdamusWebhookController {
   constructor(

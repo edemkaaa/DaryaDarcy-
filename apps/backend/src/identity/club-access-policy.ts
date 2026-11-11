@@ -1,6 +1,7 @@
+/** Чистая политика клубного доступа; вызывающий код выбирает источник текущей подписки. */
 import type { ClubPayment } from "../../../../packages/database/src/schema";
 
-/** Pure policy shared by facade callers and transaction-bound content writers. */
+/** Чистая политика, общая для фасадов и транзакционных операций контента. */
 export async function hasClubAccess(
   user: { id: number; role?: string | null; blockedAt?: Date | null },
   readSubscription: (id: number) => Promise<ClubPayment | undefined>,

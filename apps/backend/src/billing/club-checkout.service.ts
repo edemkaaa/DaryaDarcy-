@@ -1,3 +1,4 @@
+/** Оркестрация запуска и проверки оплаты; создание заказа само по себе не выдаёт сессию или доступ. */
 import { Injectable } from "@nestjs/common";
 import { TRPCError } from "@trpc/server";
 import { randomUUID } from "node:crypto";
@@ -21,7 +22,7 @@ export type ClubCheckoutInput = {
   plan?: "monthly" | "semiannual";
 };
 
-/** Starts/reconciles billing without issuing a session; access requires provider proof. */
+/** Запускает и согласует оплату без выдачи сессии; доступ требует доказательства провайдера. */
 @Injectable()
 export class ClubCheckoutService {
   constructor(
@@ -29,7 +30,7 @@ export class ClubCheckoutService {
     private readonly prodamusTest = new ProdamusTestClubService(),
   ) {}
   reconcileCheckout(actor: User | null, intentKey: unknown) {
-    // Return checking is test-only and can never fall back to payment creation.
+    // Проверка return относится только к TEST и не может незаметно создать новую оплату.
     return this.yookassa.reconcileCheckout(actor, intentKey);
   }
   async createCheckout(
@@ -89,8 +90,8 @@ export class ClubCheckoutService {
         plan,
         intentKey,
       );
-    // A durable test caller must not silently switch provider (or recurrence)
-    // when its deployment flag is missing/disabled.
+    // При отсутствии TEST-флага долговечный клиент не должен незаметно
+    // переключаться на другого провайдера или другой режим повторных списаний.
     if (intentKey !== undefined)
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
@@ -103,7 +104,7 @@ export class ClubCheckoutService {
         message: "Обновите страницу оплаты и повторите прежнюю заявку",
       });
     assertClubCheckoutConfigured(plan);
-    // An email names the billing recipient, not a proven authenticated identity.
+    // Email определяет получателя оплаты, но не доказывает аутентифицированную личность.
     const user =
       actor || existing || (await db.ensureUserByEmail(email));
     const orderId =

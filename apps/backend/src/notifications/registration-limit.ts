@@ -1,10 +1,11 @@
+/** Квота регистрации push срабатывает до валидации, SQL и обработки отдельных элементов batch. */
 import { TRPCError } from "@trpc/server";
 import type { Request, Response } from "express";
 import { checkRequestRateLimit } from "../_core/request-rate-limit";
 import { clientIp } from "../sms-auth";
 
-/** Per procedure (including batches/invalid input), before validation and SQL.
- * Uses the configured bounded store, shared across API workers in mysql mode.
+/** Каждый вызов процедуры, включая batch и неверный ввод, учитывается до валидации и SQL.
+ * Ограниченное хранилище в mysql-режиме общее для нескольких API.
  */
 export async function enforcePushRegistrationLimit(
   req: Request,

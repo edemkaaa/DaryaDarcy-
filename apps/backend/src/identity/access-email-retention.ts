@@ -1,3 +1,4 @@
+/** Очищает персональные данные и содержимое писем доступа под блокировкой удаляемого пользователя. */
 import { and, eq, isNotNull, isNull, or, sql } from "drizzle-orm";
 import {
   accessEmailOutbox,
@@ -17,7 +18,7 @@ export const accessEmailNeedsScrub = () =>
     isNotNull(accessEmailOutbox.leaseUntil),
   );
 
-/** Caller holds the user lock throughout both writes. */
+/** Вызывающий код удерживает блокировку пользователя на протяжении обеих записей. */
 export async function scrubAccessEmailData(tx: Transaction, userId: number) {
   const [tokens] = await tx
     .delete(passwordTokens)

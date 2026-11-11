@@ -1,3 +1,4 @@
+/** Отменяет и очищает привязки удаляемого аккаунта в той же транзакции владельца. */
 import { asc, eq, and, sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import {
@@ -9,15 +10,15 @@ import { completeMemberEmailBinding } from "./email-binding-lifecycle";
 
 type Transaction = Parameters<Parameters<MySql2Database["transaction"]>[0]>[0];
 
-/** Caller holds the user's lock and retains this transaction through deletion. */
+/** Вызывающий код удерживает блокировку пользователя до завершения всей транзакции удаления. */
 export async function cancelDeletedUserEmailBindings(
   tx: Transaction,
   userId: number,
 ) {
   try {
-    // Code can precede migration 0028. Both absent means the legacy schema has
-    // never accepted bindings; a partial schema must fail the whole deletion.
-    // This is independent of the UI flag so disabling requests cannot stop PII cleanup.
+    // До миграции 0028 обеих таблиц может не быть: заявок тогда не существовало.
+    // Частичная схема прерывает всё удаление. Отключение UI-флага не должно
+    // останавливать очистку персональных данных ранее принятых заявок.
     const [tables] =
       await tx.execute(sql`SELECT TABLE_NAME AS name FROM information_schema.TABLES
       WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN ('member_email_bindings','member_email_binding_outbox')`);

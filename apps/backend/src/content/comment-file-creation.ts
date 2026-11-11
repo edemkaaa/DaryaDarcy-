@@ -1,3 +1,4 @@
+/** Связываем создание комментария и квитанции его закрытых фото в одной операции. */
 import { randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
@@ -14,6 +15,7 @@ export async function requireCommentFileSchema(tx: Pick<ContentTransaction, "sel
     WHERE s.TABLE_SCHEMA=DATABASE() AND s.TABLE_NAME='comment_creation_requests' AND s.INDEX_NAME='PRIMARY' AND s.NON_UNIQUE=0`);
   if (!Array.isArray(indexes) || indexes.length !== 1 || indexes[0].name !== "requestKey" || indexes[0].prefix !== null || indexes[0].engine !== "InnoDB") throw new TRPCError({ code: "SERVICE_UNAVAILABLE" });
 }
+/** Фиксируем ключ создания комментария и его файлы как одно принятое намерение. */
 export async function claimCommentFileCreation(tx: ContentTransaction, actor: ContentWriteActor,
   data: { postId: number; text: string; parentId?: number | null; photos: string[]; idempotencyKey?: string }) {
   if (!data.idempotencyKey) throw new TRPCError({ code: "BAD_REQUEST", message: "Для закрытых фото нужен ключ создания комментария" });

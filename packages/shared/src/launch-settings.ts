@@ -1,3 +1,4 @@
+/** Контракты сезонного оформления, расписания и настроек запуска, общие для редактора и сервера. */
 export type Season = "winter" | "spring" | "summer" | "autumn";
 export interface SeasonAppearance {
   /** Annual start date MM-DD in Europe/Moscow. Feb 29 is not supported. */

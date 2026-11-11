@@ -1,3 +1,4 @@
+/** Разбирает поддерживаемые тела webhook в объект полей с ограниченной структурой. */
 export function asProdamusRecord(value: unknown): Record<string, unknown> {
   if (value && typeof value === "object" && !Array.isArray(value)) {
     return value as Record<string, unknown>;
@@ -9,7 +10,7 @@ function nestPhpParams(flat: Record<string, string>): Record<string, unknown> {
   const root: Record<string, unknown> = Object.create(null);
   for (const [rawKey, value] of Object.entries(flat)) {
     const keys = rawKey.replace(/\]/g, "").split("[");
-    // Parsing happens before authentication; never traverse inherited objects.
+    // Разбор идёт до аутентификации: унаследованные свойства объектов не обходим.
     if (
       keys.some((key) =>
         ["__proto__", "constructor", "prototype"].includes(key),
@@ -43,6 +44,7 @@ function flattenQuery(query: Record<string, unknown>): Record<string, string> {
   return flat;
 }
 
+/** Разбор формата выполняется до аутентификации; результат ещё не разрешает финансовый эффект. */
 export function parseProdamusPayload(
   query: Record<string, unknown>,
   body: unknown,

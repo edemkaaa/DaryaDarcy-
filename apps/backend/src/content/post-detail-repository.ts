@@ -1,3 +1,4 @@
+/** Детали публикации и её медиа принадлежат одному снимку чтения; доступ проверяется сервисом. */
 import { and, eq, or, sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { posts, type Post } from "../../../../packages/database/src/schema";
@@ -7,6 +8,7 @@ import { postDateOrder } from "./post-order";
 // Connection ownership stays in db.ts; services gate private detail and club text.
 type Database = MySql2Database | null;
 
+/** Пост и медиа читаем из одного снимка; окончательное решение о доступе остаётся у сервиса. */
 export async function getPostById(
   db: Database,
   id: number | string,
@@ -50,6 +52,7 @@ export async function getPostById(
   }, { isolationLevel: "repeatable read", accessMode: "read only" });
 }
 
+/** Находим последнюю публикацию по серверному порядку выдачи. */
 export async function getLatestPublishedPost(
   db: Database,
   target: "feed" | "club",

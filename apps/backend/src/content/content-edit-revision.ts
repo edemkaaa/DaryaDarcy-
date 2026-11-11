@@ -1,3 +1,4 @@
+/** Сравниваем ревизию редактора с актуальным состоянием, чтобы не затереть параллельную правку. */
 import { createHash } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -55,6 +56,7 @@ export function postEditRevision(post: Post, media: PostMedia[]): string {
   ]);
 }
 
+/** Ревизия статьи зависит от редактируемого содержимого и нужна для обнаружения параллельной правки. */
 export function articleEditRevision(article: Article): string {
   return fingerprint(["article-edit:v1", article]);
 }
@@ -86,6 +88,7 @@ export function expectedEditRevision(
   return condition.expectedRevision;
 }
 
+/** Несовпадение ожидаемой версии означает конфликт; чужое изменение не затираем. */
 export function assertEditRevision(expected: string, actual: string): void {
   if (expected !== actual)
     throw new TRPCError({

@@ -1,3 +1,4 @@
+/** Клиент только TEST-режима YooKassa: фиксированный origin, валидация ответов и ограниченные запросы. */
 import { z } from "zod";
 import { moneyMinor } from "../protocol";
 
@@ -85,7 +86,7 @@ export function confirmationUrl(payment: YookassaPayment): string | null {
   return url.href;
 }
 
-/** Fixed-origin, bounded transport; never expose provider bodies or credentials. */
+/** Ограниченный транспорт с фиксированным origin; тела провайдера и доступы наружу не передаются. */
 export class YookassaTestClient {
   private inFlight = 0;
   constructor(private readonly config: YookassaTestConfig) {}

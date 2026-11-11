@@ -1,3 +1,4 @@
+/** Проверяем текст, фото и ключ отправки комментария на входе в API. */
 import { z } from "zod";
 
 export const addCommentInput = z.object({

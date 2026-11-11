@@ -1,3 +1,4 @@
+/** Сопоставляем файл, его владельца и актуальный материал перед открытием защищённого объекта. */
 import { Injectable, Inject } from "@nestjs/common";
 import type { Request } from "express";
 import { and, eq } from "drizzle-orm";

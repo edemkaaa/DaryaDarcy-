@@ -1,3 +1,4 @@
+/** Выбирает период доступа и передаёт подтверждённую оплату атомарному обработчику settlement. */
 import { Injectable } from "@nestjs/common";
 import type { settleClubOrder } from "./settlement";
 
@@ -23,7 +24,7 @@ export function clubAccessMs(): number {
   return ACCESS_PERIOD_MS;
 }
 
-/** Post-verification orchestration; durable settlement owns replay/access decisions. */
+/** Оркестрация после проверки уведомления; повтор и выдачу доступа решает долговечный settlement. */
 @Injectable()
 export class ClubSettlementService {
   constructor(private readonly settlePayment: ClubSettlementPort) {}

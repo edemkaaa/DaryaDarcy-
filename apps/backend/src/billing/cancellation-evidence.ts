@@ -1,3 +1,4 @@
+/** Проверяет, подтверждены ли платёж и привязка профиля для отмены; TEST не становится LIVE-доказательством. */
 import { and, eq, like, sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import {
@@ -35,8 +36,8 @@ export async function hasUnboundMonthlyPayment(
     );
   if (!monthly.length) return false;
 
-  // Settlement creates both rows atomically. The outbox user index and the
-  // receipt primary key let us read this member's proofs without a table scan.
+  // Settlement создаёт обе записи атомарно. Индекс пользователя outbox и
+  // primary key receipt позволяют прочитать доказательства без полного сканирования.
   const receipts = await database
     .select({
       orderId: billingReceipts.orderId,
@@ -97,8 +98,8 @@ export async function hasUnboundMonthlyPayment(
               }),
         ),
     );
-    // Old receipt hashes do not include the merchant domain. Conflicting
-    // profile candidates must never be resolved by picking the newest one.
+    // Старые хеши квитанций не включали домен merchant: при неоднозначных
+    // кандидатах профиля нельзя просто выбирать самый новый.
     return matching.length !== 1;
   });
 }
@@ -107,7 +108,7 @@ export async function supportsCancellationPayment(
   database: Reader,
   paid: ClubPayment,
 ): Promise<boolean> {
-  // Monthly orders additionally require hasUnboundMonthlyPayment to be false.
+  // Для месячного заказа дополнительно требуется отсутствие непривязанной оплаты.
   if (
     paid.orderId.startsWith("club-") ||
     paid.orderId.startsWith("club6m-") ||

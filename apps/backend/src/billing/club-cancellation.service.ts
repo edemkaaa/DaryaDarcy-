@@ -1,3 +1,4 @@
+/** Соединяет уже проверенное уведомление об отмене с её долговечным SQL-состоянием. */
 import { Injectable } from "@nestjs/common";
 import type { confirmProviderCancellation } from "./cancellation";
 import type { ProdamusCancellationProfile } from "./prodamus-cancellation";
@@ -8,7 +9,7 @@ export type ClubCancellationPorts = Readonly<{
   confirm: typeof confirmProviderCancellation;
 }>;
 
-/** Post-verification orchestration; durable cancellation owns the transaction. */
+/** Оркестрация после проверки уведомления; транзакцией владеет долговечная отмена. */
 @Injectable()
 export class ClubCancellationService {
   constructor(private readonly ports: ClubCancellationPorts) {}

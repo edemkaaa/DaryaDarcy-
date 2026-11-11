@@ -1,3 +1,4 @@
+/** Нормализуем MIME и определяем тип содержимого перед обработкой и выдачей вложения. */
 import { TRPCError } from "@trpc/server";
 import { detectBinaryFileType } from "../media/file-signature";
 import type { MediaUploadInput } from "./media-upload-input";

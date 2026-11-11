@@ -1,3 +1,4 @@
+/** Проверяем переход публикации в опубликованное состояние и связанные с ним правила записи. */
 import { eq, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import type { MySql2Database } from "drizzle-orm/mysql2";

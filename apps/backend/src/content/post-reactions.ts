@@ -1,3 +1,4 @@
+/** Реакции и сохранения принадлежат пользователю. Повтор toggle является новой операцией, а не идемпотентным повтором. */
 import { lockCurrentContentActor, type ContentWriteActor } from "./content-write-actor";
 import { and, desc, eq } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
@@ -15,6 +16,7 @@ export type ReactionAccessCheck = (
   reader: Pick<MySql2Database, "select">,
 ) => Promise<boolean>;
 
+/** Личные лайки выбираем по владельцу, не смешивая состояние разных аккаунтов. */
 export async function getUserLikedPostIds(
   db: MySql2Database | null,
   userId: number,
@@ -28,6 +30,7 @@ export async function getUserLikedPostIds(
   return boundedLegacyList(result).map((r) => r.postId);
 }
 
+/** Личные сохранения выбираем по владельцу для последующей разрешённой выдачи. */
 export async function getUserSavedPostIds(
   db: MySql2Database | null,
   userId: number,

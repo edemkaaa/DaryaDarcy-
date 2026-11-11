@@ -1,3 +1,4 @@
+/** Принимаем закрытые фото и документы через журнал загрузок и проверенные типы содержимого. */
 import { randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";

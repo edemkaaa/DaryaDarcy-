@@ -1,3 +1,4 @@
+/** Низкоуровневая проверка TOTP для включаемой администратором дополнительной защиты. */
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 const BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";

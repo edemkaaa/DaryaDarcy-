@@ -1,3 +1,4 @@
+/** Сопоставляет поля уведомления с заказом; подпись и право на settlement проверяются отдельно. */
 import type { PaymentProof } from "./protocol";
 
 export type ProdamusClubBinding = {
@@ -5,7 +6,7 @@ export type ProdamusClubBinding = {
   subscriptionId: string;
 };
 
-/** Field matching only; does not verify signatures or authorize settlement. */
+/** Только сопоставление полей; не проверяет подпись и не разрешает settlement. */
 export function hasClubPaymentBinding(
   proof: PaymentProof,
   orderId: string,

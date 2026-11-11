@@ -1,3 +1,4 @@
+/** Граничная проверка метаданных закрытого видео и параметров восстановления его загрузки. */
 import { z } from "zod";
 import { privateUploadKey } from "./private-upload-key";
 

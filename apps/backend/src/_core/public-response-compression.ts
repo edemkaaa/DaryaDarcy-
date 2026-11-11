@@ -1,3 +1,4 @@
+/** Сжимает только явно разрешённые публичные JSON-ответы, не создавая кэш для приватных данных. */
 import compression from "compression";
 import type { Express } from "express";
 import { constants } from "node:zlib";
@@ -10,7 +11,7 @@ const publicReads = new Set([
   "articles.list",
 ]);
 
-/** Compress public JSON bytes, never private responses or binary media. No cache is added. */
+/** Сжатие только публичного JSON: приватные ответы и двоичные файлы исключены, кэш не добавляется. */
 export function registerPublicResponseCompression(app: Express): void {
   app.use(
     compression({

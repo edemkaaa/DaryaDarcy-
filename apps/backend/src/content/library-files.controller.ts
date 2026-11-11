@@ -1,3 +1,4 @@
+/** HTTP-граница списков и скачивания Библиотеки; клиентский интерфейс не заменяет проверку доступа. */
 import { Controller, Get, Inject, Param, Req, Res } from "@nestjs/common";
 import type { Request, Response } from "express";
 import { SessionService } from "../identity/session.service";

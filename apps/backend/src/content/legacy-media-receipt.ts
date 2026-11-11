@@ -1,3 +1,4 @@
+/** Квитанции переноса связывают исходный файл, закрытую копию и родительский материал. */
 import { eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import {
@@ -28,6 +29,7 @@ export type LegacyReceipt =
   | { content: true; row: typeof files.$inferSelect }
   | { content: false; row: typeof media.$inferSelect };
 const content = (plan: LegacyMediaPlan) => plan.subject.kind !== "postMedia";
+/** Проверяем возможность переноса перед внешними и SQL-операциями. */
 export function requireLegacyEnabled(plan: LegacyMediaPlan) {
   if (content(plan)) requirePrivateContentEnabled();
   else {
@@ -40,6 +42,7 @@ export async function requireLegacySchema(tx: Tx, plan: LegacyMediaPlan) {
   if (content(plan)) await requirePrivateContentSchema(tx);
   else await requirePrivateAttachmentSchema(tx);
 }
+/** Читаем сохранённое свидетельство переноса по ключу операции. */
 export async function readLegacyReceipt(
   tx: Tx,
   plan: LegacyMediaPlan,
@@ -60,6 +63,7 @@ export async function readLegacyReceipt(
     .for("update");
   return row ? { content: false, row } : undefined;
 }
+/** Регистрируем намерение переноса отдельно от последующего состояния готовности объекта. */
 export async function insertLegacyReceipt(
   tx: Tx,
   plan: LegacyMediaPlan,
@@ -89,6 +93,7 @@ export const retiredLegacyReceipt = (asset: LegacyReceipt) =>
   asset.content
     ? Boolean(asset.row.retiredAt)
     : Boolean(asset.row.orphanedAt || asset.row.recoveryCompactedAt);
+/** Сверяем квитанцию с исходным намерением, а не только с существованием ключа. */
 export function checkLegacyReceipt(
   asset: LegacyReceipt,
   plan: LegacyMediaPlan,
@@ -108,6 +113,7 @@ export function checkLegacyReceipt(
   )
     throw legacyConflict();
 }
+/** Возвращаем состояние уже привязанного результата переноса. */
 export function attachedLegacyReceipt(
   asset: LegacyReceipt,
   target: LegacyTarget,
@@ -130,10 +136,12 @@ export function attachedLegacyReceipt(
   }
   return true;
 }
+/** Использованная или отозванная квитанция не разрешает новую привязку. */
 export function requireUnspentLegacyReceipt(asset: LegacyReceipt) {
   if (retiredLegacyReceipt(asset)) throw legacyConflict();
   assertContentRecoveryWindow(asset.row.createdAt);
 }
+/** Создаём отдельную копию объекта для согласованного переноса. */
 export async function uploadLegacyObject(
   asset: LegacyReceipt,
   plan: LegacyMediaPlan,
@@ -151,6 +159,7 @@ export async function uploadLegacyObject(
       )
     : ensurePrivateUploadObject(asset.row, plan.bytes);
 }
+/** Отмечаем готовность после подтверждённой записи копии. */
 export async function markLegacyObjectReady(
   tx: Tx,
   asset: LegacyReceipt,
@@ -171,6 +180,7 @@ export async function markLegacyObjectReady(
       .set({ state: "ready", etag })
       .where(eq(media.requestKey, asset.row.requestKey));
 }
+/** Связываем проверенную копию с текущим родительским материалом. */
 export async function bindLegacyMediaReceipt(
   tx: Tx,
   asset: LegacyReceipt,
@@ -189,6 +199,7 @@ export async function bindLegacyMediaReceipt(
     .set({ postId: target.parentId, mediaId: target.mediaId })
     .where(eq(media.requestKey, asset.row.requestKey));
 }
+/** Отзываем дальнейшее использование квитанции, сохраняя историю результата. */
 export async function retireLegacyReceipt(tx: Tx, asset: LegacyReceipt) {
   if (asset.content)
     await tx

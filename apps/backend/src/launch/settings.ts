@@ -1,3 +1,4 @@
+/** Валидирует сезонное оформление, сохраняет ревизию с аудитом и вычисляет текущий сезон. */
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import type { LaunchConfiguration, LaunchConfigurationSnapshot, Season } from "../../../../packages/shared/src/launch-settings";
 import { PUBLIC_CONTACT_EMAIL } from "../../../../packages/shared/src/contact";
@@ -21,8 +22,8 @@ const assetUrl = z.string().max(2048).url().pipe(z.string().refine(value => {
   const url = new URL(value);
   return url.protocol === "https:" && !url.username && !url.password;
 }, "Изображения должны использовать HTTPS").refine(value => {
-  // Reject known HTML share pages without introducing server-side URL fetching.
-  // Direct images need not have an extension (e.g. signed CDN URLs).
+  // Отсекаем известные HTML-страницы без серверного запроса по URL.
+  // Прямая ссылка на изображение может быть без расширения, например signed CDN URL.
   const host = new URL(value).hostname.toLowerCase().replace(/\.$/, "");
   return !["disk.yandex.ru", "disk.yandex.com", "yadi.sk"].includes(host);
 }, SEASON_IMAGE_SHARING_PAGE_MESSAGE)).nullable();
@@ -101,6 +102,7 @@ export async function saveLaunchConfiguration(
     return { revision, config };
   });
 }
+/** Календарное вычисление не меняет сохранённые настройки: фиксированный и автоматический режимы различаются явно. */
 export function currentSeason(config: LaunchConfiguration, date = new Date()): Season {
   if (config.seasonMode === "fixed") return config.fixedSeason;
   const parts = new Intl.DateTimeFormat("en-CA", { timeZone: config.timezone, month: "2-digit", day: "2-digit" }).formatToParts(date);

@@ -1,3 +1,4 @@
+/** Разделяем безопасную карточку VK и выдачу адреса плеера после проверки текущего доступа. */
 import { and, asc, eq, gt, sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { TRPCError } from "@trpc/server";
@@ -12,6 +13,7 @@ import { publicCatalogThumbnail } from "./video-thumbnail";
 import { userHasClubAccess } from "../identity/club-access";
 import { getActiveClubSubscription } from "../db";
 
+/** Отключённая возможность каталога не становится доступной от одного наличия маршрута. */
 export function requireVkCatalogEnabled() {
   if (process.env.VK_CATALOG_ENABLED !== "true")
     throw new TRPCError({
@@ -20,6 +22,7 @@ export function requireVkCatalogEnabled() {
     });
 }
 type Reader = Pick<MySql2Database, "select" | "execute">;
+/** Проверяем наличие ожидаемой схемы без применения runtime-миграций. */
 export async function requireVkCatalogSchema(tx: Reader) {
   await tx.select().from(videos).limit(0);
   const [result] = await tx.execute(sql`
@@ -39,6 +42,7 @@ export async function requireVkCatalogSchema(tx: Reader) {
   )
     throw new Error("Video schema unavailable");
 }
+/** Заново проверяем автора перед административной операцией с видео. */
 export async function currentVideoActor(tx: Reader, actor: User) {
   const [current] = await tx
     .select()
@@ -51,6 +55,7 @@ export async function currentVideoActor(tx: Reader, actor: User) {
     throw new TRPCError({ code: "FORBIDDEN" });
   return current;
 }
+/** Сохраняем проверенный VK-источник и публичную обложку с контролем ревизии. */
 export async function upsertVkVideo(actor: User, input: VkVideoInput) {
   requireVkCatalogEnabled();
   const source = parseVkEmbed(input.embedUrl);
@@ -129,6 +134,7 @@ export async function upsertVkVideo(actor: User, input: VkVideoInput) {
   });
 }
 
+/** Полные детали источника выдаются административному редактору после проверки автора. */
 export async function adminVkVideoDetail(actor: User, id: number) {
   requireVkCatalogEnabled();
   const database = await getDb();
@@ -142,6 +148,7 @@ export async function adminVkVideoDetail(actor: User, id: number) {
   });
 }
 
+/** Карточка каталога сообщает доступность; закрытый адрес плеера выдаётся отдельным запросом. */
 export async function videoCatalog(
   actor: User | null,
   input: { limit: number; cursor?: number; includeThumbnails?: boolean },
@@ -192,6 +199,7 @@ export async function videoCatalog(
     };
   });
 }
+/** Перед возвратом embedUrl повторно проверяем право текущего зрителя. */
 export async function videoPlayback(actor: User | null, id: number) {
   requireVkCatalogEnabled();
   const database = await getDb();

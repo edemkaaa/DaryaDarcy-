@@ -1,3 +1,4 @@
+/** Доставляет подтверждение почты по lease и не разрешает устаревшему worker перезаписать новый результат. */
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { and, asc, eq, gt, isNull, lte, or, sql } from "drizzle-orm";
 import { createDecipheriv, createHash, randomUUID } from "node:crypto";
@@ -12,6 +13,7 @@ import { completeMemberEmailBinding } from "./email-binding-lifecycle";
 import { isValidEmail, normalizeEmail } from "../_core/password";
 import { publicAccessUrl } from "./urls";
 
+/** AAD связывает шифротекст с заявкой и её payload, поэтому перенос между заявками не проходит. */
 function decryptProof(
   requestKey: string,
   payloadHash: string,
@@ -39,7 +41,7 @@ function decryptProof(
   return token;
 }
 
-/** Bounded, internal-only worker. SMTP acknowledgement is not inbox receipt. */
+/** Ограниченная внутренняя доставка; приём SMTP не доказывает появление письма во входящих. */
 export async function processMemberEmailBindingEmails(
   database: MySql2Database,
   send: (mail: Mail) => Promise<boolean>,
@@ -154,7 +156,7 @@ export async function processMemberEmailBindingEmails(
           claim.mail.tokenCipher || "",
           claim.binding.proofHash || "",
         );
-        // Reuse the existing trusted-origin policy, never caller Host/Origin.
+        // Используем доверенный origin конфигурации, а не Host/Origin вызывающего клиента.
         const url = publicAccessUrl(token);
         url.pathname = "/api/auth/email-binding";
         // Старый процесс мог продолжить работу после отзыва заявки или смены lease.
@@ -206,8 +208,8 @@ export async function processMemberEmailBindingEmails(
           .from(memberEmailBindingOutbox)
           .where(eq(memberEmailBindingOutbox.requestKey, candidate.requestKey))
           .for("update");
-        // A late SMTP response cannot resurrect a confirmed/cancelled proof or
-        // overwrite the lease claimed by a replacement worker after a crash.
+        // Поздний SMTP-ответ не воскрешает завершённый proof и не перезаписывает
+        // lease, который уже получил заменяющий worker.
         if (binding?.state !== "pending" || !mail || mail.leaseId !== leaseId)
           return;
         if (

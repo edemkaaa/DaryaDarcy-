@@ -1,3 +1,4 @@
+/** Разделяет tRPC-операции профиля и дополнительные пользовательские действия по правам. */
 import { router, protectedProcedure } from "../_core/trpc";
 import { photoInput } from "../media/photos";
 import { avatarReceiptInput, publicPhotoStatusInput, uploadPublicPhoto, publicPhotoStatus } from "../media/public-photo-receipts";

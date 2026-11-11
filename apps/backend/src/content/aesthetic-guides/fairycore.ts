@@ -1,3 +1,4 @@
+/** Серверное содержимое гида fairycore; право выдачи проверяет контроллер эстетик. */
 import type { AestheticGuideContent } from "../../../../../packages/shared/src/aesthetic-guide";
 export const FAIRYCORE_RESULT: AestheticGuideContent = {
   style: {

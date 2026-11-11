@@ -1,3 +1,4 @@
+/** Отдельные чтения админки: список, детали, календарь и счётчики не требуют выгрузки всех постов. */
 import { and, asc, eq, gte, isNotNull, lt, sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { z } from "zod";
@@ -57,6 +58,7 @@ const card = {
   createdAt: posts.createdAt,
 };
 
+/** Читаем только страницу административного списка; календарь и счётчики запрашиваются отдельно. */
 export async function getAdminPostsPage(
   db: Database,
   input: z.infer<typeof adminPostsPageInput>,
@@ -81,6 +83,7 @@ export async function getAdminPostsPage(
   };
 }
 
+/** Детали и вложения читаем согласованно, включая скрытые от общего каталога записи. */
 export async function getAdminPostDetail(
   db: Database,
   id: number,
@@ -122,6 +125,7 @@ export const adminPostCalendarInput = z
   })
   .strict();
 
+/** Считаем состояния постов на сервере без передачи всего списка в браузер. */
 export async function getAdminPostCounts(db: Database) {
   if (!db) throw new Error("Database not available");
   // These are the existing header semantics, not the status-only stats dashboard.
@@ -145,6 +149,7 @@ export async function getAdminPostCounts(db: Database) {
   return counts;
 }
 
+/** Возвращаем данные выбранного интервала календаря, а не полные тела всех публикаций. */
 export async function getAdminPostCalendar(
   db: Database,
   input: z.infer<typeof adminPostCalendarInput>,

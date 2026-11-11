@@ -1,3 +1,4 @@
+/** Защищённая HTTP-выдача текстов эстетик. Проверка доступа находится на серверной границе. */
 import { Controller, Get, Inject, Param, Req, Res } from "@nestjs/common";
 import type { Request, Response } from "express";
 import { aestheticKeySchema } from "../../../../packages/shared/src/aesthetic-guide";

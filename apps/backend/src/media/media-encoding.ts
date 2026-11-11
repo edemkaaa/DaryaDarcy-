@@ -1,3 +1,4 @@
+/** Проверяем канонический Base64 и ограничиваем декодирование до выделения больших буферов. */
 import { TRPCError } from "@trpc/server";
 
 // Matches the existing media JSON ceiling in _core/request-bodies.ts. The HTTP

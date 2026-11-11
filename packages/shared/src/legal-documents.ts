@@ -1,3 +1,4 @@
+/** Структурированное содержимое юридических страниц; фактические условия требуют согласования владельца. */
 import { PUBLIC_CONTACT_EMAIL } from "./contact";
 
 export type LegalDocument = {

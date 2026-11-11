@@ -1,3 +1,4 @@
+/** После аутентификации уведомления связывает платёж с выдачей доступа и её подтверждением. */
 import type { PaymentProof } from "./protocol";
 import { isPaidStatus } from "./prodamus-fields";
 import { readProdamusPayment } from "./prodamus-payment";
@@ -26,7 +27,7 @@ export type ProdamusPaymentNotificationPorts = {
   fulfil: ProdamusPaymentFulfilment;
 };
 
-/** Runs after ingress authentication/demo rejection; acknowledgement waits for settlement. */
+/** После аутентификации и отсева demo успешный ответ ждёт завершения settlement. */
 export async function processProdamusPaymentNotification(
   body: Record<string, unknown>,
   signature: string,

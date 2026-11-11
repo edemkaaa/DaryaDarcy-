@@ -1,3 +1,4 @@
+/** Экспортируем ограниченные метаданные восстановления для проверки и служебных процедур. */
 import { and, asc, eq, gt } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";

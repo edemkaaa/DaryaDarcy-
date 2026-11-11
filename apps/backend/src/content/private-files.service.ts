@@ -1,3 +1,4 @@
+/** Находим разрешённое вложение по связям в БД и передаём контроллеру данные для чтения объекта. */
 import { Injectable, Inject } from "@nestjs/common";
 import type { Request } from "express";
 import { eq } from "drizzle-orm";

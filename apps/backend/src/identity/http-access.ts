@@ -1,3 +1,4 @@
+/** Nest guards и фильтр отказов для HTTP-сессии и ролей с безопасным форматом ответа. */
 import {
   Catch,
   Inject,
@@ -11,7 +12,7 @@ import type { Request, Response } from "express";
 import type { User } from "../../../../packages/database/src/schema";
 import { SessionService } from "./session.service";
 
-/** Set only by a successful guard, never from the submitted JSON. */
+/** Устанавливается только успешным guard, никогда не берётся из присланного JSON. */
 export type AuthenticatedRequest = Request & { authenticatedUser: User };
 
 class SessionAccessRejection extends Error {
@@ -23,8 +24,8 @@ class SessionAccessRejection extends Error {
   }
 }
 
-// These HTTP routes predate Nest and deliberately have different error formats.
-// Guards execute before @Header, so denials must also set no-store here.
+// Маршруты сохраняют исторически разные форматы ошибок.
+// Guard выполняется до @Header, поэтому no-store для отказов устанавливаем здесь.
 @Catch(SessionAccessRejection)
 export class SessionAccessFilter implements ExceptionFilter {
   catch(error: SessionAccessRejection, host: ArgumentsHost) {
@@ -39,6 +40,7 @@ export class SessionAccessFilter implements ExceptionFilter {
 }
 
 @Injectable()
+/** Загружает актуального пользователя и разрешает только роль администратора; отказ не кэшируется. */
 export class AdministratorGuard implements CanActivate {
   constructor(
     @Inject(SessionService) private readonly sessions: SessionService,
@@ -46,7 +48,7 @@ export class AdministratorGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
-    // Preserve settings PUT's content-type-before-auth ordering.
+    // Сохраняем прежний порядок PUT настроек: content-type проверяется до сессии.
     if (request.method === "PUT" && !request.is("application/json")) {
       throw new SessionAccessRejection(415);
     }
@@ -60,6 +62,7 @@ export class AdministratorGuard implements CanActivate {
 }
 
 @Injectable()
+/** Повтор писем ограничен staff-ролью, JSON-телом и доверенным browser origin. */
 export class AccessEmailStaffGuard implements CanActivate {
   constructor(
     @Inject(SessionService) private readonly sessions: SessionService,

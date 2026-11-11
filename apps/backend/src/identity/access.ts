@@ -1,3 +1,4 @@
+/** Жизненный цикл первого пароля и восстановления: одноразовое доказательство, SQL-outbox и повтор доставки. */
 import { lockAdminActionActor } from "../admin/action-actor";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import {
@@ -73,6 +74,7 @@ function decrypt(value: string) {
     decipher.final(),
   ]).toString("utf8");
 }
+/** Создаёт proof и долговечную запись письма внутри транзакции вызывающего домена. */
 export async function queueAccessEmail(
   tx: Transaction,
   userId: number,
@@ -81,7 +83,7 @@ export async function queueAccessEmail(
   eventKey: string,
   orderId?: string,
 ): Promise<void> {
-  // Caller holds the user lock; link creation and durable mail are part of the same transaction as access.
+  // Блокировка пользователя уже удерживается; ссылка и outbox фиксируются вместе с доступом.
   const [existing] = await tx
     .select()
     .from(accessEmailOutbox)
@@ -97,7 +99,7 @@ export async function queueAccessEmail(
     throw new Error("Invalid mail recipient");
   const payload: { orderId?: string; tokenCipher?: string } = { orderId };
   if (kind !== "club-access" || !user.passwordHash) {
-    // Do not bootstrap staff accounts through payment or public setup flows.
+    // Оплата и публичная установка пароля не должны создавать доступ к служебному аккаунту.
     if (!user.passwordHash && user.role !== "user")
       throw new Error("Staff password setup requires an administrator");
     const purpose = user.passwordHash ? "reset" : "setup";
@@ -117,7 +119,7 @@ export async function queueAccessEmail(
     .insert(accessEmailOutbox)
     .values({ eventKey, userId, email: normalizeEmail(email), kind, payload });
 }
-/** Caller holds the recipient's user lock, shared with password completion. */
+/** Вызывающий код удерживает блокировку получателя, общую с завершением установки пароля. */
 export async function queuePasswordSetupRetry(
   tx: Transaction,
   userId: number,
@@ -170,7 +172,7 @@ export async function queuePasswordSetupRetry(
       ),
     );
   if (budget.used >= 3) return;
-  // No invalidation: any already emailed, unexpired setup remains usable.
+  // Не отзываем уже отправленные действующие ссылки установки пароля при повторе письма.
   await queueAccessEmail(
     tx,
     userId,
@@ -179,6 +181,7 @@ export async function queuePasswordSetupRetry(
     `setup-retry:${randomUUID()}`,
   );
 }
+/** Запрос восстановления не подтверждает существование аккаунта и не выполняет SMTP внутри SQL. */
 export async function requestPasswordEmail(
   database: MySql2Database,
   email: string,
@@ -213,6 +216,7 @@ export async function requestPasswordEmail(
     );
   });
 }
+/** Одноразовое завершение меняет пароль под блокировкой владельца и отзывает прежние сессии. */
 export async function completePassword(
   database: MySql2Database,
   token: string,
@@ -280,6 +284,7 @@ export async function resendClubAccess(
   });
 }
 
+/** Повтор менеджера использует ту же транзакцию и бюджет получателя; письмо не является выдачей доступа. */
 export async function resendClubAccessInTransaction(
   tx: Transaction,
   actorId: number,
@@ -324,6 +329,7 @@ export async function resendClubAccessInTransaction(
   });
   return true;
 }
+/** Забирает ограниченную порцию outbox по lease; SMTP выполняется вне SQL-транзакции. */
 export async function processAccessEmails(
   database: MySql2Database,
   send: (mail: Mail) => Promise<boolean>,
@@ -404,8 +410,8 @@ export async function processAccessEmails(
           const label = token
             ? "Установите пароль по одноразовой ссылке"
             : "Войдите в аккаунт";
-          // Only the operator-configured, validated URL enters the attribute.
-          // Keep the fragment intact; it must not become a server query token.
+          // В HTML-атрибут попадает только проверенный URL из настройки оператора.
+          // Токен сохраняется во fragment и не превращается в серверный query-параметр.
           const href = url
             .toString()
             .replace(
@@ -419,8 +425,8 @@ export async function processAccessEmails(
                   "'": "&#39;",
                 })[character]!,
             );
-          // A paused worker can resume after a replacement acquired its job.
-          // Revalidate immediately before SMTP, not only when recording success.
+          // Зависший worker может продолжиться после захвата задачи другим процессом.
+          // Проверяем владение перед SMTP, а не только при записи успеха.
           const [owned] = await database
             .select({ id: accessEmailOutbox.id })
             .from(accessEmailOutbox)

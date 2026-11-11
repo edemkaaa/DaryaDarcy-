@@ -1,3 +1,4 @@
+/** Рубрики Клуба, видимые подписи тегов и правила окна комментариев используются обеими сторонами API. */
 export type ClubTabId = "podborki" | "community" | "exclusive" | "life";
 
 export const CLUB_SECTION_TAGS: Record<ClubTabId, string[]> = {
@@ -16,6 +17,7 @@ export const CLUB_TAB_TAGS: Record<ClubTabId, string[]> = {
 
 export const SECTION_ORDER = ["podborki", "community", "exclusive", "life"] as const;
 
+/** Выбираем основную клубную рубрику по согласованным тегам публикации. */
 export function primaryClubTab(tags: string[] | null | undefined): ClubTabId | null {
   const set = new Set((tags || []).map(normalizeClubTag));
   for (const tab of SECTION_ORDER) {
@@ -29,18 +31,22 @@ export function primaryClubTab(tags: string[] | null | undefined): ClubTabId | n
 
 export const COMMUNITY_COMMENT_HOURS = 48;
 
+/** Старые варианты тега приводим к общему ключу без изменения пользовательского текста. */
 export function normalizeClubTag(tag: string): string {
   return tag.trim().toLowerCase();
 }
 
+/** Проверяем принадлежность поста выбранной вкладке Клуба. */
 export function postMatchesClubTab(tags: string[] | null | undefined, tab: ClubTabId): boolean {
   return primaryClubTab(tags) === tab;
 }
 
+/** Отдельно определяем публикации комьюнити для правил обсуждения. */
 export function isCommunityPost(tags: string[] | null | undefined): boolean {
   return postMatchesClubTab(tags, "community");
 }
 
+/** Вычисляем срок закрытия комментариев по дате публикации и рубрике. */
 export function commentsCloseAt(createdAt: Date | string | null | undefined): Date | null {
   if (!createdAt) return null;
   const start = new Date(createdAt).getTime();
@@ -50,10 +56,12 @@ export function commentsCloseAt(createdAt: Date | string | null | undefined): Da
 
 const RUBRIC_SLUGS = new Set(Object.values(CLUB_SECTION_TAGS).flat().map(normalizeClubTag));
 
+/** Отделяем служебные рубрики Клуба от остальных пользовательских тегов. */
 export function isClubRubricTag(tag: string): boolean {
   return RUBRIC_SLUGS.has(normalizeClubTag(tag));
 }
 
+/** Проверяем окно обсуждения в момент запроса, а не только при первом показе карточки. */
 export function areCommentsOpen(
   tags: string[] | null | undefined,
   createdAt: Date | string | null | undefined,
@@ -72,10 +80,12 @@ const HIDDEN_CLUB_TAGS = new Set([
   "гид",
 ]);
 
+/** Оставляем теги, которые должен увидеть читатель карточки. */
 export function visibleClubTags(tags: string[] | null | undefined): string[] {
   return (tags || []).filter((tag) => !HIDDEN_CLUB_TAGS.has(normalizeClubTag(tag)));
 }
 
+/** Внутренний ключ тега преобразуем в согласованную видимую подпись. */
 export function clubTagLabel(tag: string): string {
   const value = normalizeClubTag(tag);
   const labels: Record<string, string> = {

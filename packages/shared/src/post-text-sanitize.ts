@@ -1,3 +1,4 @@
+/** Нормализация текста и диапазонов форматирования перед хранением и отображением поста. */
 import type { RichTextBlock } from "./rich-text-types";
 import { preparePostRichTextForSave } from "./rich-text-save";
 

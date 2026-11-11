@@ -1,3 +1,4 @@
+/** Проверяет текущую сессию и epoch пользователя; сбой БД не превращается в подтверждённого гостя. */
 import { Injectable, ServiceUnavailableException } from "@nestjs/common";
 import type { Request } from "express";
 import { and, eq, sql } from "drizzle-orm";
@@ -21,6 +22,7 @@ import { verifyPassword } from "../_core/password";
 import { sdk } from "../_core/sdk";
 import { createEmailAccount, retryEmailRegistration } from "./registration";
 
+/** Явный публичный набор полей не расширяется автоматически при добавлении колонок User. */
 export function publicUser(user: User) {
   return {
     id: user.id ?? null,
@@ -39,17 +41,18 @@ export function publicUser(user: User) {
 
 @Injectable()
 export class SessionService {
-  // Do not retain actors between requests: revocation and roles come from MySQL.
+  // Не кэшируем actor между запросами: отзыв сессии и роль берутся из MySQL.
   authenticateRequest(request: Request): Promise<User> {
     return sdk.authenticateRequest(request);
   }
 
+  /** Различает отсутствие/отказ сессии и временную недоступность инфраструктуры. */
   async optionalUser(request: Request): Promise<User | null> {
     try {
       return await this.authenticateRequest(request);
     } catch (error) {
-      // Only a confirmed authentication denial means guest. Infrastructure
-      // failures must not make clients discard an authenticated user's state.
+      // Гость — только подтверждённый отказ аутентификации. Инфраструктурный
+      // сбой не должен заставлять клиент очищать состояние вошедшего пользователя.
       if (error instanceof HttpError && [401, 403].includes(error.statusCode))
         return null;
       throw new ServiceUnavailableException({
@@ -96,11 +99,12 @@ export class SessionService {
     ) {
       return null;
     }
-    // Blocked credentials must fail before updating lastSignedIn or minting a
-    // JWT, with the same public response as any other invalid credentials.
+    // Заблокированный аккаунт отклоняем до lastSignedIn и JWT, с тем же
+    // публичным ответом, что и для остальных неверных учётных данных.
     return user.blockedAt ? null : user;
   }
 
+  /** Cookie содержит идентичность и epoch, а полное имя остаётся в публичном профиле. */
   async issueSession(user: User) {
     if (user.blockedAt) throw new Error("Account unavailable");
     const sessionToken = await sdk.createSessionToken(user.openId, {
@@ -111,7 +115,7 @@ export class SessionService {
     return { sessionToken, user: publicUser(user) };
   }
 
-  /** Logout ends all sessions of this account. Replays cannot revoke a later login. */
+  /** Выход завершает все сессии аккаунта; повтор старого выхода не отзывает более поздний вход. */
   async revokeSessions(user: User | null): Promise<void> {
     if (!user) return;
     try {

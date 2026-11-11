@@ -1,3 +1,4 @@
+/** Проверяем даты и числовой порядок записи в пределах фактических типов SQL. */
 import { z } from "zod";
 
 // Match the existing signed INT columns; negative priorities remain supported.

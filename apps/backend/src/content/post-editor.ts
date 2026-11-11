@@ -1,3 +1,4 @@
+/** Частичная правка поста сохраняется вместе с изменениями медиа и проверкой ожидаемой ревизии. */
 import { eq } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import {

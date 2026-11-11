@@ -1,13 +1,14 @@
+/** Валидирует поддерживаемые Expo-токены и версии согласий, не принимая произвольные адреса доставки. */
 import { z } from "zod";
 
-// Expo supports framed opaque tokens and legacy UUID-shaped tokens. Do not
-// mistake an assumed payload alphabet for the provider's format contract.
+// Expo поддерживает обёрнутые opaque-токены и старую UUID-форму.
+// Предположение об алфавите payload не заменяет контракт формата провайдера.
 const framedExpoToken =
   /^(?:ExpoPushToken|ExponentPushToken)\[[^\s[\]\u0000-\u001f\u007f]+\]$/;
 const legacyExpoToken =
   /^[a-z\d]{8}-[a-z\d]{4}-[a-z\d]{4}-[a-z\d]{4}-[a-z\d]{12}$/i;
 
-// The existing transport sends Expo tokens, not arbitrary URLs/browser endpoints.
+// Транспорт работает с Expo-токенами, а не произвольными URL или browser endpoints.
 export const registerTokenInput = z.object({
   token: z
     .string()

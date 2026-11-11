@@ -1,3 +1,4 @@
+/** Типы ключей и ответа гида эстетики согласуют серверную выдачу и чтение на клиенте. */
 import { z } from "zod";
 export const aestheticKeySchema = z.enum([
   "cottagecore",

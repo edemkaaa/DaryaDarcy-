@@ -1,3 +1,4 @@
+/** SQL-выборки для административных списков, отложенных постов и статистики. */
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import {
@@ -15,6 +16,7 @@ import { boundedLegacyList, LEGACY_LIST_CAP } from "./legacy-list-limit";
 // These projections deliberately retain hidden posts and legacy row counts.
 type Database = MySql2Database | null;
 
+/** Совместимый список админки сохраняет её правила видимости и ограничение старого контракта. */
 export async function getAllPostsAdmin(
   db: Database,
 ): Promise<(Post & { media: PostMedia[] })[]> {
@@ -27,6 +29,7 @@ export async function getAllPostsAdmin(
   return attachPostMedia(db, boundedLegacyList(rows));
 }
 
+/** Фильтры административного списка применяются до выдачи результата. */
 export async function getAdminPostsFiltered(
   db: Database,
   options?: {
@@ -52,6 +55,7 @@ export async function getAdminPostsFiltered(
   return boundedLegacyList(await query.limit(LEGACY_LIST_CAP + 1));
 }
 
+/** Читаем отложенные публикации отдельно от общего пользовательского списка. */
 export async function getScheduledPosts(db: Database): Promise<Post[]> {
   if (!db) throw new Error("Database not available");
 
@@ -62,6 +66,7 @@ export async function getScheduledPosts(db: Database): Promise<Post[]> {
     .orderBy(asc(posts.scheduledAt)).limit(LEGACY_LIST_CAP + 1));
 }
 
+/** Считаем агрегаты публикаций на стороне БД. */
 export async function getPostStatistics(db: Database) {
   if (!db) throw new Error("Database not available");
 

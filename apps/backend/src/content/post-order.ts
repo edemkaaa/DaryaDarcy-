@@ -1,3 +1,4 @@
+/** Порядок выдачи публикаций задаётся до пагинации; ручной порядок админки и хронология не смешиваются неявно. */
 import { asc, desc, sql } from "drizzle-orm";
 import { posts } from "../../../../packages/database/src/schema";
 

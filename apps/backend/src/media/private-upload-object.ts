@@ -1,3 +1,4 @@
+/** Закрытая загрузка проверяет namespace, целостность и ранее созданный объект перед повтором записи. */
 import { createHash } from "node:crypto";
 import {
   S3Client,
@@ -10,6 +11,7 @@ import { ENV } from "../_core/env";
 
 export const digest = (value: string | Buffer) =>
   createHash("sha256").update(value).digest("hex");
+/** Привязка к конфигурации хранилища не даёт повтору операции сменить назначение. */
 export function privateStorageNamespace() {
   const url = new URL(ENV.s3Endpoint);
   const loopback =
@@ -29,6 +31,7 @@ export function privateStorageNamespace() {
   const bucket = ENV.s3Bucket;
   return { endpoint, bucket, hash: digest(JSON.stringify([endpoint, bucket])) };
 }
+/** Ключ закрытого объекта выводится из проверенной квитанции, а не из произвольного имени клиента. */
 export function privateAttachmentObjectKey(
   type: "audio" | "document" | "video",
   assetId: string,
@@ -75,6 +78,7 @@ export type PrivateUploadObject = {
   namespaceHash: string;
 };
 
+/** Проверяем необходимые правила хранилища до использования закрытой загрузки. */
 export function verifyPrivateUploadPolicy(
   policy: unknown,
   bucket: string,

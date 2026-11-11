@@ -1,3 +1,4 @@
+/** Подготавливает неизменяемый отпечаток оплаты; аутентификация уведомления остаётся отдельной границей. */
 import { billingKey, moneyMinor, type PaymentProof } from "./protocol";
 
 export type ClubSettlementInput = {
@@ -15,7 +16,7 @@ export type PreparedClubSettlement = {
   payloadHash: string;
 };
 
-/** Preparation is not authentication: signature and durable ownership checks remain separate. */
+/** Подготовка не аутентифицирует уведомление: подпись и долговечная проверка владельца выполняются отдельно. */
 export function prepareClubSettlement(
   input: ClubSettlementInput,
 ): PreparedClubSettlement | undefined {
@@ -65,7 +66,7 @@ export function clubSettlementPayloadHash(
     proof.currency.toLowerCase(),
     proof.subscriptionId || "",
     proof.profileId || "",
-    // Conditional extension preserves every existing live/RUB receipt hash.
+    // Условное расширение сохраняет прежние хеши квитанций LIVE/RUB без изменения.
     ...(proof.testForeignPayment
       ? [
           "test-fx-v1",

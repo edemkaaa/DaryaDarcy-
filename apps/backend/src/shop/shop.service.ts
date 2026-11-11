@@ -1,3 +1,4 @@
+/** Чтение покупок и существующий checkout магазина; доступность online-оплаты проверяется вызывающей границей. */
 import { Injectable } from "@nestjs/common";
 import { TRPCError } from "@trpc/server";
 import { randomUUID } from "node:crypto";
@@ -5,7 +6,7 @@ import type { User } from "../../../../packages/database/src/schema";
 import * as db from "../db";
 import { buildShopCheckoutUrl, getShopProduct } from "../prodamus";
 
-/** Existing shop use cases; checkout callers enforce the release capability. */
+/** Существующие операции магазина; вызывающая checkout-граница проверяет возможность выпуска. */
 @Injectable()
 export class ShopService {
   async owned(

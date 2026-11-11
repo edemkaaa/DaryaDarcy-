@@ -1,8 +1,9 @@
+/** Границы редактирования профиля учитывают SQL-размеры и ревизию сохранения. */
 import { z } from "zod";
 
 export const MAX_PROFILE_REVISION = 2_147_483_647;
 
-// These columns are MySQL TEXT: the storage ceiling is bytes, not characters.
+// Колонки MySQL TEXT ограничены байтами, а не числом символов строки.
 const fitsTextColumn = (value: string) =>
   Buffer.byteLength(value, "utf8") <= 65_535;
 

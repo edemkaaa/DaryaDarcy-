@@ -1,3 +1,4 @@
+/** Ограничиваем старые непостраничные списки и явно отказываем при превышении размера. */
 import { TRPCError } from "@trpc/server";
 
 export const LEGACY_LIST_CAP = 200;

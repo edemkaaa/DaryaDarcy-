@@ -1,3 +1,4 @@
+/** Сервис обсуждений объединяет проверку доступа к посту и операции с комментариями. */
 import { Injectable } from "@nestjs/common";
 import { TRPCError } from "@trpc/server";
 import type { User } from "../../../../packages/database/src/schema";

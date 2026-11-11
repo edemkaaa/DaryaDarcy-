@@ -1,3 +1,4 @@
+/** Восстанавливает статус операции привязки по владельцу и ключу, не повторяя отправку. */
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { eq, sql } from "drizzle-orm";
 import {
@@ -20,7 +21,7 @@ export type EmailBindingStatus = EmailBindingReceipt & {
   completedAt: string | null;
 };
 
-/** Read-only recovery; the receipt never includes an address, proof or cipher. */
+/** Восстановление только чтением; receipt не раскрывает адрес, proof или шифротекст. */
 export async function getMemberEmailBindingStatus(
   database: MySql2Database,
   actor: EmailBindingActor,
@@ -32,8 +33,8 @@ export async function getMemberEmailBindingStatus(
     throw new EmailBindingError("invalid_input");
   try {
     return await database.transaction(async (tx) => {
-      // Locking read waits for a concurrent revocation; ordinary MVCC could
-      // otherwise report a receipt using the administrator's previous role.
+      // Блокирующее чтение ждёт параллельный отзыв прав; обычный MVCC мог бы
+      // вернуть receipt по прежней роли администратора.
       const [administrator] = await tx
         .select({
           role: users.role,
@@ -55,8 +56,8 @@ export async function getMemberEmailBindingStatus(
       )
         throw new EmailBindingError("forbidden");
 
-      // A single snapshot keeps lifecycle and delivery mutually consistent;
-      // no binding/outbox locks or maintenance writes are needed for inspection.
+      // Один snapshot согласует состояние заявки и доставки; для просмотра
+      // не нужны блокировки binding/outbox и обслуживающие записи.
       const [binding] = await tx
         .select({
           requestKey: memberEmailBindings.requestKey,

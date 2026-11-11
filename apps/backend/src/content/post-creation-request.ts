@@ -1,3 +1,4 @@
+/** Отпечаток принятого намерения создания поста отличает безопасный повтор от нового содержимого. */
 import { createHash } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 

@@ -1,3 +1,4 @@
+/** Связывает фоновые порты с существующими доменами; сам импорт модуля расписание не запускает. */
 import { runExclusiveWorker } from "../database/coordination";
 import { Module } from "@nestjs/common";
 import { publishDueScheduledPosts, getDb } from "../db";
@@ -17,7 +18,7 @@ import { WORKER_OPERATIONS, type WorkerOperations } from "./worker-operations";
   providers: [
     {
       provide: WORKER_OPERATIONS,
-      // A separate binding per app, with no domain work during construction.
+      // Каждое приложение получает свой binding без вызова доменных операций при сборке.
       useFactory: (): WorkerOperations => ({
         runExclusiveJob: runExclusiveWorker,
         publishDueScheduledPosts,

@@ -1,3 +1,4 @@
+/** Устанавливает общие HTTP-заголовки и правила доверия запросам на входе API. */
 import type { Express } from "express";
 import { registerPublicResponseCompression } from "./public-response-compression";
 
@@ -15,11 +16,11 @@ export function registerHttpSecurity(app: Express): void {
   app.disable("x-powered-by");
   app.use((req, res, next) => {
     res.vary("Origin");
-    // Mutation responses can contain guest checkout URLs, even without cookies.
+    // Ответ изменения может содержать гостевую ссылку оплаты даже без cookie.
     if ((req.method === "POST" && req.path.startsWith("/api/")) || /^\/api\/auth(?:\/|$)/.test(req.path) || /^\/api\/admin\/member-email-bindings(?:\/|$)/i.test(req.path) || req.headers.cookie || req.headers.authorization) {
       res.setHeader("Cache-Control", "no-store");
     }
-    // File denials can happen in this ingress layer before the controller.
+    // Отказ выдачи файла возможен ещё здесь, до контроллера, и тоже не должен кэшироваться.
     if (/^\/api\/media\/(?:post-attachments|content-files)(?:\/|$)/.test(req.path)) {
       res.setHeader("Cache-Control", "private, no-store");
     }
@@ -30,13 +31,13 @@ export function registerHttpSecurity(app: Express): void {
     if (process.env.NODE_ENV === "production" && req.secure) res.setHeader("Strict-Transport-Security", "max-age=31536000");
     const origin = req.headers.origin;
     const trusted = Boolean(origin && origins.has(origin));
-    // Only these exact payment boundaries are exempt: webhook checks HMAC;
-    // browser return redirects and must never grant access or issue a session.
+    // Исключены только точные платёжные маршруты: webhook проверяет HMAC,
+    // а return перенаправляет браузер без выдачи доступа или сессии.
     const providerBoundary = /^\/api\/prodamus\/(webhook|return)\/?$/.test(req.path) && ["GET", "POST"].includes(req.method);
     if (origin && !trusted && !providerBoundary) { res.sendStatus(403); return; }
     if (!origin && !providerBoundary) {
-      // Email links may open these public, read-only entry pages. Do not exempt
-      // their mutations, cross-site fetches or embedded documents.
+      // Из письма разрешена навигация на эти страницы только для чтения.
+      // Изменения, cross-site fetch и встроенные документы исключением не пользуются.
       const emailPageNavigation = req.method === "GET" &&
         /^\/api\/auth\/(password|email-binding)\/?$/.test(req.path) &&
         req.headers["sec-fetch-mode"] === "navigate" &&
@@ -54,8 +55,8 @@ export function registerHttpSecurity(app: Express): void {
       res.header("Access-Control-Allow-Credentials", "true");
     }
     if (req.method === "OPTIONS") { res.sendStatus(200); return; }
-    // No client/provider contract requires compressed request bodies. Reject
-    // before every parser: GHSA-27r3-jxmh-p828 can crash an active decoder.
+    // Контракт не требует сжатых тел: отклоняем их до любого парсера,
+    // поскольку GHSA-27r3-jxmh-p828 может аварийно завершить активный декодер.
     if ((req.headers["content-encoding"] ?? "identity").trim().toLowerCase() !== "identity") {
       res.status(415).json({ error: "Сжатые запросы не поддерживаются" });
       return;

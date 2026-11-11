@@ -1,3 +1,4 @@
+/** Ключ и отпечаток создания статьи позволяют восстановить результат после потери ответа. */
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import type { CreateArticleInput } from "./article-writes";
@@ -18,10 +19,12 @@ export const articleCreationKey = z
 const hash = (value: string) =>
   createHash("sha256").update(value).digest("hex");
 
+/** Разделяем одинаковые клиентские ключи разных администраторов. */
 export function articleRequestKey(actorUserId: number, key: string) {
   return hash(JSON.stringify(["admin.createArticle:v1", actorUserId, key]));
 }
 
+/** Отпечаток фиксирует принятое содержимое, чтобы новый payload не выдавался за повтор. */
 export function articleCreationIntent(
   actorUserId: number,
   key: string,
@@ -78,6 +81,7 @@ export type ArticleCreationStatus =
   | { status: "notRecorded" }
   | { status: "created" | "deleted"; articleId: number };
 
+/** Восстанавливаем результат исходного намерения без повторного создания статьи. */
 export async function articleCreationStatus(
   database: MySql2Database,
   actorUserId: number,

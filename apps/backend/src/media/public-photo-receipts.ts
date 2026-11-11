@@ -1,3 +1,4 @@
+/** Квитанции аватаров и публичных обложек связывают намерение, пользователя и состояние загрузки. */
 import { randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
@@ -93,6 +94,7 @@ async function safe<T>(work: () => Promise<T>): Promise<T> {
   }
 }
 
+/** Восстанавливаем статус публичного фото только в контексте владельца исходного намерения. */
 export function publicPhotoStatus(
   actor: Actor,
   purpose: Purpose,
@@ -113,6 +115,7 @@ export function publicPhotoStatus(
   );
 }
 
+/** Явное назначение отличает аватар от публичной обложки в журнале загрузок. */
 export function uploadPublicPhoto(
   actor: Actor,
   purpose: Purpose,

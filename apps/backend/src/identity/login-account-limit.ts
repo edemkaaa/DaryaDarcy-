@@ -1,3 +1,4 @@
+/** Добавляет лимит по аккаунту к IP-квоте, сохраняя выбор локального или общего MySQL-режима. */
 import { createHash } from "node:crypto";
 import { normalizeEmail } from "../_core/password";
 import { coordinationMode } from "../database/coordination";
@@ -8,8 +9,8 @@ type Admission =
   | { ok: true; succeeded(): void }
   | { ok: false; retryAfterSec: number };
 
-/** Shared by login requests in this API process, independently of source IP.
- * Multiple workers require a shared atomic store before scaling out.
+/** Локальный лимит аккаунта не зависит от IP.
+ * Для нескольких API нужна общая атомарная реализация, выбранная в beginLoginAccount.
  */
 export class LoginAccountLimiter {
   private readonly buckets = new Map<string, Bucket>();
@@ -22,13 +23,13 @@ export class LoginAccountLimiter {
         if (bucket.expiresAt <= now) this.buckets.delete(key);
       this.lastCleanup = now;
     }
-    // No raw email/password in keys or logs, including for nonexistent accounts.
+    // В ключи и журналы не попадает исходный email/пароль, в том числе неизвестного аккаунта.
     const key = createHash("sha256")
       .update(normalizeEmail(email))
       .digest("hex");
     let bucket = this.buckets.get(key);
     if (!bucket || bucket.expiresAt <= now) {
-      // Never evict live quotas to admit attacker-controlled addresses.
+      // Новые адреса не вытесняют действующие квоты: иначе лимит можно было бы обойти.
       if (!bucket && this.buckets.size >= 10_000)
         return { ok: false, retryAfterSec: 60 };
       bucket = {
@@ -44,8 +45,8 @@ export class LoginAccountLimiter {
         retryAfterSec: Math.ceil((bucket.nextAllowedAt - now) / 1000),
       };
 
-    // Reserve before any asynchronous password check: parallel requests cannot
-    // all see the same remaining burst. Refusals never extend the cooldown.
+    // Резервируем до асинхронной проверки пароля, чтобы параллельные запросы
+    // не делили один остаток попыток. Отказ не продлевает паузу.
     const attempt = ++bucket.attempts;
     bucket.nextAllowedAt =
       now +
@@ -56,7 +57,7 @@ export class LoginAccountLimiter {
     return {
       ok: true,
       succeeded: () => {
-        // A slow earlier success must not clear a newer attempt's quota.
+        // Поздний успех старой попытки не должен обнулять квоту более новой.
         if (this.buckets.get(key) === admitted && admitted.attempts === attempt)
           this.buckets.delete(key);
       },
@@ -66,6 +67,7 @@ export class LoginAccountLimiter {
 
 export const loginAccountLimiter = new LoginAccountLimiter();
 
+/** Выбирает тот же режим координации, что и HTTP-квота; при нескольких API используется общая БД. */
 export async function beginLoginAccount(email: string) {
   return coordinationMode() === "mysql"
     ? beginSharedLogin(email)

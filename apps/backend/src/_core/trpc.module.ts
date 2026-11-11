@@ -1,3 +1,4 @@
+/** Связывает tRPC-транспорт с экземплярами доменных сервисов Nest. */
 import { Module } from "@nestjs/common";
 import { ContentModule } from "../content/content.module";
 import { IdentityModule } from "../identity/identity.module";

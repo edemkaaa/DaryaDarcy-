@@ -1,7 +1,8 @@
+/** Отправляет транзакционные письма через настроенный SMTP; получатель и SMTP-личность разделены. */
 import nodemailer, { type Transporter } from "nodemailer";
 import { z } from "zod";
-// Contact recipients may change independently of an authenticated SMTP identity.
-// Keep the existing Yandex defaults until a complete replacement is configured.
+// Получатели обращений могут меняться независимо от аутентифицированной SMTP-личности.
+// До полной настройки замены сохраняем действующие значения Яндекса.
 const DEFAULT_SMTP_IDENTITY = "daryadarcyapp@yandex.ru";
 
 let transporter: Transporter | null = null;
@@ -29,6 +30,7 @@ function getTransporter(): Transporter | null {
   return transporter;
 }
 
+/** true означает принятие сообщения SMTP-сервером, а не подтверждённую доставку во входящие. */
 export async function sendTransactionalEmail(input: {
   to: string;
   subject: string;

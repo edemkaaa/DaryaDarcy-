@@ -1,3 +1,4 @@
+/** Публичные ответы привязки содержат состояние операции без proof, cipher и адреса; подтверждение имеет отдельный вход. */
 import { z } from "zod";
 import { emailBindingRequestKeySchema } from "./email-binding";
 

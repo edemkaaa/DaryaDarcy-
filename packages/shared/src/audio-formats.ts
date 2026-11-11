@@ -1,3 +1,4 @@
+/** Единый перечень поддерживаемых аудиоформатов и сообщение об ограничениях загрузки. */
 /** Browser-playable containers; AAC is accepted in M4A/MP4 rather than raw ADTS. */
 export const AUDIO_TYPES: Readonly<Record<string, string>> = {
   mp3: "audio/mpeg",

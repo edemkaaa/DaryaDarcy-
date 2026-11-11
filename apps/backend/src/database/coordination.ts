@@ -1,9 +1,11 @@
+/** MySQL named locks координируют несколько API; владение связано с конкретным заимствованным соединением. */
 import { createHash } from "node:crypto";
 import { ServiceUnavailableException } from "@nestjs/common";
 import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
 import { getDb } from "./connection";
 import { runWithWorkerLock } from "./worker-lock-guard";
 
+/** Не допускает несколько реплик с локальными лимитами или неподготовленным SMS-входом. */
 export function coordinationMode(): "local" | "mysql" {
   const count = Number(process.env.API_REPLICA_COUNT || "1");
   const mode = process.env.API_COORDINATION_MODE || "local";
@@ -26,7 +28,7 @@ async function borrowConnection(): Promise<PoolConnection> {
   const db = await getDb();
   if (!db) throw coordinationUnavailable();
   const pool = (db as typeof db & { $client: Pool }).$client;
-  // A saturated shared pool must not leave an ingress request queued forever.
+  // Переполненный пул не должен оставлять входящий запрос в бесконечном ожидании.
   let expired = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
@@ -52,8 +54,8 @@ async function borrowConnection(): Promise<PoolConnection> {
   }
 }
 
-/** One MySQL server, one checked-out session for the entire named lock.
- * Never return a possibly locked connection to the pool. No local fallback.
+/** Named lock живёт на одном заимствованном MySQL-соединении до завершения callback.
+ * Соединение с неподтверждённым освобождением уничтожаем, а не возвращаем в пул.
  */
 export async function withDatabaseLock<T>(
   scope: string,
@@ -103,7 +105,7 @@ export async function withDatabaseLock<T>(
   }
 }
 
-/** Executable/app startup only; importing modules never connects or schedules. */
+/** Проверка при запуске приложения; импорт модулей не открывает соединения и не запускает расписание. */
 export async function verifyApiCoordination(): Promise<void> {
   if (coordinationMode() === "local") return;
   try {
@@ -123,6 +125,7 @@ export async function verifyApiCoordination(): Promise<void> {
   }
 }
 
+/** Пропускает занятую задачу; при полученной MySQL-lock контролирует владение до конца callback. */
 export async function runExclusiveWorker(
   name: string,
   run: () => Promise<void>,

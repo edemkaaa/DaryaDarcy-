@@ -1,3 +1,4 @@
+/** Запись и чтение обсуждений: ответы, реакции, жалобы и удаление связанных строк. */
 import { alias } from "drizzle-orm/mysql-core";
 import { and, asc, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
@@ -32,6 +33,7 @@ export type PostCommentRow = PostComment & {
   likedByMe: boolean;
 };
 
+/** Счётчики собираем пакетом для выбранных комментариев. */
 export async function commentLikeCounts(
   db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
   commentIds: number[],
@@ -45,6 +47,7 @@ export async function commentLikeCounts(
   return new Map(rows.map((row) => [row.commentId, Number(row.likeCount)]));
 }
 
+/** Личные реакции выбираем отдельно для текущего читателя. */
 export async function viewerLikedCommentIds(
   db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
   userId: number,
@@ -63,6 +66,7 @@ export async function viewerLikedCommentIds(
   return new Set(rows.map((row) => row.commentId));
 }
 
+/** Совместимый список обсуждения использует текущие связи автора и комментария. */
 export async function listPostCommentsV2(
   postId: number,
   viewerUserId?: number | null,
@@ -95,6 +99,7 @@ export async function listPostCommentsV2(
   }));
 }
 
+/** Читаем одну запись обсуждения для последующей проверки прав и изменений. */
 export async function getPostCommentById(
   id: number,
 ): Promise<PostComment | null> {
@@ -117,9 +122,11 @@ type CommentWriteInput = {
   actor?: ContentWriteActor;
   idempotencyKey?: string;
 };
+/** Совместимый вызов возвращает ID; подробный результат остаётся в общей операции создания. */
 export async function addPostCommentV2(data: CommentWriteInput): Promise<number> {
   return (await addPostCommentWithResult(data)).id;
 }
+/** Сохраняем комментарий с журналом создания и различаем новую запись и повтор. */
 export async function addPostCommentWithResult(data: CommentWriteInput): Promise<{ id: number; created: boolean }> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -240,6 +247,7 @@ export async function deletePostCommentInTransaction(
   await tx.delete(postComments).where(eq(postComments.id, id));
 }
 
+/** Редактируем комментарий после проверки автора, публикации и актуального доступа. */
 export async function updatePostCommentV2(
   id: number,
   actor: ContentWriteActor | number,
@@ -259,6 +267,7 @@ export async function updatePostCommentV2(
   });
 }
 
+/** Меняем состояние реакции один раз для принятого запроса; сетевой повтор не становится безопасным автоматически. */
 export async function toggleCommentLike(
   actor: ContentWriteActor | number,
   commentId: number,
@@ -303,6 +312,7 @@ export async function toggleCommentLike(
   });
 }
 
+/** Записываем жалобу на существующий доступный комментарий. */
 export async function reportComment(
   commentId: number,
   actor: ContentWriteActor | number,
@@ -340,6 +350,7 @@ export type CommentReportInboxRow = {
   canBlockAuthor: boolean;
 };
 
+/** Административная очередь жалоб читается отдельно от пользовательского обсуждения. */
 export async function listCommentReports(
   limit = 100,
   actor?: ModerationActor,
@@ -381,12 +392,14 @@ export async function listCommentReports(
   }));
 }
 
+/** Закрываем конкретную жалобу, не удаляя сам комментарий. */
 export async function dismissCommentReport(reportId: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.delete(commentReports).where(eq(commentReports.id, reportId));
 }
 
+/** Модераторское удаление убирает связанные жалобы согласованно с обсуждением. */
 export async function deleteCommentAndReports(
   commentId: number,
 ): Promise<void> {

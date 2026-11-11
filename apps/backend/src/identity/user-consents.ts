@@ -1,3 +1,4 @@
+/** Сохраняет событие согласия пользователя с версией и текстом для последующей проверки. */
 import { userConsentEvents } from "../../../../packages/database/src/schema";
 import { getDb } from "../database/connection";
 

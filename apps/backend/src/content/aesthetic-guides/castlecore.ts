@@ -1,3 +1,4 @@
+/** Серверное содержимое гида castlecore; право выдачи проверяет контроллер эстетик. */
 import type { AestheticGuideContent } from "../../../../../packages/shared/src/aesthetic-guide";
 export const CASTLECORE_RESULT: AestheticGuideContent = {
   style: {

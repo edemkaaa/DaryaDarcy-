@@ -1,3 +1,4 @@
+/** Серверное содержимое гида darkacademia; право выдачи проверяет контроллер эстетик. */
 import type { AestheticGuideContent } from "../../../../../packages/shared/src/aesthetic-guide";
 export const DARK_ACADEMIA_RESULT: AestheticGuideContent = {
   style: {

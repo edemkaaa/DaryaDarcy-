@@ -1,3 +1,4 @@
+/** Повторно проверяем владельца анкеты по текущей сессии внутри транзакции. */
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
@@ -12,6 +13,7 @@ export const penPalActorColumns = {
   blockedAt: users.blockedAt,
 };
 
+/** Проверяем, что автор запроса остаётся действующим владельцем анкеты. */
 export function requirePenPalActor(
   current:
     | Pick<User, "id" | "openId" | "sessionVersion" | "blockedAt">
@@ -27,6 +29,7 @@ export function requirePenPalActor(
   if (current.blockedAt) throw new TRPCError({ code: "FORBIDDEN" });
 }
 
+/** Блокировка пользователя согласует запись анкеты и изменения её связей. */
 export async function lockPenPalActor(tx: Transaction, actor: PenPalActor) {
   const [current] = await tx
     .select(penPalActorColumns)

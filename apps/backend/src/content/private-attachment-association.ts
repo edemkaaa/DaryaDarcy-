@@ -1,3 +1,4 @@
+/** Связываем готовое закрытое вложение с материалом через проверенную квитанцию загрузки. */
 import { asc, eq, inArray, max } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import type { MySql2Database } from "drizzle-orm/mysql2";

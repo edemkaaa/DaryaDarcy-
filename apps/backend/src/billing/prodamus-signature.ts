@@ -1,9 +1,10 @@
+/** Канонизация и HMAC-подпись Prodamus; сравнение подписи не раскрывает различие по байтам. */
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 function stringifyValues(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(stringifyValues);
   if (value && typeof value === "object") {
-    // Preserve every own JSON field, including __proto__, as signature data.
+    // Сохраняем все собственные JSON-поля, включая __proto__, как данные подписи.
     const out: Record<string, unknown> = Object.create(null);
     for (const [key, nested] of Object.entries(
       value as Record<string, unknown>,
@@ -39,6 +40,7 @@ export function createProdamusSign(data: unknown, secret: string): string {
     .digest("hex");
 }
 
+/** Сравнивает подпись канонических данных без раннего выхода на различающемся байте. */
 export function verifyProdamusSignature(
   data: unknown,
   signature: string,

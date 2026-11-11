@@ -1,3 +1,4 @@
+/** Версии и тексты явных согласий нужны для согласованной записи пользовательского выбора. */
 /** Bump when SMS login consent copy changes. */
 export const SMS_LOGIN_CONSENT_VERSION = "2026-09-1";
 

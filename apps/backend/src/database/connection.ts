@@ -1,10 +1,11 @@
+/** Ленивый пул MySQL одного процесса: общий для фабрик приложения и закрываемый только при shutdown. */
 import { drizzle, type MySql2Database } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 
-/** One process-owned pool. App factories borrow it; only executable shutdown closes it. */
+/** Пул принадлежит процессу: фабрики приложения используют его, но не владеют его завершением. */
 let _db: MySql2Database | null = null;
 
-/** Shutdown only, after HTTP and workers have drained; never opens a connection. */
+/** Вызывается после завершения HTTP и worker; никогда не создаёт соединение ради закрытия. */
 export async function closeDb(): Promise<void> {
   const database = _db;
   _db = null;
@@ -12,7 +13,7 @@ export async function closeDb(): Promise<void> {
     await (database as MySql2Database & { $client: mysql.Pool }).$client.end();
 }
 
-// Lazily create the drizzle instance so local tooling can run without a DB.
+// Ленивое создание позволяет импортировать локальные инструменты без обязательной БД.
 export async function getDb() {
   if (_db) return _db;
   const url = process.env.DATABASE_URL?.replace(/\r/g, "").trim();
@@ -29,8 +30,8 @@ export async function getDb() {
       queueLimit: process.env.API_DB_BURST_QUEUE_ENABLED === "true" ? 40 : 10,
     });
     pool.on("connection", (connection) => {
-      // mysql2 queues this before the first command on each new connection.
-      // PromisePool forwards the raw callback connection event, despite its Promise typings.
+      // mysql2 ставит установку UTC перед первой командой нового соединения.
+      // Событие PromisePool всё ещё передаёт callback-версию connection, несмотря на типы.
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       connection.query("SET time_zone = '+00:00'");
     });

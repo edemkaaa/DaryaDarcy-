@@ -1,8 +1,9 @@
+/** Сохраняет ограниченные исходные байты диагностического webhook до общих JSON-парсеров. */
 import express, { type Express } from "express";
 
 export const prodamusSandboxPath = "/api/prodamus/sandbox/webhook";
 
-/** Preserve bounded HMAC bytes before any generic or Nest body parser. */
+/** Сохраняет ограниченные байты HMAC до любого общего или Nest-парсера тела. */
 export function registerProdamusSandboxBody(http: Express): void {
   http.post(prodamusSandboxPath, (req, res, next) => {
     express.raw({ type: () => true, limit: "64kb" })(req, res, (error) => {

@@ -1,3 +1,4 @@
+/** Изменения модерации и запись аудита фиксируются вместе после повторной проверки ролей. */
 import { TRPCError } from "@trpc/server";
 import { lockCurrentContentActor, type ContentWriteActor } from "../content/content-write-actor";
 import { isStaffAccount } from "../identity/account-policy";

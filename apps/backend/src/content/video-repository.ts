@@ -1,3 +1,4 @@
+/** SQL-каталог видео и совместимые операции старого провайдера; права остаются на вызывающей границе. */
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { assertContentWriteActor, type ContentWriteActor } from "./content-write-actor";

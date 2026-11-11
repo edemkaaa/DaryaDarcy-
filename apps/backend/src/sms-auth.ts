@@ -1,3 +1,4 @@
+/** Совместимый SMS-путь остаётся отдельной возможностью и не включается самим наличием кода. */
 import { createHash, randomInt, timingSafeEqual } from "node:crypto";
 import { and, eq, gt, isNull, sql } from "drizzle-orm";
 import { smsCodes } from "../../../packages/database/src/schema";

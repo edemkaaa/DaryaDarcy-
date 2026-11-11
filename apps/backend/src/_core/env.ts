@@ -1,3 +1,4 @@
+/** Собирает параметры окружения в совместимый объект настроек; секреты остаются вне исходников. */
 function env(name: string, fallback = "") {
   return (process.env[name] ?? fallback).replace(/\r/g, "").trim();
 }

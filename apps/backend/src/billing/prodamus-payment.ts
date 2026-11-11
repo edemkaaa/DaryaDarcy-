@@ -1,3 +1,4 @@
+/** Извлекает доказательства оплаты; разбор полей не заменяет проверку подписи и владельца заказа. */
 import type { PaymentProof } from "./protocol";
 import { pickOrderId, pickString, pickUserId } from "./prodamus-fields";
 import { asProdamusRecord } from "./prodamus-payload";
@@ -10,7 +11,7 @@ export type ProdamusPaymentFields = {
   proof: PaymentProof;
 };
 
-/** Decodes fields only; signature, merchant binding and settlement must still pass. */
+/** Только разбор полей; подпись, привязка merchant и settlement должны пройти отдельно. */
 export function readProdamusPayment(
   body: Record<string, unknown>,
 ): ProdamusPaymentFields {

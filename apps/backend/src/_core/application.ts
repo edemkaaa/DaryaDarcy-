@@ -1,3 +1,4 @@
+/** Собирает Nest и HTTP-границы; фабрика не запускает listener, cron и загрузку файлов окружения. */
 import "reflect-metadata";
 import { validateSessionConfiguration } from "./session-config";
 import express, { type Express } from "express";
@@ -15,7 +16,7 @@ import { registerProdamusSandboxBody } from "../billing/prodamus-sandbox.ingress
 import { SessionService } from "../identity/session.service";
 import { verifyApiCoordination } from "../database/coordination";
 
-/** Composition only: no environment files, listener or scheduled side effects. */
+/** Только композиция приложения: без чтения env-файлов, открытия listener и запуска расписания. */
 export async function createBackendApplication(
   options: { allowedPostPaths?: readonly string[] } = {},
 ): Promise<INestApplication> {

@@ -1,3 +1,4 @@
+/** Общий контракт ключей и результатов повторяемых административных действий. */
 import { z } from "zod";
 
 export const adminActionKey = z.uuidv4();

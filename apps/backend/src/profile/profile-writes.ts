@@ -1,10 +1,11 @@
+/** Сохраняет профиль только при совпадении текущей сессии и ожидаемой ревизии. */
 import { and, eq, isNull, sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { TRPCError } from "@trpc/server";
 import { users } from "../../../../packages/database/src/schema";
 import { MAX_PROFILE_REVISION, type ProfileUpdateInput } from "./profile-input";
 
-/** Version and actor predicates fence delayed requests, including ABA changes. */
+/** Условия по actor и ревизии отклоняют запоздалые записи, включая изменения A → B → A. */
 export function saveProfile(
   database: MySql2Database,
   userId: number,

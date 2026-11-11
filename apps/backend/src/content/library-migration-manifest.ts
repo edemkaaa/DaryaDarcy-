@@ -1,3 +1,4 @@
+/** Проверяем состав и происхождение файлов Библиотеки при подготовке и осмотре плана переноса. */
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import sharp from "sharp";
@@ -125,6 +126,7 @@ export async function prepareLibraryMigration(raw: unknown) {
   return { ...input, files, payloadHash };
 }
 
+/** Проверяем состояние переноса без подмены его новым применением. */
 export async function inspectLibraryMigration(input: unknown) {
   const plan = await prepareLibraryMigration(input);
   return {
