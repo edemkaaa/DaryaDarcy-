@@ -1,4 +1,5 @@
 "use client";
+/** Подсказка установки учитывает возможности браузера; установка ярлыка не означает наличие офлайн-копии закрытого контента. */
 import classes from "./install-guide.module.scss";
 import { Typography, Dialog, Action } from "@/shared/ui/elements";
 import { useEffect, useState } from "react";

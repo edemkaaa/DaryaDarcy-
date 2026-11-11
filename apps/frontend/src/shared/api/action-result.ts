@@ -1,3 +1,4 @@
+/** Небольшие валидаторы подтверждают результат мутации до изменения локального интерфейса. */
 import { invalidResponse } from "./errors";
 
 export function requireOk(result: unknown): void {

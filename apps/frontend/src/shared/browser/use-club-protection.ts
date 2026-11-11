@@ -1,4 +1,5 @@
 "use client";
+/** Ограничения копирования принадлежат активному экрану; они дополняют интерфейс, но не заменяют серверную проверку доступа. */
 import { useEffect } from "react";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
 

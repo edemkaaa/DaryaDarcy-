@@ -1,4 +1,5 @@
 "use client";
+/** Декоративный эффект включается владельцем секции и не участвует в навигации или состоянии воспроизведения. */
 import classes from "./garden-confetti.module.scss";
 import { cssTransform } from "@/shared/ui/css";
 import { useEffect } from "react";

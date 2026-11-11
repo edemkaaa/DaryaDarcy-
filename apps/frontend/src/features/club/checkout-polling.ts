@@ -1,3 +1,4 @@
+/** Опрос результата имеет ограниченный жизненный цикл и не создаёт новую оплату при ожидании подтверждения. */
 import type { TRPCClient } from "@trpc/client";
 import type { AppRouter } from "@/shared/api/contract";
 import { ApiError } from "@/shared/api/errors";

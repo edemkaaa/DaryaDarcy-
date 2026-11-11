@@ -1,3 +1,4 @@
+/** Ресурсы и подписи редактора статей отделены от компонентов; изменение этих данных входит в клиентскую сборку. */
 import { MaterialIcons } from "@/shared/ui/icons";
 import { type ArticleBlock } from "@/domain/content/article-blocks";
 export const BROWN = "#4A3728";

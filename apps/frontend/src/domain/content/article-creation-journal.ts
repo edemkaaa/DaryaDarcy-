@@ -1,3 +1,4 @@
+/** Журнал создания статьи хранит неизменяемую полезную нагрузку и ключ операции, чтобы восстановление не создавало другую статью. */
 import { z } from "zod";
 import { isPersonalDataOwner } from "@/shared/browser/storage";
 import { invalidResponse } from "@/shared/api/errors";

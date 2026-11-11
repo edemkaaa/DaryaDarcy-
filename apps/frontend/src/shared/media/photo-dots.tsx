@@ -1,3 +1,4 @@
+/** Индикаторы листания получают текущий индекс от владельца карусели и не заводят собственное состояние выбора. */
 import type { CSSProperties } from "react";
 import classes from "./photo-dots.module.scss";
 

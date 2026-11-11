@@ -1,3 +1,4 @@
+/** Ресурсы и подписи витрины Магазина отделены от компонентов; изменение этих данных входит в клиентскую сборку. */
 import type { ViewportSize } from "@/shared/browser/viewport";
 
 export { SHELF_PRODUCTS as PRODUCTS } from "@/domain/product/catalog";

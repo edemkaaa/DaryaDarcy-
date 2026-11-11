@@ -1,4 +1,5 @@
 "use client";
+/** Условный SMS-вход хранит номер, код и задержку повтора отдельно от email-формы; серверная доступность проверяется владельцем экрана. */
 import classes from "./sms-code-form.module.scss";
 import { Typography, Field, Action, Spinner } from "@/shared/ui/elements";
 import { useEffect, useRef, useState } from "react";

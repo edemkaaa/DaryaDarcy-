@@ -1,4 +1,5 @@
 "use client";
+/** Предложение восстановления показывает фазу сохранения и явные действия над локальной копией поста. */
 import { useEffect, useState } from "react";
 import { Typography } from "@/shared/ui/elements";
 import {

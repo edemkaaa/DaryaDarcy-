@@ -1,4 +1,5 @@
 "use client";
+/** Уведомления о новых постах зависят от доступности функции и разрешения браузера; локальный опрос не является очередью гарантированной доставки. */
 import { useEffect, useRef } from "react";
 import AsyncStorage from "@/shared/browser/storage";
 import { trpc } from "@/shared/api/trpc";

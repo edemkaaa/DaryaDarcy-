@@ -1,4 +1,5 @@
 "use client";
+/** Карточки административного каталога используют состояние страниц и передают редактирование выбранной статье. */
 import type { ReactNode } from "react";
 import { CursorPagePrevious } from "@/shared/ui/cursor-page-previous";
 import { CollectionScrollAnchor } from "@/shared/ui/collection";

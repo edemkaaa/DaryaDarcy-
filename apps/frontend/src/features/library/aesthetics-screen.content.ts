@@ -1,3 +1,4 @@
+/** Ресурсы и подписи гайда эстетик отделены от компонентов; изменение этих данных входит в клиентскую сборку. */
 import type { ViewportSize } from "@/shared/browser/viewport";
 
 import { type AestheticKey } from "@/domain/quiz/quiz-data";

@@ -1,3 +1,4 @@
+/** Привязки иллюстраций эстетики проверяем перед отображением, сохраняя разделение обложек и закрытых материалов. */
 import type { AestheticGuideKey } from "@shared/aesthetic-guide";
 import { invalidResponse } from "@/shared/api/errors";
 

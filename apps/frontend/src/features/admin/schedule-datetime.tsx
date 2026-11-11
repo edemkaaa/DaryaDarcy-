@@ -1,4 +1,5 @@
 "use client";
+/** Выбор отложенного времени преобразует локальные поля даты в значение редактора и показывает состояние планирования. */
 import classes from "./schedule-datetime.module.scss";
 import { Action, Typography } from "@/shared/ui/elements";
 import { createElement, useState } from "react";

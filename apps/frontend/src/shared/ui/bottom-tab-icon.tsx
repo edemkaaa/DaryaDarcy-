@@ -1,3 +1,4 @@
+/** SVG-пути нижнего меню хранятся рядом с их отображением; исходная лицензия Material Icons сохранена ниже. */
 // Material Icons, Google: https://github.com/google/material-design-icons
 // Apache-2.0; see glyphs/material-icons-LICENSE.txt.
 const paths = {

@@ -1,4 +1,5 @@
 "use client";
+/** Список статей остаётся смонтированным рядом с редактором и сохраняет ограниченное окно страниц и позицию прокрутки. */
 import { useEffect, useRef } from "react";
 import { getQueryKey } from "@trpc/react-query";
 import { trpc } from "@/shared/api/trpc";

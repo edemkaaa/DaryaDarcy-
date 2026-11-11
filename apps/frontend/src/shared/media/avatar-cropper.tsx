@@ -1,4 +1,5 @@
 "use client";
+/** Обрезка аватара создаёт отдельный результат по выбранной области; исходный файл и действие сохранения остаются раздельными. */
 import { useViewport } from "@/shared/browser/viewport";
 
 import classes from "./avatar-cropper.module.scss";

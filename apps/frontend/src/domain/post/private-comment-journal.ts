@@ -1,3 +1,4 @@
+/** Локальный журнал комментария ограничен аккаунтом и постом; сохранённая версия защищает от перезаписи другим редактором. */
 import {
   requirePrivateCommentRecord,
   type PrivateCommentRecord,

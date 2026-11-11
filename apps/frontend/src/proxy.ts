@@ -1,3 +1,4 @@
+/** Серверный proxy разделяет маршруты приложения и защищённых ресурсов, добавляя политику документа до рендера страницы. */
 import { NextResponse, type NextRequest } from "next/server";
 import { randomBytes } from "node:crypto";
 import { documentSecurityHeaders } from "./shared/security/document-headers";

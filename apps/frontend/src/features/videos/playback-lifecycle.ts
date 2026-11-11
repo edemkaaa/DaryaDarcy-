@@ -1,3 +1,4 @@
+/** Каждый возврат к проигрыванию меняет эпоху проверки, включая восстановление страницы из bfcache. */
 const RESUME_CHECK_COOLDOWN_MS = 1000;
 
 /** Each return to a page needs new playback authority, including bfcache restores. */
@@ -37,6 +38,7 @@ export class PlaybackLifecycle {
       update(true);
     };
     const onResume = () => resume();
+    // Фокус внутри cross-origin iframe тоже вызывает blur родителя; такой переход не равен уходу пользователя из страницы.
     const onBlur = () => {
       // Focusing a cross-origin player blurs the parent window, but the
       // document (including its iframe descendants) still has focus.

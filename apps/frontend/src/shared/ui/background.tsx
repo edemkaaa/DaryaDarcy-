@@ -1,4 +1,5 @@
 "use client";
+/** Фоновое изображение и его содержимое имеют раздельные слои, чтобы оформление не перехватывало пользовательские действия. */
 import { mergeStyles } from "@/shared/ui/css";
 import { forwardRef, type CSSProperties, type ReactEventHandler } from "react";
 import type { BoxProps } from "./types";

@@ -1,3 +1,4 @@
+/** Подготавливаем письмо менеджеру с товаром и ссылкой; создание mailto не означает, что покупатель уже отправил заказ. */
 import {
   parseManagerOrderSettings,
   type ManagerOrderSettings,
@@ -17,6 +18,7 @@ export function managerOrderEmail(
   )
     throw new Error("Не удалось подготовить ссылку на товар");
   const title = product.title.replace(/[\u0000-\u001f\u007f]+/g, " ").trim();
+  // В письмо помещаем канонический адрес товара на текущем origin, без параметров чужой страницы.
   const productUrl = new URL(
     `/shop/${encodeURIComponent(product.id)}`,
     site.origin,

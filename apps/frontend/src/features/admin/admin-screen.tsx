@@ -1,4 +1,5 @@
 "use client";
+/** Административные вкладки включают только нужные чтения; действия участников и модерации имеют отдельное восстановление результата. */
 import { CursorPagePrevious } from "@/shared/ui/cursor-page-previous";
 import classes from "./admin-screen.module.scss";
 import {
@@ -186,6 +187,7 @@ export default function AdminScreen() {
         validate,
       }),
   });
+  // После действия обновляем нужного участника во всех сохранённых страницах, не перечитывая весь список.
   const readMembers = async (
     input: { userId: number },
     signal: AbortSignal,

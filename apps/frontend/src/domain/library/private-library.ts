@@ -1,4 +1,5 @@
 "use client";
+/** Закрытые гайды и привязки выкроек читаем для текущего аккаунта; при отказе доступа прежние данные скрываются. */
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { z } from "zod";
@@ -70,6 +71,7 @@ export function useAestheticGuides(
   const { user } = useAuth();
   const { hasClubAccess } = useClub();
   const active = useScreenActive();
+  // Данные кеша не дают права на показ после потери доступа, даже если сетевой запрос сейчас выключен.
   const allowed = Boolean(user && hasClubAccess && requested);
   useCancelHiddenRead("private-library-guide", user?.id, active);
   const queries = useQueries({
@@ -115,6 +117,7 @@ export type PatternBinding = z.infer<typeof bindingSchema>;
 const patternKeys = ["holly", "sock", "star", "apple"];
 export const PATTERN_READ_BUDGET = { maxPages: 8, timeoutMs: 30_000 };
 
+// Чтение ограничено временем и числом страниц; циклический курсор не должен оставить экран в вечной загрузке.
 export async function readPatternBindings(signal?: AbortSignal) {
   signal?.throwIfAborted();
   const controller = new AbortController();

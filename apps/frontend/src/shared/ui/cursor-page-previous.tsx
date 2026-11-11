@@ -1,4 +1,5 @@
 "use client";
+/** Кнопка возврата к предыдущим страницам использует состояние читающего hook и не вычисляет курсор самостоятельно. */
 import { Action, Typography } from "./elements";
 import { StatusNotice, StatusNoticeAction } from "./status-notice";
 

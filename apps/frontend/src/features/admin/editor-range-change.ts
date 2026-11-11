@@ -1,3 +1,4 @@
+/** Изменение выделения передаётся форматирующим инструментам в координатах текста, а не DOM-разметки. */
 export type TextEditHint = { start: number; end: number; inputType: string };
 type Range = [number, number];
 

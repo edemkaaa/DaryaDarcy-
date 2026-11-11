@@ -1,4 +1,5 @@
 "use client";
+/** Детальная публикация читает материал по проверенному адресу и связывает его медиа, отметки и обсуждение. */
 import { useBrowserReady } from "@/shared/browser/use-browser-ready";
 
 import classes from "./post-screen.module.scss";

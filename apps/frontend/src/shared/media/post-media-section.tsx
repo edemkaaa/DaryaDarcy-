@@ -1,4 +1,5 @@
 "use client";
+/** Дополнительные вложения распределяем по типу: видео, аудио и документ имеют разные способы открытия. */
 import { AudioPlayerCard } from "@/shared/media/audio-player";
 import { VideoPreviewCard } from "@/shared/media/video-preview";
 import { DocumentAttachmentCard } from "@/shared/media/document-attachment";

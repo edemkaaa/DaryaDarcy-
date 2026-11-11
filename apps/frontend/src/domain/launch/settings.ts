@@ -1,3 +1,4 @@
+/** Парсеры настроек проверяют даты, ссылки и ревизии на границе API, прежде чем их использует интерфейс. */
 import type {
   LaunchConfiguration,
   LaunchConfigurationSnapshot,

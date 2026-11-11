@@ -1,3 +1,4 @@
+/** Сохранённый результат теста читаем как недоверенные локальные данные и сверяем с известными эстетиками. */
 import { z } from "zod";
 import { AESTHETIC_RESULTS, type QuizResult } from "./quiz-data";
 

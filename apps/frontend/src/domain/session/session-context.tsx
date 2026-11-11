@@ -1,4 +1,5 @@
 "use client";
+/** Провайдер связывает сессию, персональное хранилище и QueryClient; смена личности сбрасывает связанные экраны и запросы. */
 import {
   createContext,
   Fragment,
@@ -67,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       new SessionController({
         getMe: Api.getMe,
         logout: Api.logout,
+        // Сначала отменяем работу прежней личности, затем очищаем кеш и назначаем нового владельца хранилища.
         resetIdentity: (owner) => {
           const publicCapabilities = cache.getQueryState<LaunchCapabilities>(
             APP_CAPABILITIES_QUERY_KEY,

@@ -1,3 +1,4 @@
+/** Ответы чтения проверяем на границе API; объявленный TypeScript-тип не заменяет проверку полученных данных. */
 import { z } from "zod";
 import { invalidResponse } from "./errors";
 

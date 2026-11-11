@@ -1,4 +1,5 @@
 "use client";
+/** Посещённые основные вкладки сохраняют свой экземпляр экрана; неактивность передаётся контекстом, а модули подгружаются лениво. */
 import dynamic from "next/dynamic";
 import {
   Component,
@@ -73,6 +74,7 @@ export default function TabScreens({
   );
   if (isTabPath(path) && !visited.includes(path))
     setVisited([...visited, path]);
+  // Сохранённые DOM-панели удерживают положение и декодированные фото, но скрытая панель не должна продолжать медиа.
   const panels = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     // Retained media must not keep playing after its section becomes hidden.

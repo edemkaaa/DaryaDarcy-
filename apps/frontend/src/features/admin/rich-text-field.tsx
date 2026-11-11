@@ -1,4 +1,5 @@
 "use client";
+/** Поле форматированного текста хранит текст и диапазоны, согласуя выделение с кнопками и предпросмотром. */
 import classes from "./rich-text-field.module.scss";
 
 import { Field, Action, Typography, Dialog } from "@/shared/ui/elements";

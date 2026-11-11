@@ -1,3 +1,4 @@
+/** Переходы между разделами гайда используют ограниченный набор ключей эстетик вместо произвольного адреса материала. */
 export function scrollToGuideSection(
   container: HTMLDivElement,
   section: HTMLDivElement,

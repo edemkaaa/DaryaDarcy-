@@ -1,3 +1,4 @@
+/** Ресурсы и подписи приветствия теста отделены от компонентов; изменение этих данных входит в клиентскую сборку. */
 import type { ViewportSize } from "@/shared/browser/viewport";
 
 export const PAPER_TEXTURE_URI =

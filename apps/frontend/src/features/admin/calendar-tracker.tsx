@@ -1,4 +1,5 @@
 "use client";
+/** Календарь запрашивает отдельные дневные агрегаты и отложенные записи, не загружая весь каталог постов. */
 import classes from "./calendar-tracker.module.scss";
 import { Action, Typography } from "@/shared/ui/elements";
 import { ContentPlaceholder } from "@/shared/ui/content-placeholder";

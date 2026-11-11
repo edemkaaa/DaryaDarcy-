@@ -1,3 +1,4 @@
+/** Геометрия результата теста рассчитывается из viewport отдельно от данных и обработчиков экрана. */
 import type { ViewportSize } from "@/shared/browser/viewport";
 
 import { getQuizResultContent } from "./quiz-result.content";

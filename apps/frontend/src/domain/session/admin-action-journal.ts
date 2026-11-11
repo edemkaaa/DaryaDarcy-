@@ -1,3 +1,4 @@
+/** Журнал связывает административную операцию с владельцем и ключом; восстановление читает её квитанцию до новой записи. */
 import { z } from "zod";
 import {
   adminActionKey,
@@ -70,6 +71,7 @@ export class AdminActionJournal {
       throw storageError();
     }
   }
+  // Читаем записанное обратно: ошибка хранения до отправки безопаснее команды без восстанавливаемого ключа.
   private persist(intent: AdminActionIntent, signal: AbortSignal) {
     this.assertOwner(signal);
     try {
@@ -87,6 +89,7 @@ export class AdminActionJournal {
     this.checkpoint(intent);
     return intent;
   }
+  // Смена намерения атомарна между вкладками; сетевой запрос не должен получить новый ключ из гонки.
   private async locked<T>(
     signal: AbortSignal,
     work: () => Promise<T>,

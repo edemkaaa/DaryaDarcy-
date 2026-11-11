@@ -1,4 +1,5 @@
 "use client";
+/** Браузерную цветовую схему читаем через общий hook, чтобы компоненты не создавали собственные media-query подписки. */
 import { useSystemColorScheme } from "@/shared/browser/viewport";
 import { useEffect, useState } from "react";
 /**

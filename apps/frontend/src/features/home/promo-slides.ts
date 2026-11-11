@@ -1,4 +1,5 @@
 "use client";
+/** Порядок промо-слайдов и их маршруты задаются данными, чтобы карусель не дублировала правила переходов. */
 import type { ImageSource } from "@/shared/media/image";
 /** Home promo carousel: Club → Quiz → Feed. PNG alpha on paper (see HomePromoCarousel). */
 export const HOME_PROMO_SLIDES = [

@@ -1,3 +1,4 @@
+/** Ресурсы и подписи быстрого редактора постов отделены от компонентов; изменение этих данных входит в клиентскую сборку. */
 export const CREAM_BG = "#FDF8F0";
 export const BROWN_DARK = "#4A3728";
 export const BROWN_LIGHT = "#7A6B5E";

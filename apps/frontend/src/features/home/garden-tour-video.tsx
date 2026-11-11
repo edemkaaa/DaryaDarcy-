@@ -1,4 +1,5 @@
 "use client";
+/** Тур по саду создаёт проигрыватель после нажатия; появление секции и декоративный эффект не подтверждают загрузку видео. */
 import classes from "./garden-tour-video.module.scss";
 import { Action, Typography, type LayoutRect } from "@/shared/ui/elements";
 import { useEffect, useState, useCallback } from "react";

@@ -1,3 +1,4 @@
+/** Старый протокол сохраняет признак неизвестного результата; пока он не проверен, автоматический новый checkout не запускается. */
 import { z } from "zod";
 import { TRPCClientError } from "@trpc/client";
 import { isPersonalDataOwner } from "@/shared/browser/storage";

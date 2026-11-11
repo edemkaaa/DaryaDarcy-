@@ -1,4 +1,5 @@
 "use client";
+/** Экран вопроса передаёт выбранный answerId и номер вопроса модели теста; переход и запись прогресса выполняются владельцем потока. */
 import { useViewport } from "@/shared/browser/viewport";
 
 import { getQuizQuestionLayout } from "./quiz-question.layout";

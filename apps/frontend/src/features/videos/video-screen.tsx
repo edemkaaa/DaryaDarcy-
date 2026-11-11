@@ -1,4 +1,5 @@
 "use client";
+/** Старая страница видео отделена от каталожного протокола; источник воспроизведения и доступ проверяются своим запросом. */
 import { ManagedVideo } from "@/shared/media/managed-video";
 
 import classes from "./video-screen.module.scss";

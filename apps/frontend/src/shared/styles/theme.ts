@@ -1,4 +1,5 @@
 "use client";
+/** Общий экспорт темы сохраняет единый способ получения цветовых токенов на экранах. */
 /**
  * Thin re-exports so consumers don't need to know about internal theme plumbing.
  * Full implementation lives in lib/_core/theme.ts.

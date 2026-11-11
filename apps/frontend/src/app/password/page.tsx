@@ -1,3 +1,4 @@
+/** Вход маршрута /password передаёт параметры экрану; интерактивное состояние и вызовы API остаются в соответствующей feature. */
 import type { Metadata } from "next";
 import PasswordScreen from "@/features/auth/password-screen";
 

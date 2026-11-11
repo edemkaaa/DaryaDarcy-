@@ -1,4 +1,5 @@
 "use client";
+/** У действия есть отдельное состояние неподтверждённого результата: чтение списка помогает проверить запись, но само по себе не повторяет её. */
 import { useRef, useState } from "react";
 import { getHttpStatus, getRequestErrorMessage } from "@/shared/api/errors";
 import {
@@ -48,6 +49,7 @@ export function useConfirmedAction(
     setError(null);
     let confirmed = false;
     // Cancellation cannot undo a dispatched request; retain this guard on return.
+    // Ставим запрет до отправки: отмена браузерного ожидания не откатывает уже принятую сервером запись.
     remember({ label, read, keepBlocked });
     try {
       const result = await perform(task.signal);
@@ -81,6 +83,7 @@ export function useConfirmedAction(
     try {
       await pending.read(task.signal);
       task.assertCurrent();
+      // Для неидемпотентной отправки чтение списка не доказывает отсутствие записи: решение остаётся явным.
       if (!pending.keepBlocked) remember(null);
       setError(
         pending.keepBlocked

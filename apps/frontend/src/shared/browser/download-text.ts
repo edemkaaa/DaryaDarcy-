@@ -1,4 +1,5 @@
 "use client";
+/** Копию восстановительных данных скачиваем как текстовый файл по явному действию пользователя, не вставляя её в HTML. */
 
 /** An explicit user download; never render recovery data as HTML. */
 export function downloadText(text: string, filename: string) {

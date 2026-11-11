@@ -1,4 +1,5 @@
 "use client";
+/** Нижние вкладки используют маршруты Next и состояние перехода, сохраняя корректные ссылки и доступные названия. */
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { parentRoute } from "@/shared/navigation/parent-route";

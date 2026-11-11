@@ -1,3 +1,4 @@
+/** Для прямой ссылки без истории приложения выбираем понятный родительский раздел вместо случайного внешнего возврата. */
 /** A useful exit when a page was opened directly, without app history. */
 export function parentRoute(path: string) {
   if (path.startsWith("/post/")) return "/feed";

@@ -1,4 +1,5 @@
 "use client";
+/** Навигационная карточка остаётся настоящей ссылкой Next, сохраняя открытие с клавиатуры и обычное поведение браузера. */
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { publicPath } from "@/shared/navigation/router";

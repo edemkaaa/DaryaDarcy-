@@ -1,3 +1,4 @@
+/** Клубные рубрики и правила обсуждений берём из общего пакета; локально добавляем подписи для отображения. */
 export * from "@shared/club-tags";
 import {
   clubTagLabel as sharedClubTagLabel,

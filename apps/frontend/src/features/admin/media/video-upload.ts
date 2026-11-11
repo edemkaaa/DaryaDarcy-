@@ -1,4 +1,5 @@
 "use client";
+/** Транспорт загрузки видео отделён от редактирования поста; результат проверяется до добавления ссылки в материал. */
 import { getApiBaseUrl } from "@/shared/config/api";
 import {
   ApiError,

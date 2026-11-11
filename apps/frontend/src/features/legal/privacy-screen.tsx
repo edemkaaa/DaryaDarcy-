@@ -1,3 +1,4 @@
+/** Политика отображается как статический текст; экран не исполняет содержимое документа и не управляет согласиями пользователя. */
 import classes from "./privacy-screen.module.scss";
 
 import { ScrollArea } from "@/shared/ui/elements";

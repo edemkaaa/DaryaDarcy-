@@ -1,4 +1,5 @@
 "use client";
+/** Кнопка действий поста отделена от самой карточки, чтобы открытие меню не запускало переход в материал. */
 import classes from "./post-menu-button.module.scss";
 import { Action } from "@/shared/ui/elements";
 import { MaterialIcons } from "./icons";

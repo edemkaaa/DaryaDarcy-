@@ -1,3 +1,4 @@
+/** Декодирование и рисование изображения на canvas вынесены из формы, чтобы подготовка файла управлялась общим жизненным циклом. */
 import { runFileTask } from "@/shared/browser/file-task";
 export const SaveFormat = { JPEG: "jpeg", PNG: "png", WEBP: "webp" };
 type Operation = {

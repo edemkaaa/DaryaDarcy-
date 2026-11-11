@@ -1,3 +1,4 @@
+/** Закрытые фотографии поста проходят проверку локального файла и серверного подтверждения, прежде чем попасть в сохранённый пост. */
 import type { ApiInputs } from "@/shared/api/types";
 import type { ScopedOperation } from "@/shared/browser/operation-scope";
 import {

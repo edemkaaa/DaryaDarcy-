@@ -1,4 +1,5 @@
 "use client";
+/** Чтение с ошибкой показывает общий повтор и загрузку; подтверждённое содержимое можно оставить владельцу экрана. */
 import classes from "./query-retry-state.module.scss";
 import { type CSSProperties, mergeStyles } from "@/shared/ui/css";
 import { StatusNotice, StatusNoticeAction } from "./status-notice";

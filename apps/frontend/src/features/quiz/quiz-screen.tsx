@@ -1,4 +1,5 @@
 "use client";
+/** Поток теста последовательно сохраняет ответы и проверяет изменения другой вкладки; смена аккаунта создаёт новый локальный контекст. */
 /**
  * Quiz Entry Screen — "Тест: Какая твоя сказка?"
  * Shows welcome/intro, question flow, and results all managed via QuizContext.
@@ -81,6 +82,7 @@ function QuizFlow({
     return restored;
   };
   const renderedEpoch = epoch.current;
+  // Действия проходят одну очередь и сравнение сохранённой версии; быстрые нажатия не перескакивают через чужой вопрос.
   const dispatch = (action: QuizAction) => {
     if (!isPersonalDataOwner(ownerId) || renderedEpoch !== epoch.current)
       return;
@@ -134,6 +136,7 @@ function QuizFlow({
             stored.current = encoded;
             run.current = metadata;
           } else {
+            // Результат должен сохраниться раньше удаления ответов, иначе сбой хранилища потеряет и прогресс, и итог.
             // Publish a completion before removing this run's recoverable answers.
             if (next.result && !next.restored) {
               const result = JSON.stringify({
@@ -217,6 +220,7 @@ function QuizFlow({
       window.removeEventListener("focus", onFocus);
     };
   }, [ownerId]);
+  // Конфликт вкладок разрешается чтением сохранённого варианта под блокировкой, а не перезаписью текущим экраном.
   const continueSaved = () => {
     const actionEpoch = epoch.current;
     queue.current = queue.current.then(async () => {

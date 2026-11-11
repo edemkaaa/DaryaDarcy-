@@ -1,3 +1,4 @@
+/** Кеш пропорций помогает не повторять измерение известного фото; он хранит геометрию, а не закрытые байты изображения. */
 // Keep URL metadata bounded during long browsing sessions.
 export const PHOTO_RATIO_CACHE_LIMIT = 256;
 const ratios = new Map<string, number>();

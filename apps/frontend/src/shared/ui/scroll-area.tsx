@@ -1,4 +1,5 @@
 "use client";
+/** Единая область прокрутки связывает DOM-scroll, refs и измерения с API существующих экранов. */
 import { mergeStyles } from "@/shared/ui/css";
 import {
   forwardRef,

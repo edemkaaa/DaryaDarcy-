@@ -1,4 +1,5 @@
 "use client";
+/** Новое оформление показываем после подготовки его ресурсов, чтобы фон и баннер не переключались несогласованно. */
 import { useEffect, useState } from "react";
 import type { Season } from "@shared/launch-settings";
 import { runFileTask } from "@/shared/browser/file-task";

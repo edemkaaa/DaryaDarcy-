@@ -1,3 +1,4 @@
+/** Ответ подписки проверяем отдельно от результата покупки: исторически успешный заказ не подтверждает текущий доступ. */
 import type { ApiOutputs } from "./types";
 import { invalidResponse } from "./errors";
 

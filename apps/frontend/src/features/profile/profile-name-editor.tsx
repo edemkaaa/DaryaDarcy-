@@ -1,4 +1,5 @@
 "use client";
+/** Редактирование имени хранит локальный ввод и предлагает сверку после конфликта, не подменяя подтверждённый профиль сразу при наборе. */
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/domain/session/session-context";
 import { useProfileUpdate } from "@/domain/profile/use-profile-update";

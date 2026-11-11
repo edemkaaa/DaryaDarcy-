@@ -1,3 +1,4 @@
+/** IndexedDB хранит снимок редактора вместе с фазой записи и файлами; ключ включает владельца и слот редактора. */
 import type { PostDraft } from "./draft";
 import type { PostAttachment, PostSaveSnapshot } from "./save-post";
 import { isPersonalDataOwner } from "@/shared/browser/storage";
@@ -390,6 +391,7 @@ export class PostRecoveryJournal {
     if (!isPersonalDataOwner(this.ownerId))
       throw new Error("Войдите в аккаунт владельца черновика");
   }
+  // Чтение проверяет структуру и владельца до восстановления File и редактируемых полей.
   async load(): Promise<PostRecoveryRecord | null> {
     this.assertOwner();
     const stored = await transaction<StoredRecord | undefined>(
@@ -478,6 +480,7 @@ export class PostRecoveryJournal {
     this.loaded = true;
     return record;
   }
+  // Снимок формы и состояние координатора пишутся согласованно: нельзя вернуть поля от одной попытки и ключ от другой.
   write(editor: PostEditorSnapshot, save: PostSaveSnapshot): Promise<void> {
     if (this.closed) return Promise.reject(new Error("Редактор уже закрыт"));
     if (!this.loaded)

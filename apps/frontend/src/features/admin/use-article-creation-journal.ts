@@ -1,4 +1,5 @@
 "use client";
+/** React-состояние отражает локальный журнал создания статьи; чтение и восстановление не запускают запись автоматически. */
 import { useEffect, useState } from "react";
 import {
   ArticleCreationJournal,

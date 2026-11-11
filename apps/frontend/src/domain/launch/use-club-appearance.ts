@@ -1,4 +1,5 @@
 "use client";
+/** Оформление перепроверяем при возврате на экран и в московскую полночь, чтобы автоматический сезон мог смениться без перезагрузки документа. */
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { contentRefreshOptions } from "@/shared/api/content-refresh";

@@ -1,9 +1,11 @@
 "use client";
+/** Диалоги координируют фокус, стек и недоступность фоновых элементов; скрытый сохранённый экран не должен владеть открытым окном. */
 import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
 const dialogStack: HTMLElement[] = [];
 const originalInert = new Map<HTMLElement, boolean>();
+// Верхний диалог владеет фокусом; исходный inert возвращаем только после закрытия всего стека.
 function syncDialogBackground() {
   const top = dialogStack.at(-1);
   if (!top) {
@@ -49,6 +51,7 @@ export function Dialog({
   useEffect(() => {
     const current = node.current;
     if (!visible || !current) return;
+    // Запоминаем источник открытия до autofocus портала, чтобы вернуть фокус в правильное место.
     const previous = trigger.current;
     dialogStack.push(current);
     syncDialogBackground();
@@ -97,6 +100,7 @@ export function Dialog({
         }
       }
     };
+    // Программный перенос фокуса за пределы верхнего окна тоже возвращаем внутрь, не только Tab.
     const containFocus = (event: FocusEvent) => {
       if (
         dialogStack.at(-1) === current &&

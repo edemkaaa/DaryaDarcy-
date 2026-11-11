@@ -1,3 +1,4 @@
+/** Гостевой NORMAL-заказ восстанавливается по исходному намерению; URL возврата не считается подтверждением покупки. */
 import { z } from "zod";
 import { TRPCClientError, type TRPCClient } from "@trpc/client";
 import type { AppRouter } from "@/shared/api/contract";
@@ -71,6 +72,7 @@ export class GuestCheckoutJournal {
     signal?.throwIfAborted();
     if (!isPersonalDataOwner(this.actor?.id ?? null)) throw changed();
   }
+  // Вошедший аккаунт должен совпасть с получателем гостевой покупки; чужое намерение не присваивается ему автоматически.
   private assertRecipient(intent: GuestCheckoutIntent) {
     if (intent.ownerId !== null && intent.ownerId !== this.actor?.id)
       throw differentRecipient();
@@ -314,6 +316,7 @@ async function readStatus(
     }),
   );
 }
+// Запрос статуса использует сохранённые параметры и возвращает доказательство исходного заказа, не новый checkout.
 export async function checkGuestCheckout(
   client: TRPCClient<AppRouter>,
   journal: GuestCheckoutJournal,
@@ -331,6 +334,7 @@ export async function checkGuestCheckout(
     throw cause;
   }
 }
+// Создание или восстановление ссылки сохраняет прежний ключ и контакт, чтобы сетевой повтор не дублировал покупку.
 export async function createGuestCheckout(
   client: TRPCClient<AppRouter>,
   journal: GuestCheckoutJournal,

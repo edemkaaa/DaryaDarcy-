@@ -1,4 +1,5 @@
 "use client";
+/** Настройки сезонов сохраняются с ожидаемой ревизией; после неизвестного PUT сначала сравниваем актуальный серверный вариант. */
 import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
@@ -94,6 +95,7 @@ function SeasonEditor({
     cache.setQueryData(["launch-settings", ownerId], next);
     void cache.invalidateQueries({ queryKey: CLUB_APPEARANCE_KEY });
   };
+  // Отправляем снимок с базовой ревизией; неизвестный ответ блокирует новую запись до явной проверки.
   const save = async () => {
     if (unknownRef.current) return;
     const invalid = validationMessage(draft);
@@ -151,6 +153,7 @@ function SeasonEditor({
       task.finish();
     }
   };
+  // Читающая сверка различает нашу подтверждённую запись и чужую версию, сохраняя введённое оформление.
   const inspect = async () => {
     const task = operation.begin("read");
     if (!task) return;

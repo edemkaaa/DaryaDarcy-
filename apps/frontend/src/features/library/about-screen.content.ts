@@ -1,3 +1,4 @@
+/** Ресурсы и подписи страницы об авторе отделены от компонентов; изменение этих данных входит в клиентскую сборку. */
 import type { ViewportSize } from "@/shared/browser/viewport";
 
 export const BROWN = "#5C4033";

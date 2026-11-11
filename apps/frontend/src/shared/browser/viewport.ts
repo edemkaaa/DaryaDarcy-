@@ -1,4 +1,5 @@
 "use client";
+/** Размер видимой области и safe-area обновляются через браузерные события; начальное значение пригодно для серверного рендера. */
 import { useEffect, useState, useSyncExternalStore } from "react";
 export type ViewportSize = {
   width: number;

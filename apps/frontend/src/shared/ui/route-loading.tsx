@@ -1,3 +1,4 @@
+/** Небольшая заглушка маршрута не дублирует баннер и анимацию экрана, который ещё загружается. */
 import { ScreenContainer } from "./screen-container";
 export default function RouteLoading({ path }: { path?: string } = {}) {
   return (

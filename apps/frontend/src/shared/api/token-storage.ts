@@ -1,3 +1,4 @@
+/** Убираем устаревшие браузерные credentials; актуальная сессия браузера передаётся серверной cookie. */
 import { SESSION_TOKEN_KEY, USER_INFO_KEY } from "@/shared/config/api";
 
 export function discardLegacyCredentials(): void {

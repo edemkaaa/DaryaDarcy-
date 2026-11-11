@@ -1,3 +1,4 @@
+/** Ошибки закрытых загрузок преобразуем в понятные сообщения без перехода на публичный маршрут. */
 import { getHttpStatus } from "./errors";
 
 /** A rejected upload is not evidence that an earlier attempt did not commit. */

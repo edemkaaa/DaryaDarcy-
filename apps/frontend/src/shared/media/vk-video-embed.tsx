@@ -1,4 +1,5 @@
 "use client";
+/** VK-iframe живёт только на активном видимом экране; повтор и возврат учитывают необходимость новой проверки воспроизведения. */
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { Action } from "@/shared/ui/action";
@@ -34,6 +35,7 @@ export function VkVideoEmbed({
     () => !document.hidden,
     () => true,
   );
+  // Скрытый iframe может продолжать звук; удаляем сам плеер, а не только скрываем его CSS-стилем.
   if (!src || !active || !visible) return null;
   return (
     <Player

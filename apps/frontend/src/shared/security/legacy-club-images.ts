@@ -1,3 +1,4 @@
+/** Манифест старых клубных изображений читается на сервере; клиентская сборка не должна включать доступ к файловой системе. */
 // Server configuration only. Node filesystem access deliberately prevents client use.
 import { readFileSync, statSync } from "node:fs";
 import { isAbsolute } from "node:path";

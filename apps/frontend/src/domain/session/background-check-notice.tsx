@@ -1,4 +1,5 @@
 "use client";
+/** Фоновый сбой проверки показываем поверх подтверждённого состояния, не выдавая его за выход пользователя. */
 import { useAuth } from "./session-context";
 import { useClub } from "@/domain/subscription/subscription-context";
 import { useBackgroundNotice } from "@/shared/ui/background-notice";

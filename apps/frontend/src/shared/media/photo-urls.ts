@@ -1,4 +1,5 @@
 "use client";
+/** Фотографии из API фильтруем по допустимым URL, сохраняя порядок и канонические адреса закрытой выдачи. */
 /** Ignore malformed API photo values without changing valid URL order. */
 export function sanitizePhotoUrls(value: unknown): string[] {
   if (!Array.isArray(value)) return [];

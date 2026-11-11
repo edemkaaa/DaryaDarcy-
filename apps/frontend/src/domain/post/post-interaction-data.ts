@@ -1,3 +1,4 @@
+/** Подготовка набора ID ограничивает объём запроса отметок и отбрасывает неподходящие значения до транспорта. */
 import { invalidResponse } from "@/shared/api/errors";
 
 export type PostInteractions = { likedIds: number[]; savedIds: number[] };

@@ -1,3 +1,4 @@
+/** Читающий link проверяет ответы процедур до передачи данным экранам, чтобы успешный HTTP не скрывал повреждённый контракт. */
 import { TRPCClientError, type TRPCLink } from "@trpc/client";
 import { observable } from "@trpc/server/observable";
 import type { AppRouter } from "./contract";
@@ -13,6 +14,7 @@ export const readResponseLink: TRPCLink<AppRouter> =
         next(result) {
           try {
             if (op.type === "query" && "data" in result.result)
+              // Валидация выполняется после декодирования дат и до попадания ответа в общий кеш.
               validateReadResponse(op.path, result.result.data, op.input);
           } catch {
             // Do not attach the payload, Zod issues, or private server metadata.

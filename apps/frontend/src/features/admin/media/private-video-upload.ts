@@ -1,4 +1,5 @@
 "use client";
+/** Закрытое видео отправляется отдельным файловым маршрутом с прежним ключом операции и конечным сроком загрузки. */
 import { getApiBaseUrl } from "@/shared/config/api";
 import { runApiRequest } from "@/shared/api/request-lifecycle";
 import {

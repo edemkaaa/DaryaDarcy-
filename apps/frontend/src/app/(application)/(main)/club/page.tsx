@@ -1,3 +1,4 @@
+/** Вход маршрута /club передаёт параметры экрану; интерактивное состояние и вызовы API остаются в соответствующей feature. */
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Screen from "@/features/club/club-screen";

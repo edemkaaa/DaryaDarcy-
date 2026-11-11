@@ -1,4 +1,5 @@
 "use client";
+/** Сравнение исходной и серверной версии поста помогает разрешить конфликт без слепого повторного update. */
 import { useState, type RefObject } from "react";
 import { editableSnapshot } from "@/domain/content/edit-revision";
 import type { PostSaveApi, PostSaveCoordinator } from "@/domain/post/save-post";

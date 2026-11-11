@@ -1,4 +1,5 @@
 "use client";
+/** Жизненный цикл HTML-video связан с активностью экрана; при уходе воспроизведение останавливаем и освобождаем ресурс при необходимости. */
 
 import { useEffect, useRef, useState, type VideoHTMLAttributes } from "react";
 import { useScreenActive } from "@/shared/navigation/screen-activity";

@@ -1,4 +1,5 @@
 "use client";
+/** Здесь создаём tRPC-клиент с общими links и преобразованием дат; права пользователя остаются проверкой сервера. */
 import { createTRPCReact } from "@trpc/react-query";
 import { httpBatchLink, httpLink, splitLink } from "@trpc/client";
 import superjson from "superjson";

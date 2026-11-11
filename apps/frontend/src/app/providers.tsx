@@ -1,4 +1,5 @@
 "use client";
+/** Один набор провайдеров связывает запросы, сессию, подписку и навигацию; порядок задаёт доступность контекстов дочерним экранам. */
 import { Suspense, useState, type ReactNode } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createAppQueryClient } from "@/shared/api/query-client";

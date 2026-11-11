@@ -1,4 +1,5 @@
 "use client";
+/** Вход в раздел клуба выбирает экран по подтверждённой сессии, подписке и доступному режиму оплаты. */
 import { useViewport } from "@/shared/browser/viewport";
 import { useClubNavigation } from "@/shared/navigation/use-club-navigation";
 import { useScreenActive } from "@/shared/navigation/screen-activity";

@@ -1,3 +1,4 @@
+/** Подготовленные закрытые файлы статьи загружаем и фиксируем поэтапно до записи итоговых блоков. */
 import type {
   ArticleCreationJournal,
   ArticleCreationRecord,

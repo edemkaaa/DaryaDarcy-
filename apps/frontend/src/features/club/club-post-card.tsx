@@ -1,4 +1,5 @@
 "use client";
+/** Карточка объединяет текст, медиа и обсуждение; открытие материала и действия меню не должны смешиваться с отметками. */
 import classes from "./club-post-card.module.scss";
 import { cssTransform } from "@/shared/ui/css";
 import { Background, Action, Typography } from "@/shared/ui/elements";

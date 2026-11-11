@@ -1,3 +1,4 @@
+/** Адреса действий проверяем перед открытием: строка ссылки не должна становиться исполняемой браузерной схемой. */
 import { safeNextPath } from "./paths";
 
 /** Link destinations are data, never executable browser URLs. */

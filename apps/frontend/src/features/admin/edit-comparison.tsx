@@ -1,4 +1,5 @@
 "use client";
+/** Сравнение показывает серверный материал рядом с локальным вариантом и оставляет выбор дальнейшего редактирования администратору. */
 import { StatusNotice, StatusNoticeAction } from "@/shared/ui/status-notice";
 
 const labels: Record<string, string> = {

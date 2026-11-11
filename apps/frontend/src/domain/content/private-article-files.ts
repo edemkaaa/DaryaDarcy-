@@ -1,3 +1,4 @@
+/** Локальные ссылки связывают блоки статьи с исходными файлами; перед сохранением выбираем только используемые вложения. */
 import type { ArticleBlock } from "./article-blocks";
 import {
   validatePrivateContentFile,

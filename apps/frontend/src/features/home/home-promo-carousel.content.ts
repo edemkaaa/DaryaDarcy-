@@ -1,3 +1,4 @@
+/** Ресурсы и подписи промо-карусели главной отделены от компонентов; изменение этих данных входит в клиентскую сборку. */
 import type { ViewportSize } from "@/shared/browser/viewport";
 
 import { HOME_PROMO_ASPECT } from "@/features/home/promo-slides";

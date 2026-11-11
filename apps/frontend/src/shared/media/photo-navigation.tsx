@@ -1,4 +1,5 @@
 "use client";
+/** Единое управление выбранной фотографией связывает кнопки, жесты и открытие просмотра без раздельных индексов. */
 import { Action } from "@/shared/ui/action";
 import { MaterialIcons } from "@/shared/ui/icons";
 import classes from "./photo-navigation.module.scss";

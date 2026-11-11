@@ -1,3 +1,4 @@
+/** REST-методы входа и профиля проверяют публичный ответ; HttpOnly-cookie остаётся транспортом браузерной сессии. */
 import { apiUrl } from "@/shared/config/api";
 import { discardLegacyCredentials } from "@/shared/api/token-storage";
 import { ApiError, invalidResponse } from "./errors";
@@ -78,6 +79,7 @@ export type AuthUser = {
 type Session = {
   user: AuthUser;
 };
+// Публичный профиль собираем явным списком полей; добавленное сервером внутреннее поле не становится частью локальной сессии.
 export function parseAuthUser(value: unknown): AuthUser {
   if (
     !isObject(value) ||
@@ -149,6 +151,7 @@ export const loginWithEmail = (
   signal?: AbortSignal,
 ) => authenticate("/api/auth/login", { email, password, totp }, signal);
 
+// Регистрация и восстановление подтверждают принятие инструкции, а не установку пароля или доставку письма.
 async function requestInstructions(
   endpoint: string,
   input: object,

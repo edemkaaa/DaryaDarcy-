@@ -1,4 +1,5 @@
 "use client";
+/** Браузерная операция принадлежит текущей сессии и области экрана; отмена лишает поздний результат права менять интерфейс. */
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useAuth } from "./session-context";
 import { isPersonalDataOwner } from "@/shared/browser/storage";

@@ -1,4 +1,5 @@
 "use client";
+/** Выделение текста сохраняем в координатах поля, чтобы панели форматирования не теряли выбранный диапазон. */
 export const RICH_TEXT_INPUT_ID = "rich-text-field-input";
 type Selection = {
   start: number;

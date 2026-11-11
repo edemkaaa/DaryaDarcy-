@@ -1,4 +1,5 @@
 "use client";
+/** Базовый DOM-адаптер изображений согласует размеры и разрешение локальных ресурсов с остальными UI-компонентами. */
 import React, { forwardRef, type CSSProperties } from "react";
 import { resolveImageUri, resolveImageAttributes } from "./static-images";
 export type ImageAsset = {

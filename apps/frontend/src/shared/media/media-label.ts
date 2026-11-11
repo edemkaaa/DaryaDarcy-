@@ -1,4 +1,5 @@
 "use client";
+/** Техническое имя файла приводим к подписи вложения, не подменяя его адрес или серверную метаинформацию. */
 const RAW_NAME = /^(img|dsc|vid|mov|pxl|screenshot|photo|video)[-_\s]?\d/i;
 export function isRawMediaFilename(name?: string | null): boolean {
   if (!name) return true;

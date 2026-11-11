@@ -1,3 +1,4 @@
+/** Каталог товаров хранится в сборке приложения; его изменение не является записью заказа или платёжной операцией. */
 // Original product copy and imagery: shelf and detail have distinct presentations.
 export interface ShelfProduct {
   id: string;

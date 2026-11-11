@@ -1,3 +1,4 @@
+/** Восстановление черновика статьи возвращает поля, файлы и базовую ревизию как один согласованный снимок. */
 import type { ArticleCreationRecord } from "@/domain/content/article-creation-journal";
 import type { ArticleDraftRecord } from "@/domain/content/article-draft-journal";
 import type { ContentEditBase } from "@/domain/content/edit-revision";

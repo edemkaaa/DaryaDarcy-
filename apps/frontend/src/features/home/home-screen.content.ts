@@ -1,3 +1,4 @@
+/** Ресурсы и подписи главной страницы отделены от компонентов; изменение этих данных входит в клиентскую сборку. */
 import type { ViewportSize } from "@/shared/browser/viewport";
 
 export const CROSSFADE_DURATION = 2000;

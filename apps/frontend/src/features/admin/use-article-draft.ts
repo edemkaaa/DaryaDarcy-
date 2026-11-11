@@ -1,4 +1,5 @@
 "use client";
+/** Очередь локальных снимков сохраняет последнюю версию ввода; отправленная операция временно отделяется от редактируемого черновика. */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArticleDraftJournal,
@@ -44,6 +45,7 @@ export function useArticleDraft(
   const invalidatePendingReads = useCallback(() => {
     readSequence.current++;
   }, []);
+  // Номер чтения не даёт более старой инспекции затереть состояние после нового чтения или закрытия редактора.
   const reload = useCallback(async () => {
     const sequence = ++readSequence.current;
     try {
@@ -75,6 +77,7 @@ export function useArticleDraft(
     };
   }, [reload, invalidatePendingReads]);
 
+  // Единственный писатель последовательно догоняет последнюю очередь; параллельные flush используют ту же работу.
   const flush = useCallback(async (): Promise<void> => {
     if (running.current) return running.current;
     if (!queue.current) {
@@ -166,6 +169,7 @@ export function useArticleDraft(
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, []);
+  // Обычная очистка ждёт сохранения ввода; явный discard отдельно отказывается только от локального черновика.
   const clear = async (discard = false, slot = editingId) => {
     paused.current = true;
     try {
@@ -186,6 +190,7 @@ export function useArticleDraft(
       throw cause;
     }
   };
+  // До отправки update сохраняем неопределённость в черновике, чтобы перезагрузка не разрешила слепой повтор.
   const markWriteStarted = async (editConflict?: 409 | 412) => {
     await flush();
     const value = current.current.get(editingId);

@@ -1,4 +1,5 @@
 "use client";
+/** После запроса отмены различаем неизвестный результат и подтверждение провайдера; повторная проверка только читает состояние подписки. */
 import { TRPCClientError } from "@trpc/client";
 import {
   createContext,
@@ -142,6 +143,7 @@ function useCancellationController(active: boolean) {
     }
   };
 
+  // Проверка результата не отправляет отмену повторно и не принимает ожидание провайдера за завершение.
   const check = async () => {
     if (!serverPending && noticeRef.current?.status !== "unknown") return;
     const task = operation.begin("check-cancellation");

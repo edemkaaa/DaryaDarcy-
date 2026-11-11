@@ -1,4 +1,5 @@
 "use client";
+/** Неподтверждённая административная команда требует чтения сохранённой операции, а не повторного нажатия действия. */
 import { StatusNotice, StatusNoticeAction } from "@/shared/ui/status-notice";
 import type { AdminActionRecovery } from "./use-admin-action-recovery";
 

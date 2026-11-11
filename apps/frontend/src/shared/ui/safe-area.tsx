@@ -1,4 +1,5 @@
 "use client";
+/** Отступы безопасной области применяем по выбранным сторонам, чтобы содержимое не перекрывалось элементами устройства. */
 import { mergeStyles } from "@/shared/ui/css";
 import { type BoxProps } from "@/shared/ui/elements";
 export type Edge = "top" | "right" | "bottom" | "left";

@@ -1,4 +1,5 @@
 "use client";
+/** Сравнение локального черновика с актуальным профилем оставляет решение о замене данных пользователю. */
 import { Action, Typography } from "@/shared/ui/elements";
 import type { ProfileSnapshot } from "./profile-draft";
 import classes from "./profile-draft-review.module.scss";

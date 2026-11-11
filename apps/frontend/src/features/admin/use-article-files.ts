@@ -1,4 +1,5 @@
 "use client";
+/** Исходные файлы статьи и временные URL принадлежат активному редактору; перед записью выбираются используемые блоками вложения. */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/domain/session/session-context";
 import {

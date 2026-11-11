@@ -1,3 +1,4 @@
+/** Общий запрос хранит полный публичный ответ настроек; каждый потребитель проверяет только нужную ему часть. */
 import { queryOptions } from "@tanstack/react-query";
 import { apiCall } from "@/shared/api/auth";
 

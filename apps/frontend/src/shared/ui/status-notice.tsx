@@ -1,4 +1,5 @@
 "use client";
+/** Общее сообщение состояния отделяет текст, значок и явные действия повтора или перехода. */
 import { forwardRef, type ComponentProps, type ReactNode } from "react";
 import Link from "next/link";
 import { Action } from "./action";

@@ -1,3 +1,4 @@
+/** Обновляем представления одного поста во всех известных списках, сохраняя структуру страниц и остальных карточек. */
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 
 const postLists = new Set([

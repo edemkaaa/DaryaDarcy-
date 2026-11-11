@@ -1,3 +1,4 @@
+/** Направление прокрутки определяем по пройденным пикселям, чтобы частота событий не меняла поведение шапки. */
 /** Direction thresholds use travelled CSS pixels, regardless of event frequency. */
 export class ScrollHeaderState {
   hidden = false;

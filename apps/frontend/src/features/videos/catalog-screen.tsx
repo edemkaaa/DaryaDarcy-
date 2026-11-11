@@ -1,4 +1,5 @@
 "use client";
+/** Карточки нового каталога показывают отдельное состояние обложки и передают запуск странице воспроизведения. */
 import { CursorPagePrevious } from "@/shared/ui/cursor-page-previous";
 import { useMemo } from "react";
 import { useAuth } from "@/domain/session/session-context";

@@ -1,4 +1,5 @@
 "use client";
+/** Параметры размытия преобразуем в CSS-оформление слоя; доступ к содержимому этим эффектом не ограничивается. */
 import { mergeStyles } from "@/shared/ui/css";
 import { type BoxProps } from "@/shared/ui/elements";
 export function BlurView({

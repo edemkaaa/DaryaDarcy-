@@ -1,4 +1,5 @@
 "use client";
+/** Операции каталога VK учитывают ревизии и сохранённый черновик, отделяя обновление данных ролика от обычного списка постов. */
 import { useEffect, useState } from "react";
 import { useAuth } from "@/domain/session/session-context";
 import {

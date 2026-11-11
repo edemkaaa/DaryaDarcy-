@@ -1,4 +1,5 @@
 "use client";
+/** Несколько роликов поста показываем в одной последовательности, сохраняя управление выбранным элементом. */
 import { useLayoutEffect, useRef, useState } from "react";
 import { MeasuredBox, ScrollArea, Typography } from "@/shared/ui/elements";
 import { useCollectionItemRetention } from "@/shared/ui/collection-item-window";

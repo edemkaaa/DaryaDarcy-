@@ -1,4 +1,5 @@
 "use client";
+/** Квитанция постановки письма в очередь отличается от доставки; доступные действия зависят от состояния операции участника. */
 import { useId } from "react";
 import { Action, Typography } from "@/shared/ui/elements";
 import type {

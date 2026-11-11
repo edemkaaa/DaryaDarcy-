@@ -1,3 +1,4 @@
+/** Геометрия активного Клуба рассчитывается из viewport отдельно от данных и обработчиков экрана. */
 import type { ViewportSize } from "@/shared/browser/viewport";
 
 import { getClubSubscribedContent } from "./club-subscribed.content";

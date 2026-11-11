@@ -1,4 +1,5 @@
 "use client";
+/** Обёртка навигации объединяет переходы, вход и безопасный возврат; экраны не должны самостоятельно переписывать историю Next. */
 import { useRouter as useNextRouter, usePathname } from "next/navigation";
 import { useEffect, useMemo, type ReactNode } from "react";
 import NextLink from "next/link";

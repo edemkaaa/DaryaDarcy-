@@ -1,4 +1,5 @@
 "use client";
+/** Маркеры истории добавляем рядом со служебными данными Next, сохраняя сведения о переходах самого приложения. */
 import { useEffect } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import {

@@ -1,4 +1,5 @@
 "use client";
+/** Загрузка и привязка аватара имеют раздельные подтверждения; возвращённый результат применяется только к своему аккаунту. */
 import { useEffect, useState } from "react";
 import { getMe } from "@/shared/api/auth";
 import {

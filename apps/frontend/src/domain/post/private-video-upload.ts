@@ -1,3 +1,4 @@
+/** Крупный видеофайл и его квитанция проходят отдельный путь восстановления; повтор не должен становиться новой загрузкой. */
 import type { ScopedOperation } from "@/shared/browser/operation-scope";
 import { MAX_VIDEO_BYTES } from "@/shared/browser/file-operations";
 import { ApiError } from "@/shared/api/errors";

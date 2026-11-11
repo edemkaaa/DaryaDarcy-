@@ -1,3 +1,4 @@
+/** У публичной обложки отдельный журнал загрузки: получение файла и сохранение ссылки в статье могут завершиться независимо. */
 import { z } from "zod";
 import { isPersonalDataOwner } from "@/shared/browser/storage";
 import { invalidResponse } from "@/shared/api/errors";

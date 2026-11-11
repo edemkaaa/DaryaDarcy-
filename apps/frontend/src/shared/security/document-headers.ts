@@ -1,3 +1,4 @@
+/** Политика HTML задаёт nonce для скриптов и список разрешённых источников; заголовки API формируются отдельно. */
 /** Scripts require a per-response nonce; existing React style attributes remain
  * supported. Media may come from HTTPS storage, but executable frames have an
  * explicit provider allowlist. API responses keep their own security policies.

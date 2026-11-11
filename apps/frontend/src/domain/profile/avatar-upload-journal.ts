@@ -1,3 +1,4 @@
+/** Журнал аватара хранит исходную операцию загрузки и её подтверждение, чтобы потеря ответа не требовала нового файла. */
 import { z } from "zod";
 import { isPersonalDataOwner } from "../../shared/browser/storage";
 import { invalidResponse } from "../../shared/api/errors";

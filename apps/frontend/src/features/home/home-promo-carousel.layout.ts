@@ -1,3 +1,4 @@
+/** Геометрия промо-карусели главной рассчитывается из viewport отдельно от данных и обработчиков экрана. */
 import type { ViewportSize } from "@/shared/browser/viewport";
 
 import { getHomePromoCarouselContent } from "./home-promo-carousel.content";

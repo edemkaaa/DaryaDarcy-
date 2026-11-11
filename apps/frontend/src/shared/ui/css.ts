@@ -1,3 +1,4 @@
+/** Объединение стилей и преобразование размеров дают DOM-компонентам общий формат CSS-свойств. */
 import type { CSSProperties } from "react";
 export type { CSSProperties } from "react";
 export type StyleInput =

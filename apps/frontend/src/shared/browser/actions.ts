@@ -1,4 +1,5 @@
 "use client";
+/** Действия браузера проверяют внешние URL и используют доступные возможности отправки или копирования ссылки. */
 import { safeExternalUrl } from "@/shared/navigation/external-url";
 export async function openExternalUrl(url: string) {
   const safe = safeExternalUrl(url);

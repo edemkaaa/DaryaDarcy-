@@ -1,4 +1,5 @@
 "use client";
+/** Быстрый редактор использует общий координатор поста, сохраняя свой слот черновика и выбранные вложения. */
 import classes from "./create-post-modal.module.scss";
 import {
   Dialog,

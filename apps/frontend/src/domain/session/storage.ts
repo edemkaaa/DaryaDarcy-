@@ -1,4 +1,5 @@
 "use client";
+/** Локальные маркеры сессии нужны для координации вкладок и неподтверждённого выхода, а не для хранения пароля. */
 import storage from "@/shared/browser/storage";
 import { USER_INFO_KEY } from "@/shared/config/api";
 import type { AuthUser } from "@/shared/api/auth";

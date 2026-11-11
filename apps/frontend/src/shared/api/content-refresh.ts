@@ -1,3 +1,4 @@
+/** Периодическое обновление относится к активным экранам контента; операции оплаты и получения закрытых файлов используют собственный жизненный цикл. */
 export const CONTENT_REFRESH_INTERVAL_MS = 60_000;
 
 /** Opt in only content reads; retained screens disable their observers on exit.

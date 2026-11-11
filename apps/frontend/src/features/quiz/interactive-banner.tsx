@@ -1,4 +1,5 @@
 "use client";
+/** Баннер интерактива отделён от содержимого раздела, чтобы декоративная часть не владела состоянием теста. */
 import { Picture } from "@/shared/media/image";
 import { Typography } from "@/shared/ui/elements";
 import Animated, { FadeIn } from "@/shared/browser/motion";

@@ -1,3 +1,4 @@
+/** Построение адресов API отделяем от компонентов, чтобы пути одинаково работали с настроенным базовым адресом. */
 export const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_BASE_URL || ""
 ).replace(/\/$/, "");

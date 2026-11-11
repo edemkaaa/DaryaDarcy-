@@ -1,4 +1,5 @@
 "use client";
+/** Хук хранит ограниченное окно страниц; обновление головы и видимых элементов сохраняет непрерывную цепочку курсоров. */
 import {
   useCallback,
   useEffect,
@@ -71,6 +72,7 @@ export function useCursorPages<P extends CursorPage>({
     scope,
     `${cacheVersion ?? ""}:bounded-v2`,
   );
+  // Фильтр, версия списка и владелец вместе задают право использовать прежние страницы.
   const identity = JSON.stringify(queryKey);
   const refreshMode = useRef<{
     identity: string;
@@ -98,6 +100,7 @@ export function useCursorPages<P extends CursorPage>({
     ...(!poll ? { refetchInterval: false as const } : {}),
     ...(staleTime === undefined ? {} : { staleTime }),
     ...(gcTime === undefined ? {} : { gcTime }),
+    // Обновление цепочки и ручная догрузка не должны одновременно применять разные границы страниц.
     queryFn: async ({ signal }) => {
       operation.cancel();
       const mode =
@@ -198,6 +201,7 @@ export function useCursorPages<P extends CursorPage>({
       )
         throw new CursorChainError();
       client.setQueryData<CursorChain<P>>(queryKey, (current) => {
+        // Если за время запроса список обновился, не присоединяем страницу к уже другой цепочке.
         if (current !== before) return current;
         if (direction === "previous" && page.nextCursor !== firstCursor)
           throw new CursorChainError();

@@ -1,3 +1,4 @@
+/** Загрузка вкладки не рисует приблизительную копию будущего баннера, чтобы его появление не дублировало оформление. */
 import RouteLoading from "@/shared/ui/route-loading";
 
 // The real screen owns its layout and entrance. An approximate copy would

@@ -1,4 +1,5 @@
 "use client";
+/** Продление доступа и письмо восстанавливаются по сохранённому ключу; результаты предыдущих команд не теряются при смене вкладки. */
 import {
   useCallback,
   useEffect,
@@ -69,6 +70,7 @@ export function useAdminActionRecovery(
   }, [onConfirmed]);
   useEffect(() => () => scope.cancel(), [scope, ready, ownerId]);
 
+  // start, check и replay используют одну область; переход между вкладками отменяет ожидание, но сохраняет журнал команды.
   const run = useCallback(
     async (
       mode: "check" | "start" | "replay",

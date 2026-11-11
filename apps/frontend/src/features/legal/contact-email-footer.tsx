@@ -1,4 +1,5 @@
 "use client";
+/** Контакт поддержки открывается явным mailto-действием; подсказка о письме не подтверждает доставку. */
 import classes from "./contact-email-footer.module.scss";
 import { type CSSProperties, mergeStyles } from "@/shared/ui/css";
 import { Typography, Action } from "@/shared/ui/elements";

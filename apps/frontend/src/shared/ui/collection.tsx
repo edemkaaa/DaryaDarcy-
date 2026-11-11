@@ -1,4 +1,5 @@
 "use client";
+/** Коллекция связывает прокрутку, видимые элементы и сохранение положения с ограничением числа смонтированных карточек. */
 import { mergeStyles } from "@/shared/ui/css";
 import classes from "./collection.module.scss";
 import React, {

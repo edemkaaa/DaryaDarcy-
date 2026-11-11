@@ -1,3 +1,4 @@
+/** Вход маршрута /legal/[slug] передаёт параметры экрану; интерактивное состояние и вызовы API остаются в соответствующей feature. */
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { LEGAL_DOCUMENTS } from "@/features/legal/legal-documents";

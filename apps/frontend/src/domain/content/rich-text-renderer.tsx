@@ -1,4 +1,5 @@
 "use client";
+/** Разметку выводим React-элементами; адрес каждой ссылки проходит проверку отдельно от её видимой подписи. */
 import { memo } from "react";
 import { Typography } from "@/shared/ui/elements";
 import { splitForEmojiRendering } from "@/shared/media/emoji-text";

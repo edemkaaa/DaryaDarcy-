@@ -1,3 +1,4 @@
+/** Переходы по индексам фотографий выделены из рендера, чтобы одинаково обрабатывать крайние элементы и изменение набора. */
 import type { KeyboardEvent } from "react";
 
 export function scrollPhotoWithKeyboard(

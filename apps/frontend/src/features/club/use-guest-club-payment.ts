@@ -1,4 +1,5 @@
 "use client";
+/** Гостевой журнал удерживает email и ключ покупки до её проверки; вход не превращает старый заказ в новый. */
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useAuth } from "@/domain/session/session-context";
 import { checkOperationAccessError } from "@/domain/session/use-session-operation";
@@ -194,6 +195,7 @@ export function useGuestClubPayment({
         ownerId !== null && cause instanceof GuestCheckoutRecipientError,
     });
   };
+  // Гостевой заказ сохраняет своего получателя даже после входа; проверка не подменяет его заказом текущего аккаунта.
   const check = async () => {
     const task = begin("check-payment");
     if (!task) return;
@@ -259,6 +261,7 @@ export function useGuestClubPayment({
   const terminal =
     current?.result?.state === "succeeded" ||
     current?.result?.state === "failed";
+  // Перед новой отправкой сверяем сохранённое намерение: контакт и ключ покупки нельзя менять в фоне.
   const prepare = async () => {
     const task = begin("prepare-payment");
     if (!task) return;

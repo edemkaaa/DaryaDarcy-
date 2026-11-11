@@ -1,4 +1,5 @@
 "use client";
+/** Для запуска отдельно читаем серверный источник и метаданные; возврат на страницу требует новой проверки authority. */
 import { useState, useSyncExternalStore } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/domain/session/session-context";
@@ -44,6 +45,7 @@ export function CatalogVideoDetail({ id }: { id: string }) {
     !auth.refreshError &&
     videoId !== null;
   const owner = auth.user?.id ?? "guest";
+  // Источник одноразового воспроизведения не хранится как обычная карточка каталога и заново проверяется при возврате.
   const playback = useQuery({
     queryKey: ["video-playback", videoId, owner, epoch],
     enabled: ready,

@@ -1,4 +1,5 @@
 "use client";
+/** Закрытые фото связываются с локальными исходниками; смена слота или аккаунта освобождает прежние preview URL. */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/domain/session/session-context";
 import {

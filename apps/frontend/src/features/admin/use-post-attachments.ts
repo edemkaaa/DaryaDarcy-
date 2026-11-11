@@ -1,4 +1,5 @@
 "use client";
+/** Дополнительные медиа редактора хранятся отдельно от текста и отслеживают удалённые серверные вложения. */
 
 import { useCallback, useRef, useState } from "react";
 import { getDocumentAsync } from "@/shared/browser/file-picker";

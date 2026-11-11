@@ -1,4 +1,5 @@
 "use client";
+/** Определение размеров и нормализация ссылок подготавливают медиа для раскладки, сохраняя ограничения сетевого чтения. */
 import { useState } from "react";
 import { getCachedPhotoRatio, rememberPhotoRatio } from "./photo-ratio-cache";
 import type { ImageProps } from "./image";

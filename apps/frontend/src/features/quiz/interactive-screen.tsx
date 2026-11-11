@@ -1,4 +1,5 @@
 "use client";
+/** Раздел интерактива связывает тест и сохранённый результат, оставляя доступ к расширенным материалам проверке подписки. */
 import { InteractiveBanner } from "./interactive-banner";
 import classes from "./interactive-screen.module.scss";
 import {

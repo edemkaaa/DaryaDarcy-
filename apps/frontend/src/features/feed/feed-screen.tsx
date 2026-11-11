@@ -1,4 +1,5 @@
 "use client";
+/** Лента хранит ограниченное окно постов, фильтры и отметки пользователя; обновление выполняется для активного экрана. */
 import { useBrowserReady } from "@/shared/browser/use-browser-ready";
 import classes from "./feed-screen.module.scss";
 import {

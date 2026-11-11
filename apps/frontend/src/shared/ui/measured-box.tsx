@@ -1,4 +1,5 @@
 "use client";
+/** Изменение DOM-размеров сообщается владельцу компонента через измерение, а не предположение о геометрии экрана. */
 import { forwardRef, useLayoutEffect, useRef } from "react";
 import type { BoxProps, LayoutRect } from "./types";
 export const MeasuredBox = forwardRef<

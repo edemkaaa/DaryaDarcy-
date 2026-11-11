@@ -1,3 +1,4 @@
+/** Нормализуем транспортные ошибки для интерфейса, сохраняя признаки, нужные для восстановления и ограничения повторов. */
 import { TRPCClientError, type TRPCLink } from "@trpc/client";
 import { observable } from "@trpc/server/observable";
 import type { AppRouter } from "./contract";

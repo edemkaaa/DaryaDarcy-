@@ -1,4 +1,5 @@
 "use client";
+/** Ошибка отдельного экрана перехватывается границей React и предлагает повтор, не заменяя исключение успешным состоянием. */
 import { StatusNotice, StatusNoticeAction } from "./status-notice";
 import { ScreenStatus } from "./screen-status";
 import { Component, type ReactNode } from "react";

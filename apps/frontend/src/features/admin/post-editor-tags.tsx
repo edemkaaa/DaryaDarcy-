@@ -1,4 +1,5 @@
 "use client";
+/** Редактор тегов использует единые значения рубрик, сохраняя подписи отдельно от передаваемых API значений. */
 import { memo } from "react";
 import { Action, Typography } from "@/shared/ui/elements";
 import type { PostTag } from "@/domain/post/post-tags";

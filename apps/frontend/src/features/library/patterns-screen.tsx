@@ -1,4 +1,5 @@
 "use client";
+/** Клубные выкройки открываются по серверным привязкам; бесплатная «Лошадка» использует свой отдельный согласованный адрес. */
 import { useViewport } from "@/shared/browser/viewport";
 
 import { getPatternsScreenLayout } from "./patterns-screen.layout";

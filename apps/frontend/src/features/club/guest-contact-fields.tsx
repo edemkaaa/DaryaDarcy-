@@ -1,4 +1,5 @@
 "use client";
+/** Контактные поля гостя учитывают уже сохранённую покупку: её исходные данные нельзя незаметно заменить новым вводом. */
 import { useId, useLayoutEffect, useRef, type KeyboardEvent } from "react";
 import { Field, Typography } from "@/shared/ui/elements";
 import { BROWN_MUTED } from "./club-screen.content";

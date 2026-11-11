@@ -1,4 +1,5 @@
 "use client";
+/** Чистые определения темы отделены от React-провайдера и браузерного определения цветовой схемы. */
 import themeConfig from "./palette";
 export type ColorScheme = "light" | "dark";
 export const ThemeColors = themeConfig.themeColors;

@@ -1,4 +1,5 @@
 "use client";
+/** Незавершённый выбор файлов хранится отдельно от подтверждённых вложений и передаётся восстановлению редактора. */
 import { useCallback, useRef, useState } from "react";
 import { getHttpStatus } from "@/shared/api/errors";
 import type { PendingPostUpload } from "@/domain/post/recovery-store";

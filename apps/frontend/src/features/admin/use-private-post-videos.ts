@@ -1,4 +1,5 @@
 "use client";
+/** Локальные видео принадлежат аккаунту и слоту редактора; временные адреса освобождаются при смене этого контекста. */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/domain/session/session-context";
 import type { ScopedOperation } from "@/shared/browser/operation-scope";

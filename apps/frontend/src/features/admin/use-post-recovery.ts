@@ -1,4 +1,5 @@
 "use client";
+/** Черновик поста и фаза сохранения переживают закрытие редактора; восстановление не должно переписать неизвестную сетевую операцию. */
 import {
   useCallback,
   useEffect,
@@ -116,7 +117,8 @@ export function usePostRecovery({
       const current = context.current;
       if (!current?.alive || !ownerId || !isPersonalDataOwner(ownerId))
         throw new Error("Редактор недоступен до проверки аккаунта");
-      const snapshot = state ?? coordinator.current.snapshot();
+      // Берём форму и фазу одной контрольной точки до асинхронной записи, не объявляя более новый ввод сохранённым.
+    const snapshot = state ?? coordinator.current.snapshot();
       const draft = latest.current.editor;
       try {
         await current.journal.write(
@@ -183,6 +185,7 @@ export function usePostRecovery({
     setRecord(null);
     setStatus("ready");
   };
+  // Пока очищаем журнал, запрещаем его поздней автозаписи заново создать уже закрытый черновик.
   const clear = async () => {
     const current = context.current;
     if (!current?.alive) throw new Error("Редактор закрыт");

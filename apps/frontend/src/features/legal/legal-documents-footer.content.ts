@@ -1,3 +1,4 @@
+/** Ресурсы и подписи ссылок на юридические документы отделены от компонентов; изменение этих данных входит в клиентскую сборку. */
 export const FOLDER_IMAGE = {
   uri: "/assets/images/legal-documents-folder.webp",
 };

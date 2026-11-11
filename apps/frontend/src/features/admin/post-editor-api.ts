@@ -1,3 +1,4 @@
+/** Общий транспорт двух редакторов не владеет их черновиками; каждый вызов получает сигнал соответствующей операции. */
 import type { TRPCClient } from "@trpc/client";
 import type { AppRouter } from "@/shared/api/contract";
 import type { PostSaveApi } from "@/domain/post/save-post";

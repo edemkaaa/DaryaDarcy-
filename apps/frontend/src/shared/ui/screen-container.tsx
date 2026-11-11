@@ -1,4 +1,5 @@
 "use client";
+/** Оболочка экрана задаёт фон и безопасные отступы, оставляя бизнес-состояния дочернему содержимому. */
 import classes from "./screen-container.module.scss";
 import type { CSSProperties } from "react";
 import { Background, type BoxProps } from "./elements";

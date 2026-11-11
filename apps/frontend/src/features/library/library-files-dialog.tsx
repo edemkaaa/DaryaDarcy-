@@ -1,4 +1,5 @@
 "use client";
+/** Список скачивания берётся из защищённого API; ссылка открывает файл отдельно и не заменяется старым публичным источником. */
 import { Dialog, Action, Typography } from "@/shared/ui/elements";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { apiUrl } from "@/shared/config/api";

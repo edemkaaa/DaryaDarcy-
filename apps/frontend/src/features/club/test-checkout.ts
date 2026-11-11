@@ -1,3 +1,4 @@
+/** TEST-покупка использует отдельные параметры и подтверждения, чтобы её нельзя было принять за LIVE-заказ. */
 import type { TRPCClient } from "@trpc/client";
 import type { AppRouter } from "@/shared/api/contract";
 import { getSessionRequestSignal } from "@/shared/api/request-lifecycle";

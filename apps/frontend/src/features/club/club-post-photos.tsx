@@ -1,4 +1,5 @@
 "use client";
+/** Фото и видео клубной карточки показываются в согласованной последовательности с отдельным открытием просмотра. */
 
 import { useRef, useState, type CSSProperties } from "react";
 import { imageSlotSizes } from "@/shared/media/image-sizes";

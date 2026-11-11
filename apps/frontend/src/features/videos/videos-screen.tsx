@@ -1,4 +1,5 @@
 "use client";
+/** Старый и новый каталоги выбираются по настройке сборки; чтение списка не используется как разрешение воспроизвести закрытый ролик. */
 import { useViewport } from "@/shared/browser/viewport";
 
 import { getVideosScreenLayout } from "./videos-screen.layout";

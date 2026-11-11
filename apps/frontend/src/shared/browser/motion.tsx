@@ -1,4 +1,5 @@
 "use client";
+/** Совместимый слой анимаций переводит используемые экраном значения и эффекты в DOM-стили и браузерный жизненный цикл. */
 import { mergeStyles, type StyleInput } from "@/shared/ui/css";
 import {
   MeasuredBox,

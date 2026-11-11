@@ -1,4 +1,5 @@
 "use client";
+/** Блоки статьи отображаются по типу; открытие фотографий и внешних ссылок передаётся явным пользовательским действиям. */
 import { useViewport } from "@/shared/browser/viewport";
 
 import classes from "./article-content.module.scss";

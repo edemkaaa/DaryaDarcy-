@@ -1,4 +1,5 @@
 "use client";
+/** Иллюстрации эстетики подготавливаются из проверенных привязок; недоступная закрытая выдача не подменяется публичными файлами. */
 import { useQueries } from "@tanstack/react-query";
 import type { AestheticGuideKey } from "@shared/aesthetic-guide";
 import { useAuth } from "@/domain/session/session-context";

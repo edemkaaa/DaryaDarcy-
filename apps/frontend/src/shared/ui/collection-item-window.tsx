@@ -1,4 +1,5 @@
 "use client";
+/** Окно коллекции освобождает далёкие карточки, но удерживает элементы с вводом, воспроизведением или выполняющейся операцией. */
 import {
   createContext,
   useContext,
@@ -19,6 +20,7 @@ const ItemWindow = createContext<{
 } | null>(null);
 
 /** Keep intentional local state and ongoing work alive when its row leaves view. */
+// Незавершённый ввод или медиасессия удерживают карточку, даже когда окно коллекции уходит дальше по списку.
 export function useCollectionItemRetention(retained: boolean) {
   const window = useContext(ItemWindow);
   const retain = window?.retain;

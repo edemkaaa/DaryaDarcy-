@@ -1,3 +1,4 @@
+/** Значение Retry-After приводим к ограниченной задержке для интерфейса, учитывая обе формы HTTP-заголовка. */
 /** Retry-After is either whole seconds or an HTTP date; never a JS date shorthand. */
 export function parseRetryAfter(
   value: string | null,

@@ -1,4 +1,5 @@
 "use client";
+/** Страница об авторе отображает материалы сборки и общие переходы, не выполняя пользовательских записей. */
 import { useViewport } from "@/shared/browser/viewport";
 
 import { getAboutScreenLayout } from "./about-screen.layout";

@@ -1,4 +1,5 @@
 "use client";
+/** Представление результата оплаты использует состояния контроллера и предлагает явную повторную проверку. */
 import type { TRPCClient } from "@trpc/client";
 import type { AppRouter } from "@/shared/api/contract";
 import { useEffect, useRef, useState } from "react";

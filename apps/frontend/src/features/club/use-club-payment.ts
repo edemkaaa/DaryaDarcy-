@@ -1,4 +1,5 @@
 "use client";
+/** Общий hook выбирает поддерживаемый протокол оплаты, оставляя каждому режиму собственные правила восстановления. */
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useAuth } from "@/domain/session/session-context";
 import { useClub } from "@/domain/subscription/subscription-context";

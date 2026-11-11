@@ -1,3 +1,4 @@
+/** Контроллер разделяет проверку, вход и выход; номер операции не позволяет позднему ответу вернуть прежний аккаунт. */
 import * as Api from "@/shared/api/auth";
 import {
   ApiError,
@@ -57,6 +58,7 @@ export class SessionController {
     this.state = state;
     for (const listener of this.listeners) listener();
   }
+  // Новый владелец запроса одновременно отзывает прежний сигнал и увеличивает версию ответа.
   private begin() {
     this.pending?.abort();
     this.pending = new AbortController();
@@ -69,6 +71,7 @@ export class SessionController {
   ): void {
     const nextId = status === "authenticated" ? user?.id : null;
     const confirmed = status === "authenticated" || status === "guest";
+    // Роль входит в личность экрана: смена полномочий тоже требует очистки прежних данных.
     const nextIdentity =
       status === "authenticated" && user ? `${user.id}:${user.role}` : null;
     const changed = confirmed && this.confirmedIdentity !== nextIdentity;
@@ -95,6 +98,7 @@ export class SessionController {
     )
       return;
     if (!force && (this.authenticating || this.refreshing)) return;
+    // Уже подтверждённый пользователь может пережить временный сбой чтения без ложного выхода.
     const background =
       this.state.status === "guest" || this.state.status === "authenticated";
     const task = this.begin();
@@ -136,6 +140,7 @@ export class SessionController {
     this.refreshing = false;
     try {
       const result = await request(task.signal);
+      // Даже успешный вход устарел, если за время ожидания началась другая операция сессии.
       if (task.version !== this.operation) return false;
       this.commit(Api.parseAuthUser(result.user), "authenticated");
       this.dependencies.broadcast();
@@ -187,6 +192,7 @@ export class SessionController {
     void this.refresh();
     return true;
   };
+  // Прочитанный профиль не должен откатить более новую подтверждённую ревизию полей.
   reconcileProfile = async (
     ownerId: number,
     user: Api.AuthUser | null,
@@ -207,6 +213,7 @@ export class SessionController {
     await this.applySession(user);
     return user?.id === ownerId;
   };
+  // Изменение клубных прав может очистить приватные данные без смены самого аккаунта.
   invalidateAccess = (resetScreens = true): void => {
     if (this.state.status !== "authenticated") return;
     this.dependencies.resetIdentity(this.state.user?.id ?? null);
@@ -245,6 +252,7 @@ export class SessionController {
     const task = this.begin();
     this.authenticating = false;
     this.refreshing = false;
+    // Маркер переживает обновление вкладки: локальный выход ещё не означает отзыв cookie сервером.
     this.dependencies.setLogoutPending(true);
     this.confirmedIdentity = null;
     // Clear local identity immediately. Server completion remains a separate state.

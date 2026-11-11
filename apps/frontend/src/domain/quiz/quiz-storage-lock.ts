@@ -1,3 +1,4 @@
+/** Межвкладочная блокировка координирует запись теста одного владельца; она не заменяет проверку актуальной версии данных. */
 /** Serialize each owner's read/compare/write across browser tabs. */
 export async function withQuizStorageLock<T>(
   ownerId: number | null,

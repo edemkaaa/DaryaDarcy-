@@ -1,4 +1,5 @@
 "use client";
+/** Редактор статей отделяет черновик, создание, загрузку файлов и ревизию серверного материала; неизвестная запись требует проверки. */
 import {
   captureEditBase,
   editableSnapshot,
@@ -428,6 +429,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       return next;
     });
   };
+  // Выбор ветки зависит от наличия серверного ID и локальных файлов; каждая ветка оставляет своё доказательство для восстановления.
   const save = async () => {
     if (cover.pending) return;
     if (!title.trim()) {
@@ -465,6 +467,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
         published,
         sections: blocks,
       };
+      // Не отправляем все когда-либо выбранные файлы: в операцию входят только ссылки актуальных блоков.
       const selected = selectArticleFiles(blocks, privateFiles.files);
       if (selected.length) {
         await checkPrivateUploadAvailability(fileApi.status, task);

@@ -1,3 +1,4 @@
+/** Типы входов и выходов выводим из сгенерированного API-контракта, чтобы компоненты не копировали серверные структуры вручную. */
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "./contract";
 

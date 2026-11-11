@@ -1,4 +1,5 @@
 "use client";
+/** Промо-карусель согласует автоматическую смену слайдов с ручным свайпом и не открывает раздел после завершения drag. */
 import { useViewport } from "@/shared/browser/viewport";
 
 import { getHomePromoCarouselLayout } from "./home-promo-carousel.layout";
@@ -43,6 +44,7 @@ export function HomePromoCarousel() {
   const suppressClick = useRef(false);
   const slide = HOME_PROMO_SLIDES[index];
 
+  // Отменённый жест завершает захват указателя без смены раздела и без случайного клика по слайду.
   const finishSwipe = useCallback((cancelled = false) => {
     const current = swipe.current;
     if (!current) return;

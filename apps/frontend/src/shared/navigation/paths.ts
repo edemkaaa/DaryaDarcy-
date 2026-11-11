@@ -1,3 +1,4 @@
+/** Путь возврата ограничиваем внутренним адресом сайта, исключая сетевой URL и управляющие символы. */
 export function safeNextPath(
   value: string | string[] | undefined,
 ): string | null {

@@ -1,4 +1,5 @@
 "use client";
+/** Карусель сохраняет индекс и явное открытие фото; соседние слайды не должны перехватывать действия текущего. */
 import classes from "./post-photo-carousel.module.scss";
 import frameClasses from "./post-photo-frame.module.scss";
 import {

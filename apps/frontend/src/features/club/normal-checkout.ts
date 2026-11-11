@@ -1,3 +1,4 @@
+/** Контракт NORMAL отделяет проверку сохранённого заказа от создания нового; статус подписки не заменяет квитанцию покупки. */
 import { z } from "zod";
 import type { TRPCClient } from "@trpc/client";
 import type { AppRouter } from "@/shared/api/contract";
@@ -153,6 +154,7 @@ export class NormalCheckoutJournal {
       contactPhone: phone.data,
     });
   }
+  // Перед сетью сверяем сохранённую версию: другая вкладка могла уже заменить или завершить намерение.
   requireCurrent(
     intent: NormalCheckoutIntent,
     signal: AbortSignal,
@@ -177,6 +179,7 @@ export class NormalCheckoutJournal {
       () => this.read() ?? this.newIntent("monthly", undefined, contactPhone),
     );
   }
+  // После первого ответа заказ привязан к ключу; другой orderId нельзя принять за продолжение той же покупки.
   rememberOrder(
     intent: NormalCheckoutIntent,
     result: NormalCheckoutStatus,
@@ -193,6 +196,7 @@ export class NormalCheckoutJournal {
       return this.persist({ ...current, orderId: result.orderId });
     });
   }
+  // Новый ключ разрешается после свежей проверки завершённого заказа, а не по устаревшему состоянию кнопки.
   next(
     client: TRPCClient<AppRouter>,
     intent: NormalCheckoutIntent,

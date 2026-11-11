@@ -1,4 +1,5 @@
 "use client";
+/** Декоративная шапка каталога отделена от списка, чтобы подгрузка роликов не меняла её жизненный цикл. */
 import { useEffect, useState } from "react";
 import { Picture } from "@/shared/media/image";
 import { Typography } from "@/shared/ui/elements";

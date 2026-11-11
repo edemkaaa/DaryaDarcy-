@@ -1,4 +1,5 @@
 "use client";
+/** Кнопка возврата управляет прокруткой своей области экрана и появляется независимо от состояния списка данных. */
 import classes from "./scroll-to-top-button.module.scss";
 import { Action } from "@/shared/ui/elements";
 import { MaterialIcons } from "@/shared/ui/icons";

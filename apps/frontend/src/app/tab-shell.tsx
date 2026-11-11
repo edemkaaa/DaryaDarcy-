@@ -1,4 +1,5 @@
 "use client";
+/** Общая оболочка вкладок отделяет шапку и меню от сменяемого содержимого, сохраняя контекст текущего маршрута. */
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { BottomTabs } from "@/shared/ui/bottom-tabs";

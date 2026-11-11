@@ -1,4 +1,5 @@
 "use client";
+/** Хук владеет экземпляром браузерного плеера и освобождает его при завершении жизни соответствующего экрана. */
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 import { BrowserAudioPlayer } from "./browser-audio-player";
 import { useScreenActive } from "@/shared/navigation/screen-activity";

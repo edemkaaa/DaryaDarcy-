@@ -1,4 +1,5 @@
 "use client";
+/** Адаптер жестов связывает существующие описания экранов с Pointer Events, учитывая захват указателя и отмену. */
 import classes from "./gestures.module.scss";
 import { mergeStyles, type StyleInput } from "@/shared/ui/css";
 import {

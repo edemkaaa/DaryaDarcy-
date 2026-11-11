@@ -1,4 +1,5 @@
 "use client";
+/** Картинка имеет ограниченный цикл загрузки и повторов; таймер для lazy-фото начинается после появления в видимой области. */
 import classes from "./image.module.scss";
 import { mergeStyles } from "@/shared/ui/css";
 import { type BoxProps, DomImage } from "@/shared/ui/elements";
@@ -128,8 +129,10 @@ const PictureContent = forwardRef<HTMLDivElement, ImageProps>(
       sizes ?? resolved.sizes,
       retryKey,
     ]);
+    // Память о показе убирает повторный fade; она не свидетельствует о свежести байтов в HTTP-кеше.
     const [displayedBefore] = useState(() => wasImageDisplayed(displayKey));
     const revealOnLoad = fadeOnLoad && !displayedBefore;
+    // Явная ошибка допускает ограниченные повторы, а зависший запрос требует ручного решения пользователя.
     const terminalFailure =
       timedOut || (failed && attempt >= RETRY_DELAYS.length);
     const retry = () => {

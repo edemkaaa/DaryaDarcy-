@@ -1,4 +1,5 @@
 "use client";
+/** Подтверждённый доступ к клубу и оплаченный срок различаются; истечение срока запускает новую проверку прав. */
 import {
   useCallback,
   useContext,
@@ -55,6 +56,7 @@ export function ClubProvider({ children }: { children: ReactNode }) {
     subscription.data.subscribed === true
       ? (subscription.data.expiresAt?.getTime() ?? null)
       : null;
+  // Локальные часы закрывают просроченный доступ до следующего ответа, но не продлевают его самостоятельно.
   const expired = deadline !== null && now >= deadline;
   useEffect(() => {
     if (deadline === null) return;
@@ -107,6 +109,7 @@ export function ClubProvider({ children }: { children: ReactNode }) {
               : subscription.data?.hasClubAccess === true
                 ? "active"
                 : "inactive";
+  // Потеря подтверждённых прав очищает приватный кеш даже при прежнем ID пользователя.
   const wasActive = useRef(false);
   useEffect(() => {
     if (wasActive.current && status !== "active")

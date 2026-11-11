@@ -1,3 +1,4 @@
+/** Временные object URL принадлежат выбранным фотографиям комментария и освобождаются при удалении или завершении выбора. */
 import type { PrivateCommentPhoto } from "@/domain/post/private-comment-save";
 
 export type CommentPhotoPreviews = Map<string, { file: File; url: string }>;

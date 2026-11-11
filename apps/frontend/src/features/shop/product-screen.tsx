@@ -1,4 +1,5 @@
 "use client";
+/** Карточка товара готовит письмо по актуальному контакту менеджера; пользователь отправляет его в своём почтовом приложении. */
 import { useViewport } from "@/shared/browser/viewport";
 
 import { getProductScreenLayout } from "./product-screen.layout";
@@ -61,6 +62,7 @@ export default function ProductDetailScreen({ id }: { id: string }) {
     : product.imageUrl;
   const gallery = (product.gallery || []).filter(isPublicShopAsset);
   const reviewImages = (product.reviewImages || []).filter(isPublicShopAsset);
+  // Контакт должен быть свежим на момент подготовки письма; фоновая ошибка не оставляет активную ссылку старому получателю.
   const orderHref =
     managerOrderEnabled &&
     manager.settings &&

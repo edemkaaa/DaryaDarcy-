@@ -1,4 +1,5 @@
 "use client";
+/** Адрес обложки ролика выбираем отдельно от воспроизведения; отсутствие постера не должно менять само видео. */
 /** Optional cover extraction has a deadline and owns all temporary video/canvas resources. */
 export async function extractVideoPosterBlob(
   videoBlob: Blob,

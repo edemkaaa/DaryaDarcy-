@@ -1,4 +1,5 @@
 "use client";
+/** Поля вложений показывают отдельно локальные файлы и уже сохранённые элементы, передавая изменения владельцу редактора. */
 
 import { Action, Typography } from "@/shared/ui/elements";
 import { MaterialIcons } from "@/shared/ui/icons";

@@ -1,4 +1,5 @@
 "use client";
+/** Товар на полке связывает иллюстрацию с маршрутом, оставляя порядок и группировку общему экрану магазина. */
 import { useViewport } from "@/shared/browser/viewport";
 
 import type { CSSProperties, PointerEvent } from "react";

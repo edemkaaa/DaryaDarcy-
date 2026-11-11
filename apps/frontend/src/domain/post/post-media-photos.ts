@@ -1,4 +1,5 @@
 "use client";
+/** Фото и дополнительные вложения поста приводим к формату отображения, сохраняя порядок исходных материалов. */
 export function mediaBasename(url: string): string {
   return decodeURIComponent(url.split("/").pop()?.split("?")[0] || "");
 }

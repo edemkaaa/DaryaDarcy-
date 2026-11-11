@@ -1,3 +1,4 @@
+/** Геометрия вопроса теста рассчитывается из viewport отдельно от данных и обработчиков экрана. */
 import type { ViewportSize } from "@/shared/browser/viewport";
 import { GRID_PADDING } from "./quiz-question.content";
 import { getQuizQuestionContent } from "./quiz-question.content";

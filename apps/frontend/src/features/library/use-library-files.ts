@@ -1,4 +1,5 @@
 "use client";
+/** Закрытые привязки читаем только при подтверждённом доступе; во время перепроверки старые ссылки скрываются. */
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/domain/session/session-context";
 import { useClub } from "@/domain/subscription/subscription-context";

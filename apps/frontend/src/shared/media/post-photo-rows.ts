@@ -1,3 +1,4 @@
+/** Раскладка рядов рассчитывается из пропорций фотографий; порядок исходных изображений сохраняется. */
 /** Keep attachment order and fill every row, with larger photos first. */
 export function postPhotoRows(count: number): number[][] {
   const sizes = count === 5 ? [2, 3] : count === 7 ? [3, 4] : null;

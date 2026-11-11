@@ -1,3 +1,4 @@
+/** Транспорт административных операций отделён от журнала: ключ и статус позволяют проверять результат без повторной команды. */
 import { z } from "zod";
 import type { TRPCClient } from "@trpc/client";
 import type { AppRouter } from "./contract";

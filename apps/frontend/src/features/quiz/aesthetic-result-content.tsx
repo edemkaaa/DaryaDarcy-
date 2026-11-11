@@ -1,4 +1,5 @@
 "use client";
+/** Расширенный результат отображает проверенный гайд и набор иллюстраций отдельно от бесплатного подсчёта эстетики. */
 import { useViewport } from "@/shared/browser/viewport";
 
 import { getQuizResultLayout } from "./quiz-result.layout";

@@ -1,4 +1,5 @@
 "use client";
+/** Общий экран проверки сессии показывает ошибку отдельно от подтверждённого гостевого состояния. */
 import { useAuth } from "./session-context";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { ScreenStatus } from "@/shared/ui/screen-status";

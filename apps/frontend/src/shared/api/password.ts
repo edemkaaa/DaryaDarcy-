@@ -1,3 +1,4 @@
+/** Восстановление пароля использует отдельный контракт: получение инструкции не равно установке нового пароля. */
 import { apiUrl } from "@/shared/config/api";
 import { ApiError, invalidResponse } from "./errors";
 import { runApiRequest } from "./request-lifecycle";

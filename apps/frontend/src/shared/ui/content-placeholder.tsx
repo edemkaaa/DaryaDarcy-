@@ -1,3 +1,4 @@
+/** Заглушки сохраняют форму контента при ожидании, не добавляя повторных анимаций поверх уже подтверждённых данных. */
 import styles from "./content-placeholder.module.scss";
 
 export type PlaceholderKind = "video" | "feed" | "library" | "article";

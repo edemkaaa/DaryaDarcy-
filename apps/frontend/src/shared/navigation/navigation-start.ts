@@ -1,3 +1,4 @@
+/** Уведомляем об уходе до фиксации нового маршрута, чтобы старая страница больше не владела отложенным перенаправлением. */
 export const navigationStartEvent = "darcy:navigation-start";
 
 /** Revoke page-owned redirects before Next commits the destination route. */

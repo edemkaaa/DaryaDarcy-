@@ -1,3 +1,4 @@
+/** Обзор документов содержит обычные внутренние ссылки, сохраняя отдельные страницы политики и условий. */
 import classes from "./legal-screen.module.scss";
 
 import { ScrollArea } from "@/shared/ui/elements";

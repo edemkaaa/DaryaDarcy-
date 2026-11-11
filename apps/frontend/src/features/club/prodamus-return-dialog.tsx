@@ -1,4 +1,5 @@
 "use client";
+/** Окно возврата показывает серверную проверку оплаты и остаётся доступным для явного повтора результата. */
 import { useEffect, useState } from "react";
 import { useAuth } from "@/domain/session/session-context";
 import { trpc } from "@/shared/api/trpc";

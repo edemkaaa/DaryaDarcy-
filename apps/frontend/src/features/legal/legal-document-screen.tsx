@@ -1,3 +1,4 @@
+/** Универсальная страница выводит разделы выбранного документа React-элементами и отдельно показывает приложенную иллюстрацию. */
 import classes from "./legal-document-screen.module.scss";
 
 import { ScrollArea } from "@/shared/ui/elements";

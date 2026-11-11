@@ -1,4 +1,5 @@
 "use client";
+/** Старый путь YouTube отделяет официальный iframe от серверного видеоисточника и управляет освобождением при уходе. */
 import classes from "./youtube-embed.module.scss";
 import { useMemo, useEffect, useRef } from "react";
 import { ManagedVideo } from "./managed-video";

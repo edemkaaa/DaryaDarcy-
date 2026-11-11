@@ -1,4 +1,5 @@
 "use client";
+/** Подпись полки оформляет группу товаров и не влияет на адреса карточек или порядок каталога. */
 import { useViewport } from "@/shared/browser/viewport";
 
 import type { CSSProperties } from "react";

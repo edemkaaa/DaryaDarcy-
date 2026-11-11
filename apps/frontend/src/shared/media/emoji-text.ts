@@ -1,4 +1,5 @@
 "use client";
+/** Текст делим на обычные и emoji-фрагменты для совместимого отображения шрифтами, не интерпретируя его как разметку. */
 /** Split plain text so emoji render with system fonts (EBGaramond has no emoji glyphs). */
 const EMOJI_SEGMENT_RE =
   /(\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*)/gu;

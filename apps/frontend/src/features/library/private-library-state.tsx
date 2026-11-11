@@ -1,4 +1,5 @@
 "use client";
+/** Общее состояние закрытого материала объясняет ожидание и ошибку чтения без выдачи публичного обходного URL. */
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { getRequestErrorMessage } from "@/shared/api/errors";
 import { StatusNotice } from "@/shared/ui/status-notice";

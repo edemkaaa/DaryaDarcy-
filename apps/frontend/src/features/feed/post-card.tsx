@@ -1,4 +1,5 @@
 "use client";
+/** Карточка ленты отделяет переход в публикацию, просмотр медиа и действия лайка или сохранения. */
 import classes from "./post-card.module.scss";
 import { cssTransform } from "@/shared/ui/css";
 import { Action, Typography } from "@/shared/ui/elements";

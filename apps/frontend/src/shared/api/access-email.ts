@@ -1,3 +1,4 @@
+/** Ответ постановки письма в очередь проверяется отдельно от фактической доставки получателю. */
 import { apiUrl } from "@/shared/config/api";
 import { ApiError, invalidResponse } from "./errors";
 import { runApiRequest } from "./request-lifecycle";

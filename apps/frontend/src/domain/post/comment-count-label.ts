@@ -1,4 +1,5 @@
 "use client";
+/** Склонение счётчика комментариев и предел ввода собраны вместе, чтобы одинаково отображаться в разных карточках. */
 /** Russian plural for «N комментарий/комментария/комментариев». */
 export function commentCountLabel(count: number): string {
   const n = Math.abs(Math.trunc(count));

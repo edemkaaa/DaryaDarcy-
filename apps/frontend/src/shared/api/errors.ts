@@ -1,3 +1,4 @@
+/** Публичные сообщения об ошибках отделяем от транспортных деталей и различаем отказ доступа, временный сбой и отмену. */
 export type ApiErrorKind =
   | "http"
   | "network"
@@ -62,6 +63,7 @@ export function getHttpStatus(error: unknown): number | undefined {
 }
 
 /** A failed background read is not evidence that previously confirmed access ended. */
+// Только временная ошибка допускает сохранение ранее подтверждённого содержимого на экране.
 export function isTemporaryRequestError(error: unknown): boolean {
   const status = getHttpStatus(error);
   if (status) return status >= 500 && status < 600;
@@ -76,6 +78,7 @@ export function isTemporaryRequestError(error: unknown): boolean {
   );
 }
 
+// Автоповтор ограничен чтением и временными сбоями; отказ доступа или повреждённый ответ не исправляются повтором.
 export function shouldRetryQuery(
   failureCount: number,
   error: unknown,

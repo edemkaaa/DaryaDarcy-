@@ -1,4 +1,5 @@
 "use client";
+/** Интерфейс режима оплаты объясняет выбранный сценарий, не включая серверные возможности самостоятельно. */
 import type { ReactNode } from "react";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { trpc } from "@/shared/api/trpc";

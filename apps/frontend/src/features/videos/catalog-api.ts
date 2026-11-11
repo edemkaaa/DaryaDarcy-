@@ -1,3 +1,4 @@
+/** Парсеры каталога и воспроизведения отделяют метаданные карточки от источника, для которого сервер проверяет доступ. */
 import { z } from "zod";
 import { invalidResponse } from "@/shared/api/errors";
 import { getVkVideoEmbedUrl } from "@/shared/media/vk-video-url";
@@ -111,6 +112,7 @@ const playback = z.discriminatedUnion("provider", [
     })
     .strict(),
 ]);
+// Проверяем не только форму источника, но и соответствие запрошенному ролику, прежде чем открыть плеер.
 export function parseVideoPlayback(value: unknown, requestedId: number) {
   const result = playback.safeParse(value);
   if (!result.success || result.data.id !== requestedId)

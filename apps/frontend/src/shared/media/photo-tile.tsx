@@ -1,4 +1,5 @@
 "use client";
+/** Плитка фотографии получает готовую геометрию и передаёт открытие владельцу списка. */
 
 import { useState, type CSSProperties } from "react";
 import { Action } from "@/shared/ui/elements";

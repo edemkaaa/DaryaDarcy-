@@ -1,4 +1,5 @@
 "use client";
+/** Гайд эстетик связывает выбранный раздел с закрытыми текстами и иллюстрациями, сохраняя отдельные состояния чтения. */
 import { useViewport } from "@/shared/browser/viewport";
 
 import { getAestheticsScreenLayout } from "./aesthetics-screen.layout";

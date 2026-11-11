@@ -1,4 +1,5 @@
 "use client";
+/** Открытый итог теста и клубное продолжение имеют разные источники данных; чтение гайда не выдаёт доступ само по себе. */
 import { useViewport } from "@/shared/browser/viewport";
 
 import { getQuizResultLayout } from "./quiz-result.layout";

@@ -1,4 +1,5 @@
 "use client";
+/** Активный клуб связывает оформление, рубрики и ограниченные страницы постов; порядок карточек сохраняется из ответа API. */
 import { useClubAppearance } from "@/domain/launch/use-club-appearance";
 import { usePreparedAppearance } from "./use-prepared-appearance";
 import { useScreenActive } from "@/shared/navigation/screen-activity";

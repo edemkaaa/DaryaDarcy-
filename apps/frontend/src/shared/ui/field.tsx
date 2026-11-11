@@ -1,4 +1,5 @@
 "use client";
+/** Поле ввода адаптирует общие свойства редакторов к input и textarea, сохраняя доступность и события выделения. */
 import React, { forwardRef, type CSSProperties } from "react";
 type FieldProps = Omit<
   React.InputHTMLAttributes<HTMLInputElement>,

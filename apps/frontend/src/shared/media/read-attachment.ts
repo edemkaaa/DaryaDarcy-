@@ -1,3 +1,4 @@
+/** Исходный Blob или адрес вложения преобразуется в Base64 в границах размера и срока текущей операции. */
 import {
   MAX_ATTACHMENT_BYTES,
   readResponseBlob,

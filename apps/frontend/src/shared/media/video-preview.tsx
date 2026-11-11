@@ -1,4 +1,5 @@
 "use client";
+/** Карточка до запуска показывает постер, а проигрыватель создаётся после действия пользователя. */
 import { ManagedVideo } from "@/shared/media/managed-video";
 import { useViewport } from "@/shared/browser/viewport";
 

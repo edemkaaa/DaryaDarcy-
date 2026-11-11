@@ -1,4 +1,5 @@
 "use client";
+/** Компактная ячейка видео отделяет постер и запуск от геометрии общей сетки публикаций. */
 import { ManagedVideo } from "@/shared/media/managed-video";
 import classes from "./video-grid-cell.module.scss";
 import { Action } from "@/shared/ui/elements";

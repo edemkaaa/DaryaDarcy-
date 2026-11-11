@@ -1,4 +1,5 @@
 "use client";
+/** Ответы загружаются своей цепочкой страниц и связаны с конкретным родительским комментарием. */
 import { CursorPagePrevious } from "@/shared/ui/cursor-page-previous";
 import { useEffect, useState, type ReactNode } from "react";
 import { getQueryKey } from "@trpc/react-query";

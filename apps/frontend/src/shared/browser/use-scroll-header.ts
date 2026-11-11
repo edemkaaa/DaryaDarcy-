@@ -1,4 +1,5 @@
 "use client";
+/** Наблюдение за областями прокрутки обновляет состояние шапки без перерисовки всей страницы на каждом событии. */
 import { useLayoutEffect, useRef } from "react";
 import { ScrollHeaderState } from "./scroll-header-state";
 

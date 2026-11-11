@@ -1,4 +1,5 @@
 "use client";
+/** Подготовка изображений проверяет исходник, размеры и формат результата, сохраняя отмену и освобождение временных ресурсов. */
 import {
   MAX_ATTACHMENT_BYTES,
   chooseFiles,
@@ -162,6 +163,7 @@ async function loadDrawableFromBlob(
     throw error;
   }
 }
+// Декодирование и canvas подчиняются сигналу задачи; формат результата проверяется отдельно от расширения исходника.
 export async function compressImageBlob(
   blob: Blob,
   maxEdge = 1920,
@@ -307,6 +309,7 @@ export async function uriToBase64(
 ): Promise<string> {
   return (await uriToPhotoUpload(uri, opts)).base64;
 }
+// Сначала получаем проверенный файл изображения, затем кодируем его: MIME результата не выводится только из имени URL.
 export async function uriToPhotoUpload(
   uri: string,
   opts?: PhotoPreparationOptions,
@@ -332,6 +335,7 @@ export async function uriToPhotoUpload(
     throw new Error("Не удалось подготовить фото");
   return { base64: await blobToBase64(blob, opts?.signal), mimeType };
 }
+// Возвращаем новый File с согласованными именем и MIME, который затем проверяет закрытый контракт загрузки.
 export async function fileForPhotoUpload(
   file: File,
   opts?: { preserveAlpha?: boolean; signal?: AbortSignal },

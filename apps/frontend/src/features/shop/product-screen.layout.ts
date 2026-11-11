@@ -1,3 +1,4 @@
+/** Геометрия карточки товара рассчитывается из viewport отдельно от данных и обработчиков экрана. */
 import type { ViewportSize } from "@/shared/browser/viewport";
 
 import { getProductScreenContent } from "./product-screen.content";

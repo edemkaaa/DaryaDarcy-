@@ -1,4 +1,5 @@
 "use client";
+/** Отсутствие материала, отказ доступа и временный сбой отображаются разными состояниями по данным ошибки запроса. */
 import { getHttpStatus, getRequestErrorMessage } from "@/shared/api/errors";
 import { QueryRetryState } from "./query-retry-state";
 import { StatusNotice } from "./status-notice";

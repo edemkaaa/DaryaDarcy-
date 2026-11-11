@@ -1,3 +1,4 @@
+/** Восстановление сначала проверяет исходную операцию создания и её файлы, чтобы не создавать вторую статью после потери ответа. */
 import type { TRPCClient } from "@trpc/client";
 import type { AppRouter } from "@/shared/api/contract";
 import type { ScopedOperation } from "@/shared/browser/operation-scope";

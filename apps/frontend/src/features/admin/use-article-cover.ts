@@ -1,4 +1,5 @@
 "use client";
+/** Загрузка публичной обложки и её привязка к статье проходят отдельные подтверждения и журнал восстановления. */
 import { useEffect, useState } from "react";
 import {
   ArticleCoverJournal,

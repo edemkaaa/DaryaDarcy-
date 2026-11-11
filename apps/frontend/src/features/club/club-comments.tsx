@@ -1,4 +1,5 @@
 "use client";
+/** Обсуждение принадлежит аккаунту и посту; отправку, модерацию и чтение веток координируем отдельно от прокрутки карточки. */
 import { CursorPagePrevious } from "@/shared/ui/cursor-page-previous";
 import classes from "./club-comments.module.scss";
 import {
@@ -304,6 +305,7 @@ function CommentThread({
   );
   // Read the existing page containing a changed parent; head polling must not
   // leave replyCount stale on a retained second or later page.
+  // Родитель ответа может находиться не на первой странице: его счётчик обновляется по фактическому месту в цепочке.
   const refreshCommentRow = async (
     id: number,
     signal?: AbortSignal,
@@ -483,6 +485,7 @@ function CommentThread({
     setReplyTo(null);
     refreshCounts();
   };
+  // Восстановление берёт сохранённую нагрузку, а свежая отправка сначала надёжно выбирает контракт сервера.
   const sendPrivate = async (
     record?: PrivateCommentRecord,
     input: ApiInputs["club"]["addComment"] = {

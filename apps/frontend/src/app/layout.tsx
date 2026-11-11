@@ -1,3 +1,4 @@
+/** Корневая серверная оболочка задаёт метаданные и базовые ресурсы документа; браузерные состояния подключаются провайдерами ниже. */
 import "@/shared/styles/global.scss";
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";

@@ -1,3 +1,4 @@
+/** Черновик каталожного VK-ролика хранит базовую ревизию и исходные поля для сравнения после конфликта или потери ответа. */
 import { z } from "zod";
 import { isPersonalDataOwner } from "@/shared/browser/storage";
 import { invalidResponse } from "@/shared/api/errors";

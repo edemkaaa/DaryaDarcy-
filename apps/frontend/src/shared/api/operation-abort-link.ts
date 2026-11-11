@@ -1,3 +1,4 @@
+/** Сигнал операции проходит через tRPC до транспорта, чтобы уход с экрана отменял ожидание его результата. */
 import { TRPCClientError, type TRPCLink } from "@trpc/client";
 import { observable } from "@trpc/server/observable";
 import type { AppRouter } from "./contract";

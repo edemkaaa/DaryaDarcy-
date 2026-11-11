@@ -1,3 +1,4 @@
+/** Локальная подготовка файла тоже имеет срок и сигнал отмены; поздно созданные ресурсы должны освобождаться вызывающей операцией. */
 /** Bound local decoding/preparation as well as network work. Late resources must be released by the task. */
 export async function runFileTask<T>(
   task: (signal: AbortSignal) => Promise<T>,

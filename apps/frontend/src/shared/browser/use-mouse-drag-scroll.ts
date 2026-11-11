@@ -1,4 +1,5 @@
 "use client";
+/** Перетаскивание мышью дополняет горизонтальную прокрутку; отменённый drag не должен превращаться в обычное нажатие карточки. */
 import { useCallback, useEffect, useRef, type HTMLAttributes } from "react";
 
 type Drag = {

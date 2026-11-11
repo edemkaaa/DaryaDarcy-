@@ -1,4 +1,5 @@
 "use client";
+/** Отзывы представлены отдельным блоком страницы клуба и не участвуют в проверке подписки. */
 
 import { useRef, useState } from "react";
 import { MaterialIcons } from "@/shared/ui/icons";

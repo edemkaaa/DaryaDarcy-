@@ -1,4 +1,5 @@
 "use client";
+/** Форма собирает контактные данные и согласия, а создание и восстановление покупки передаёт отдельному контроллеру. */
 import type { TRPCClient } from "@trpc/client";
 import type { AppRouter } from "@/shared/api/contract";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";

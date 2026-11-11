@@ -1,4 +1,5 @@
 "use client";
+/** Команды форматирования применяются к текущему выделению и сохраняют границы ссылок после изменения текста. */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RichTextBlock } from "@/domain/content/types";
 import {

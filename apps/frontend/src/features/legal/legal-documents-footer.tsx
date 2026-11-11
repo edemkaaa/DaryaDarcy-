@@ -1,4 +1,5 @@
 "use client";
+/** Футер документов использует общий набор ссылок, чтобы разделы приложения не дублировали маршруты юридических страниц. */
 import classes from "./legal-documents-footer.module.scss";
 import { type CSSProperties, mergeStyles } from "@/shared/ui/css";
 import { Action, Typography } from "@/shared/ui/elements";

@@ -1,3 +1,4 @@
+/** Страницы файлов проверяем по MIME, ключам и каноническим URL; повтор курсора или привязки завершает чтение ошибкой. */
 import { z } from "zod";
 import { apiCall } from "@/shared/api/auth";
 import { invalidResponse } from "@/shared/api/errors";
@@ -76,6 +77,7 @@ export async function getLibraryFiles(
   read = (path: string, signal: AbortSignal) =>
     apiCall<unknown>(path, { signal }),
 ): Promise<LibraryFile[]> {
+  // Привязки собираются целиком до показа: частичная или повторяющаяся страница не становится списком скачивания.
   const files: LibraryFile[] = [],
     keys = new Set<string>(),
     cursors = new Set<string>();

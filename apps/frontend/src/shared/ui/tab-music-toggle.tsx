@@ -1,4 +1,5 @@
 "use client";
+/** Фоновая музыка вкладки управляется отдельным плеером; состояние кнопки следует реальному воспроизведению и активности раздела. */
 import classes from "./tab-music-toggle.module.scss";
 import { Action } from "@/shared/ui/elements";
 import { useEffect, useId, useState } from "react";

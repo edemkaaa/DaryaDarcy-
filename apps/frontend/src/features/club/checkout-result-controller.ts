@@ -1,3 +1,4 @@
+/** Контроллер результата связывает возврат, опрос и состояние доступа; поздние ответы относятся к своему запуску проверки. */
 import type { TRPCClient } from "@trpc/client";
 import type { AppRouter } from "@/shared/api/contract";
 import type { reconcileClubTestCheckout } from "./test-checkout";
@@ -75,6 +76,7 @@ export function createClubCheckoutResultController(
         current = null;
       }
     },
+    // Остановка опроса сохраняет возможность новой явной проверки; она не отменяет сам платёж.
     cancel() {
       current?.abort();
     },

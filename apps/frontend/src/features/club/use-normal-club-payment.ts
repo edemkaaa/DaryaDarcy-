@@ -1,4 +1,5 @@
 "use client";
+/** Подписанная покупка текущего аккаунта восстанавливается по журналу; повтор оплаты требует отдельного действия после терминального результата. */
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { contactPhoneSchema } from "@shared/checkout-contact";
 import { useAuth } from "@/domain/session/session-context";
@@ -110,6 +111,7 @@ export function useNormalClubPayment({
     });
   }, [scope, enabled, active, ownerId, returnKey]);
 
+  // Оплаченный срок конкретного заказа может быть прошлым; действующий доступ узнаём отдельным чтением подписки.
   const apply = async (
     intent: NormalCheckoutIntent,
     result: NormalCheckoutStatus,
@@ -176,6 +178,7 @@ export function useNormalClubPayment({
       error: message,
     });
   };
+  // Сначала читаем исходное намерение аккаунта: один только параметр возврата из оплаты не доказывает покупку.
   const check = async () => {
     const task = begin("check-payment");
     if (!task || !ownerId) return;
@@ -215,6 +218,7 @@ export function useNormalClubPayment({
     if (ready) void checkRef.current();
   }, [ready, ownerId, returnKey]);
 
+  // Повтор получает прежнюю ссылку заказа; ротация ключа требует свежего терминального подтверждения.
   const prepare = async () => {
     const task = begin("prepare-payment");
     if (!task || !ownerId) return;

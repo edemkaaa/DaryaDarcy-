@@ -1,3 +1,4 @@
+/** Ресурсы и подписи ленты отделены от компонентов; изменение этих данных входит в клиентскую сборку. */
 import type { ViewportSize } from "@/shared/browser/viewport";
 
 import { FEED_TAGS } from "@/domain/post/post-tags";

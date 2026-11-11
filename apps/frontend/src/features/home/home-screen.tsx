@@ -1,4 +1,5 @@
 "use client";
+/** Главная собирает статические разделы, промо и медиа; жизненный цикл сохранённой вкладки управляет фоновыми анимациями. */
 import { useViewport } from "@/shared/browser/viewport";
 
 import { getHomeScreenLayout } from "./home-screen.layout";

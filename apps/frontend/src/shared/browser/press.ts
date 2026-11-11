@@ -1,4 +1,5 @@
 "use client";
+/** Обычный DOM-click объединяет мышь, касание и клавиатуру без отдельного протокола мобильных нажатий. */
 /** Standard DOM click handling works on desktop, touch browsers and keyboard. */
 export function pressableProps<Args extends unknown[]>(
   onClick: (...args: Args) => void,

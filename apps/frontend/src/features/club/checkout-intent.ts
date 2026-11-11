@@ -1,3 +1,4 @@
+/** Намерение покупки сохраняет исходные параметры и ключ до сетевого вызова; восстановление не должно менять получателя или режим оплаты. */
 import { z } from "zod";
 import { TRPCClientError, type TRPCClient } from "@trpc/client";
 import type { AppRouter } from "@/shared/api/contract";

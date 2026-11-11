@@ -1,4 +1,5 @@
 "use client";
+/** Статистика админки загружается своим запросом вместо вычисления по полному набору постов в браузере. */
 import classes from "./stats-dashboard.module.scss";
 import { Action, Typography, ScrollArea } from "@/shared/ui/elements";
 import { LoadingIndicator } from "@/shared/ui/loading-indicator";

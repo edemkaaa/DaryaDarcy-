@@ -1,4 +1,5 @@
 "use client";
+/** Приветствие начинает новый проход теста через его модель, не редактируя ответы в браузерном хранилище напрямую. */
 import { useViewport } from "@/shared/browser/viewport";
 
 import { getQuizWelcomeLayout } from "./quiz-welcome.layout";

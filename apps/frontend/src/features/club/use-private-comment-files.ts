@@ -1,4 +1,5 @@
 "use client";
+/** Выбранные фото и журнал отправки принадлежат одной ветке; восстановление использует сохранённые исходники и прежний ключ. */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/domain/session/session-context";
 import { PrivateCommentJournal } from "@/domain/post/private-comment-journal";
@@ -202,6 +203,7 @@ export function usePrivateCommentFiles(
           setRecord({ ...value });
         },
       );
+      // Журнал очищается после чтения обсуждения: потеря последующего ответа оставляет возможность проверить прежнюю отправку.
       await read(task, current.parentId);
       await clear(current, task);
       return id;

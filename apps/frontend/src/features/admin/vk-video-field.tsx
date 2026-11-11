@@ -1,4 +1,5 @@
 "use client";
+/** Добавление VK-ссылки проверяет экспортируемый адрес и дубли; сохранение ролика выполняется вместе с постом. */
 
 import { useId, useState } from "react";
 import { Action, Dialog, Field, Typography } from "@/shared/ui/elements";

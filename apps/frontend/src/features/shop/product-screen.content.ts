@@ -1,3 +1,4 @@
+/** Ресурсы и подписи карточки товара отделены от компонентов; изменение этих данных входит в клиентскую сборку. */
 import type { ViewportSize } from "@/shared/browser/viewport";
 
 export { PRODUCT_DETAILS as PRODUCTS } from "@/domain/product/catalog";

@@ -1,4 +1,5 @@
 "use client";
+/** Полноэкранный просмотр владеет индексом и жестами, освобождая временные состояния при закрытии. */
 import { useCollectionItemRetention } from "@/shared/ui/collection-item-window";
 import classes from "./photo-viewer.module.scss";
 import { cssTransform } from "@/shared/ui/css";

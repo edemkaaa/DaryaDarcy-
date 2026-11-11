@@ -1,4 +1,5 @@
 "use client";
+/** Изменения профиля сверяем с серверной версией; при неизвестном результате сначала проверяем запись и сохраняем ввод. */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isPersonalDataOwner, requiredStorage } from "@/shared/browser/storage";
 import { getMe } from "@/shared/api/auth";
@@ -170,6 +171,7 @@ export function useProfileUpdate(recoveryKey: string, draftKey: string) {
     pending.current = input;
     setUnknown(input !== null);
   };
+  // Ревизия относится к исходному профилю; при несовпадении сохраняем ввод для сравнения вместо перезаписи.
   const save = async (input: ProfileInput): Promise<boolean> => {
     if (restoring || storageError || pending.current || !user) return false;
     if (!draft.current || draft.current.needsReview) {
@@ -248,6 +250,7 @@ export function useProfileUpdate(recoveryKey: string, draftKey: string) {
       task.finish();
     }
   };
+  // Readback проверяет отправленные поля; текущий успешный GET сам по себе не разрешает повтор неизвестной мутации.
   const check = async (): Promise<boolean> => {
     const input = pending.current;
     if (!user || (!input && !draft.current)) return false;

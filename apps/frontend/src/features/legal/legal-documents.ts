@@ -1,3 +1,4 @@
+/** Тексты документов и их маршруты представлены данными сборки; контакт берётся из общей публичной настройки. */
 import { PUBLIC_CONTACT_EMAIL } from "@/shared/config/contact";
 export type LegalDocument = {
   slug: string;

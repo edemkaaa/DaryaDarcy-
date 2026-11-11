@@ -1,3 +1,4 @@
+/** Сверка ревизий отделяет просмотр сервера от решения заменить локальный ввод; подтверждённое сохранение очищает только свою операцию. */
 import {
   ArticleDraftJournal,
   type ArticleDraftSnapshot,
@@ -63,6 +64,7 @@ type ArticleRevisionDependencies = {
 };
 
 /** Compare without replaying; acceptance durably prepares a later explicit save. */
+// Сверка серверного материала и принятие новой базы разделены, чтобы чтение не стирало локальный вариант автоматически.
 export function createArticleRevisionActions({
   ownerId,
   editingId,

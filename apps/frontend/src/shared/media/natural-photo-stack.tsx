@@ -1,4 +1,5 @@
 "use client";
+/** Стек фотографий использует известные пропорции и общую навигацию, чтобы не растягивать снимки до произвольной высоты. */
 import classes from "./natural-photo-stack.module.scss";
 import frameClasses from "./post-photo-frame.module.scss";
 import { PhotoTile } from "./photo-tile";

@@ -1,4 +1,5 @@
 "use client";
+/** Панель тегов меняет фильтр клубного списка, сохраняя выбор рубрики отдельно от содержимого карточек. */
 import { useViewport } from "@/shared/browser/viewport";
 
 import { getTagBoardDrawerLayout } from "./tag-board-drawer.layout";

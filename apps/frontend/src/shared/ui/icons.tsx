@@ -1,4 +1,5 @@
 "use client";
+/** Шрифт значков используется через общий набор имён и стилей, чтобы экран не зависел от числовых кодов глифов. */
 import classes from "./icons.module.scss";
 import { type StyleInput, px, mergeStyles } from "@/shared/ui/css";
 import { Typography } from "@/shared/ui/elements";

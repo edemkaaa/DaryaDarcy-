@@ -1,4 +1,5 @@
 "use client";
+/** Контейнер состояния сохраняет общую структуру страницы для ожидания, отказа доступа и ошибки. */
 import type { ReactNode } from "react";
 import { ScreenContainer } from "./screen-container";
 import { ScrollArea } from "./scroll-area";

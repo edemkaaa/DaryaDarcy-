@@ -1,3 +1,4 @@
+/** История уже показанных изображений управляет повторным появлением в интерфейсе; это не HTTP-кеш содержимого файла. */
 // Only successful display identities, never image bytes or access decisions.
 // Windowed rows can remount after scrolling: replaying their fade is distracting
 // even when the browser already has the photo. Bound this memory on long feeds.

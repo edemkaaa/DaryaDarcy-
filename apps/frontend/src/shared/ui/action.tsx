@@ -1,4 +1,5 @@
 "use client";
+/** Кнопка объединяет DOM-семантику, disabled, фокус и обратную связь на нажатие для всех экранов. */
 import {
   forwardRef,
   useEffect,

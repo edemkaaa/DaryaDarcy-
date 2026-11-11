@@ -1,3 +1,4 @@
+/** Подпись контактного телефона поддержки формируется отдельно от номера, который покупатель вводит при оплате. */
 import { z } from "zod";
 
 export function formatSupportPhone(value: string): string {

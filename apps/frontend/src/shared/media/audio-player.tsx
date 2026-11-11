@@ -1,4 +1,5 @@
 "use client";
+/** Визуальная карточка использует подтверждённое состояние браузерного аудио и удерживает активный элемент в окне коллекции. */
 import classes from "./audio-player.module.scss";
 import { Action, Typography } from "@/shared/ui/elements";
 import { StatusNotice } from "@/shared/ui/status-notice";

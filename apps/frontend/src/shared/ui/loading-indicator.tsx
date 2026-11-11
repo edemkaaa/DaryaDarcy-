@@ -1,3 +1,4 @@
+/** Индикатор локальной операции использует общую геометрию и доступную текстовую подпись. */
 import { Spinner } from "./spinner";
 
 /** One fixed group for access checks and local list operations. */

@@ -1,4 +1,5 @@
 "use client";
+/** Доступность серверной возможности читаем явно; флаг интерфейса не доказывает, что конкретный API включён. */
 import { useQuery } from "@tanstack/react-query";
 import type { LaunchCapabilities } from "@shared/capabilities";
 import { apiCall } from "./auth";

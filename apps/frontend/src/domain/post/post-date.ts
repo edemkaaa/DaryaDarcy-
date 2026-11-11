@@ -1,4 +1,5 @@
 "use client";
+/** Дата публикации для пользовательских списков выбирается отдельно от технической даты создания записи. */
 export function postDisplayDate(post: {
   publishedAt?: Date | string | null;
   createdAt?: Date | string | null;

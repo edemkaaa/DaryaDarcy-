@@ -1,3 +1,4 @@
+/** Координатор сохраняет пост по этапам: файлы, запись и проверка результата. Контрольная точка удерживает исходные данные для восстановления. */
 import { serializePostDraft } from "./draft";
 import { assertPostTextSize } from "./text-limit";
 import {
@@ -135,6 +136,7 @@ export class PostSaveCoordinator {
     this.original = original ? structuredClone(original) : undefined;
     this.editRevision = editRevision;
   }
+  // Контрольная точка включает не только поля поста, но и уже выданные подтверждения файлов.
   snapshot(): PostSaveSnapshot {
     return {
       savedId: this.savedId,
@@ -150,6 +152,7 @@ export class PostSaveCoordinator {
       privateVideos: [...this.privateVideos],
     };
   }
+  // Восстановление возвращает старую базовую ревизию: свежий GET не разрешает автоматически перезаписать чужую правку.
   restore(state: PostSaveSnapshot): void {
     this.savedId = state.savedId;
     this.original = state.original;
@@ -171,6 +174,7 @@ export class PostSaveCoordinator {
   setCheckpoint(checkpoint: (state: PostSaveSnapshot) => Promise<void>): void {
     this.checkpoint = checkpoint;
   }
+  // Сравниваем именно отправленные редактируемые поля, чтобы распознать commit после потерянного ответа.
   async compareUpdate(
     api: PostSaveApi,
     operation: ScopedOperation,
@@ -200,6 +204,7 @@ export class PostSaveCoordinator {
     }
     return detail;
   }
+  // Принятие новой базы разрешено после явной сверки, а не просто после любого успешного чтения.
   async acceptComparedRevision(detail: unknown): Promise<void> {
     if (
       !detail ||
@@ -226,11 +231,13 @@ export class PostSaveCoordinator {
     this.uncertain = false;
     await this.remember("idle");
   }
+  // Сначала фиксируем фазу локально; без неё последующая перезагрузка не сможет безопасно продолжить запись.
   private async remember(phase: PostSaveSnapshot["phase"]): Promise<void> {
     this.phase = phase;
     await this.checkpoint?.(this.snapshot());
   }
   /** Explicit recovery only. Resolve uploads first, leave publishing to the user. */
+  // Дозагрузка файлов не публикует пост сама: окончательная запись остаётся отдельным действием администратора.
   async recoverUploads(
     api: PostSaveApi,
     operation: ScopedOperation,
@@ -345,6 +352,7 @@ export class PostSaveCoordinator {
     await this.remember("upload");
   }
   /** Explicit user action only: replay the exact durable create, never uploads or edits. */
+  // Повторяем исходную сериализованную нагрузку с прежним ключом, не текущее содержимое полей формы.
   async recoverCreation(
     api: PostSaveApi,
     operation: ScopedOperation,
@@ -376,6 +384,7 @@ export class PostSaveCoordinator {
     operation.assertCurrent();
     return id;
   }
+  // Закрытие во время неподтверждённого create может потерять связь с уже созданным постом.
   assertCanClose(): void {
     if (this.postWritePending)
       throw new PostSaveError(

@@ -1,3 +1,4 @@
+/* Подключения локальных шрифтов и начертания вынесены отдельно; интерфейс использует их через общие семейства. */
 @font-face {
   font-family: "EBGaramond-Bold";
   src: url("/assets/fonts/EBGaramond-Bold.ttf") format("truetype");

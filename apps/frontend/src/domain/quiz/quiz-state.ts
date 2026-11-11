@@ -1,4 +1,5 @@
 "use client";
+/** Переходы между приветствием, вопросами и результатом описаны отдельно от хранения и компонентов экрана. */
 /**
  * Quiz State Management
  * Uses React Context + useReducer for quiz flow state.

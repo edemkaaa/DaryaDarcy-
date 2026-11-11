@@ -1,3 +1,4 @@
+/** Исходный файл, ключ и серверную квитанцию сверяем до привязки; повтор использует то же намерение и не переходит на публичную загрузку. */
 import type { ApiInputs } from "@/shared/api/types";
 import type { ScopedOperation } from "@/shared/browser/operation-scope";
 import { attachmentBase64 } from "./read-attachment";
@@ -58,6 +59,7 @@ export function validatePrivateContentFile(
   )
     throw new Error("Не удалось проверить исходный файл в черновике");
 }
+// Квитанция обязана соответствовать выбранному файлу и назначению: одного assetId недостаточно для безопасной привязки.
 export function requirePrivateContentReceipt<U extends ContentUsage>(
   value: unknown,
   file: File,
@@ -134,6 +136,7 @@ export async function uploadPrivateContentFile<U extends ContentUsage>(
     operation.assertCurrent();
     return receipt.state === "ready";
   };
+  // После потери ответа сначала спрашиваем статус прежнего ключа, а не создаём новую загрузку.
   if (file.attempted) {
     const value = await api.status(
       { idempotencyKey: file.key },
@@ -149,6 +152,7 @@ export async function uploadPrivateContentFile<U extends ContentUsage>(
         throw new Error("Сервер не подтвердил статус файла");
     } else if (await accept(value)) return;
   }
+  // Признак отправки сохраняем до POST: браузер может закрыться уже после принятия файла сервером.
   file.attempted = true;
   await checkpoint();
   operation.assertCurrent();

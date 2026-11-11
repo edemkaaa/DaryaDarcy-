@@ -1,4 +1,5 @@
 "use client";
+/** Общая геометрия страницы ролика получает готовый плеер и подсказку, не принимая решения о доступе. */
 import type { ReactNode } from "react";
 import { useViewport } from "@/shared/browser/viewport";
 import { getVideoScreenLayout } from "./video-screen.layout";

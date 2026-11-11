@@ -1,4 +1,5 @@
 "use client";
+/** Карточка документа показывает имя и размер; открытие защищённого адреса остаётся отдельным действием пользователя. */
 import classes from "./document-attachment.module.scss";
 import { Action, Typography } from "@/shared/ui/elements";
 import { openExternalUrl } from "@/shared/browser/actions";

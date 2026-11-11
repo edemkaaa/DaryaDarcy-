@@ -1,4 +1,5 @@
 "use client";
+/** Действия над постом из карточки читают серверную версию и используют общий редактор, сохраняя состояние списка владельцу экрана. */
 import classes from "./post-management.module.scss";
 import { Dialog, Action, Typography, ScrollArea } from "@/shared/ui/elements";
 import { StatusNotice, StatusNoticeAction } from "@/shared/ui/status-notice";

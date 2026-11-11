@@ -1,4 +1,5 @@
 "use client";
+/** Витрина библиотеки различает переход в материал и выдачу файла; обложка сама по себе не подтверждает доступ к содержимому. */
 import classes from "./library-screen.module.scss";
 import {
   Action,

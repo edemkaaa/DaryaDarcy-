@@ -1,4 +1,5 @@
 "use client";
+/** Проверку подписки и ошибку доступа показываем отдельным состоянием, не подменяя их предложением покупки. */
 import { useClub } from "./subscription-context";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
 

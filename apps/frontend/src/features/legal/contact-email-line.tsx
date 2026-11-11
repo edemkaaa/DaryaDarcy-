@@ -1,4 +1,5 @@
 "use client";
+/** Строка контакта использует общий адрес проекта и сохраняет обычное поведение почтовой ссылки. */
 import classes from "./contact-email-line.module.scss";
 import { type CSSProperties, mergeStyles } from "@/shared/ui/css";
 import { Typography, Action } from "@/shared/ui/elements";

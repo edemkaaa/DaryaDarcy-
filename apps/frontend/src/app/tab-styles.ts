@@ -1,3 +1,4 @@
+/** Стили сохранённых вкладок подключаются заранее, хотя JavaScript экранов остаётся ленивым: первый кадр не должен быть без оформления. */
 // Retained tabs render outside the changing route subtree. Their CSS must be
 // available before the first frame; keep JS/components lazy in tab-screens.
 // Include static stylesheet dependencies of the retained entry points here.

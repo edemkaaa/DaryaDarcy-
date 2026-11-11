@@ -1,3 +1,4 @@
+/** Перед привязкой загруженного файла проверяем структуру результата, а не полагаемся только на успешный HTTP-статус. */
 import { invalidResponse } from "@/shared/api/errors";
 export function requireUploadedMedia(result: unknown): {
   url: string;

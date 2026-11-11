@@ -1,3 +1,4 @@
+/** Ресурсы и подписи витрины Библиотеки отделены от компонентов; изменение этих данных входит в клиентскую сборку. */
 import type { ViewportSize } from "@/shared/browser/viewport";
 import type { LibraryMaterialKey } from "./library-files-api";
 

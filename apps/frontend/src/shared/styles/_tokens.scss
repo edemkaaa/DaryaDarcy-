@@ -1,3 +1,4 @@
+/* Базовые CSS-токены используются общими контролами и экранными модулями, чтобы значения не расходились. */
 :root {
   --app-max-width: 480px;
   // Bottom tabs reserve their own height; ordinary pages need only this gap.

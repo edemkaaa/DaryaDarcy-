@@ -1,4 +1,5 @@
 "use client";
+/** Полный редактор владеет текстом, файлами и координатором сохранения; другой аккаунт получает новый экземпляр состояния. */
 import { useViewport } from "@/shared/browser/viewport";
 
 import { getAdminScreenLayout } from "./admin-screen.layout";

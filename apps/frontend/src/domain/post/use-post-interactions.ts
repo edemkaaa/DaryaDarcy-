@@ -1,4 +1,5 @@
 "use client";
+/** Оптимистичная отметка временная: после ответа обновляем подтверждённые данные, а неизвестный результат проверяем чтением. */
 import { useEffect } from "react";
 import { useQueries, useQueryClient, type Query } from "@tanstack/react-query";
 import { getQueryKey } from "@trpc/react-query";

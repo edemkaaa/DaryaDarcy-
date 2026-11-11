@@ -1,4 +1,5 @@
 "use client";
+/** Контекст темы связывает выбранную схему с общими цветами компонентов; не меняет настройки оформления клуба на сервере. */
 import classes from "./theme-provider.module.scss";
 
 import { useSystemColorScheme } from "@/shared/browser/viewport";

@@ -1,4 +1,5 @@
 "use client";
+/** Редактирование выбранных фотографий сохраняет исходный набор до явного применения результата. */
 import { useViewport } from "@/shared/browser/viewport";
 
 import classes from "./photo-editor.module.scss";

@@ -1,3 +1,4 @@
+/** Снимок поста отделяет редактируемые поля от сетевого транспорта; сравнение снимков используется при восстановлении и конфликтах. */
 import type { RichTextBlock } from "@/domain/content/types";
 import { preparePostRichTextForSave } from "@/domain/content/rich-text-save";
 import { assertPostTextSize } from "./text-limit";

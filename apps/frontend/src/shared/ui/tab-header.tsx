@@ -1,4 +1,5 @@
 "use client";
+/** Общая шапка связывает домашний переход, возврат, профиль и музыку с текущим разделом. */
 import Link from "next/link";
 import type { Ref } from "react";
 import classes from "./tab-header.module.scss";

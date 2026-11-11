@@ -1,4 +1,5 @@
 "use client";
+/** Плитка ленты показывает компактное представление поста и сохраняет общий адрес открытия материала. */
 import { useViewport } from "@/shared/browser/viewport";
 
 import { getFeedScreenLayout } from "./feed-screen.layout";

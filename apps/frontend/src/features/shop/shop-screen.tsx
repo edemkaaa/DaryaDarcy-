@@ -1,4 +1,5 @@
 "use client";
+/** Витрина использует каталог сборки и ссылки на карточки товаров; сам просмотр не создаёт заказ или оплату. */
 import { useViewport } from "@/shared/browser/viewport";
 
 import classes from "./shop-screen.module.scss";

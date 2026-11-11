@@ -1,4 +1,5 @@
 "use client";
+/** Персональные ключи изолируем по подтверждённому владельцу; часть операций требует записи с явной ошибкой вместо тихого fallback. */
 const personalKeys = new Set([
   "@darcy_club_profile_name",
   "@darcy_club_profile_gender",
@@ -24,6 +25,7 @@ export function isPersonalDataOwner(userId: number | null): boolean {
 }
 
 /** Required drafts must report storage failures rather than pretend to persist. */
+// Для черновиков тихий отказ недопустим: вызывающий код должен сохранить ввод и показать проблему записи.
 export const requiredStorage = {
   getItem: (key: string) => window.localStorage.getItem(scopedKey(key)),
   setItem: (key: string, value: string) =>

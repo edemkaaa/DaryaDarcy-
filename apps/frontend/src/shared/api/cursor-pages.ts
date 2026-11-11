@@ -1,3 +1,4 @@
+/** Чистые операции над страницами сохраняют навигационные курсоры без удержания всех ранее просмотренных карточек. */
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 
 /** A changed list contract starts from the head without clearing personal data. */
@@ -30,6 +31,7 @@ export class CursorChainError extends Error {
   }
 }
 
+// Следующая страница обязана продвигать цепочку; повтор токена иначе привёл бы к бесконечной догрузке.
 export function appendCursorPage<P extends CursorPage>(
   previous: CursorChain<P>,
   cursor: string,
@@ -62,6 +64,7 @@ const boundary = (page: CursorPage): CursorPage => ({
   items: page.items.map(({ id }) => ({ id })),
 });
 
+// Сбрасываем далёкие карточки, оставляя лёгкие токены возврата и границу головы для будущего обновления.
 export function boundCursorChain<P extends CursorPage>(
   chain: CursorChain<P>,
   maxPages: number,
@@ -176,6 +179,7 @@ export async function refreshCursorChain<P extends CursorPage>(
         changed = true;
     }
   }
+  // Изменение границы требует перечитать связанное окно целиком: смешанные старые offsets дают пропуски и повторы.
   if (mode === "all" || changed) {
     const pages: P[] = [],
       pageParams: (string | null)[] = [];

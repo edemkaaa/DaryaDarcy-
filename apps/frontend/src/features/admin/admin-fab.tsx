@@ -1,4 +1,5 @@
 "use client";
+/** Быстрые административные действия доступны из общего плавающего меню и передают создание материалов отдельным редакторам. */
 import classes from "./admin-fab.module.scss";
 import { Action } from "@/shared/ui/elements";
 import { useState } from "react";

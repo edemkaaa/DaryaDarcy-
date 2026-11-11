@@ -1,3 +1,4 @@
+/** Снимки редактирования профиля привязаны к владельцу и базовой ревизии, а не к одному общему браузерному ключу. */
 import { z } from "zod";
 
 export const CLUB_PROFILE_DRAFT_KEY = "@darcy_club_profile_draft";

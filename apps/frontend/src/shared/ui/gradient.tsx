@@ -1,4 +1,5 @@
 "use client";
+/** Компонент переводит параметры градиента в CSS, сохраняя общий способ объединения стилей. */
 import { mergeStyles } from "@/shared/ui/css";
 import { type BoxProps } from "@/shared/ui/elements";
 export function LinearGradient({

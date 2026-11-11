@@ -1,4 +1,5 @@
 "use client";
+/** Отображаемые подписи тегов не меняют их значения для фильтрации и API. */
 export type PostTag = {
   slug: string;
   label: string;

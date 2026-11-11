@@ -1,3 +1,4 @@
+/** Состояние аудио следует событиям HTMLAudioElement и результату play; отмена ожидания не должна оживлять старый запуск. */
 export type AudioSnapshot = {
   playing: boolean;
   starting: boolean;
@@ -100,6 +101,7 @@ export class BrowserAudioPlayer {
     this.connect();
     if (!this.audio) throw new Error("Аудио недоступно");
     if (this.snapshot.starting) return;
+    // Позднее завершение play относится к своему запуску и не должно вернуть звук после pause или release.
     const generation = ++this.generation;
     const audio = this.audio;
     // play() alone cannot recover a source left in a native media-error state.
@@ -142,6 +144,7 @@ export class BrowserAudioPlayer {
       this.onChange();
     }
   }
+  // Убираем и обработчики, и src: одного pause недостаточно для освобождения сетевого ресурса.
   release = () => {
     if (this.playTimer) clearTimeout(this.playTimer);
     this.playTimer = null;

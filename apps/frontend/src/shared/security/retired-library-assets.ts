@@ -1,3 +1,4 @@
+/** Список выведенных из публичной выдачи материалов проверяем и для прямых адресов, и для параметров оптимизатора изображений. */
 import manifest from "../../../private-library-assets.json";
 const paths = new Set(manifest.paths);
 

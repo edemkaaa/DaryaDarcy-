@@ -1,4 +1,5 @@
 "use client";
+/** Индикатор ожидания имеет текстовую подпись для вспомогательных технологий и не сообщает результат операции. */
 import { type CSSProperties } from "react";
 export const Spinner = ({
   size = "small",

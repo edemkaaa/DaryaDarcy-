@@ -1,4 +1,5 @@
 "use client";
+/** Страница статьи сохраняет подтверждённый текст при временном сбое, но скрывает его при отказе доступа или заблокированном ответе. */
 import classes from "./article-screen.module.scss";
 
 import {
@@ -44,6 +45,7 @@ export default function LibraryArticleScreen({ id }: { id: string }) {
   });
   // A temporary background failure keeps the reading position and content.
   // Confirmed absence, denial, or a locked response must hide the old article.
+  // Временный сбой обновления сохраняет место чтения; подтверждённый отказ скрывает старое содержимое.
   const blockingError = Boolean(error && !isTemporaryRequestError(error));
   const unavailable = !data || blockingError || data.locked;
   useBackgroundNotice({

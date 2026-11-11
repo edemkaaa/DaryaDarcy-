@@ -1,3 +1,4 @@
+/** Один клиент запросов обслуживает приложение; здесь ограничиваем неактивные списки и направляем ошибки доступа на проверку сессии. */
 import {
   QueryClient,
   QueryCache,
@@ -80,6 +81,7 @@ function limitContentCache(cache: QueryCache) {
 }
 
 /** Defaults keep cache stable; content refresh and access checks opt in separately. */
+// Настройки создаём на экземпляр приложения, чтобы новый QueryClient не возникал при каждом рендере провайдера.
 export function createAppQueryClient() {
   const checkAccess = (error: unknown) => {
     const status = getHttpStatus(error);

@@ -1,3 +1,4 @@
+/** Тексты результата этой эстетики отделены от расчёта теста; открытая часть результата не должна служить источником закрытого гайда. */
 // Free quiz result only. Paid guide text is owned by the backend.
 import type { CottagecoreResultContent } from "./cottagecore-result";
 export const WITCHCORE_RESULT: CottagecoreResultContent = {

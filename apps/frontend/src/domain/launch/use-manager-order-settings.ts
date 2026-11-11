@@ -1,4 +1,5 @@
 "use client";
+/** Перед подготовкой нового письма нужен актуальный получатель; ошибочное обновление не подменяем старым контактом. */
 import { useQuery } from "@tanstack/react-query";
 import { contentRefreshOptions } from "@/shared/api/content-refresh";
 import { useEffect } from "react";

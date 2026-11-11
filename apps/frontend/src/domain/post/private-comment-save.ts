@@ -1,3 +1,4 @@
+/** Отправка комментария объединяет текст и фото под одним намерением; сохранённый ключ позволяет восстановить ответ без второго комментария. */
 import type { ApiInputs } from "@/shared/api/types";
 import type { ScopedOperation } from "@/shared/browser/operation-scope";
 import {
@@ -162,6 +163,7 @@ function prepareComment(
   });
 }
 /** Caller checkpoints real File bytes durably. No automatic retries or public upload fallback. */
+// Фото и комментарий восстанавливаются под своим исходным намерением; промежуточное подтверждение сохраняется до следующего шага.
 export async function savePrivateComment(
   record: PrivateCommentRecord,
   api: PrivateCommentApi,

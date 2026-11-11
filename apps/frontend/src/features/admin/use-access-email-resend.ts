@@ -1,4 +1,5 @@
 "use client";
+/** Повтор письма использует durable административную операцию; обновление списка участников не доказывает его постановку в очередь. */
 import type { ApiOutputs } from "@/shared/api/types";
 import type { AdminActionRecovery } from "./use-admin-action-recovery";
 

@@ -1,3 +1,4 @@
+/** Каждая асинхронная операция получает право применить результат только пока её область актуальна; finish не завершает чужую новую задачу. */
 export type ScopedOperation = {
   signal: AbortSignal;
   isCurrent: () => boolean;
@@ -6,6 +7,7 @@ export type ScopedOperation = {
 };
 
 /** Synchronous lock and cancellation boundary for one editor or comment form. */
+// Область удерживает одну текущую задачу; старый finally не должен сбросить более новую операцию.
 export class OperationScope {
   private current: { controller: AbortController; cleanup: () => void } | null =
     null;

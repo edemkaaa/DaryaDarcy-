@@ -1,3 +1,4 @@
+/** Срок запроса включает чтение тела ответа; смена аккаунта отменяет связанные запросы, даже если транспорт ещё выполняется. */
 import { ApiError, getRequestErrorMessage, invalidResponse } from "./errors";
 import { parseRetryAfter } from "./retry-after";
 
@@ -23,6 +24,7 @@ export async function runApiRequest<T>(
   sessionBound = true,
 ): Promise<T> {
   const controller = new AbortController();
+  // Внешняя отмена и отмена сессии объединяются, а локальный deadline действует ещё и во время чтения тела.
   const sources = [
     options.signal,
     sessionBound ? sessionRequests.signal : undefined,
@@ -131,6 +133,7 @@ export function fetchApiResponse(
         if (!response.ok) throw responseFailure(response);
         throw error;
       }
+      // tRPC читает json позже; сохраняем HTTP-статус и заголовки уже полностью полученного ответа.
       return new BufferedApiResponse(body, {
         status: response.status,
         statusText: response.statusText,

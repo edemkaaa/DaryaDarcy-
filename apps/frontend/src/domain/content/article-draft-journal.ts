@@ -1,3 +1,4 @@
+/** Редактируемый черновик статьи хранится отдельно от уже отправленной операции; ревизия локальной записи выявляет конфликт вкладок. */
 import { z } from "zod";
 import { isPersonalDataOwner } from "@/shared/browser/storage";
 import { articleDraftSchema } from "./article-creation-journal";

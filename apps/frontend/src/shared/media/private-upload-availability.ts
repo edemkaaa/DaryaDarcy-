@@ -1,3 +1,4 @@
+/** До нового намерения загрузки выполняем читающую пробу; она проверяет доступность API, но не разрешает исход старой записи. */
 import type { ScopedOperation } from "@/shared/browser/operation-scope";
 import { ApiError, getHttpStatus, invalidResponse } from "@/shared/api/errors";
 import { privateUploadRejectionMessage } from "@/shared/api/upload-errors";

@@ -1,3 +1,4 @@
+/** Ресурсы и подписи политики конфиденциальности отделены от компонентов; изменение этих данных входит в клиентскую сборку. */
 import { PUBLIC_CONTACT_EMAIL } from "@/shared/config/contact";
 export const BROWN = "#5C4033";
 export const BROWN_MUTED = "#8B7355";

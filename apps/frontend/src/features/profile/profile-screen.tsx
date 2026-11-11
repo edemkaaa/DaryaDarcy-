@@ -1,4 +1,5 @@
 "use client";
+/** Профиль объединяет подтверждённые данные аккаунта, подписку и страницы сохранённого; клубные карточки скрываются после потери доступа. */
 import classes from "./profile-screen.module.scss";
 import { useSubscriptionCancellation } from "./use-subscription-cancellation";
 import { ProfileNameEditor } from "./profile-name-editor";
@@ -210,6 +211,7 @@ export default function ProfileScreen() {
       ? user.avatarUrl
       : null;
   const displayAvatar = serverAvatar;
+  // Проверка локального показа дополняет сервер: оставшийся в памяти клубный список не показывается после утраты прав.
   const savedPosts = useMemo(() => {
     // A retained response must not expose club-only cards after access is lost.
     const rows = savedFromApi.items.filter(
