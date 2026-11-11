@@ -17,6 +17,8 @@
     "check": "tsc --noEmit && pnpm --filter @daryadarcy/frontend typecheck",
     "check:boundaries": "tsx tooling/scripts/verify-boundaries.ts",
     "check:docs": "tsx tooling/scripts/check-docs.ts",
+    "docs:files": "tsx tooling/scripts/source-file-guide.ts --write",
+    "check:files": "tsx tooling/scripts/source-file-guide.ts --check",
     "test:db:wait": "tsx tooling/scripts/wait-test-database.ts",
     "lint": "pnpm lint:backend && pnpm --filter @daryadarcy/frontend lint",
     "lint:backend": "pnpm --filter @daryadarcy/backend lint",

@@ -25,6 +25,7 @@ verify:
     - pnpm test:db:wait
   script:
     - pnpm check:docs
+    - pnpm check:files
     - pnpm check:boundaries
     - pnpm check
     - pnpm check:api

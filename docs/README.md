@@ -8,6 +8,7 @@
 2. [Ветки, проверки, безопасная работа](development/workflow.md).
 3. [Бэкенд](../apps/backend/README.md) или [фронтенд](../apps/frontend/README.md).
 4. [Инструменты репозитория](../tooling/README.md).
+   [Маршрут чтения кода](development/code-reading-guide.md) и [все файлы с блоками](development/file-guide/index.md) помогают найти нужный модуль.
 5. [Передача изменений бэкенда фронтендеру](development/backend-handoff-2026-10-05.md).
 6. [Текущие задачи фронтендеру по Библиотеке и загрузкам](development/frontend-handoff-library-uploads-2026-10-20.md).
 7. [Правки фронтенда после сверки договора и API от 20 октября](development/frontend-fixes-contract-audit-2026-10-20.md).
@@ -26,6 +27,7 @@
 ## Проверки и выпуск
 
 - [Актуальная сверка готовности выпуска — 2 ноября](audits/release-readiness-2026-11-02.md): доказательства, ограничения и расхождения между старыми отчётами. Единственный исполняемый план и чек-лист остаются в tasks/.
+- [Сверка кода и локальных исправлений — 11 ноября](audits/project-senior-review-2026-11-11.md): последующие результаты и незакрытая внешняя приёмка. Снимок от 2 ноября сохранён для истории.
 - [Текущий остаток backend/связки](audits/backend-remaining-after-release-2026-10-27.md) и [актуальное поручение фронтендеру](development/frontend-request-audit-actions-2026-10-30.md).
 
 - [Аудиты и результаты этапов](audits/README.md).

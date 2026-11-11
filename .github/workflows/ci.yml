@@ -36,6 +36,7 @@ jobs:
 
       - run: pnpm test:db:wait
       - run: pnpm check:docs
+      - run: pnpm check:files
       - run: pnpm check:boundaries
       - run: pnpm check
       - run: pnpm check:api

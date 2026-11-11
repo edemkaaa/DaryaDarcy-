@@ -5,14 +5,13 @@ API запускается через NestJS с Express-адаптером; ко
 Перенос идёт по модулям: health, capabilities и настройки запуска уже обслуживаются
 контроллерами NestJS. Установка/восстановление пароля и повторное письмо доступа
 тоже перенесены в нативный IdentityModule, вместе со входом, регистрацией,
-сессией и закрытыми по флагу SMS-маршрутами. Чтение ленты (списки, поиск, страницы и теги), видео, закладок, взаимодействий и статей обслуживает [ContentReadService](../../apps/backend/src/content/content-read.service.ts). Создание, правку, ручную публикацию и реакции постов обслуживает [ContentWriteService](../../apps/backend/src/content/content-write.service.ts), обсуждения — [ContentCommentService](../../apps/backend/src/content/content-comment.service.ts), административные tRPC-загрузки, импорт ссылки и бинарную видеозагрузку — [ContentUploadService](../../apps/backend/src/content/content-upload.service.ts), внедрённые через ContentModule. tRPC-роутеры сохраняют входные схемы и middleware; сервисы — правила видимости и последовательность записи/анонса. Для бинарного POST используется нативный VideoUploadController; остальные административные операции остаются следующими этапами.
+сессией и закрытыми по флагу SMS-маршрутами. Чтение ленты (списки, поиск, страницы и теги), видео, закладок, взаимодействий и статей обслуживает [ContentReadService](../../apps/backend/src/content/content-read.service.ts). Создание, правку, ручную публикацию и реакции постов обслуживает [ContentWriteService](../../apps/backend/src/content/content-write.service.ts), обсуждения — [ContentCommentService](../../apps/backend/src/content/content-comment.service.ts), административные tRPC-загрузки, импорт ссылки и бинарную видеозагрузку — [ContentUploadService](../../apps/backend/src/content/content-upload.service.ts), внедрённые через ContentModule. tRPC-роутеры сохраняют входные схемы и middleware; сервисы — правила видимости и последовательность записи/анонса. Для бинарного POST используется нативный VideoUploadController; административные действия проходят через соответствующие доменные операции и журналы восстановления.
 Остальные HTTP-адаптеры и tRPC подключены в ту же HTTP-программу и
 сохраняют существующие проверки доступа. MySQL / Drizzle не меняются; TypeORM
 не вводится. План и проверки — в [ADR-005](../decisions/0005-nestjs-modular-backend.md).
 Порядок middleware остаётся обязательным: HTTP-защита → raw webhook и проверка
 загрузок → ограниченные парсеры → обработчики. Стандартные body-парсеры Nest
-отключены. Фоновые интервалы пока запускаются из index.ts; их lifecycle ещё
-не перенесён в Nest, штатное завершение workers не заявляется.
+отключены. Фоновые интервалы реализованы в WorkerJobs и запускаются executable после готовности HTTP. При остановке _core/api-shutdown.ts прекращает новые тики, ожидает текущие задачи и закрывает HTTP/пул; при превышении срока процесс завершается аварийно. Потеря общей блокировки тоже требует перезапуска процесса. Это не гарантия однократного внешнего SMTP-эффекта.
 
 Для Base64-загрузок `admin.uploadPrivateContentFile` используется существующий
 JSON-парсер 50 МиБ, для `club.uploadPrivateCommentPhoto` — 6 МиБ. Это пределы

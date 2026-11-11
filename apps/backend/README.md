@@ -4,6 +4,12 @@ NestJS + tRPC с Express-адаптером, TypeScript, Drizzle / MySQL. Осн
 
 ## Навигация
 
+Для первого прохода используйте [маршрут чтения кода](../../docs/development/code-reading-guide.md)
+и [справочник backend-файлов с блоками](../../docs/development/file-guide/backend.md).
+Комментарии описывают назначение и инварианты; они не подтверждают включение
+функций на сервере. Текущие локальные результаты и остаток — в
+[аудите от 11 ноября](../../docs/audits/project-senior-review-2026-11-11.md).
+
 ```text
 src/
   app.module.ts   композиция Nest-модулей

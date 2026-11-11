@@ -95,7 +95,7 @@ pnpm dev:web:vite # старый Vite-клиент, не production-фронте
 ```text
 apps/
   frontend/          Основной веб-клиент Next.js
-  backend/           Express + tRPC API
+  backend/           NestJS + tRPC API с Express-адаптером
   legacy-web/        Старый Vite-клиент, сохранён для совместимости
   legacy-expo/       Прежний Expo-клиент, исключён из workspace
 
@@ -104,7 +104,7 @@ packages/
   database/          Drizzle-схема, связи и SQL-миграции
 
 infrastructure/
-  deploy/            nginx, PM2, подготовка и артефакты VPS
+  deploy/            Docker/Compose/Nginx; прежние PM2-помощники отмечены отдельно
 
 tooling/
   scripts/           Проверки и сборка
