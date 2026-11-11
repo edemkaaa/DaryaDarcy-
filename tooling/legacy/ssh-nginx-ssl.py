@@ -1,3 +1,4 @@
+# Заменяет прежний доменный Nginx-vhost и reload после проверки синтаксиса; сертификат сам не выпускает.
 import pathlib
 import paramiko
 
@@ -9,6 +10,7 @@ for line in (root / ".env").read_text(encoding="utf-8").splitlines():
         env[k.strip()] = v.strip()
 
 nginx = (root / "infrastructure" / "deploy" / "nginx-daryadarcy.conf").read_text(encoding="utf-8")
+# Следующий текст — удалённая команда; её содержимое сохранено как историческое и не исполняется при чтении исходника.
 cmd = (
     "set -e\ncat > /etc/nginx/sites-available/daryadarcy << 'NGINX'\n"
     + nginx
@@ -18,6 +20,7 @@ cmd = (
     "echo DONE\n"
 )
 
+# Подключение использует историческое автоматическое доверие неизвестному SSH host key; перед новым запуском требуется отдельная сверка хоста.
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 client.connect(

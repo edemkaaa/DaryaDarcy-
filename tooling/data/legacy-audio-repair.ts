@@ -66,8 +66,8 @@ const repairSchema = z
   .min(1)
   .max(3);
 export type LegacyAudioRepair = z.infer<typeof repairSchema>[number];
-const url = (mediaId: number) => `/api/media/post-attachments/${mediaId}`;
-const repaired = (change: LegacyAudioRepair) => ({
+const url = (mediaId: number) => /* Строит защищённый URL по mediaId без выдачи старого публичного пути. */ `/api/media/post-attachments/${mediaId}`;
+const repaired = (change: LegacyAudioRepair) => /* Формирует ровно четыре заменяемых поля аудиопривязки по подготовленной квитанции. */ ({
   ...change.before,
   url: url(change.before.id),
   mimeType: "audio/mp4",
@@ -80,6 +80,8 @@ function receiptMatches(
   change: LegacyAudioRepair,
   actorId: number,
 ) {
+  // Сверяет готовность, владельца, назначение и идентификаторы квитанции перед изменением привязки.
+
   if (!row) return false;
   const wanted = {
     ...change.asset,
@@ -100,6 +102,8 @@ async function repair(
   raw: unknown,
   rollback: boolean,
 ) {
+  // Блокирует проверяемые строки, допускает целиком исходное либо уже исправленное состояние и пишет аудиторскую запись транзакционно.
+
   id.parse(actor);
   const changes = repairSchema
     .parse(raw)
@@ -232,10 +236,10 @@ export const applyLegacyAudioRepair = (
   db: Connection,
   actor: number,
   changes: unknown,
-) => repair(db, actor, changes, false);
+) => /* Применяет согласованный набор аудиопривязок через общий проверяемый путь без изменения S3. */ repair(db, actor, changes, false);
 /** Refuses later edits; restores originals, removes only own receipts and retains audit history. */
 export const rollbackLegacyAudioRepair = (
   db: Connection,
   actor: number,
   changes: unknown,
-) => repair(db, actor, changes, true);
+) => /* Возвращает только собственные неизменённые привязки по квитанции; более поздние правки не затирает. */ repair(db, actor, changes, true);

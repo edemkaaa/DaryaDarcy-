@@ -7,9 +7,13 @@ import type { ProfileFixture } from "./profile-browser-cases";
 export function registerProfileOrderBrowserCases(
   fixture: () => ProfileFixture,
 ) {
+  // Управляет порядком устаревшего /me и ACK записи имени, проверяя ревизии, единственную запись и сохранность других полей.
+
   it.each(["lost", "newer"])(
     "C3 profile name reconciles its ACK after a pre-write read arrives during saving (%s refresh)",
     async (refresh) => {
+    // Сценарий: Старое чтение приходит при удержанном ACK имени; после него потерянный либо более новый refresh не подменяет исходный draft и не создаёт второй POST.
+
       const { connection, rows, context, frontend, base, memberId } = fixture();
       await connection.query(
         "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'c3-profile-ack-order','paid','0','2030-01-01')",
@@ -143,7 +147,7 @@ export function registerProfileOrderBrowserCases(
         }
       });
       const cached = () =>
-        page.evaluate(
+        /* Читает только legacy-кэш имени тестового аккаунта, отделяя его от нового durable черновика. */ page.evaluate(
           (id) =>
             localStorage.getItem(`darcy:user:${id}:@darcy_club_profile_name`),
           memberId,

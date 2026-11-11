@@ -1,9 +1,11 @@
+/** Проверяем доступ к посту до декодирования фото комментария, без файлового хранилища. */
 import { afterEach, expect, it, vi } from "vitest";
 import { TRPCError } from "@trpc/server";
 import type { PrivateAttachmentActor } from "../apps/backend/src/content/private-attachment-uploads";
 
 vi.mock("../apps/backend/src/database/connection", () => ({ getDb: vi.fn() }));
 
+/** Восстанавливаем флаги загрузок после сценария. */
 afterEach(() => vi.unstubAllEnvs());
 
 const actor = { id: 7, sessionVersion: 0 } as PrivateAttachmentActor;
@@ -16,6 +18,7 @@ const input = {
   base64: Buffer.from("not an image").toString("base64"),
 };
 
+/** Намеренно неверные байты не должны скрыть более ранний отказ авторизации. */
 it("denies an inaccessible comment post before decoding its photo", async () => {
   vi.stubEnv("PRIVATE_CONTENT_FILES_ENABLED", "true");
   const { getDb } = await import("../apps/backend/src/database/connection");
@@ -26,6 +29,7 @@ it("denies an inaccessible comment post before decoding its photo", async () => 
   await expect(uploadPrivateContentFile(actor, input)).rejects.toMatchObject({ code: "FORBIDDEN" });
 });
 
+/** Сбой инфраструктуры при проверке доступа даёт SERVICE_UNAVAILABLE, не ошибку формата картинки. */
 it("returns a service error before photo decoding when the entitlement check cannot reach the database", async () => {
   vi.stubEnv("PRIVATE_CONTENT_FILES_ENABLED", "true");
   const { getDb } = await import("../apps/backend/src/database/connection");

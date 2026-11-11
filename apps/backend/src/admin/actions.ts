@@ -19,12 +19,14 @@ import {
 import { grantClubAccessInTransaction } from "../billing/grants";
 import { resendClubAccessInTransaction } from "../identity/access";
 
+/** Отклоняет ключ операции вне общего формата adminActionKey до начала SQL-изменений. */
 function requireKey(key: string) {
   if (!adminActionKey.safeParse(key).success)
     throw new TRPCError({ code: "BAD_REQUEST" });
 }
 
 /** Результат административного намерения сохраняем рядом с изменением его цели. */
+/** Под блокировками actor/target связывает ключ с видом и payload, возвращает сохранённый результат повтора либо атомарно пишет новое действие и receipt. */
 export async function executeAdminAction(
   database: MySql2Database,
   actor: User,
@@ -136,6 +138,7 @@ export async function executeAdminAction(
 }
 
 /** No action, mail or expiry mutation. A missing receipt is not proof of cancellation. */
+/** Только читает receipt данного actor после текущей проверки роли; notFound не доказывает, что неизвестная операция не выполняется. */
 export async function readAdminAction(
   database: MySql2Database,
   actor: User,

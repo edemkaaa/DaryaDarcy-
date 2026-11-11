@@ -1,3 +1,4 @@
+/** Настоящие detector workers проверяются по бинарным fixtures и собранному runtime, без хранения/внешней сети. */
 import { expect, it } from "vitest";
 import { build } from "esbuild";
 import { execFileSync } from "node:child_process";
@@ -15,6 +16,7 @@ import {
 import { pdfFixture, docxFixture, docxMime } from "./helpers/document-fixtures";
 import { utf8Text, utf16beText } from "./helpers/text-fixtures";
 
+/** MP3/MP4/WebM/WAV распознаются без изменения исходного Buffer. */
 it.each([
   ["MP3", mp3Fixture, "mp3", "audio/mpeg"],
   ["MP4", mp4Fixture, "mp4", "video/mp4"],
@@ -29,6 +31,7 @@ it.each([
   },
 );
 
+/** Невалидный файл не ломает соседние параллельные detector calls. */
 it("recovers after malformed parser input and keeps concurrent results independent", async () => {
   const results = await Promise.all([
     detectBinaryFileType(Buffer.from("0000001866747970", "hex")),
@@ -42,6 +45,7 @@ it("recovers after malformed parser input and keeps concurrent results independe
   ]);
 });
 
+/** ISO signature за пределами короткого prefix подтверждает поддержку random-access чтения. */
 it("preserves random-access signature checks instead of sampling only a prefix", async () => {
   // The ISO signature is intentionally beyond the 4100-byte format prefix.
   const bytes = Buffer.alloc(3 * 65_536, 0x61);
@@ -53,6 +57,7 @@ it("preserves random-access signature checks instead of sampling only a prefix",
   expect(bytes.toString("ascii", 32_769, 32_774)).toBe("CD001");
 });
 
+/** Собранный модуль находит worker независимо от cwd; child получает пустой env. */
 it("runs the external detector from compiled ESM in a foreign working directory", async () => {
   const directory = mkdtempSync(resolve(".tmp-media-signature-"));
   const entry = join(directory, "signature.mjs");
@@ -84,6 +89,7 @@ it("runs the external detector from compiled ESM in a foreign working directory"
   }
 });
 
+/** Тот же detector остаётся совместимым с dev require/tsx путём. */
 it("runs the same detector under the existing CommonJS/tsx development runtime", () => {
   const script = `const { detectBinaryFileType } = require(${JSON.stringify(resolve("apps/backend/src/media/file-signature.ts"))});
     detectBinaryFileType(Buffer.from(${JSON.stringify(mp3Fixture.toString("base64"))}, "base64")).then(result => console.log(JSON.stringify(result)));`;
@@ -100,6 +106,7 @@ it("runs the same detector under the existing CommonJS/tsx development runtime",
   expect(JSON.parse(output)).toEqual({ ext: "mp3", mime: "audio/mpeg" });
 });
 
+/** Собранный документный policy различает PDF/DOCX/кодировки текста и отвергает MIME-подмену; временные bundles удаляются. */
 it("applies document rejection and text/fallback policy from compiled ESM with real workers", async () => {
   const directory = mkdtempSync(resolve(".tmp-document-signature-"));
   const entry = join(directory, "policy.mjs");

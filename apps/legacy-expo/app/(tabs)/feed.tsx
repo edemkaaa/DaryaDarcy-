@@ -1,3 +1,4 @@
+// Архив Expo. Выбирает календарный сезон по месяцу; изображение баннера у архивной Ленты общее.
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { postDisplayDate } from "@/lib/post-date";
 import {
@@ -88,6 +89,8 @@ const FEED_BANNER_URI =
 
 // ── Season helper ──
 function getCurrentSeason(): { slug: TagSlug; label: string; bannerImage: string; subtitle: string } {
+  // Выбирает календарный сезон по месяцу; изображение баннера у архивной Ленты общее.
+
   const month = new Date().getMonth();
   if (month >= 2 && month <= 4)
     return {
@@ -183,6 +186,8 @@ const MOCK_POSTS: FeedPost[] = [
 
 // ── Format date helper ──
 function formatDate(date: Date | string): string {
+  // Форматирует дату публикации с русским названием месяца.
+
   const d = new Date(date);
   const months = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
   return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
@@ -190,6 +195,8 @@ function formatDate(date: Date | string): string {
 
 
 function normalizeFeedPost(p: Record<string, unknown>): FeedPost {
+  // Отбрасывает некорректные photo URL, очищает richText и нормализует неполный API-снимок карточки.
+
   const photos = sanitizePhotoUrls(p.photos);
   const tags = Array.isArray(p.tags) ? (p.tags as string[]) : [];
   const text = typeof p.text === "string" ? p.text : "";
@@ -231,6 +238,8 @@ function PostCard({ post, isLiked, isSaved, likedOnServer, onLike, onSave, onPre
   onPhotoPress?: (photos: string[], index: number) => void;
   onMenuPress?: () => void;
 }) {
+  // Рисует текст с раскрытием, photo/video stack, теги и оптимистичные действия; серверные права не определяет.
+
   const [expanded, setExpanded] = useState(false);
   const saveScale = useSharedValue(1);
   const likeScale = useSharedValue(1);
@@ -245,6 +254,8 @@ function PostCard({ post, isLiked, isSaved, likedOnServer, onLike, onSave, onPre
   const needsExpand = post.text.length > 0 && (post.text.split("\n").length > MAX_TEXT_LINES || post.text.length > 150);
 
   const handleLike = () => {
+    // Анимирует значок и передаёт id поста внешнему обработчику лайка.
+
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -255,6 +266,8 @@ function PostCard({ post, isLiked, isSaved, likedOnServer, onLike, onSave, onPre
   };
 
   const handleSave = () => {
+    // Анимирует значок и передаёт id поста владельцу списка закладок.
+
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
@@ -363,6 +376,8 @@ function PostCard({ post, isLiked, isSaved, likedOnServer, onLike, onSave, onPre
 
 // ── Grid Item with press animation ──
 function GridItem({ item, isVideo, onPress }: { item: FeedPost; isVideo: boolean; onPress: (id: number) => void }) {
+  // Показывает первую обложку в сетке и выполняет переход после короткой press-анимации.
+
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -370,6 +385,8 @@ function GridItem({ item, isVideo, onPress }: { item: FeedPost; isVideo: boolean
   }));
 
   const handlePress = useCallback(() => {
+    // Сжимает плитку и вызывает navigation callback в JS после завершения анимации.
+
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -409,6 +426,8 @@ function GridItem({ item, isVideo, onPress }: { item: FeedPost; isVideo: boolean
 
 // ── Main Feed Screen ──
 export default function FeedScreen() {
+  // Архивная Лента объединяет страницы по 12, локальные interactions и поиск; пустая API-выдача исторически заменяется фикстурами.
+
   const colors = useColors();
   const router = useRouter();
   const { user, isOwner } = useAuth();
@@ -416,6 +435,8 @@ export default function FeedScreen() {
   const likeMut = trpc.feed.toggleLike.useMutation();
   const saveMut = trpc.feed.toggleSave.useMutation({
     onSuccess: () => {
+      // Инвалидирует сохранённое и interaction id после успешного save.
+
       void utils.feed.savedPosts.invalidate();
       void utils.feed.userInteractions.invalidate();
     },
@@ -437,15 +458,21 @@ export default function FeedScreen() {
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   const handleListScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    // Показывает плавающую кнопку наверх после установленного порога.
+
     setShowScrollTop(event.nativeEvent.contentOffset.y > 360);
   }, []);
 
   const scrollFeedToTop = useCallback(() => {
+    // Прокручивает текущий список либо сетку к началу.
+
     listRef.current?.scrollToOffset({ offset: 0, animated: true });
   }, []);
 
   // Debounce search input (300ms)
   useEffect(() => {
+    // Откладывает server search на 300 мс и снимает предыдущий debounce при новом вводе.
+
     const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
@@ -465,7 +492,7 @@ export default function FeedScreen() {
       limit: 12,
     },
     {
-      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      getNextPageParam: (lastPage) => /* Берёт cursor следующей страницы из серверного ответа без самостоятельного вычисления offset. */ lastPage.nextCursor,
       retry: 1,
     }
   );
@@ -475,6 +502,8 @@ export default function FeedScreen() {
 
   // Use API data or fallback to mock
   const TAGS: Tag[] = useMemo(() => {
+    // Предпочитает серверные фильтры, оставляя статический список fallback.
+
     if (apiTags && apiTags.length > 0) {
       return [{ slug: "all" as TagSlug, label: "Все" }, ...apiTags.map((t) => ({ slug: t.slug as TagSlug, label: t.label }))];
     }
@@ -482,6 +511,8 @@ export default function FeedScreen() {
   }, [apiTags]);
 
   const posts: FeedPost[] = useMemo(() => {
+    // Склеивает серверные страницы и фильтрует club; при пустом результате использует исторические mock-посты.
+
     if (paginatedData?.pages) {
       const allPosts = paginatedData.pages
         .flatMap((page) => page.posts)
@@ -498,6 +529,8 @@ export default function FeedScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(() => {
+    // Инвалидирует постраничный кеш и затем явно перечитывает запрос с завершением spinner.
+
     setRefreshing(true);
     void utils.feed.listPaginated.invalidate().finally(() => {
       refetch().finally(() => setRefreshing(false));
@@ -505,6 +538,8 @@ export default function FeedScreen() {
   }, [refetch, utils.feed.listPaginated]);
 
   const handleTagPress = (slug: TagSlug) => {
+    // Выбирает новый серверный фильтр тега с native haptic.
+
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -512,6 +547,8 @@ export default function FeedScreen() {
   };
 
   const handleLike = (postId: number) => {
+    // Для вошедшего пользователя переключает локальный Set и вызывает архивную toggle-мутацию без operation key.
+
     if (!user) {
       router.push("/login?next=/feed" as any);
       return;
@@ -526,6 +563,8 @@ export default function FeedScreen() {
   };
 
   const handleSave = (postId: number) => {
+    // Обновляет локальные закладки и общий кеш устройства, отдельно отправляя серверный toggle.
+
     if (!user) {
       router.push("/login?next=/feed" as any);
       return;
@@ -541,6 +580,8 @@ export default function FeedScreen() {
   };
 
   useEffect(() => {
+    // После interactions заменяет локальные Sets серверными и обновляет общий кеш saved-feed устройства.
+
     if (!interactions.data) return;
     setServerLiked(new Set(interactions.data.likedIds));
     setLocalLiked(new Set(interactions.data.likedIds));
@@ -550,6 +591,8 @@ export default function FeedScreen() {
 
   // Load saved feed posts from AsyncStorage on mount
   useEffect(() => {
+    // На старте восстанавливает исторические закладки из общего AsyncStorage; этот ключ не разделён по аккаунтам.
+
     AsyncStorage.getItem("@darcy_saved_feed").then((raw) => {
       if (raw) {
         try {
@@ -561,17 +604,21 @@ export default function FeedScreen() {
   }, []);
 
   const openViewer = useCallback((photos: string[], index: number) => {
+    // Запоминает набор и индекс фото до монтирования viewer.
+
     setViewerPhotos(photos);
     setViewerInitialIndex(index);
     setViewerVisible(true);
   }, []);
 
   const closeViewer = useCallback(() => {
+    // Скрывает viewer, освобождая его отдельную сцену.
+
     setViewerVisible(false);
   }, []);
 
   // ── Seasonal Banner ──
-  const renderBanner = () => (
+  const renderBanner = () => /* Рисует общую книжную шапку списка. */ (
     <View style={styles.bannerContainer}>
       <Image
         source={{ uri: FEED_BANNER_URI }}
@@ -583,7 +630,7 @@ export default function FeedScreen() {
   );
 
   // ── Search Bar + View Toggle (same row) ──
-  const renderSearchRow = () => (
+  const renderSearchRow = () => /* Объединяет поиск, переход к видео и переключатель режима выдачи. */ (
     <View style={styles.searchRow}>
       <View style={styles.searchContainer}>
         <MaterialIcons name="search" size={18} color={BROWN_LIGHT} style={styles.searchIcon} />
@@ -634,7 +681,7 @@ export default function FeedScreen() {
   );
 
   // ── Tag Chips (full-width row) ──
-  const renderTagChips = () => (
+  const renderTagChips = () => /* Показывает горизонтальную ленту серверных либо fallback тегов. */ (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
@@ -660,20 +707,22 @@ export default function FeedScreen() {
 
   // ── Grid Item ──
   const isVideoPost = (post: FeedPost) =>
-    (post.tags || []).includes("video") ||
+    /* Распознаёт видеокарточку по тегу, media discriminator или старому расширению в photos. */ (post.tags || []).includes("video") ||
     (post.media || []).some((item) => item.type === "video") ||
     (post.photos || []).some((url) => /\.(mp4|mov|webm)$/i.test(url));
 
   const navigateToPost = useCallback((postId: number) => {
+    // Открывает детальную страницу числового post id.
+
     router.push(`/post/${postId}`);
   }, []);
 
-  const renderGridItem = ({ item }: { item: FeedPost }) => (
+  const renderGridItem = ({ item }: { item: FeedPost }) => /* Связывает плитку сетки с распознанным video marker и переходом. */ (
     <GridItem item={item} isVideo={isVideoPost(item)} onPress={navigateToPost} />
   );
 
   // ── Header ──
-  const renderHeader = () => (
+  const renderHeader = () => /* Собирает баннер, верхние действия, поиск и фильтры в header FlatList. */ (
     <View style={{ position: "relative" }}>
       {renderBanner()}
       <TabHeader />
@@ -683,6 +732,8 @@ export default function FeedScreen() {
   );
 
   const handlePostPress = (postId: number) => {
+    // Перенаправляет импортированную статью в Библиотеку, обычный пост — в детали.
+
     const post = posts.find((item) => item.id === postId);
     if (post?.articleId) {
       router.push(`/library/article/${post.articleId}` as any);
@@ -695,7 +746,7 @@ export default function FeedScreen() {
   const { openMenu, ManagementModals } = usePostManagement(onRefresh);
 
   // ── Feed Item ──
-  const renderFeedItem = ({ item }: { item: FeedPost }) => (
+  const renderFeedItem = ({ item }: { item: FeedPost }) => /* Передаёт карточке локальные Sets и меню администратора со снимком выбранной записи. */ (
     <PostCard
       post={item}
       isLiked={localLiked.has(item.id)}
@@ -719,12 +770,16 @@ export default function FeedScreen() {
   );
 
   const handleLoadMore = useCallback(() => {
+    // Не запускает вторую подгрузку, пока предыдущая страница ещё запрашивается.
+
     if (hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const renderFooter = () => {
+    // Разделяет индикатор следующей страницы и достигнутый конец каталога.
+
     if (isFetchingNextPage) {
       return (
         <View style={styles.footerLoader}>
@@ -834,6 +889,7 @@ export default function FeedScreen() {
 }
 
 // ── Styles ──
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
 
   loadingContainer: {

@@ -1,3 +1,4 @@
+// Публикует локальную папку фото Магазина; любой сбой HEAD трактуется как отсутствие, поэтому запуск может заменить существующий ключ.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -28,6 +29,7 @@ const mime = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "i
 let ok = 0;
 let skip = 0;
 let fail = 0;
+// Ниже начинается внешняя запись S3 по историческим фиксированным ключам; исходные объекты и ACL нужно проверить до запуска.
 for (const name of files) {
   const key = `app-assets/shop/${name}`;
   try {

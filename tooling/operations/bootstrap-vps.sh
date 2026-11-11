@@ -3,6 +3,7 @@
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
+# Устанавливаются системные пакеты и глобальные инструменты; сценарий предназначен для прежнего выделенного VPS.
 apt-get update
 apt-get install -y curl nginx
 
@@ -13,6 +14,7 @@ fi
 
 npm install -g pm2 pnpm
 
+# Правила firewall изменяются до включения UFW, сохраняя SSH-доступ.
 ufw allow OpenSSH
 ufw allow "Nginx Full"
 ufw --force enable

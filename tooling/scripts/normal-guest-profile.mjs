@@ -8,6 +8,8 @@ export const normalGuestFlags = Object.freeze({
 });
 
 export function assertNormalGuestBuild(manifest) {
+  // Сверяет каждый флаг с manifest готового Next-build, не полагаясь на runtime env запущенного процесса.
+
   if (
     !Object.entries(normalGuestFlags).every(
       ([key, value]) => manifest?.config?.env?.[key] === value,

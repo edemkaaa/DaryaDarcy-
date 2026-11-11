@@ -6,6 +6,7 @@ import {
 } from "@shared/club-tags";
 import { postTagLabel } from "./post-tags";
 
+/** Сначала используем общую подпись клубной рубрики, затем словарь тем постов; неизвестный тег сохраняем как есть. */
 export function clubTagLabel(tag: string): string {
   const label = sharedClubTagLabel(tag);
   if (label !== tag) return label;

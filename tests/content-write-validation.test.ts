@@ -1,3 +1,4 @@
+/** Настоящие HTTP/Zod/service границы валидируют admin writes до подменённой persistence. */
 import {
   afterAll,
   afterEach,
@@ -19,6 +20,7 @@ import type { User } from "../packages/database/src/schema";
 import * as db from "../apps/backend/src/db";
 
 // Native HTTP, schemas and service; only identity lookup and persistence are doubled.
+/** Реальная БД не подключается: spies подтверждают отсутствие любой записи при невалидном input. */
 describe("admin content write validation before persistence", () => {
   let app: INestApplication;
   let base: string;
@@ -41,6 +43,7 @@ describe("admin content write validation before persistence", () => {
     updatedAt: new Date(0),
     lastSignedIn: new Date(0),
   };
+  /** Типизированный HTTP-client использует реальный SuperJSON сериализатор. */
   const client = () =>
     createTRPCProxyClient<AppRouter>({
       links: [
@@ -51,12 +54,14 @@ describe("admin content write validation before persistence", () => {
       ],
     });
   const post = { text: "Valid body", photos: [], tags: [], published: false };
+  /** Поднимаем Nest на loopback без DATABASE_URL. */
   beforeAll(async () => {
     vi.stubEnv("DATABASE_URL", "");
     app = await createBackendApplication();
     await app.listen(0, "127.0.0.1");
     base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
   });
+  /** Подставляем admin сессию и счётчики четырёх post/article writers. */
   beforeEach(() => {
     vi.spyOn(app.get(SessionService), "optionalUser").mockResolvedValue(actor);
     vi.spyOn(db, "createPostWithVideos").mockResolvedValue(9913);
@@ -64,12 +69,15 @@ describe("admin content write validation before persistence", () => {
     vi.spyOn(db, "createArticle").mockResolvedValue(9914);
     vi.spyOn(db, "updateArticle").mockResolvedValue(undefined);
   });
+  /** Убираем все writer/session spies. */
   afterEach(() => vi.restoreAllMocks());
+  /** Закрываем app и env. */
   afterAll(async () => {
     await app?.close();
     vi.unstubAllEnvs();
   });
 
+  /** Обе даты проверяются на невозможный календарь и диапазон SQL хранения у create/update до persistence. */
   for (const field of ["scheduledAt", "publishedAt"] as const) {
     it.each([
       "not-a-date",
@@ -92,6 +100,7 @@ describe("admin content write validation before persistence", () => {
       },
     );
   }
+  /** Дроби и выход за signed INT отвергаются во всех четырёх операциях. */
   it.each([1.5, -1.5, 2_147_483_648, -2_147_483_649])(
     "rejects sortOrder %s for both post/article writes",
     async (sortOrder) => {
@@ -119,6 +128,7 @@ describe("admin content write validation before persistence", () => {
       }
     },
   );
+  /** Отрицательные/нулевые/граничные целые сохраняют прежнюю допустимость. */
   it.each([-2_147_483_648, -1, 0, 2_147_483_647])(
     "preserves valid signed SQL INT order %s",
     async (sortOrder) => {
@@ -136,6 +146,7 @@ describe("admin content write validation before persistence", () => {
       expect(db.updateArticle).toHaveBeenCalledWith(9914, { sortOrder }, actor, { expectedRevision: undefined });
     },
   );
+  /** Null/пустое значение очищает дату, допустимые формы приводятся к Date для writer. */
   it.each([
     null,
     "",

@@ -21,12 +21,12 @@ afterEach(async () => {
 const id = "sq7pY1H_fYU";
 const otherId = "abcdefghijk";
 const exists = async (path) =>
-  access(path).then(
+  /* Проверяет наблюдаемое существование файла, чтобы асинхронную очистку не путать с моментом срабатывания таймера. */ access(path).then(
     () => true,
     () => false,
   );
 const rejectionWithin = (promise, milliseconds = 100) =>
-  Promise.race([
+  /* Отличает своевременную отмену от зависшего ожидания, не оставляя тест бесконечно заблокированным. */ Promise.race([
     promise.then(
       () => ({ name: "UnexpectedSuccess" }),
       (error) => error,
@@ -37,22 +37,27 @@ const rejectionWithin = (promise, milliseconds = 100) =>
   ]);
 
 async function cacheWith(options = {}) {
+  // Создаёт собственный каталог и cache с подставной подготовкой, регистрируя освобождение обоих после теста.
+
   const root = await mkdtemp(join(tmpdir(), "video-cache-test-"));
   cleanups.push(() => rm(root, { recursive: true, force: true }));
   const cache = await createVideoCache({
     root,
     prepare: async (_id, directory) =>
-      writeFile(join(directory, "video.mp4"), "01234567"),
+      /* Подставляет запись тестового результата, задержку, частичный файл или отказ согласно сценарию без скачивания YouTube. */ writeFile(join(directory, "video.mp4"), "01234567"),
     ...options,
   });
   cleanups.push(() => cache.close());
   return { cache, root };
 }
 
+// Сценарий: Готовый файл повторно используется без новой подготовки.
 test("caches a completed preparation and reuses its file", async () => {
   let preparations = 0;
   const { cache } = await cacheWith({
     prepare: async (_id, directory) => {
+      // Подставляет запись тестового результата, задержку, частичный файл или отказ согласно сценарию без скачивания YouTube.
+
       preparations++;
       await writeFile(join(directory, "video.mp4"), "01234567");
     },
@@ -68,6 +73,7 @@ test("caches a completed preparation and reuses its file", async () => {
   second.release();
 });
 
+// Сценарий: Зрители одного ID разделяют подготовку, другой ID получает занятость.
 test("coalesces requests for the same video but refuses another preparation", async () => {
   let begin;
   let finish;
@@ -80,6 +86,8 @@ test("coalesces requests for the same video but refuses another preparation", as
   let preparations = 0;
   const { cache } = await cacheWith({
     prepare: async (_id, directory) => {
+      // Подставляет запись тестового результата, задержку, частичный файл или отказ согласно сценарию без скачивания YouTube.
+
       preparations++;
       begin();
       await gate;
@@ -103,10 +111,13 @@ test("coalesces requests for the same video but refuses another preparation", as
   second.release();
 });
 
+// Сценарий: Ошибка убирает частичные файлы и допускает следующий явный запрос.
 test("failed preparation deletes partial files and can be retried", async () => {
   let fail = true;
   const { cache, root } = await cacheWith({
     prepare: async (_id, directory) => {
+      // Подставляет запись тестового результата, задержку, частичный файл или отказ согласно сценарию без скачивания YouTube.
+
       await writeFile(join(directory, "source.part"), "partial");
       if (fail) throw new Error("upstream failed");
       await writeFile(join(directory, "video.mp4"), "01234567");
@@ -121,6 +132,7 @@ test("failed preparation deletes partial files and can be retried", async () => 
   lease.release();
 });
 
+// Сценарий: Бюджет вытесняет только свободные файлы.
 test("evicts idle files to respect its byte budget", async () => {
   const { cache } = await cacheWith({ maxBytes: 8, maxFileBytes: 8 });
   const first = await cache.acquire(id);
@@ -133,6 +145,7 @@ test("evicts idle files to respect its byte budget", async () => {
   second.release();
 });
 
+// Сценарий: Читаемый файл не вытесняется новой подготовкой.
 test("does not evict a file being streamed", async () => {
   const { cache } = await cacheWith({ maxBytes: 8, maxFileBytes: 8 });
   const first = await cache.acquire(id);
@@ -145,9 +158,10 @@ test("does not evict a file being streamed", async () => {
   second.release();
 });
 
+// Сценарий: Истёкший TTL создаёт новый файл вместо бесконечной выдачи старого.
 test("expired files are replaced rather than served indefinitely", async () => {
   let now = 100;
-  const { cache } = await cacheWith({ ttlMs: 10, now: () => now });
+  const { cache } = await cacheWith({ ttlMs: 10, now: () => /* Управляет временем TTL детерминированно, не ожидая настоящего срока жизни кеша. */ now });
   const first = await cache.acquire(id);
   assert.ok(first);
   first.release();
@@ -159,21 +173,26 @@ test("expired files are replaced rather than served indefinitely", async () => {
   second.release();
 });
 
+// Сценарий: Слишком большой результат не принимается в кеш.
 test("oversized output is not cached", async () => {
   const { cache, root } = await cacheWith({ maxFileBytes: 7 });
   await assert.rejects(cache.acquire(id), /invalid prepared video/);
   assert.deepEqual(await readdir(root), []);
 });
 
+// Сценарий: Путь вместо ID отвергается до работы с диском.
 test("rejects path-like IDs before touching disk", async () => {
   const { cache, root } = await cacheWith();
   await assert.rejects(cache.acquire("../outside"), /invalid video id/);
   assert.deepEqual(await readdir(root), []);
 });
 
+// Сценарий: Symlink не даёт выдать файл за пределами кеша.
 test("rejects symlink output rather than serving files outside its cache", async () => {
   const { cache, root } = await cacheWith({
     prepare: async (_id, directory) => {
+      // Подставляет запись тестового результата, задержку, частичный файл или отказ согласно сценарию без скачивания YouTube.
+
       await symlink("/etc/hosts", join(directory, "video.mp4"));
     },
   });
@@ -181,6 +200,7 @@ test("rejects symlink output rather than serving files outside its cache", async
   assert.deepEqual(await readdir(root), []);
 });
 
+// Сценарий: Уход одного зрителя не прерывает подготовку оставшемуся.
 test("one disconnected viewer does not cancel another viewer's preparation", async () => {
   let begin;
   let finish;
@@ -192,6 +212,8 @@ test("one disconnected viewer does not cancel another viewer's preparation", asy
   });
   const { cache } = await cacheWith({
     prepare: async (_id, directory, signal) => {
+      // Подставляет запись тестового результата, задержку, частичный файл или отказ согласно сценарию без скачивания YouTube.
+
       begin();
       await gate;
       signal.throwIfAborted();
@@ -212,6 +234,7 @@ test("one disconnected viewer does not cancel another viewer's preparation", asy
   assert.equal(failure.name, "AbortError");
 });
 
+// Сценарий: Уход последнего зрителя отменяет работу и убирает частичный результат.
 test("the last disconnected viewer cancels preparation and cleans partial output", async () => {
   let begin;
   const started = new Promise((resolve) => {
@@ -219,6 +242,8 @@ test("the last disconnected viewer cancels preparation and cleans partial output
   });
   const { cache, root } = await cacheWith({
     prepare: async (_id, directory, signal) => {
+      // Подставляет запись тестового результата, задержку, частичный файл или отказ согласно сценарию без скачивания YouTube.
+
       await writeFile(join(directory, "source.part"), "partial");
       begin();
       await new Promise((_resolve, reject) =>
@@ -238,6 +263,7 @@ test("the last disconnected viewer cancels preparation and cleans partial output
   assert.equal(failure.name, "AbortError");
 });
 
+// Сценарий: Deadline подготовки отменяет работу и удаляет временные файлы.
 test(
   "preparation timeout cancels work and removes partial output",
   { timeout: 5000 },
@@ -251,6 +277,8 @@ test(
     const { cache, root } = await cacheWith({
       prepareTimeoutMs: 25,
       prepare: async (_id, directory, signal) => {
+        // Подставляет запись тестового результата, задержку, частичный файл или отказ согласно сценарию без скачивания YouTube.
+
         await writeFile(join(directory, "source.part"), "partial");
         signal.throwIfAborted();
         preparationSignal = signal;
@@ -277,6 +305,7 @@ test(
   },
 );
 
+// Сценарий: Sweeper удаляет просроченный файл без следующего просмотра.
 test(
   "idle TTL cleanup removes expired files without a new playback request",
   { timeout: 5000 },

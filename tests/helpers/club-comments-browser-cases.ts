@@ -17,9 +17,13 @@ interface ClubCommentsBrowserFixture {
 export function registerClubCommentsBrowserCases(
   fixture: () => ClubCommentsBrowserFixture,
 ) {
+  // Проверяет жалобы, авторство, ответы, лайки и CRUD комментариев через native API с реальными SQL-эффектами и потерей ACK.
+
   it.each([false, true])(
     "C3 member report preserves the comment and never claims success after a lost native reply (%s)",
     async (lost) => {
+    // Сценарий: Жалоба создаётся один раз без удаления комментария; потерянный ACK показывает неопределённость и не объявляет ложный успех.
+
       const { connection, rows, context, frontend, memberId, actorId, base } =
         fixture();
       const postId = 94841,
@@ -167,6 +171,8 @@ export function registerClubCommentsBrowserCases(
   it.each(["user", "admin"] as const)(
     "C3 denies changing another author's comment as %s through the native API",
     async (role) => {
+    // Сценарий: Прямой update чужого комментария запрещён и пользователю, и администратору; гость получает 401, исходная строка сохраняется.
+
       const { rows, connection, context, frontend, memberId, actorId } =
         fixture();
       const postId = 94632;
@@ -215,7 +221,7 @@ export function registerClubCommentsBrowserCases(
             .getByRole("button", { name: "Редактировать", exact: true }),
         ).toHaveCount(0);
         const update = () =>
-          page.evaluate(async (id) => {
+          /* Обходит скрытую кнопку прямым запросом, доказывая серверную проверку автора для пользователя, администратора и гостя. */ page.evaluate(async (id) => {
             const response = await fetch("/api/trpc/club.updateComment", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -255,6 +261,8 @@ export function registerClubCommentsBrowserCases(
   it.each([false, true])(
     "C3 persists member comment edits and confirmed deletion (lost write replies: %s)",
     async (loseReply) => {
+    // Сценарий: Проверяются создание, ответ, лайк, изменение и удаление с отменой confirm и потерей ответов; ручная сверка не создаёт повторные записи.
+
       const { rows, connection, context, frontend, memberId, base } = fixture();
       const postId = 94631;
       const text = "C3 native member comment fixture";
@@ -513,6 +521,8 @@ export function registerClubCommentsBrowserCases(
         expect(await rows(likeSql, [created.id])).toEqual([]);
         expect(await rows(commentSql, [postId])).toEqual([created]);
         const editFromMenu = async () => {
+          // Открывает редактор через реальные действия комментария, не меняя DOM программно.
+
           await page
             .getByRole("button", {
               name: "Действия с комментарием",
@@ -591,6 +601,8 @@ export function registerClubCommentsBrowserCases(
           page.getByText(editedText, { exact: true }),
         ).toBeVisible();
         const deleteFromMenu = async () => {
+          // Вызывает удаление через меню, позволяя отдельно проверить dismiss и accept подтверждения.
+
           await page
             .getByRole("button", {
               name: "Действия с комментарием",

@@ -5,8 +5,10 @@ import { gotoWithSession } from "./layout-fixtures";
 const cottage = "Девушка, вернувшая жизнь заброшенному саду";
 const castle = "Девушка, пишущая свою легенду от руки";
 const goblin = "Девушка, чьи карманы полны лесных сокровищ";
+/** Привязываем итог к конкретному аккаунту либо гостевому namespace. */
 const resultKey = (owner: number | null) =>
   `darcy:user:${owner ?? "guest"}:@darcy_quiz_result`;
+/** Прогресс отделён от результата и не должен меняться от фоновой синхронизации итогов. */
 const progressKey = (owner: number | null) =>
   `darcy:user:${owner ?? "guest"}:@darcy_quiz_progress`;
 type TraceWindow = typeof window & {
@@ -14,6 +16,7 @@ type TraceWindow = typeof window & {
   failResultWrites: boolean;
 };
 
+/** Создаём различимые одиночные и смешанные результаты для проверки замены отображения и secondary-selection. */
 function saved(primaryKey: "cottagecore" | "castlecore", blend = false) {
   return JSON.stringify({
     primaryKey,
@@ -31,6 +34,7 @@ function saved(primaryKey: "cottagecore" | "castlecore", blend = false) {
   });
 }
 
+/** Владелец сессии меняется независимо от storage; считаем попытки записи результата и умеем воспроизводить отказ до сохранения. */
 async function setup(page: Page, owner: number | null = 101) {
   const identity = { owner };
   await editorApi(page);
@@ -74,6 +78,7 @@ async function setup(page: Page, owner: number | null = 101) {
   return identity;
 }
 
+/** Меняем только durable-result выбранного владельца; другая вкладка сама получает нативный storage-event. */
 async function setResult(
   page: Page,
   raw: string | null,
@@ -87,14 +92,19 @@ async function setResult(
     { key: resultKey(owner), raw },
   );
 }
+/** Ищем только видимую retained-копию текста эстетики. */
 const shown = (page: Page, text: string) =>
   page.getByText(text, { exact: true }).filter({ visible: true });
+/** Выбираем явное начало нового прохода, которое внешний result не должен сам отменять. */
 const start = (page: Page) =>
   page.getByRole("button", { name: "Начать путешествие", exact: true });
+/** Считаем попытки записи текущей страницы отдельно от изменений другой вкладки. */
 const writes = (page: Page) =>
   page.evaluate(() => (window as TraceWindow).resultWrites);
+/** Читаем исходное значение ключа, чтобы проверить сохранность текущих ответов при внешнем обновлении. */
 const stored = (page: Page, key: string) =>
   page.evaluate((key) => localStorage.getItem(key), key);
+/** Подготавливаем сохранённый result до открытия страницы и ждём соответствующее название эстетики. */
 async function openResult(
   page: Page,
   raw = saved("cottagecore"),
@@ -109,6 +119,7 @@ async function openResult(
   return identity;
 }
 
+/** Нативный storage-event обновляет, удаляет и исправляет результат без фокуса; читающая вкладка не становится writer. */
 for (const owner of [null, 101]) {
   test(`${owner === null ? "guest" : "member"}: another tab updates, removes and repairs the saved result without focus`, async ({
     page,
@@ -139,6 +150,7 @@ for (const owner of [null, 101]) {
   });
 }
 
+/** Focus/pageshow дают резервную сверку, когда storage-event не доставлен. */
 for (const event of ["focus", "pageshow"] as const) {
   test(`${event} rechecks the result when no storage event was delivered`, async ({
     page,
@@ -191,6 +203,7 @@ test("a new blended result resets the previous secondary-aesthetic selection", a
   expect(await writes(page)).toBe(0);
 });
 
+/** Проходим все вопросы реальными кнопками; callback позволяет вмешаться между ответом и переходом, не меняя тестовый алгоритм. */
 async function answerCottagecore(
   page: Page,
   onQuestion?: (index: number) => Promise<void>,
@@ -224,6 +237,7 @@ async function answerCottagecore(
   }
 }
 
+/** Явный restart и текущие ответы приоритетнее внешнего result; синхронизация возвращается после успешного завершения. */
 test("external results preserve a restart and in-progress answers, then sync after successful completion", async ({
   page,
   context,
@@ -257,6 +271,7 @@ test("external results preserve a restart and in-progress answers, then sync aft
   expect(await writes(page)).toBe(1);
 });
 
+/** Несохранённый новый итог остаётся в памяти при внешнем обновлении, сохраняя recoverable-progress. */
 test("a completed result that failed to save stays in memory when another tab changes storage", async ({
   page,
   context,
@@ -290,6 +305,7 @@ test("a completed result that failed to save stays in memory when another tab ch
   expect(await writes(page)).toBe(1);
 });
 
+/** После подтверждённой смены аккаунта читается только его result, без переноса предыдущей эстетики. */
 test("only the active account's result is read after an account switch", async ({
   page,
   context,

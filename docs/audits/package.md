@@ -8,7 +8,7 @@
 - [README](../../README.md), [запуск](../development/getting-started.md) и [рабочий процесс](../development/workflow.md).
 - [Обзор API](../architecture/api.md), [схему БД](../architecture/database.md) и [интеграции](../architecture/integrations.md).
 - [Результаты этапов](README.md), [активный чеклист](../../tasks/todo.md) и замечания о пропущенных проверках.
-- [SQL-миграции](../../packages/database/drizzle/) и [тесты контракта](../../__tests__/trpc-contract.test.ts).
+- [SQL-миграции](../../packages/database/drizzle/) и [тесты контракта](../../tests/regression/trpc-contract.test.ts).
 
 Не включать секреты, реальные учётные данные, дампы, приватные логи, node_modules, сборки и локальные служебные файлы. Тестовые аккаунты передаются отдельным защищённым способом, не через Git; [шаблон](templates/accounts.md).
 

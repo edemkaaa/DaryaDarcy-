@@ -1,3 +1,4 @@
+/** 429 приватного video сохраняется в журнале с дедлайном; повтор начинается со статуса исходного ключа. */
 import { afterEach, expect, it, vi } from "vitest";
 import {
   uploadPrivatePostVideo,
@@ -5,7 +6,9 @@ import {
 } from "../apps/frontend/src/domain/post/private-video-upload";
 import { OperationScope } from "../apps/frontend/src/shared/browser/operation-scope";
 import { ApiError } from "../apps/frontend/src/shared/api/errors";
+/** Возвращаем реальные таймеры. */
 afterEach(() => vi.useRealTimers());
+/** Каждый сценарий получает собственный File и стабильный ключ намерения. */
 const video = (): PrivatePostVideo => ({
   key: "video-original-key",
   file: new File(["bytes"], "video.mp4", { type: "video/mp4" }),
@@ -18,9 +21,11 @@ const ready = {
   fileSize: 5,
   mimeType: "video/mp4",
 };
+/** Создаём актуальное cancellable operation-владение для проверяемой отправки. */
 const task = () =>
   new OperationScope().begin("save", new AbortController().signal, () => true)!;
 
+/** До cooldown ни status, ни upload не выполняются; после него явный повтор использует тот же File/key и сохраняет ready receipt. */
 it("persists the deadline, refuses an early retry, then checks status before sending the same file/key", async () => {
   vi.useFakeTimers();
   const selected = video();
@@ -60,6 +65,7 @@ it("persists the deadline, refuses an early retry, then checks status before sen
   expect(restored.retryNotBefore).toBeUndefined();
 });
 
+/** Отменённый scope не записывает поздний cooldown в черновик прежнего аккаунта. */
 it("does not apply a late 429 to a previous account's draft", async () => {
   const selected = video();
   const scope = new OperationScope();

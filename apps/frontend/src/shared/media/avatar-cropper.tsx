@@ -28,6 +28,7 @@ interface AvatarCropperProps {
   onCancel: () => void;
 }
 // ─── Component ──────────────────────────────────────────────────────────────
+/** Согласуем жесты с круговой областью просмотра; сохранение создаёт квадратный PNG 400px, а загрузка на сервер остаётся обязанностью владельца. */
 export function AvatarCropper({
   imageUri,
   imageWidth,
@@ -66,6 +67,7 @@ export function AvatarCropper({
   const displayHeight =
     aspectRatio >= 1 ? CIRCLE_SIZE : CIRCLE_SIZE / aspectRatio;
   const pinchGesture = Gesture.Pinch()
+    // Во время обработки жесты не меняют выбранный crop; после уменьшения ниже 1 масштаб возвращается к заполнению круга.
     .onUpdate((e) => {
       if (cropping) return;
       scale.value = Math.max(0.5, Math.min(savedScale.value * e.scale, 4));
@@ -79,6 +81,7 @@ export function AvatarCropper({
       }
     });
   const panGesture = Gesture.Pan()
+    // Панорамирование накапливается относительно конца предыдущего жеста; выход за исходник ограничивается при расчёте crop.
     .onUpdate((e) => {
       if (cropping) return;
       translateX.value = savedTranslateX.value + e.translationX;
@@ -96,6 +99,7 @@ export function AvatarCropper({
       { scale: scale.value },
     ]),
   }));
+  /** Фиксируем трансформацию на начало задачи, переводим видимую область в пиксели исходника и ограничиваем её краями изображения. */
   const handleCrop = async () => {
     const task = operation.begin("crop-avatar");
     if (!task) return;
@@ -209,6 +213,7 @@ export function AvatarCropper({
       >
         <Action
           onClick={() => {
+            // Отмена завершает scoped-задачу до закрытия редактора, поэтому поздний canvas-result не вызовет onCrop.
             operation.cancel();
             onCancel();
           }}

@@ -13,10 +13,12 @@ const notification = z.object({
 
 @Controller("api/yookassa/webhook")
 export class YookassaWebhookController {
+  /** Получает TEST-оркестратор через Nest вместо собственной логики выдачи доступа. */
   constructor(
     @Inject(YookassaClubService) private readonly payments: YookassaClubService,
   ) {}
 
+  /** Валидирует notification/event/payment UUID, затем ждёт серверную проверку payment; временный отказ возвращает 503 для повторной доставки. */
   @Post()
   async post(
     @Req() request: Request,

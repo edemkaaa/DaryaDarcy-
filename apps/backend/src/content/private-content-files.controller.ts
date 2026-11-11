@@ -6,7 +6,9 @@ import { sendPrivateFile } from "./private-files.controller";
 
 @Controller("api/media/content-files")
 export class PrivateContentFilesController {
+  /** Подключаем единую проверку актуальной приватной привязки вместо самостоятельной выдачи по assetId. */
   constructor(@Inject(PrivateContentFilesService) private readonly files: PrivateContentFilesService) {}
+  /** Принимаем только точный UUIDv4 без параметров и включённый контракт; авторизацию и передачу байтов делегируем сервису и общему потоковому обработчику. */
   @Get(":assetId")
   read(@Param("assetId") assetId: string, @Req() req: Request, @Res() res: Response) {
     return sendPrivateFile(req, res, async () => {

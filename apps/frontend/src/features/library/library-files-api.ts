@@ -9,8 +9,10 @@ export type LibraryMaterialKey =
   | "peterburg"
   | "patterns"
   | `aesthetic-${Lowercase<AestheticGuideKey>}`;
+/** Читаем сборочный флаг интерфейса; право на скачивание всё равно проверяет сервер. */
 export const isPrivateLibraryEnabled = () =>
   process.env.NEXT_PUBLIC_PRIVATE_LIBRARY_FILES_ENABLED === "true";
+/** Принимаем только известные материалы и семь ключей эстетик, пригодные для построения серверного пути. */
 export function libraryMaterialKey(value: string): LibraryMaterialKey | null {
   return value === "recipes" ||
     value === "peterburg" ||
@@ -52,6 +54,7 @@ const page = z
   .strict();
 export type LibraryFile = z.infer<typeof file>;
 
+/** Проверяем одну страницу и точное соответствие URL материалу: произвольная ссылка или дубль делает весь ответ недействительным. */
 export function parseLibraryFiles(
   value: unknown,
   material: LibraryMaterialKey,
@@ -70,7 +73,7 @@ export function parseLibraryFiles(
   return parsed.data;
 }
 
-/** No direct/public URL fallback, including on empty, partial or failed reads. */
+/** Собираем полный проверенный список с ограничением числа страниц; частичный результат и публичный запасной URL не выдаём. */
 export async function getLibraryFiles(
   material: LibraryMaterialKey,
   signal: AbortSignal,

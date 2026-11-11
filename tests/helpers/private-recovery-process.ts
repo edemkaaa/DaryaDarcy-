@@ -8,6 +8,8 @@ import { assertTestDatabase } from "../../tooling/scripts/test-database-policy";
 
 /** Fresh process with only the owned DB/wire credentials; never imports production boot. */
 export async function runPrivateRecoveryProcess() {
+  // Перед обслуживанием требует одноразовый URL и запускает отдельный процесс только с собственной БД и wire; удаляет лишь свой временный каталог.
+
   assertTestDatabase(process.env.BACKEND_TEST_DATABASE_URL!);
   const root = new URL("../../", import.meta.url).pathname;
   const directory = await mkdtemp(
@@ -34,6 +36,7 @@ export async function runPrivateRecoveryProcess() {
       packages: "external",
       logLevel: "silent",
     });
+    // Очистка recovery/orphan включается только в отдельно запускаемой fixture с охраняемым URL и собственным storage wire.
     const env: Record<string, string> = {
       PATH: process.env.PATH!,
       NODE_ENV: "test",

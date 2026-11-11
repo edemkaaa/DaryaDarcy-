@@ -11,7 +11,7 @@ const TITLE_OVERRIDES: Record<string, string> = {
   "How to throw a beautiful celebration? | ideas, decor, cake, and gifts":
     "Как устроить красивый праздник? | идеи, декор, торт и подарки",
 };
-/** Prefer Russian display titles; DB may still hold English YouTube defaults. */
+/** Применяем согласованные русские подписи к известным старым роликам, иначе сохраняем нормализованный заголовок API. */
 export function displayVideoTitle(
   title: string,
   youtubeId?: string | null,

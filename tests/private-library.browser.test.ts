@@ -26,6 +26,7 @@ const native = process.env.DARYADARCY_LOCAL_BROWSER === "1" ? it : it.skip;
 let app: Awaited<ReturnType<typeof privateFilesBrowser>>, png: Buffer;
 let backend: INestApplication | undefined, conn: Connection | undefined;
 let wire: Awaited<ReturnType<typeof openPrivateUploadWire>> | undefined;
+/** Проверяет явный browser opt-in и свободное место, затем поднимает локальный фронт и при наличии отдельной БД — API, роли и пять синтетических файлов. */
 beforeAll(async () => {
   if (process.env.DARYADARCY_LOCAL_BROWSER !== "1") return;
   const disk = await statfs(process.cwd());
@@ -88,6 +89,7 @@ beforeAll(async () => {
   }
   app = await privateFilesBrowser(api);
 }, 60000);
+/** Закрывает браузер, API и SDK wire, удаляя только собственные привязки, миграцию, подписку и пользователей. */
 afterAll(async () => {
   await app?.close();
   await backend?.close();
@@ -121,6 +123,7 @@ afterAll(async () => {
   await wire?.close();
   vi.unstubAllEnvs();
 });
+/** Создаёт отдельный browser context, запрещающий исходящие запросы вне локального origin стенда. */
 async function ownPage() {
   const context = await app.context.browser()!.newContext();
   await context.route("**/*", (route) =>
@@ -133,6 +136,7 @@ async function ownPage() {
   page.setDefaultTimeout(30000);
   return page;
 }
+/** Настраивает управляемые ответы сессии, подписки и закрытого гида для сценариев смены аккаунта и ошибок чтения. */
 async function fixture(page: Page) {
   const state = { id: 101, allowed: true, guideStatus: 200 };
   await editorApi(page, (name) =>
@@ -182,8 +186,10 @@ async function fixture(page: Page) {
   return state;
 }
 const marker = aestheticGuides.cottagecore.style.intro.slice(0, 80);
+/** Имитирует возвращение видимости страницы, вызывающее повторную проверку закрытого материала. */
 const refresh = (page: Page) =>
   page.evaluate(() => window.dispatchEvent(new Event("visibilitychange")));
+/** Проверяет отмену запоздавшего чтения при уходе и новое приватное чтение после возврата вместо использования позднего payload. */
 native(
   "leaving the guide cancels a late read; returning starts a fresh private read",
   async () => {
@@ -230,6 +236,7 @@ native(
   },
   120000,
 );
+/** Проверяет, что запоздавшие метаданные выкроек старого аккаунта не приводят к чтению его файлов после смены сессии. */
 native(
   "switching accounts while pattern metadata is pending cannot open the old account's files",
   async () => {
@@ -301,6 +308,7 @@ native(
   },
   120000,
 );
+/** Проверяет показ платного серверного текста, его скрытие при отказе обновления и восстановление без встроенного платного fallback. */
 native(
   "guide renders paid server payload, hides it on denied refresh and recovers without static fallback",
   async () => {
@@ -324,6 +332,7 @@ native(
   },
   120000,
 );
+/** Проверяет отбрасывание позднего гида при смене аккаунта и отсутствие платного текста в localStorage и sessionStorage. */
 native(
   "account switch discards a late guide response and does not put paid text in browser persistence",
   async () => {
@@ -376,6 +385,7 @@ native(
   },
   120000,
 );
+/** Проверяет сохранение бесплатного результата теста и запрос закрытого гида только после явного действия Читать. */
 native(
   "quiz keeps the free result and fetches paid sections only after Читать",
   async () => {
@@ -419,6 +429,7 @@ native(
   },
   120000,
 );
+/** Проходит бесплатный тест гостем без запросов платных разделов и без их текста на странице. */
 native(
   "guest can complete the existing free quiz without fetching club sections",
   async () => {
@@ -474,6 +485,7 @@ native(
   },
   120000,
 );
+/** Проверяет канонические синтетические привязки выкроек и отсутствие fallback к старым закрытым публичным источникам при отказе API. */
 native(
   "patterns use only canonical synthetic bindings and never fall back when disabled",
   async () => {
@@ -543,6 +555,7 @@ const sqlBrowser =
   process.env.DARYADARCY_LOCAL_BROWSER === "1" && testDatabaseUrl
     ? it
     : it.skip;
+/** Проверяет пять синтетических файлов через настоящий Next-прокси, Nest, JWT, SQL и локальный SDK wire, включая истечение доступа. */
 sqlBrowser(
   "pattern UI reads five synthetic slots through real API/SQL/loopback SDK wire and honors expiry",
   async () => {
@@ -627,6 +640,7 @@ sqlBrowser(
   },
   120000,
 );
+/** Проверяет настоящий серверный гид через Next-прокси, Nest, JWT и SQL и скрытие платного текста после истечения доступа. */
 (process.env.DARYADARCY_LOCAL_BROWSER === "1" && testDatabaseUrl
   ? it
   : it.skip)(

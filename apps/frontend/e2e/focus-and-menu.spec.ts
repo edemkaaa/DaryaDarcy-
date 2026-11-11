@@ -11,8 +11,10 @@ const routes = [
   "/shop",
 ];
 
+/** Снимаем координаты меню, SVG-иконок и подписей отдельно, чтобы поздний шрифт не маскировался неизменной общей высотой. */
 async function menuGeometry(page: Page) {
   return page.locator(menu).evaluate((nav) => {
+    /** Преобразуем DOMRect в сравнимые сериализуемые размеры и координаты. */
     const rect = (element: Element) => {
       const { x, y, width, height } = element.getBoundingClientRect();
       return { x, y, width, height };
@@ -28,6 +30,7 @@ async function menuGeometry(page: Page) {
   });
 }
 
+/** Задерживаем шрифты и проходим все основные разделы: меняется active-route, но сохраняются геометрия меню, DOM-узел и document-origin. */
 for (const width of [320, 390, 480]) {
   test(`menu geometry stays fixed with delayed fonts and navigation at ${width}px`, async ({
     page,
@@ -87,6 +90,7 @@ for (const width of [320, 390, 480]) {
   });
 }
 
+/** Эмулируем visibilityState и соответствующие события focus/blur без настоящего переключения приложения ОС. */
 async function changeWindowFocus(page: Page, visible: boolean) {
   await page.evaluate((visible) => {
     Object.defineProperty(document, "visibilityState", {
@@ -98,6 +102,7 @@ async function changeWindowFocus(page: Page, visible: boolean) {
   }, visible);
 }
 
+/** Возврат проверяет доступ, сохраняя свежие закладки, экземпляр scroll-контейнера и позицию. */
 test("profile focus checks access without reloading saved posts", async ({
   page,
 }) => {
@@ -134,6 +139,7 @@ test("profile focus checks access without reloading saved posts", async ({
   expect(await screen.evaluate((element) => element.scrollTop)).toBe(scrollTop);
 });
 
+/** Даже постоянный сбой проверки сессии не должен перезапускать публичный контент; удержанный повтор позволяет проверить состояние во время запроса. */
 test("public pages retain their content and cache when every session check fails", async ({
   page,
 }) => {
@@ -213,6 +219,7 @@ test("public pages retain their content and cache when every session check fails
   }
 });
 
+/** Повторная проверка приватной сессии сохраняет прежний error-screen вместо краткого spinner-remount. */
 test("a failed private session keeps its error screen during a focus recheck", async ({
   page,
 }) => {

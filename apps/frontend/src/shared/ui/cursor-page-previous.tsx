@@ -12,6 +12,7 @@ type PageReader = {
   fetchPreviousPage: () => unknown;
 };
 
+/** Предлагаем предыдущую страницу только при доступном курсоре и разрешённом чтении; повтор использует тот же hook. */
 export function CursorPagePrevious({
   query,
   label = "Показать предыдущие",

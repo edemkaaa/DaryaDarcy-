@@ -1,3 +1,4 @@
+/** Журнал старого checkout предотвращает молчаливое повторное создание при неизвестном исходе, изолируя режимы/аккаунты. */
 import { beforeEach, afterEach, it, expect, vi } from "vitest";
 import { TRPCClientError } from "@trpc/client";
 import { LegacyCheckoutJournal } from "../apps/frontend/src/features/club/legacy-checkout-journal";
@@ -6,9 +7,12 @@ import { ApiError } from "../apps/frontend/src/shared/api/errors";
 
 let values: Map<string, string>;
 let queue: Promise<unknown>;
+/** Каждая попытка получает отдельный AbortSignal. */
 const signal = () => new AbortController().signal;
+/** Создаём guest journal выбранного legacy/TEST namespace. */
 const journal = (mode: "legacy" | "prodamus-test" = "legacy") =>
   new LegacyCheckoutJournal(null, mode);
+/** Map storage и сериализованная очередь имитируют Web Locks в одном тесте, без браузера/оплаты. */
 beforeEach(() => {
   values = new Map();
   queue = Promise.resolve();
@@ -30,11 +34,13 @@ beforeEach(() => {
   });
   setPersonalDataOwner(null);
 });
+/** Снимаем личного owner и synthetic globals. */
 afterEach(() => {
   setPersonalDataOwner(null);
   vi.unstubAllGlobals();
 });
 
+/** Оба режима сохраняют unknown до HTTP и не повторяют его после Lost ACK/reload без явного решения. */
 for (const mode of ["legacy", "prodamus-test"] as const) {
   it(`${mode}: persists uncertainty before HTTP and preserves it through reload`, async () => {
     const send = vi.fn(async () => {
@@ -54,6 +60,7 @@ for (const mode of ["legacy", "prodamus-test"] as const) {
     expect(journal(mode).read()).toEqual(intent);
   });
 }
+/** Web Lock допускает одного winner; второй submit не создаёт заказ после acknowledged. */
 it("a simultaneous tab cannot silently create another order, even after a successful first ACK", async () => {
   const send = vi.fn(async () => "url");
   const results = await Promise.allSettled([
@@ -67,6 +74,7 @@ it("a simultaneous tab cannot silently create another order, even after a succes
   expect(send).toHaveBeenCalledTimes(1);
   expect(journal().read()?.state).toBe("acknowledged");
 });
+/** Явное согласие заменяет ровно известный unknown ID новым намерением. */
 it("an explicitly authorised replacement rotates only the known unknown attempt", async () => {
   await expect(
     journal().submit(null, false, signal(), async () => {
@@ -82,6 +90,7 @@ it("an explicitly authorised replacement rotates only the known unknown attempt"
   );
   expect(journal().read()?.id).not.toBe(first.id);
 });
+/** Старое согласие не распространяется на уже заменённую запись. */
 it("replacement consent cannot replace an attempt that changed in another tab", async () => {
   await expect(
     journal().submit(null, false, signal(), async () => {
@@ -100,6 +109,7 @@ it("replacement consent cannot replace an attempt that changed in another tab", 
   ).rejects.toThrow();
   expect(send).not.toHaveBeenCalled();
 });
+/** Quota/corrupt storage/missing locks останавливают до send, не отправляя незажурналенный заказ. */
 it.each(["storage-write", "corrupt", "no-locks"])(
   "%s blocks payment creation",
   async (fault) => {
@@ -116,6 +126,7 @@ it.each(["storage-write", "corrupt", "no-locks"])(
     expect(send).not.toHaveBeenCalled();
   },
 );
+/** Успешный HTTP без сохранённого ACK остаётся unknown, не acknowledged. */
 it("a failed acknowledgement write keeps uncertainty despite successful creation", async () => {
   const send = async () => {
     vi.spyOn(window.localStorage, "setItem").mockImplementation(() => {
@@ -126,6 +137,7 @@ it("a failed acknowledgement write keeps uncertainty despite successful creation
   await expect(journal().submit(null, false, signal(), send)).rejects.toThrow();
   expect(journal().read()?.state).toBe("unknown");
 });
+/** После смены owner поздний URL не переписывает прежний journal. */
 it("a late response cannot acknowledge the original attempt under another account", async () => {
   await expect(
     journal().submit(null, false, signal(), async () => {
@@ -136,6 +148,7 @@ it("a late response cannot acknowledge the original attempt under another accoun
   setPersonalDataOwner(null);
   expect(journal().read()?.state).toBe("unknown");
 });
+/** Локальная запись не содержит email/phone/token/payment URL. */
 it("TEST and legacy use separate namespaces and never store contacts, URLs or provider proof", async () => {
   await journal().submit(
     null,
@@ -148,6 +161,7 @@ it("TEST and legacy use separate namespaces and never store contacts, URLs or pr
     /https:|email|phone|token|orderId/,
   );
 });
+/** Только достоверно декодированный доменный отказ даёт rejected; произвольный proxy400 не доказывает отсутствие записи. */
 it("a decoded tRPC 400 confirms rejection, while a proxy 400 remains uncertain", async () => {
   const decoded = new TRPCClientError("refusal", {
     result: {

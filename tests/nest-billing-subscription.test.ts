@@ -1,3 +1,4 @@
+/** Настоящий HTTP/tRPC проверяет Nest-managed subscription/cancel providers; identity и durable side effects изолированы spies. */
 import { afterAll, afterEach, beforeAll, expect, it, vi } from "vitest";
 import type { INestApplication } from "@nestjs/common";
 import type { AddressInfo } from "node:net";
@@ -38,10 +39,12 @@ let application: INestApplication;
 let base: string;
 let subscriptions: ClubSubscriptionService;
 let sessions: SessionService;
+/** Создаём типизированный loopback client с SuperJSON. */
 const client = () =>
   createTRPCProxyClient<AppRouter>({
     links: [httpLink({ url: base + "/api/trpc", transformer: superjson })],
   });
+/** Запускаем Nest без БД и получаем его service instances. */
 beforeAll(async () => {
   vi.stubEnv("DATABASE_URL", "");
   application = await createBackendApplication();
@@ -50,11 +53,14 @@ beforeAll(async () => {
   await application.listen(0, "127.0.0.1");
   base = `http://127.0.0.1:${(application.getHttpServer().address() as AddressInfo).port}`;
 });
+/** Возвращаем mocks между проверками. */
 afterEach(() => vi.restoreAllMocks());
+/** Закрываем app и env. */
 afterAll(async () => {
   await application?.close();
   vi.unstubAllEnvs();
 });
+/** Guest status берётся из внедрённого provider и сохраняет весь DTO. */
 it("HTTP status uses the Nest-managed subscription provider for guests", async () => {
   vi.spyOn(sessions, "optionalUser").mockResolvedValue(null);
   vi.spyOn(subscriptions, "subscription").mockImplementation(async (actor) => {
@@ -79,6 +85,7 @@ it("HTTP status uses the Nest-managed subscription provider for guests", async (
     monthlyPrice: "1250",
   });
 });
+/** Claim передаёт именно actor.id в service, не произвольный client ID. */
 it("HTTP claim uses the verified session ID and Nest provider", async () => {
   // Only the existing identity/billing boundaries are replaced; HTTP, tRPC,
   // authorization middleware and serialization remain real. This is not JWT/SQL acceptance.
@@ -92,6 +99,7 @@ it("HTTP claim uses the verified session ID and Nest provider", async () => {
     orderId: "club-7-confirmed",
   });
 });
+/** Confirmed cancel не теряет конец оплаченного периода при сериализации. */
 it("HTTP cancellation retains paid expiry via the Nest provider", async () => {
   vi.spyOn(sessions, "optionalUser").mockResolvedValue(member);
   vi.spyOn(subscriptions, "cancel").mockImplementation(async (actor) => {
@@ -110,6 +118,7 @@ it("HTTP cancellation retains paid expiry via the Nest provider", async () => {
     message: "synthetic supplied cancellation confirmation",
   });
 });
+/** 401 возникает до protected provider call. */
 it.each(["cancel", "claimPending"] as const)(
   "anonymous HTTP %s is rejected before billing",
   async (method) => {
@@ -121,6 +130,7 @@ it.each(["cancel", "claimPending"] as const)(
     expect(operation).not.toHaveBeenCalled();
   },
 );
+/** Blocked actor получает403 до billing. */
 it.each(["cancel", "claimPending"] as const)(
   "blocked HTTP %s is rejected before billing",
   async (method) => {
@@ -135,6 +145,7 @@ it.each(["cancel", "claimPending"] as const)(
     expect(operation).not.toHaveBeenCalled();
   },
 );
+/** Неожиданный provider detail скрывается общим500, не превращается в ok. */
 it("HTTP cancellation failure remains a safe failure, not success", async () => {
   vi.spyOn(sessions, "optionalUser").mockResolvedValue(member);
   vi.spyOn(subscriptions, "cancel").mockRejectedValue(
@@ -149,6 +160,7 @@ it("HTTP cancellation failure remains a safe failure, not success", async () => 
   });
 });
 
+/** Настоящий service/router преобразует durable confirmed:false в pending ok с пояснением, не внутреннюю ошибку. */
 it("real service exposes a queued cancellation over HTTP without masking it as 500", async () => {
   vi.spyOn(sessions, "optionalUser").mockResolvedValue(member);
   const handle = {} as NonNullable<Awaited<ReturnType<typeof db.getDb>>>;

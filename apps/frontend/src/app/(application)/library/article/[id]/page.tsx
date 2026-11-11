@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import Screen from "@/features/library/article-screen";
 export const metadata: Metadata = { title: "Материал библиотеки" };
+/** Передаём полученный параметр статье; разбор допустимого ID и состояния доступа оставляем общему экрану материала. */
 export default async function Page({
   params,
 }: {

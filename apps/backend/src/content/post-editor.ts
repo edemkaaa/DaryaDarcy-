@@ -21,6 +21,7 @@ import { assertPostHasBody } from "./post-body";
 import { assertEditRevision, expectedEditRevision, postEditRevision, type ContentEditPrecondition } from "./content-edit-revision";
 
 /** Save a normalized partial edit and optional videos as one committed change. */
+/** Разрешаем обложки до SQL, затем под блокировками исполнителя, поста и медиа сверяем ревизию и атомарно сохраняем частичную правку с приватными привязками; уведомление возвращаем лишь для первого перехода в публикацию. */
 export async function savePostEdit(
   database: MySql2Database,
   postId: number,
@@ -53,6 +54,7 @@ export async function savePostEdit(
       assertEditRevision(expectedRevision, postEditRevision(post, media));
     }
 
+// Старые ссылки фиксируются до замены фото или постеров; после изменений привязки пересчитываются в той же транзакции.
     const filesChanged = data.photos !== undefined ||
       Boolean(attachments.privateVideoPosters?.length) || Boolean(attachments.removedMediaIds?.length);
     const previousFiles = filesChanged
@@ -75,6 +77,7 @@ export async function savePostEdit(
       await postFileReferences(tx, postId, data.photos ?? post.photos ?? []),
       previousFiles, attachments.actor);
 
+// Непустое содержимое проверяется по итоговой версии, включая удаления и новые вложения, чтобы не сохранить пустой пост.
     const bodyChanged =
       data.text !== undefined ||
       data.photos !== undefined ||

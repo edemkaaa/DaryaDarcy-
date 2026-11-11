@@ -1,8 +1,10 @@
 import { test, expect, type Page } from "@playwright/test";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
 
+/** Упаковываем synthetic tRPC-json без настоящего API. */
 const ok = (data: unknown) => ({ result: { data: { json: data } } });
 
+/** Переопределяем только нужные процедуры, остальные получают согласованные пустые ответы и независимое подтверждение клуба. */
 async function mockContent(
   page: Page,
   answer: (name: string) => unknown,
@@ -54,6 +56,7 @@ async function mockContent(
   });
 }
 
+/** Public-статья открывается гостю, а клубная карточка направляет на получение доступа без выдачи её body. */
 test("a guest can open a public library article while club cards stay protected", async ({
   page,
 }) => {
@@ -110,6 +113,7 @@ test("a guest can open a public library article while club cards stay protected"
   await expect(page).toHaveURL(/\/club$/);
 });
 
+/** Ошибка articles-list имеет явный retry, после которого возвращаются валидные карточки. */
 test("a library API failure offers retry and restores articles after recovery", async ({
   page,
 }) => {
@@ -154,6 +158,7 @@ test("the patterns aesthetic action opens the quiz", async ({ page }) => {
   await expect(page).toHaveURL(/\/quiz$/);
 });
 
+/** Исполняемый checkout-URL отклоняется до перехода и не запускает код. */
 test("checkout rejects executable URLs and keeps the guest on the club page", async ({
   page,
 }) => {
@@ -185,6 +190,7 @@ test("checkout rejects executable URLs and keeps the guest on the club page", as
   ).toBeUndefined();
 });
 
+/** В совместимом legacy-режиме допустимая HTTPS-цель открывается как отдельный контролируемый provider fixture. */
 test("a valid HTTPS checkout still opens its payment destination", async ({
   page,
 }) => {
@@ -213,6 +219,7 @@ test("a valid HTTPS checkout still opens its payment destination", async ({
   await expect(page.getByText("Тестовый экран оплаты")).toBeVisible();
 });
 
+/** Query-флаг сам не выдаёт право; дублирующиеся значения и client-history изменения обрабатываются отдельно. */
 test("club payment return flags update on the client without granting guest access", async ({
   page,
 }) => {
@@ -242,6 +249,7 @@ test("club payment return flags update on the client without granting guest acce
   await expect(notice).toHaveCount(0);
 });
 
+/** Явный checkout-route показывает продление, а неоднозначный checkout-query возвращает к подтверждённому клубу. */
 test("a subscribed member can open renewal and return to the club without reloading", async ({
   page,
 }) => {
@@ -262,6 +270,7 @@ test("a subscribed member can open renewal and return to the club without reload
   );
 });
 
+/** Даже вошедший пользователь не получает доступ до ответа API claim/subscription. */
 test("an authenticated payment return still asks the API before opening club access", async ({
   page,
 }) => {
@@ -344,6 +353,7 @@ test("a long locked article can scroll to its club action on a small screen", as
   await expect(page).toHaveURL(/\/club$/);
 });
 
+/** Только верхний modal получает focus/Escape; закрытие возвращает фокус в редактор и затем исходной кнопке, снимая inert. */
 test("nested dialogs isolate focus, close only the top window and restore the trigger", async ({
   page,
 }) => {

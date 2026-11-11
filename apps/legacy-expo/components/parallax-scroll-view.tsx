@@ -1,3 +1,4 @@
+// Архив Expo. Связывает высоту header с SafeArea и UI-потоковым scrollOffset для translate/scale параллакса.
 import type { PropsWithChildren, ReactElement } from "react";
 import { View } from "react-native";
 import Animated, {
@@ -26,6 +27,8 @@ export default function ParallaxScrollView({
   headerImage,
   headerBackgroundColor,
 }: Props) {
+  // Связывает высоту header с SafeArea и UI-потоковым scrollOffset для translate/scale параллакса.
+
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const scrollRef = useAnimatedRef<Animated.ScrollView>();

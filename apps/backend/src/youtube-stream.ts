@@ -11,12 +11,14 @@ const execFileAsync = promisify(execFile);
 const YT_ID = /^[\w-]{6,20}$/;
 const cache = new Map<string, { url: string; exp: number }>();
 
+/** Выбираем настроенный доверенный путь yt-dlp или совместимый локальный путь по умолчанию. */
 function ytBin(): string {
   return (
     (process.env.YT_DLP_PATH || "/usr/local/bin/yt-dlp").trim() || "yt-dlp"
   );
 }
 
+/** Получаем прямой playback URL через ограниченный subprocess и сохраняем локальный трёхчасовой кеш; отмена клиента прерывает получение адреса. */
 async function playbackUrl(id: string, signal: AbortSignal): Promise<string> {
   signal.throwIfAborted();
   const hit = cache.get(id);
@@ -46,6 +48,7 @@ async function playbackUrl(id: string, signal: AbortSignal): Promise<string> {
   return url;
 }
 
+/** Регистрируем прежний потоковый YouTube-маршрут: проверяем текущую публичность до кеша и после upstream, передаём Range и очищаем кеш/ресурсы при ошибке или отмене. */
 export function registerYoutubeStream(app: Express) {
   app.get("/api/yt/:id", asyncHandler(async (req: Request, res: Response) => {
     const id = String(req.params.id || "");
@@ -54,6 +57,7 @@ export function registerYoutubeStream(app: Express) {
       return;
     }
     const controller = new AbortController();
+    /** Общий сигнал прерывает subprocess и сетевую передачу, когда клиент закрыл ответ или оборвал запрос. */
     const onClose = () => controller.abort();
     res.once("close", onClose);
     req.once("aborted", onClose);

@@ -134,9 +134,9 @@ SQL-миграции: `drizzle/*.sql`, актуальная схема: `drizzle
 | Файл | Что проверяет |
 |------|----------------|
 | `__tests__/regression.test.ts` | UI-регрессии (feed, shop, club tags, photo viewer, rich text…) |
-| `__tests__/quiz-data.test.ts` | Данные интерактивного квиза |
+| `tests/regression/quiz-data.test.ts` | Данные интерактивного квиза |
 | `__tests__/screens.test.ts` | Наличие ключевых экранов |
-| `__tests__/s3-connection.test.ts` | S3 (требует env, опционально) |
+| `tests/regression/s3-connection.test.ts` | S3 (требует env, опционально) |
 
 Запуск: `npm run verify` (без S3 и без production DB).
 

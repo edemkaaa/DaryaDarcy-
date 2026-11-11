@@ -1,3 +1,4 @@
+// Архив Expo. Пути сканирования старых экранов, цветовые CSS-переменные и light/dark варианты NativeWind.
 const { themeColors } = require("./theme.config");
 const plugin = require("tailwindcss/plugin");
 

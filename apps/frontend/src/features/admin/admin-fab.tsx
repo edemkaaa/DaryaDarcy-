@@ -17,14 +17,20 @@ interface AdminFABProps {
   target: Target;
 }
 export function AdminFAB({ target }: AdminFABProps) {
+  // Показывает создание поста и переход в админку только владельцу интерфейса; право записи дополнительно проверяет сервер.
+
   const { isOwner } = useAuth();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
   if (!isOwner) return null;
   const handlePress = () => {
+    // Открывает отдельный редактор, сохраняя целевую ленту текущего раздела.
+
     setShowCreate(true);
   };
   const openAdmin = () => {
+    // Долгое нажатие и шестерёнка ведут в один административный маршрут.
+
     router.push("/admin");
   };
   return (

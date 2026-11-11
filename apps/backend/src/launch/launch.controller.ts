@@ -23,8 +23,10 @@ import { SEASON_IMAGE_SHARING_PAGE_MESSAGE } from "./settings";
 @Controller("api")
 export class LaunchController {
   // esbuild does not emit TypeScript's constructor type metadata.
+  /** Явно внедряем сервис оформления через Inject, поскольку сборщик не создаёт метаданные типов конструктора Nest. */
   constructor(@Inject(LaunchService) private readonly launch: LaunchService) {}
 
+  /** Возвращаем публичную проекцию текущего оформления без кеширования, не раскрывая полный административный документ. */
   @Get("launch-config")
   @Header("Cache-Control", "no-store")
   async publicConfiguration(@Res() res: Response) {
@@ -35,6 +37,7 @@ export class LaunchController {
     }
   }
 
+  /** После административного guard выдаём полный снимок настроек вместе с ревизией для редактора. */
   @Get("admin/launch-settings")
   @Header("Cache-Control", "no-store")
   @UseGuards(AdministratorGuard)
@@ -47,6 +50,7 @@ export class LaunchController {
     }
   }
 
+  /** Передаём подтверждённого guard исполнителя, ожидаемую ревизию и новый документ в атомарное сохранение. */
   @Put("admin/launch-settings")
   @Header("Cache-Control", "no-store")
   @UseGuards(AdministratorGuard)
@@ -65,6 +69,7 @@ export class LaunchController {
     }
   }
 
+  /** Сохраняем статусы ввода, прав и конфликта, показывая только согласованные пояснения о share-ссылке и устаревшей ревизии; остальные детали скрываем. */
   private failure(res: Response, error: unknown) {
     const status =
       error instanceof TRPCError

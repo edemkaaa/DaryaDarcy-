@@ -20,6 +20,7 @@ import {
   EMAIL_REGISTER_CONSENT_VERSION,
 } from "../../../../packages/shared/src/consent-texts";
 
+/** Распознаём только duplicate-entry в ограниченной цепочке драйверных причин, оставляя остальные ошибки для отката. */
 function isDuplicateAccount(error: unknown): boolean {
   let current = error;
   for (
@@ -34,6 +35,7 @@ function isDuplicateAccount(error: unknown): boolean {
   return false;
 }
 
+/** Сохраняем точную версию и текст согласия на регистрацию внутри транзакции аккаунта и письма. */
 async function recordRegistrationConsent(tx: Transaction, userId: number) {
   await tx.insert(userConsentEvents).values({
     userId,

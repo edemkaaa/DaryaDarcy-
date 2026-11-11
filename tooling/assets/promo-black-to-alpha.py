@@ -14,6 +14,7 @@ THRESHOLD = 6
 
 
 def convert(src: Path, dst: Path, threshold: int = THRESHOLD) -> None:
+    # Делает прозрачными только пиксели в консервативном диапазоне чёрного, сохраняя остальные цвета и геометрию.
     im = Image.open(src).convert("RGBA")
     px = im.load()
     w, h = im.size
@@ -27,6 +28,7 @@ def convert(src: Path, dst: Path, threshold: int = THRESHOLD) -> None:
 
 
 def main() -> None:
+    # Проверяет наличие каждого фиксированного JPG перед созданием соответствующего прозрачного PNG.
     pairs = [
         ("promo-club-src.jpg", "promo-club.png"),
         ("promo-quiz-src.jpg", "promo-quiz.png"),

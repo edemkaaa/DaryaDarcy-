@@ -1,3 +1,4 @@
+/** DI роутера проверяется настоящими сервисами вокруг одного подменённого checkout-порта, без HTTP и SQL. */
 import { afterEach, expect, it, vi } from "vitest";
 import { TRPCError } from "@trpc/server";
 import { createAppRouter } from "../apps/backend/src/routers";
@@ -13,8 +14,10 @@ import { ModerationService } from "../apps/backend/src/moderation/moderation.ser
 import { ClubCheckoutService } from "../apps/backend/src/billing/club-checkout.service";
 import { ShopService } from "../apps/backend/src/shop/shop.service";
 
+/** Возвращаем merchant/DB env после каждого caller. */
 afterEach(() => vi.unstubAllEnvs());
 
+/** Собираем AppRouter с явным checkout-портом; остальные доменные providers остаются настоящими. */
 function caller(checkout: {
   createCheckout: (
     user: TrpcContext["user"],
@@ -41,6 +44,7 @@ function caller(checkout: {
   ).createCaller({ user: null, req: {}, res: {} } as TrpcContext);
 }
 
+/** Переданный provider получает гостя/валидный input и определяет ответ вместо глобального DB-path. */
 it("routes checkout through the supplied service instead of global billing state", async () => {
   // A direct/global DB path fails here; the actual consumer result proves DI.
   vi.stubEnv("DATABASE_URL", "");
@@ -69,6 +73,7 @@ it("routes checkout through the supplied service instead of global billing state
   });
 });
 
+/** Доменный CONFLICT не теряется при прохождении роутерного слоя. */
 it("preserves the service failure code at the checkout boundary", async () => {
   vi.stubEnv("DATABASE_URL", "");
   const checkout = caller({
@@ -87,6 +92,7 @@ it("preserves the service failure code at the checkout boundary", async () => {
   });
 });
 
+/** Схема email останавливает запрос до заведомо падающего service stub. */
 it("rejects malformed checkout input before entering the service", async () => {
   const checkout = caller({
     async createCheckout() {

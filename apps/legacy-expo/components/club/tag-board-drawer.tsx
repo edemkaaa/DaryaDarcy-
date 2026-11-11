@@ -1,3 +1,4 @@
+// Архив Expo. Показывает выдвижную доску тегов в рассчитанной льняной области исходного изображения.
 import { useEffect, useCallback } from "react";
 import {
   View,
@@ -76,6 +77,8 @@ interface TagBoardDrawerProps {
 }
 
 export function TagBoardDrawer({ selectedTag, onSelectTag }: TagBoardDrawerProps) {
+  // Показывает выдвижную доску тегов в рассчитанной льняной области исходного изображения.
+
   // translateX: 0 = fully open (drawer visible), DRAWER_WIDTH = fully closed (hidden off-screen right)
   const translateX = useSharedValue(DRAWER_WIDTH);
   const isOpenRef = useSharedValue(false);
@@ -85,10 +88,14 @@ export function TagBoardDrawer({ selectedTag, onSelectTag }: TagBoardDrawerProps
 
   // Start peek animation loop (only when drawer is closed)
   useEffect(() => {
+    // После монтирования запускает подсказку ручки; отдельная отмена бесконечной анимации в архиве отсутствует.
+
     startPeekAnimation();
   }, []);
 
   const startPeekAnimation = useCallback(() => {
+    // Запускает периодический короткий сдвиг ручки закрытой панели.
+
     peekAnim.value = withDelay(
       2000,
       withRepeat(
@@ -104,10 +111,14 @@ export function TagBoardDrawer({ selectedTag, onSelectTag }: TagBoardDrawerProps
   }, []);
 
   const stopPeekAnimation = useCallback(() => {
+    // Плавно возвращает ручку к нулевому смещению перед открытием.
+
     peekAnim.value = withTiming(0, { duration: 100 });
   }, []);
 
   const openDrawer = useCallback(() => {
+    // Выдвигает панель, останавливает подсказку и даёт native haptic.
+
     isOpenRef.value = true;
     translateX.value = withTiming(0, { duration: 300, easing: Easing.out(Easing.cubic) });
     stopPeekAnimation();
@@ -117,6 +128,8 @@ export function TagBoardDrawer({ selectedTag, onSelectTag }: TagBoardDrawerProps
   }, []);
 
   const closeDrawer = useCallback(() => {
+    // Уводит панель за экран и откладывает повторную подсказку ручки; timeout исторически не хранится для cleanup.
+
     isOpenRef.value = false;
     translateX.value = withTiming(DRAWER_WIDTH, { duration: 280, easing: Easing.in(Easing.cubic) });
     // Restart peek after closing
@@ -139,6 +152,8 @@ export function TagBoardDrawer({ selectedTag, onSelectTag }: TagBoardDrawerProps
   });
 
   const handleTagPress = (tag: string) => {
+    // Переключает выбранный фильтр, повторный выбор снимает его.
+
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -274,6 +289,7 @@ export function TagBoardDrawer({ selectedTag, onSelectTag }: TagBoardDrawerProps
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
+// Область тегов вычислена по долевым inset льняного участка доски; скрытая панель уходит вправо, остаётся только ручка.
 const styles = StyleSheet.create({
   peekStrip: {
     position: "absolute",

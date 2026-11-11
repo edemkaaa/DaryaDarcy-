@@ -7,6 +7,7 @@ let commands: string[];
 let messages: string[];
 let rejectRecipient = false;
 
+/** Поднимает настоящий loopback SMTP-протокол с управляемым RCPT-отказом и только тестовыми реквизитами. */
 beforeEach(async () => {
   vi.resetModules();
   sockets = new Set(); commands = []; messages = []; rejectRecipient = false;
@@ -53,6 +54,7 @@ beforeEach(async () => {
   vi.stubEnv("SMTP_REPLY_TO", "");
 });
 
+/** Закрывает свои SMTP-сокеты и сервер и возвращает окружение и подмены. */
 afterEach(async () => {
   for (const socket of sockets) socket.destroy();
   await new Promise<void>(resolve => server.close(() => resolve()));
@@ -61,6 +63,7 @@ afterEach(async () => {
 
 const mail = { to: "member@example.test", subject: "Access", text: "<tag>&", messageId: "<access-test@example.test>" };
 
+/** Проверяет независимый legacy SMTP sender от публичного адреса получения обращений. */
 it("keeps the legacy SMTP identity independent of the public contact recipient", async () => {
   vi.stubEnv("SMTP_USER", "");
   vi.stubEnv("SMTP_FROM", "");
@@ -73,6 +76,7 @@ it("keeps the legacy SMTP identity independent of the public contact recipient",
   );
 });
 
+/** Проверяет явную настроенную sender-идентичность по настоящему локальному SMTP envelope и From. */
 it("uses an explicitly configured owner identity on the loopback transport", async () => {
   vi.stubEnv("SMTP_USER", "daryadarcy19@gmail.com");
   vi.stubEnv("SMTP_FROM", "daryadarcy19@gmail.com");
@@ -83,6 +87,7 @@ it("uses an explicitly configured owner identity on the loopback transport", asy
   expect(messages[0]).toContain("From: DARYADARCY <daryadarcy19@gmail.com>");
 });
 
+/** Проверяет один envelope-recipient, устойчивый Message-ID и экранированный HTML в принятом локальным SMTP сообщении. */
 it("delivers one envelope recipient, stable Message-ID and escaped HTML through real SMTP", async () => {
   const { sendTransactionalEmail } = await import("../apps/backend/src/_core/email");
   expect(await sendTransactionalEmail(mail)).toBe(true);
@@ -94,6 +99,7 @@ it("delivers one envelope recipient, stable Message-ID and escaped HTML through 
   expect(messages[0]).toContain("&lt;tag&gt;&amp;");
 });
 
+/** Проверяет false при отказе SMTP и отсутствие адресата в диагностике без принятого сообщения. */
 it("does not report successful delivery or log recipient data on SMTP rejection", async () => {
   rejectRecipient = true;
   const log = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -103,6 +109,7 @@ it("does not report successful delivery or log recipient data on SMTP rejection"
   expect(log.mock.calls.flat().join(" ")).not.toContain(mail.to);
 });
 
+/** Проверяет запрет передачи production-реквизитов серверу, не согласовавшему TLS. */
 it("does not expose credentials to a production SMTP server that cannot negotiate TLS", async () => {
   vi.stubEnv("NODE_ENV", "production");
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -112,6 +119,7 @@ it("does not expose credentials to a production SMTP server that cannot negotiat
   expect(messages).toEqual([]);
 });
 
+/** Проверяет отказ списку адресатов до открытия SMTP-соединения. */
 it("rejects recipient lists before making any SMTP connection", async () => {
   const { sendTransactionalEmail } = await import("../apps/backend/src/_core/email");
   expect(await sendTransactionalEmail({ ...mail, to: "member@example.test,second@example.test" })).toBe(false);
@@ -119,6 +127,7 @@ it("rejects recipient lists before making any SMTP connection", async () => {
 });
 
 
+/** Проверяет Reply-To поддержки без копирования личного письма и без изменения SMTP identity и единственного получателя. */
 it("routes replies to the support mailbox without copying private mail or changing SMTP identity", async () => {
   vi.stubEnv("SMTP_REPLY_TO", "support@daryadarcy.com");
   const { sendTransactionalEmail } = await import("../apps/backend/src/_core/email");
@@ -133,6 +142,7 @@ it("routes replies to the support mailbox without copying private mail or changi
   expect(Buffer.from(auth.slice("AUTH PLAIN ".length), "base64").toString()).toBe("\0sender@example.test\0smtp-test-only");
 });
 
+/** Проверяет форму Reply-To и запрет header-injection до SMTP-соединения. */
 it.each([
   "support@example.test,other@example.test",
   "Support <support@example.test>",
@@ -146,6 +156,7 @@ it.each([
   expect(messages).toEqual([]);
 });
 
+/** Проверяет отсутствие дополнительного Reply-To при выключенной необязательной настройке. */
 it("preserves existing mail headers when the optional support address is not enabled", async () => {
   vi.stubEnv("SMTP_REPLY_TO", "   ");
   const { sendTransactionalEmail } = await import("../apps/backend/src/_core/email");

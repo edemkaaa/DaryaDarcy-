@@ -26,6 +26,7 @@ const sourceId = process.env.BACKUP_REHEARSAL_SOURCE_ID;
 const targetId = process.env.BACKUP_REHEARSAL_TARGET_ID;
 const root = fileURLToPath(new URL("../", import.meta.url));
 const execute = promisify(execFile);
+/** Репетирует native dump/restore отдельной fresh-БД с проверкой полных данных, DDL и recovery-связей. */
 describe.skipIf(!sourceUrl || !targetUrl || !sourceId || !targetId)(
   "full fresh database backup and isolated native restore",
   () => {
@@ -38,6 +39,7 @@ describe.skipIf(!sourceUrl || !targetUrl || !sourceId || !targetId)(
       snapshot: Record<string, string>,
       ddl: Record<string, string>;
     let runImage: Awaited<ReturnType<typeof prepareBackupImage>> | undefined;
+    /** Подтверждает owned loopback-container, tmpfs, отсутствие mounts и точный проброшенный MySQL-порт. */
     async function guard(id: string, uri: string) {
       const url = assertTestDatabase(uri);
       if (
@@ -66,12 +68,15 @@ describe.skipIf(!sourceUrl || !targetUrl || !sourceId || !targetId)(
       )
         throw new Error("Unowned fixture");
     }
+    /** Читает строки выбранного rehearsal-соединения для hash и schema-контроля. */
     async function rows(conn: Connection, query: string, args: unknown[] = []) {
       return (await conn.query<RowDataPacket[]>(query, args))[0];
     }
+    /** Экранирует SQL-идентификатор таблицы удвоением backtick из проверенного SHOW TABLES. */
     function quote(name: string) {
       return "`" + name.replaceAll("`", "``") + "`";
     }
+    /** Строит SHA-256 канонически отсортированных строк каждой таблицы для полного сравнения source и restore. */
     async function contents(conn: Connection) {
       const output: Record<string, string> = {};
       for (const table of tables) {
@@ -82,6 +87,7 @@ describe.skipIf(!sourceUrl || !targetUrl || !sourceId || !targetId)(
       }
       return output;
     }
+    /** Читает точный SHOW CREATE TABLE всех таблиц для проверки engines, collations, generated expressions и индексов. */
     async function definitions(conn: Connection) {
       const output: Record<string, string> = {};
       for (const table of tables)
@@ -90,6 +96,7 @@ describe.skipIf(!sourceUrl || !targetUrl || !sourceId || !targetId)(
         )[0]!["Create Table"];
       return output;
     }
+    /** Повторно проверяет владение и пустоту target и восстанавливает SQL только native-клиентом isolated-контейнера либо release image. */
     async function restore() {
       await guard(targetId!, targetUrl!);
       if ((await rows(target, "SHOW TABLES")).length)
@@ -123,6 +130,7 @@ describe.skipIf(!sourceUrl || !targetUrl || !sourceId || !targetId)(
         );
       });
     }
+    /** Создаёт fresh-source и synthetic контент, pending journals и library-bindings, затем получает закрытый gzip и восстанавливает в отдельный target. */
     beforeAll(async () => {
       expect(sourceId).not.toBe(targetId);
       expect(sourceUrl).not.toBe(targetUrl);
@@ -264,6 +272,7 @@ describe.skipIf(!sourceUrl || !targetUrl || !sourceId || !targetId)(
         }),
       );
     }, 120000);
+    /** Возвращает spies и окружение, закрывает source/target и удаляет только свою временную директорию rehearsal. */
     afterAll(async () => {
       vi.restoreAllMocks();
       vi.unstubAllEnvs();
@@ -271,6 +280,7 @@ describe.skipIf(!sourceUrl || !targetUrl || !sourceId || !targetId)(
       await target?.end();
       if (directory) await rm(directory, { recursive: true });
     });
+    /** Завершённый gzip имеет режим 600, backup-каталог 700 и не оставляет .partial. */
     it("creates a complete private gzip without partial artifacts", async () => {
       expect((await stat(archive)).mode & 0o777).toBe(0o600);
       expect((await stat(join(directory, "backups"))).mode & 0o777).toBe(0o700);
@@ -281,16 +291,19 @@ describe.skipIf(!sourceUrl || !targetUrl || !sourceId || !targetId)(
       ).toEqual([]);
       expect(sql.length).toBeGreaterThan(1000);
     });
+    /** При явном image подтверждает происхождение dump от MariaDB-клиента финального образа. */
     it.skipIf(!process.env.BACKUP_REHEARSAL_IMAGE)(
       "uses the release image's MariaDB client against the real MySQL source",
       () => {
         expect(sql.toString("utf8").slice(0, 200)).toContain("MariaDB dump");
       },
     );
+    /** Данные и DDL source совпадают с исходным snapshot после backup/restore. */
     it("does not change the source while backing up or restoring", async () => {
       expect(await contents(source)).toEqual(snapshot);
       expect(await definitions(source)).toEqual(ddl);
     });
+    /** Отказ native-аутентификации не оставляет завершённый или partial архив и не меняет source. */
     it.skipIf(!process.env.BACKUP_REHEARSAL_IMAGE)(
       "leaves no completed or partial archive after a real client authentication failure",
       async () => {
@@ -301,6 +314,7 @@ describe.skipIf(!sourceUrl || !targetUrl || !sourceId || !targetId)(
         expect(await contents(source)).toEqual(snapshot);
       },
     );
+    /** Target содержит все таблицы и точные synthetic строки, включая ожидаемую fixture-историю миграций. */
     it("restores every table and exact synthetic contents including all migration hashes", async () => {
       expect(
         (await rows(target, "SHOW TABLES"))
@@ -320,9 +334,11 @@ describe.skipIf(!sourceUrl || !targetUrl || !sourceId || !targetId)(
         (await rows(target, "SELECT name,role FROM users WHERE id=70001"))[0],
       ).toEqual({ name: "Тест 🧪", role: "user" });
     });
+    /** Полный DDL restore совпадает с source, включая auto increment и generated expressions. */
     it("preserves engines, collations, generated expressions, indexes and auto increments", async () => {
       expect(await definitions(target)).toEqual(ddl);
     });
+    /** Library-binding и pending импорт сохраняют целостность, unique-ограничения slot/asset/operation продолжают действовать. */
     it("preserves library binding integrity, pending recovery and uniqueness after restore", async () => {
       expect(
         await rows(
@@ -375,6 +391,7 @@ describe.skipIf(!sourceUrl || !targetUrl || !sourceId || !targetId)(
         ),
       ).rejects.toMatchObject({ code: "ER_DUP_ENTRY" });
     });
+    /** Восстановленные индексы запрещают email-дубликат и повтор creation-key. */
     it("keeps identity and recovery uniqueness enforced after restore", async () => {
       await expect(
         target.execute(
@@ -388,11 +405,13 @@ describe.skipIf(!sourceUrl || !targetUrl || !sourceId || !targetId)(
         ),
       ).rejects.toMatchObject({ code: "ER_DUP_ENTRY" });
     });
+    /** Повтор restore в заполненный target отклоняется до любых изменений. */
     it("refuses restoring into a nonempty target without changing its contents", async () => {
       const before = await contents(target);
       await expect(restore()).rejects.toThrow("Restore target not empty");
       expect(await contents(target)).toEqual(before);
     });
+    /** Read-only check-local проверяет восстановленную fixture-историю без миграционных записей и без release approval. */
     it("verifies fresh-profile history in the restored target without applying migrations", async () => {
       const result = await execute(
         process.execPath,

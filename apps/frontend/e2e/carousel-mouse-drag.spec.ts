@@ -4,6 +4,7 @@ import { gotoWithSession, layoutApi } from "./layout-fixtures";
 
 test.use({ viewport: { width: 1440, height: 1000 }, hasTouch: false });
 
+/** Статья получает синтетическую карусель из четырёх SVG, а статические галереи используют свои существующие данные. */
 async function fixture(page: Page, path: string) {
   const photos = Array.from(
     { length: 4 },
@@ -35,6 +36,7 @@ async function fixture(page: Page, path: string) {
   return page.locator("main .ui-scroll-horizontal").first();
 }
 
+/** Тянем мышью на относительное расстояние и при необходимости отпускаем вне контейнера, не вызывая click напрямую. */
 async function drag(
   page: Page,
   scroll: Locator,
@@ -55,6 +57,7 @@ async function drag(
   await page.mouse.up();
 }
 
+/** Удерживаем мышь и сверяем opacity, DOM-экземпляр и currentSrc картинки; отпускание вне элемента отменяет случайный переход. */
 async function noDim(page: Page, button: Locator) {
   await button.scrollIntoViewIfNeeded();
   const photo = await button.locator("img").last().elementHandle();
@@ -97,6 +100,7 @@ test("gallery photo does not dim or reload on mouse press", async ({
   await noDim(page, scroll.getByRole("button").first());
 });
 
+/** Галереи магазина, страницы автора и статьи должны листаться мышью без открытия viewer, сохраняя обычный последующий click. */
 for (const path of [
   "/shop/book-1",
   "/library/about-me",
@@ -127,6 +131,7 @@ for (const path of [
   });
 }
 
+/** Короткое движение остаётся кликом; blur отменяет drag, а outside-release завершает swipe и возвращает scroll-snap. */
 test("a short mouse movement remains a click; blur cancels a swipe and outside release completes it", async ({
   page,
 }) => {
@@ -187,6 +192,7 @@ test("testimonial dragging preserves its previous and next buttons", async ({
     .toBeGreaterThan(80);
 });
 
+/** Drag вариантов-картинок не выбирает ответ, но обычный click после него остаётся доступен. */
 test("dragging quiz image choices never selects an answer; a normal click does", async ({
   page,
 }) => {
@@ -220,6 +226,7 @@ test("dragging quiz image choices never selects an answer; a normal click does",
   }
 });
 
+/** Кастомный mouse-drag не забирает нативные keyboard и горизонтальный wheel. */
 test("mouse swiping preserves native keyboard and horizontal wheel scrolling", async ({
   page,
 }) => {
@@ -240,6 +247,7 @@ test("mouse swiping preserves native keyboard and horizontal wheel scrolling", a
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
+/** Та же галерея с mouse-support сохраняет CDP-touch и новый tap после browser compatibility-click suppression. */
 test.describe("native touch on galleries with mouse swiping", () => {
   test.use({
     viewport: { width: 390, height: 844 },

@@ -1,5 +1,5 @@
 "use client";
-/** Карточка до запуска показывает постер, а проигрыватель создаётся после действия пользователя. */
+/** Карточка выбирает встроенный VK-плеер или нативное видео с постером и адаптирует его высоту к экрану. */
 import { ManagedVideo } from "@/shared/media/managed-video";
 import { useViewport } from "@/shared/browser/viewport";
 
@@ -17,6 +17,7 @@ interface VideoPreviewProps {
   duration?: number;
   topAligned?: boolean;
 }
+/** Выбираем VK iframe или нативное video; пропорции постера и reels ограничивают высоту карточки текущим viewport. */
 export function VideoPreviewCard({
   url,
   thumbnailUrl,

@@ -15,10 +15,12 @@ for (const name of ["install.sh", "vps-fresh.sh", "apply-ip-nginx.sh", "restart.
   }
 }
 
+// Очищается только собственный старый staging-каталог упаковки; этот путь не относится к рабочей БД.
 const staging = path.join(deployDir, ".stage");
 fs.rmSync(staging, { recursive: true, force: true });
 fs.mkdirSync(staging, { recursive: true });
 
+// В архив выбираются старые статические артефакты и установщики; env в список не включён.
 const copy = [
   "package.json",
   "pnpm-lock.yaml",
@@ -44,6 +46,7 @@ if (!fs.existsSync(webDist)) throw new Error("Missing web-dist — run pnpm buil
 fs.cpSync(webDist, path.join(staging, "web-dist"), { recursive: true });
 
 if (fs.existsSync(out)) fs.unlinkSync(out);
+// Архив создаётся только после проверки всех входных файлов; прежний архив заменяется.
 const tar = spawnSync(
   "tar",
   ["-czf", out, "-C", staging, "."],

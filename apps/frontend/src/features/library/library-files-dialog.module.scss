@@ -2,12 +2,14 @@
 @use "../../shared/styles/layers";
 
 @layer components {
+  /* Диалог центрируется поверх затемнения с наружным зазором до viewport. */
   .overlay {
     justify-content: center;
     align-items: center;
     padding: 20px;
     background: rgba(0, 0, 0, 0.45);
   }
+  /* Список ограничен 480px и 85dvh, длинная выдача прокручивается внутри панели. */
   .panel {
     width: 100%;
     max-width: 480px;
@@ -17,6 +19,7 @@
     border-radius: 12px;
     background: var(--paper);
   }
+  /* Длинные названия/адреса файлов переносятся, не раздвигая диалог. */
   .panel a {
     display: flex;
     justify-content: center;

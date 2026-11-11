@@ -1,3 +1,4 @@
+/** Проверяем допуск мутаций комментария до изменения записей на синтетических доменных границах. */
 import { beforeEach, expect, it, vi } from "vitest";
 import type { User } from "../packages/database/src/schema";
 import type { TrpcContext } from "../apps/backend/src/_core/context";
@@ -18,6 +19,7 @@ vi.mock("../apps/backend/src/content/comments", () => ({
 }));
 import { appRouter } from "../apps/backend/src/routers";
 const user = { id: 7, role: "user", blockedAt: null } as User;
+/** Создаёт прямой caller одного actor; роль и источник поста задаются общей фикстурой. */
 const caller = () => appRouter.createCaller({ user, req: {}, res: {} } as TrpcContext);
 const actions = [
   () => caller().club.toggleCommentLike({ commentId: 10 }),
@@ -25,16 +27,20 @@ const actions = [
   () => caller().club.updateComment({ id: 10, text: "updated" }),
   () => caller().club.deleteComment({ id: 10 }),
 ];
+/** Сбрасываем подписку, состояние поста и историю мутаций перед каждым действием. */
 beforeEach(() => { state.subscribed = false; state.status = "published"; state.target = "club"; state.parentPostId = 1; state.mutations.mockReset(); });
+/** Лайк, жалоба, правка и удаление клубного комментария должны отказать до вызова helper записи. */
 it.each(actions)("refuses a club comment mutation without access before changing records", async action => {
   await expect(action()).rejects.toMatchObject({ code: "FORBIDDEN" });
   expect(state.mutations).not.toHaveBeenCalled();
 });
+/** Подписка не разрешает действия с обсуждением черновика. */
 it.each(actions)("refuses mutations on a draft even for subscribers", async action => {
   state.subscribed = true; state.status = "draft";
   await expect(action()).rejects.toMatchObject({ code: "NOT_FOUND" });
   expect(state.mutations).not.toHaveBeenCalled();
 });
+/** Положительный контроль оставляет открытое обсуждение доступным вошедшему пользователю без подписки. */
 it("keeps published public discussion mutations available to authenticated non-members", async () => {
   state.target = "feed";
   await caller().club.toggleCommentLike({ commentId: 10 });

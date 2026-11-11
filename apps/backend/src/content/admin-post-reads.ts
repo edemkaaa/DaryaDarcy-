@@ -26,6 +26,7 @@ export const adminPostsPageInput = z
 
 type Database = MySql2Database | null;
 const strings = {
+  /** Приводит JSON-проекцию mysql2 к строковому массиву независимо от режима декодирования драйвера. */
   mapFromDriverValue: (value: unknown): string[] =>
     typeof value === "string" ? JSON.parse(value) : (value as string[]),
 };
@@ -59,6 +60,7 @@ const card = {
 };
 
 /** Читаем только страницу административного списка; календарь и счётчики запрашиваются отдельно. */
+/** Возвращает ограниченные admin-карточки с текстом 512 символов, первым фото/тремя тегами и hasVideo, сохраняя совместимый numeric offset. */
 export async function getAdminPostsPage(
   db: Database,
   input: z.infer<typeof adminPostsPageInput>,
@@ -84,6 +86,7 @@ export async function getAdminPostsPage(
 }
 
 /** Детали и вложения читаем согласованно, включая скрытые от общего каталога записи. */
+/** Читает полный hidden/published пост и media одним READ ONLY REPEATABLE READ, затем вычисляет editRevision этой же версии. */
 export async function getAdminPostDetail(
   db: Database,
   id: number,
@@ -126,6 +129,7 @@ export const adminPostCalendarInput = z
   .strict();
 
 /** Считаем состояния постов на сервере без передачи всего списка в браузер. */
+/** Считает существующую семантику header total/published/scheduled/draft на SQL без передачи всех публикаций. */
 export async function getAdminPostCounts(db: Database) {
   if (!db) throw new Error("Database not available");
   // These are the existing header semantics, not the status-only stats dashboard.
@@ -150,6 +154,7 @@ export async function getAdminPostCounts(db: Database) {
 }
 
 /** Возвращаем данные выбранного интервала календаря, а не полные тела всех публикаций. */
+/** Для смежных timezone-aware дней считает оконные итоги всех событий и передаёт только первую карточку дня плюс восемь ближайших scheduled. */
 export async function getAdminPostCalendar(
   db: Database,
   input: z.infer<typeof adminPostCalendarInput>,

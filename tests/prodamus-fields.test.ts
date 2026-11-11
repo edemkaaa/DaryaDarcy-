@@ -1,3 +1,4 @@
+/** Совместимые selectors signed Prodamus payload не являются отдельной авторизацией или строгой валидацией ID. */
 import { describe, expect, it } from "vitest";
 import {
   isPaidStatus,
@@ -7,7 +8,9 @@ import {
   subscriptionAction,
 } from "../apps/backend/src/billing/prodamus-fields";
 
+/** Независимые таблицы фиксируют legacy coercion и точный приоритет полей перед последующей проверкой доверия. */
 describe("Prodamus field selection compatibility", () => {
+  /** Exact aliases имеют заданный приоритет; scalar conversion сохраняет прежние 0/false/array формы. */
   it.each([
     {
       body: { payment_status: " pending ", status: "success" },
@@ -28,6 +31,7 @@ describe("Prodamus field selection compatibility", () => {
     },
   );
 
+  /** Приоритет nullish user hint не должен перескакивать к другому полю после невалидного первичного значения. */
   it.each([
     { body: { _param_userId: "7", userId: 8, _param: { userId: 9 } }, want: 7 },
     {
@@ -47,6 +51,7 @@ describe("Prodamus field selection compatibility", () => {
     expect(pickUserId(body)).toBe(want);
   });
 
+  /** Только выбранное success-состояние считается paid, не любая строка синонима. */
   it.each([
     { body: { payment_status: " SUCCESS " }, want: true },
     { body: { paymentStatus: "success" }, want: true },
@@ -62,6 +67,7 @@ describe("Prodamus field selection compatibility", () => {
     },
   );
 
+  /** Internal order выбирается по aliases и известным префиксам, provider order_id не подменяет его. */
   it.each([
     {
       body: { order: " club-7-a ", order_num: "shop-digital-1-b" },
@@ -80,6 +86,7 @@ describe("Prodamus field selection compatibility", () => {
     },
   );
 
+  /** Существующий nested action имеет приоритет целиком, даже если он пустой. */
   it.each([
     {
       body: {
@@ -115,6 +122,7 @@ describe("Prodamus field selection compatibility", () => {
     },
   );
 
+  /** Selectors возвращают normalized значения, оставляя signed input неизменным. */
   it("does not mutate a frozen signed payload during selection", () => {
     const body = Object.freeze({
       order_num: " club6m-7-frozen ",

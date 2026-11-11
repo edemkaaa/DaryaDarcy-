@@ -1,3 +1,4 @@
+/** Поднимаем настоящий Nest listener только на loopback без БД и внешних интеграций; проверяем порядок middleware, совместимость REST/tRPC и закрытие приложения. */
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import type { INestApplication } from "@nestjs/common";
 import type { AddressInfo } from "node:net";
@@ -10,6 +11,7 @@ import type { AppRouter } from "../apps/backend/src/routers";
 let application: INestApplication;
 let base: string;
 
+/** Очищаем SQL URL, отключаем необязательные функции и создаём синтетический webhook secret до запуска listener на свободном порту. */
 beforeAll(async () => {
   vi.stubEnv("DATABASE_URL", "");
   vi.stubEnv("PUBLIC_APP_URL", "https://club.example.test");
@@ -22,6 +24,7 @@ beforeAll(async () => {
   base = `http://127.0.0.1:${(application.getHttpServer().address() as AddressInfo).port}`;
 });
 
+/** Отправляет настоящий локальный HTTP POST с явным Content-Type, позволяя сценариям переопределять заголовки. */
 const post = (
   path: string,
   body: string,
@@ -33,6 +36,7 @@ const post = (
     body,
   });
 
+/** Недоступная БД даёт 503/no-store, а не успешную пустую конфигурацию. */
 it("fails safely without a database for public launch configuration", async () => {
   const response = await fetch(base + "/api/launch-config");
   expect(response.status).toBe(503);
@@ -40,6 +44,7 @@ it("fails safely without a database for public launch configuration", async () =
   expect(response.headers.get("cache-control")).toBe("no-store");
 });
 
+/** Чужой origin отклоняется до logout: cookie и разрешающий CORS не выставляются. */
 it.each([
   "https://evil.example",
   "null",
@@ -53,6 +58,7 @@ it.each([
     expect(response.headers.get("access-control-allow-origin")).toBeNull();
   },
 );
+/** Разрешённый origin сохраняет credentialed preflight и защитные заголовки без x-powered-by. */
 it("preserves credentialed preflight and security response headers", async () => {
   const response = await fetch(base + "/api/health", {
     method: "OPTIONS",
@@ -73,6 +79,7 @@ it("preserves credentialed preflight and security response headers", async () =>
   );
   expect(response.headers.get("x-powered-by")).toBeNull();
 });
+/** Простой cross-site form POST с cookie не обходит CSRF-проверку через отсутствие JSON. */
 it("rejects cookie-bearing cross-site simple requests", async () => {
   const response = await post("/api/auth/logout", "a=b", {
     Cookie: "app_session=invalid",
@@ -81,6 +88,7 @@ it("rejects cookie-bearing cross-site simple requests", async () => {
   expect(response.status).toBe(403);
   expect(response.headers.get("set-cookie")).toBeNull();
 });
+/** Без действительной сессии logout очищает HttpOnly-cookie и не кеширует ответ; отзыв реального токена здесь не проверяется. */
 it("preserves native logout and its cookie clearing contract", async () => {
   const response = await post("/api/auth/logout", "{}");
   expect(response.status).toBe(200);
@@ -93,6 +101,7 @@ it("preserves native logout and its cookie clearing contract", async () => {
   );
   expect(response.headers.get("cache-control")).toBe("no-store");
 });
+/** Лимиты auth и обычного JSON проверяются через настоящий HTTP парсер. */
 it.each([
   ["/api/auth/login", 17_000],
   ["/api/admin/launch-settings", 270_000],
@@ -100,11 +109,13 @@ it.each([
   const response = await post(path, JSON.stringify({ text: "x".repeat(size) }));
   expect(response.status).toBe(413);
 });
+/** Повреждённый JSON даёт безопасный 400 без отражения исходного тела. */
 it("keeps malformed JSON out of handlers and out of error responses", async () => {
   const response = await post("/api/auth/login", "{SECRET_INVALID_BODY}");
   expect(response.status).toBe(400);
   expect(await response.json()).toEqual({ error: "Некорректный запрос" });
 });
+/** Upload batch без сессии отклоняется на auth-этапе, до выделения большого JSON тела. */
 it.each(["/api/trpc/profile.uploadAvatar,auth.me"])(
   "authenticates anonymous uploads at %s before allocating the oversized body",
   async (path) => {
@@ -115,6 +126,7 @@ it.each(["/api/trpc/profile.uploadAvatar,auth.me"])(
     expect(response.status).toBe(401);
   },
 );
+/** Упразднённые legacy upload routes отвечают 404 даже при повреждённом и большом теле. */
 it.each([
   "/api/admin/upload-video",
   "/api/trpc/admin.uploadMedia",
@@ -122,6 +134,7 @@ it.each([
 ])("retires %s before parsing its body", async (path) => {
   expect((await post(path, "{" + "x".repeat(300000))).status).toBe(404);
 });
+/** Настоящий tRPC HTTP link сохраняет публичное auth.me и запрет admin mutation для гостя. */
 it("keeps tRPC public queries, types and protected-role checks reachable", async () => {
   const client = createTRPCProxyClient<AppRouter>({
     links: [
@@ -140,6 +153,7 @@ it("keeps tRPC public queries, types and protected-role checks reachable", async
     }),
   ).rejects.toMatchObject({ data: { code: "UNAUTHORIZED", httpStatus: 401 } });
 });
+/** Независимо рассчитанный HMAC проверяет PHP-вложенность GET/POST; неверная подпись отклоняется без CORS-исключения. */
 it.each(["POST", "GET"])(
   "preserves PHP-shaped provider payload and HMAC verification for %s",
   async (method) => {
@@ -174,6 +188,7 @@ it.each(["POST", "GET"])(
     expect(await rejected.text()).toBe("signature incorrect");
   },
 );
+/** Browser redirect с paid=1 не выпускает cookie и не служит подтверждением платежа. */
 it("does not grant a session on the provider browser return", async () => {
   const response = await fetch(
     base + "/api/prodamus/return?order=club-fixture&paid=1",
@@ -185,6 +200,7 @@ it("does not grant a session on the provider browser return", async () => {
   );
   expect(response.headers.get("set-cookie")).toBeNull();
 });
+/** Отключённый SMS возвращает документированный FEATURE_DISABLED, не запускает отправку кода. */
 it.each(["/api/auth/sms/send", "/api/auth/sms/verify"])(
   "preserves disabled-feature policy at %s",
   async (path) => {
@@ -193,6 +209,7 @@ it.each(["/api/auth/sms/send", "/api/auth/sms/verify"])(
     expect(await response.json()).toMatchObject({ code: "FEATURE_DISABLED" });
   },
 );
+/** Второй собственный listener отвечает до close и перестаёт принимать запросы после него. */
 it("returns 404 for an unknown route and releases its listener on close", async () => {
   expect((await fetch(base + "/api/not-a-route")).status).toBe(404);
   const other = await createBackendApplication();
@@ -207,11 +224,13 @@ it("returns 404 for an unknown route and releases its listener on close", async 
   }
 });
 
+/** Закрываем собственный Nest listener и возвращаем окружение, не оставляя работающий сервер после тестов. */
 afterAll(async () => {
   await application?.close();
   vi.unstubAllEnvs();
 });
 
+/** Проверяем JSON health и полный состав default-off capabilities; это не приёмка настоящих интеграций. */
 it("serves the existing health and capability contracts through the real application", async () => {
   const health = await fetch(`${base}/api/health`);
   expect(health.status).toBe(200);

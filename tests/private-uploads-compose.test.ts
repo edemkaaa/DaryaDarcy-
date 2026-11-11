@@ -1,9 +1,11 @@
+/** Опциональный Compose config-прогон проверяет выделенный S3 egress без запуска контейнеров. */
 import { execFileSync } from "node:child_process";
 import { copyFileSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { expect, it } from "vitest";
 
+/** Overlay добавляет внутреннюю сеть API/S3-gateway, сохраняя остальные сервисы и отдельный image-egress web; порты/секреты gateway не открываются. */
 it.skipIf(process.env.PRIVATE_UPLOADS_COMPOSE_ACCEPTANCE !== "true")(
   "adds S3 only to API without giving API general egress or changing existing services",
   () => {
@@ -25,6 +27,7 @@ it.skipIf(process.env.PRIVATE_UPLOADS_COMPOSE_ACCEPTANCE !== "true")(
         "S3_ENDPOINT=https://s3.twcstorage.ru\nS3_BUCKET=synthetic-fixture\nPRIVATE_CONTENT_FILES_ENABLED=false\n",
         { mode: 0o600 },
       );
+      /** Рендерим baseline/overlay JSON в собственной временной папке с пустыми/синтетическими env. */
       const config = (enabled: boolean) =>
         JSON.parse(
           execFileSync(

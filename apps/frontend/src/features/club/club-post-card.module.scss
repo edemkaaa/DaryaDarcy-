@@ -2,6 +2,7 @@
 @use "../../shared/styles/layers";
 
 @layer components {
+  /* Клубная карточка имеет собственные боковые поля и скруглённый clip для медиа и бумажной подложки. */
   .postCard {
     border-radius: 16px;
     overflow: hidden;
@@ -27,6 +28,7 @@
     background-color: transparent;
   }
 
+  /* Меню закреплено над фото отдельным z-слоем и не участвует в расчёте высоты изображения. */
   .photoMenu {
     position: absolute;
     top: 8px;
@@ -36,6 +38,7 @@
     border-radius: 16px;
   }
 
+  /* Текст и ссылка статьи отделены внутренними полями от полноширинного медиаблока. */
   .postContent {
     padding: 16px;
     gap: 6px;
@@ -74,6 +77,7 @@
     color: var(--olive);
   }
 
+  /* Рубрики переносятся внутри карточки, не расширяя горизонтальную область Клуба. */
   .postTagsRow {
     flex-direction: row;
     flex-wrap: wrap;
@@ -100,6 +104,7 @@
     letter-spacing: 0.15px;
   }
 
+  /* Дата занимает начало нижней строки, реакции остаются отдельной группой действий. */
   .postActions {
     flex-direction: row;
     align-items: center;
@@ -131,6 +136,7 @@
     width: 30px;
     height: 30px;
   }
+  /* Условные классы различают выбранные теги, нажатие и доступность реакций без изменения раскладки. */
   .opacityState {
     opacity: 0.92;
     --action-base-opacity: 0.92;

@@ -25,6 +25,7 @@ const endpoint = "https://s3.twcstorage.ru",
   Bucket = "daryadarcy-s3";
 const acceptedPolicyHash =
   "0484dfa2cc0164225db616bc516c53e8be377aca975d32701b6a6467ce1715e8";
+/** Вычисляет SHA-256 точных байтов и текста политики для проверки идентичности. */
 const hash = (bytes: Buffer | string) =>
   createHash("sha256").update(bytes).digest("hex");
 type Manifest = {
@@ -48,6 +49,7 @@ type ImportReport = {
 };
 
 // Opt-in only: six new synthetic objects, native SQL/API, no frontend or policy writes.
+/** Опциональная приёмка проверяет импорт шести новых синтетических файлов и выдачу через настоящий S3 и отдельную SQL-базу. */
 describe.skipIf(!enabled)("library importer and delivery with real S3", () => {
   let conn: Connection, storage: S3Client, app: INestApplication, base: string;
   const owner = randomUUID(),
@@ -57,8 +59,10 @@ describe.skipIf(!enabled)("library importer and delivery with real S3", () => {
   const knownFiles = new Set<string>();
   const assets = new Map<string, RowDataPacket>();
   const urls: string[] = [];
+  /** Читает контрольные строки импорта и привязок собственной базы. */
   const rows = async (query: string, values: unknown[] = []) =>
     (await conn.query<RowDataPacket[]>(query, values))[0];
+  /** Выполняет GET, HEAD либо Range через локальный API с выбранной синтетической ролью. */
   const read = (path: string, who = "member", method = "GET", range?: string) =>
     fetch(base + path, {
       method,
@@ -68,6 +72,7 @@ describe.skipIf(!enabled)("library importer and delivery with real S3", () => {
       },
       signal: AbortSignal.timeout(20000),
     });
+  /** Проверяет неизменную принятую bucket policy и отсутствие версионирования до операций с собственными объектами. */
   async function policy() {
     expect(
       hash(
@@ -86,6 +91,7 @@ describe.skipIf(!enabled)("library importer and delivery with real S3", () => {
       ).Status,
     ).toBeUndefined();
   }
+  /** Собирает durable-квитанции только своих файлов и проверяет UUID и разрешённые имена перед очисткой. */
   async function remember() {
     for (const row of await rows(
       "SELECT * FROM private_content_files WHERE actorUserId=?",
@@ -101,6 +107,7 @@ describe.skipIf(!enabled)("library importer and delivery with real S3", () => {
       assets.set(row.assetId, row);
     }
   }
+  /** Проверяет metadata, размер, MIME и ETag объекта против его собственной durable-квитанции. */
   async function ownedObject(row: RowDataPacket) {
     const Key = `content/private-v1/${row.assetId}`;
     const meta = await storage.send(new HeadObjectCommand({ Bucket, Key }), {
@@ -117,6 +124,7 @@ describe.skipIf(!enabled)("library importer and delivery with real S3", () => {
       throw new Error("Owned library object mismatch");
     return { Key, meta };
   }
+  /** Запускает отдельный импортёр с контролируемой потерей PUT либо commit-ответа и возвращает безопасный отчёт команд без секретов. */
   async function imported(
     manifest: Manifest,
     options: { dropPutReply?: boolean; dropCommitReply?: boolean } = {},
@@ -176,6 +184,7 @@ describe.skipIf(!enabled)("library importer and delivery with real S3", () => {
     expect(line).toBeDefined();
     return { ...JSON.parse(line!), exit };
   }
+  /** Проверяет явный opt-in и владение пустым tmpfs-контейнером; создаёт синтетические роли и манифесты шести файлов. */
   beforeAll(async () => {
     const url = assertTestDatabase(uri!);
     const id = process.env.LB_S3_DATABASE_CONTAINER_ID;
@@ -282,6 +291,7 @@ describe.skipIf(!enabled)("library importer and delivery with real S3", () => {
     await app.listen(0, "127.0.0.1");
     base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
   }, 30000);
+  /** Удаляет только подтверждённые собственные объекты с If-Match, повторно проверяет политику и закрывает локальные ресурсы. */
   afterAll(async () => {
     if (app) {
       await app.close();
@@ -333,6 +343,7 @@ describe.skipIf(!enabled)("library importer and delivery with real S3", () => {
       vi.unstubAllEnvs();
     }
   }, 60000);
+  /** Проверяет восстановление после потери S3 и commit-ответов между процессами без повторных объектов и привязок. */
   it("recovers lost S3 and committed-import replies across fresh processes without duplicate copies", async () => {
     const request = manifests[0];
     const lost = await imported(request, { dropPutReply: true });
@@ -376,6 +387,7 @@ describe.skipIf(!enabled)("library importer and delivery with real S3", () => {
     expect(conflict.errorCode).toBe("CONFLICT");
     expect(conflict.commands).toEqual([]);
   }, 90000);
+  /** Проверяет точные байты всех шести файлов, безопасные заголовки и Range, пока анонимный S3-доступ закрыт. */
   it("serves all six byte-exact files through live club API while anonymous S3 stays closed", async () => {
     for (const manifest of manifests.slice(1))
       expect(await imported(manifest)).toMatchObject({
@@ -440,6 +452,7 @@ describe.skipIf(!enabled)("library importer and delivery with real S3", () => {
       }
     }
   }, 120000);
+  /** Проверяет отзыв доступа по сроку, эпохе и блокировке, а также staff-доступ без выдачи оплаты модератору. */
   it("revokes paid reads on expiry, session change and blocking without granting payment to moderators", async () => {
     const path = urls[0];
     expect(path).toBeDefined();
@@ -488,6 +501,7 @@ describe.skipIf(!enabled)("library importer and delivery with real S3", () => {
       await rows("SELECT id FROM library_file_bindings WHERE enabled=1"),
     ).toHaveLength(6);
   }, 45000);
+  /** Проверяет откат только одного материала, запрет возобновления отменённого импорта и сохранность объектов других материалов. */
   it("rolls back only its material and never revives the cancelled operation or a public URL", async () => {
     const result = await rollbackLibraryMigration(
       actor,

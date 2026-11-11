@@ -23,6 +23,7 @@ import { createBackendApplication } from "../apps/backend/src/_core/application"
 import { emailToOpenId, getDb } from "../apps/backend/src/db";
 import { sdk } from "../apps/backend/src/_core/sdk";
 
+/** Проверяет гостевую LIVE-ветку создания и восстановления заказа через настоящий HTTP и SQL без реальной оплаты. */
 describe.skipIf(!testDatabaseUrl)(
   "guest normal checkout recovery over HTTP and SQL",
   () => {
@@ -39,9 +40,11 @@ describe.skipIf(!testDatabaseUrl)(
       "other-guest-recovery@example.test",
       "new-guest-recovery@example.test",
     ];
+    /** Читает контрольные строки платежей, намерений и пользователя отдельной базы. */
     async function rows(query: string, values: unknown[] = []) {
       return (await conn.query<RowDataPacket[]>(query, values))[0];
     }
+    /** Удаляет только триггер и данные трёх синтетических адресов, начиная с дочерних записей. */
     async function cleanup() {
       await conn.query("DROP TRIGGER IF EXISTS owned_guest_ledger_failure");
       const ids = await rows(
@@ -59,10 +62,12 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query("DELETE FROM users WHERE id=?", [id]);
       }
     }
+    /** Формирует секретное доказательство восстановления из UUID операции и независимого токена. */
     const proof = () => ({
       idempotencyKey: input.idempotencyKey,
       recoveryToken: input.recoveryToken,
     });
+    /** Отправляет процедуру клуба настоящим POST и разбирает superjson вместе с cookie и заголовками кеширования. */
     async function call(
       method: string,
       data: unknown,
@@ -85,10 +90,13 @@ describe.skipIf(!testDatabaseUrl)(
         retry: r.headers.get("retry-after"),
       };
     }
+    /** Создаёт или повторяет гостевой checkout с управляемым телом и авторизацией. */
     const create = (data: unknown = input, headers?: Record<string, string>) =>
       call("createGuestNormalCheckout", data, headers);
+    /** Запрашивает состояние гостевого checkout только по полному доказательству восстановления. */
     const status = (data: unknown = proof()) =>
       call("guestNormalCheckoutStatus", data);
+    /** Захватывает тестовую advisory-блокировку и поднимает локальный API с отдельной базой. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       expect(
@@ -105,6 +113,7 @@ describe.skipIf(!testDatabaseUrl)(
       await app.listen(0, "127.0.0.1");
       base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
     }, 45_000);
+    /** Возвращает синтетические LIVE-настройки и создаёт два существующих аккаунта без изменения их паролей. */
     beforeEach(async () => {
       await cleanup();
       vi.stubEnv("GUEST_CHECKOUT_RECOVERY_ENABLED", "true");
@@ -125,6 +134,7 @@ describe.skipIf(!testDatabaseUrl)(
         contactPhone: "+79991234567",
       };
     });
+    /** Удаляет только собственные данные, освобождает advisory-блокировку, закрывает приложение и SQL-пул. */
     afterAll(async () => {
       await app?.close();
       if (conn) {
@@ -137,6 +147,7 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** Проверяет совместимое восстановление старого намерения с NULL-телефоном без смены заказа. */
     it("recovers an old guest order with NULL contact without rotating the order", async () => {
       const first = await create();
       expect(first.code).toBe(200);
@@ -147,6 +158,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await call("createGuestNormalCheckout", oldInput)).data).toEqual(first.data);
       expect(await rows("SELECT contactPhone FROM club_payments WHERE userId=981401")).toEqual([{ contactPhone: null }]);
     });
+    /** Проверяет обязательный контакт нового заказа, нормализацию и конфликт изменённого телефона на повторе без изменения карточки до оплаты. */
     it("requires contact before new guest creation and preserves it on replay", async () => {
       await conn.query("UPDATE users SET contactPhone='+12025550123' WHERE id=981401");
       const { contactPhone: ignored, ...missing } = input;
@@ -161,6 +173,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await rows("SELECT phone FROM users WHERE id=981401"))[0].phone).toBeNull();
       expect(await rows("SELECT contactPhone FROM users WHERE id=981401")).toEqual([{ contactPhone: "+12025550123" }]);
     });
+    /** Проверяет единственный pending-заказ без cookie, изменения идентичности и преждевременной выдачи доступа. */
     it("replays one order without a login cookie, identity changes or an access grant", async () => {
       const identity = await rows(
         "SELECT id,email,passwordHash,role,sessionVersion FROM users WHERE id=981401",
@@ -191,6 +204,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(first.data.url).not.toContain(input.recoveryToken);
     });
+    /** Разрывает прокси-соединение после успешного ответа API и восстанавливает закоммиченный заказ по доказательству без дубля. */
     it("recovers after the HTTP connection loses the committed response", async () => {
       let upstreamStatus: number | undefined;
       const proxy = createServer((req, res) => {
@@ -225,6 +239,7 @@ describe.skipIf(!testDatabaseUrl)(
         await new Promise<void>((resolve) => proxy.close(() => resolve()));
       }
     });
+    /** Проверяет сериализацию трёх повторов с созданием одного нового получателя и одного заказа. */
     it("serializes concurrent retries and creates only one canonical new recipient", async () => {
       input.email = emails[2];
       const replies = await Promise.all([create(), create(), create()]);
@@ -241,6 +256,7 @@ describe.skipIf(!testDatabaseUrl)(
         ]),
       ).toHaveLength(1);
     });
+    /** Подтверждает синтетическим подписанным webhook именно второй заказ и проверяет запись только его телефона в пустую карточку. */
     it("fills a new guest card only from the order that was paid", async () => {
       const email = emails[2];
       vi.stubEnv("AUTH_LINK_ENCRYPTION_KEY", Buffer.alloc(32, 8).toString("base64"));
@@ -278,6 +294,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await rows("SELECT contactPhone,phone FROM users WHERE email=?", [email]))
         .toEqual([{ contactPhone: paidPhone, phone: null }]);
     });
+    /** Удерживает конкурентную регистрацию того же email и проверяет сохранность созданной ею карточки после продолжения checkout. */
     it("preserves an account created while guest checkout waits on the same email", async () => {
       const email = emails[2];
       const registration = await createConnection(testDatabaseUrl!);
@@ -308,6 +325,7 @@ describe.skipIf(!testDatabaseUrl)(
         await registration.end();
       }
     });
+    /** Проверяет невозможность восстановить чужую операцию только по UUID или почте без правильного секрета. */
     it("does not recover someone else's operation with only UUID or email", async () => {
       const first = await create();
       expect(first.code).toBe(200);
@@ -331,6 +349,7 @@ describe.skipIf(!testDatabaseUrl)(
         ).code,
       ).toBe(400);
     });
+    /** Проверяет конфликт изменённых email и тарифа вместо создания второго заказа. */
     it("rejects changed parameters rather than creating another order", async () => {
       expect((await create()).code).toBe(200);
       expect((await create({ ...input, email: emails[1] })).code).toBe(409);
@@ -341,6 +360,7 @@ describe.skipIf(!testDatabaseUrl)(
         ),
       ).toHaveLength(1);
     });
+    /** Проверяет разделение гостевого и авторизованного пространств операций и продолжение только своего существующего гостевого намерения. */
     it("keeps namespaces separate and resumes only an existing owned guest intent after login", async () => {
       expect((await create()).code).toBe(200);
       vi.stubEnv("NORMAL_CHECKOUT_RECOVERY_ENABLED", "true");
@@ -380,6 +400,7 @@ describe.skipIf(!testDatabaseUrl)(
         ).code,
       ).toBe(403);
     });
+    /** Проверяет единственного победителя и безопасный конфликт при гонке одного ключа с двумя получателями. */
     it("conflicts safely when the same intent races with two recipients", async () => {
       const r = await Promise.all([
         create(),
@@ -392,6 +413,7 @@ describe.skipIf(!testDatabaseUrl)(
         ),
       ).toHaveLength(1);
     });
+    /** Проверяет нормализацию email и прежний полугодовой тариф без параметра автопродления. */
     it("normalizes email and preserves the existing non-recurring semiannual contract", async () => {
       const r = await create({
         ...input,
@@ -406,6 +428,7 @@ describe.skipIf(!testDatabaseUrl)(
         await rows("SELECT sum FROM club_payments WHERE userId=981401"),
       ).toEqual([{ sum: "4740" }]);
     });
+    /** Собирает production ESM и проверяет восстановление одного закоммиченного заказа независимыми процессами. */
     it("replays the committed operation across independent compiled processes", async () => {
       const directory = mkdtempSync(resolve(".tmp-guest-recovery-")),
         entry = join(directory, "application.mjs");
@@ -432,6 +455,7 @@ describe.skipIf(!testDatabaseUrl)(
           format: "esm",
           outfile: entry,
         });
+        /** Запускает отдельный собранный процесс с синтетической конфигурацией и извлекает только маркированный результат checkout. */
         const run = () => {
           const raw = execFileSync(process.execPath, [entry], {
             cwd: tmpdir(),
@@ -470,6 +494,7 @@ describe.skipIf(!testDatabaseUrl)(
         rmSync(directory, { recursive: true, force: true });
       }
     }, 30_000);
+    /** Проверяет закрытый отказ выключенной, неполной или TEST-конфигурации без создания заказа. */
     it("refuses missing/disabled configuration and TEST routing without DB writes", async () => {
       vi.stubEnv("GUEST_CHECKOUT_RECOVERY_ENABLED", "false");
       expect((await create()).code).toBe(412);
@@ -487,6 +512,7 @@ describe.skipIf(!testDatabaseUrl)(
         await rows("SELECT orderId FROM club_payments WHERE userId=981401"),
       ).toHaveLength(0);
     });
+    /** Проверяет чтение статуса без боевого секрета и отказ повторного создания при изменившейся конфигурации продавца. */
     it("recovers status without live keys and refuses merchant drift for replay", async () => {
       const first = await create();
       expect(first.code).toBe(200);
@@ -499,6 +525,7 @@ describe.skipIf(!testDatabaseUrl)(
         await rows("SELECT orderId FROM club_payments WHERE userId=981401"),
       ).toHaveLength(1);
     });
+    /** Проверяет откат заказа при отказе durable-журнала и допустимый повтор после удаления собственного триггера. */
     it("rolls back the order if the durable ledger cannot commit", async () => {
       await conn.query(
         "CREATE TRIGGER owned_guest_ledger_failure BEFORE INSERT ON normal_checkout_requests FOR EACH ROW BEGIN IF NEW.actorUserId=981401 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='synthetic guest ledger failure'; END IF; END",
@@ -511,6 +538,7 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query("DROP TRIGGER owned_guest_ledger_failure");
       expect((await create()).code).toBe(200);
     });
+    /** Проверяет, что paid-строки без квитанции недостаточно для успеха, а settlement-доказательство разрешает восстановление результата. */
     it("requires settlement evidence and never promotes a bare paid row to success", async () => {
       const first = await create();
       expect(first.code).toBe(200);
@@ -528,6 +556,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(result.data.state).toBe("succeeded");
       expect((await create()).data).toEqual(result.data);
     });
+    /** Проверяет сохранение failed-результата без автоматического заказа-замены. */
     it("preserves a failed outcome without creating a replacement", async () => {
       const first = await create();
       expect(first.code).toBe(200);
@@ -544,6 +573,7 @@ describe.skipIf(!testDatabaseUrl)(
         orderId: first.data.orderId,
       });
     });
+    /** Проверяет запрет чтения и повтора для заблокированного или удаляющегося получателя. */
     it("blocks reads and retries for a blocked or retiring recipient", async () => {
       expect((await create()).code).toBe(200);
       await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=981401");
@@ -554,6 +584,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect((await create()).code).toBe(403);
     });
+    /** Проверяет строгую форму доказательства, запрет GET и batch без отражения секрета. */
     it("rejects malformed secrets, GET and batch without exposing proof in a response", async () => {
       expect(
         (await create({ ...input, recoveryToken: "not-a-proof" })).code,
@@ -577,6 +608,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(r.status).toBe(400);
       expect(await r.text()).not.toContain(input.recoveryToken);
     });
+    /** Проверяет обязательность durable-ветки для старого гостевого LIVE-входа только при включённом флаге. */
     it("requires the durable path for legacy guest LIVE checkout only when enabled", async () => {
       expect((await call("createCheckout", { email: input.email, contactPhone: input.contactPhone })).code).toBe(
         412,
@@ -591,6 +623,7 @@ describe.skipIf(!testDatabaseUrl)(
         200,
       );
     });
+    /** Изолирует окно квоты одного доказательства и проверяет 429 с Retry-After без создания заказов. */
     it("bounds status polling and returns Retry-After without creating orders", async () => {
       // This test measures one proof budget, independently of the previous HTTP
       // cases' shared IP budget. Production limits remain unchanged.

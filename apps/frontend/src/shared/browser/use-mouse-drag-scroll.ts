@@ -15,6 +15,7 @@ type Drag = {
   detach: () => void;
 };
 
+/** Считаем допустимые остановки по реальным дочерним карточкам и ширине прокрутки, убирая совпадающие крайние позиции. */
 function snapOffsets(node: HTMLDivElement): number[] {
   const content = node.querySelector(":scope > .ui-scroll-content") ?? node;
   const items =
@@ -32,10 +33,11 @@ function snapOffsets(node: HTMLDivElement): number[] {
   ].sort((a, b) => a - b);
 }
 
-/** Add mouse swiping without intercepting native touch, wheel or keyboard input. */
+/** Добавляем drag только левой мышью по нужному horizontal-root; touch, контролы медиа и редактирование текста остаются нативными. */
 export function useMouseDragScroll(enabled = true) {
   const drag = useRef<Drag | null>(null);
   const suppressClick = useRef(false);
+  /** Завершаем listeners и pointer capture, возвращаем CSS snap и выбираем исходную либо ближайшую допустимую остановку. */
   const finish = useCallback((cancelled: boolean) => {
     const current = drag.current;
     if (!current) return;
@@ -50,6 +52,7 @@ export function useMouseDragScroll(enabled = true) {
       let left = cancelled ? current.left : offset;
       if (!cancelled && current.snapping) {
         const offsets = snapOffsets(node);
+        /** Выбираем индекс ближайшей snap-позиции; порог отдельного swipe может сдвинуть его ещё на одну карточку. */
         const nearest = (value: number) =>
           offsets.reduce(
             (best, item, index) =>
@@ -78,6 +81,7 @@ export function useMouseDragScroll(enabled = true) {
   useEffect(() => () => finish(true), [enabled, finish]);
 
   return {
+    /** Новый mouse sequence начинает с чистого подавления click; чужие scroll-root и интерактивные контролы исключаются до захвата. */
     onPointerDown: (event) => {
       suppressClick.current = false;
       finish(true);
@@ -97,10 +101,13 @@ export function useMouseDragScroll(enabled = true) {
         )
       )
         return;
+      /** Единая отмена возвращает исходный offset и снимает все listeners этой последовательности. */
       const cancel = () => finish(true);
+      /** Уход документа в фон прекращает текущий drag, чтобы возврат не продолжил движение с устаревшими координатами. */
       const visibility = () => {
         if (document.hidden) cancel();
       };
+      /** Захватываем указатель только после выбора горизонтальной оси; исчезновение элемента или отпускание кнопки отменяет операцию. */
       const move = (moveEvent: PointerEvent) => {
         const current = drag.current;
         if (!current || moveEvent.pointerId !== current.id) return;
@@ -131,10 +138,12 @@ export function useMouseDragScroll(enabled = true) {
           node.scrollLeft = current.left - dx;
         }
       };
+      /** Завершаем только свой pointer; системная отмена возвращает исходную позицию вместо принятия нового scroll-offset. */
       const end = (endEvent: PointerEvent) => {
         if (endEvent.pointerId === drag.current?.id)
           finish(endEvent.type === "pointercancel");
       };
+      /** Снимаем все window/document listeners этой последовательности до удаления её состояния. */
       const detach = () => {
         window.removeEventListener("pointermove", move);
         window.removeEventListener("pointerup", end);
@@ -162,6 +171,7 @@ export function useMouseDragScroll(enabled = true) {
       window.addEventListener("resize", cancel);
       document.addEventListener("visibilitychange", visibility);
     },
+    /** После распознанного drag подавляем только следующий pointer-click, оставляя клавиатурную активацию доступной. */
     onClickCapture: (event) => {
       if (event.detail && suppressClick.current) {
         suppressClick.current = false;
@@ -169,9 +179,11 @@ export function useMouseDragScroll(enabled = true) {
         event.stopPropagation();
       }
     },
+    /** Потерю нашего capture считаем отменой, а не принятием случайной новой позиции. */
     onLostPointerCapture: (event) => {
       if (event.pointerId === drag.current?.id) finish(true);
     },
+    /** Во время своего drag не позволяем браузеру начать параллельное перетаскивание картинки или ссылки. */
     onDragStart: (event) => {
       if (drag.current) event.preventDefault();
     },

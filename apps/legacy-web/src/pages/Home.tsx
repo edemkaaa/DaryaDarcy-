@@ -1,9 +1,11 @@
+/** Архивная статическая главная Vite: автор, книги и навигационные открытки. */
 import { Link } from "react-router-dom";
 import { BANNERS } from "../data";
 
 const STAMP = "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/5c000c389c50-FumaYiYPevouyHwe.webp";
 const COTTAGE = "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/3f69fb85d89c-nbShGAsyJAWYwcXH.webp";
 
+/** Собирает фиксированные визуальные секции и разделяет первую открытку Ленты от остальных баннеров. */
 export default function Home() {
   const feed = BANNERS[0];
   const rest = BANNERS.slice(1);

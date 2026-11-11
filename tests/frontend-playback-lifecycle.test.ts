@@ -1,11 +1,14 @@
+/** События видимости/фокуса объединяются в проверку права воспроизведения, не в автоматическое продолжение video. */
 import { afterEach, expect, it, vi } from "vitest";
 import { PlaybackLifecycle } from "../apps/frontend/src/features/videos/playback-lifecycle";
 
+/** Возвращаем performance clock и синтетические window/document. */
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
+/** Настоящий PlaybackLifecycle подписан на управляемые EventTarget и фиксированное время. */
 function fixture() {
   const document = Object.assign(new EventTarget(), {
     hidden: false,
@@ -18,6 +21,7 @@ function fixture() {
   const lifecycle = new PlaybackLifecycle();
   const notify = vi.fn();
   const unsubscribe = lifecycle.subscribe(notify);
+  /** Направляем visibilitychange в document, остальные lifecycle события в window. */
   const emit = (name: string) =>
     (name === "visibilitychange" ? document : window).dispatchEvent(
       new Event(name),
@@ -25,6 +29,7 @@ function fixture() {
   return { document, now, lifecycle, notify, unsubscribe, emit };
 }
 
+/** Парные focus/visibility события одного возврата дают одну epoch даже после быстрого ответа; поздний новый возврат даёт следующую. */
 for (const first of ["focus", "visibilitychange"]) {
   it(`coalesces ${first} and its paired return event even after a fast response`, () => {
     const f = fixture();
@@ -41,6 +46,7 @@ for (const first of ["focus", "visibilitychange"]) {
   });
 }
 
+/** Настоящий hide/return требует новую epoch независимо от недавнего debounce. */
 it("a quick real hide and return bypasses the previous coalescing window", () => {
   const f = fixture();
   f.emit("focus");
@@ -60,6 +66,7 @@ it("a quick real hide and return bypasses the previous coalescing window", () =>
   f.unsubscribe();
 });
 
+/** Уход из окна и новый focus — отдельная проверка, не дубль события. */
 it("a new window blur and focus requires a fresh check even within the window", () => {
   const f = fixture();
   f.emit("focus");
@@ -70,6 +77,7 @@ it("a new window blur and focus requires a fresh check even within the window", 
   f.unsubscribe();
 });
 
+/** Blur из-за iframe-player при оставшемся document focus не сбрасывает authority по одному таймеру. */
 it("returning from a player to the page keeps authority even after the cooldown", () => {
   const f = fixture();
   f.document.hasFocus.mockReturnValue(true);
@@ -84,6 +92,7 @@ it("returning from a player to the page keeps authority even after the cooldown"
   f.unsubscribe();
 });
 
+/** После iframe blur настоящий уход из окна всё равно обнаруживается. */
 it("leaving the window after focusing a player still requires fresh authority", () => {
   const f = fixture();
   f.document.hasFocus.mockReturnValue(true);
@@ -95,6 +104,7 @@ it("leaving the window after focusing a player still requires fresh authority", 
   f.unsubscribe();
 });
 
+/** Скрытие, возврат из BFCache и online требуют проверки даже после фокуса плеера. */
 for (const event of ["visibilitychange", "pagehide", "online", "pageshow"]) {
   it(`${event} still rechecks after focusing a player`, () => {
     const f = fixture();
@@ -113,6 +123,7 @@ for (const event of ["visibilitychange", "pagehide", "online", "pageshow"]) {
   });
 }
 
+/** Сетевой/BFCache возврат всегда меняет epoch, следующий focus объединяется с ним. */
 for (const event of ["online", "pageshow"]) {
   it(`${event} always requires new authority and coalesces the following focus`, () => {
     const f = fixture();
@@ -127,6 +138,7 @@ for (const event of ["online", "pageshow"]) {
   });
 }
 
+/** Пока document.hidden, посторонние события не возвращают разрешение. */
 it("hidden documents do not regain authority through focus, online or pageshow", () => {
   const f = fixture();
   f.document.hidden = true;
@@ -140,6 +152,7 @@ it("hidden documents do not regain authority through focus, online or pageshow",
   f.unsubscribe();
 });
 
+/** После unsubscribe никакое событие не вызывает notify. */
 it("unsubscribing removes all lifecycle listeners", () => {
   const f = fixture();
   f.unsubscribe();

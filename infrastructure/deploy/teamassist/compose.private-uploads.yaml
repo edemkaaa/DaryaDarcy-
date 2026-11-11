@@ -2,10 +2,13 @@
 # Reviewed opt-in overlay. Keep flags false in private-uploads.env until the
 # same-DB/schema/policy/identity/TLS preflight has passed. Never publish ports.
 services:
+# Закрытый overlay env добавляется только после preflight, сетевой alias S3 ограничен API.
   api:
     env_file: [./api.env, ./private-uploads.env]
+    # s3-client — внутренняя сеть API, s3-egress — отдельный внешний маршрут шлюза.
     networks: [isolated, s3-client]
     depends_on:
+    # Read-only Nginx пропускает TLS к S3 и отдельные VK-превью; порты на хост не публикуются.
       s3-egress: { condition: service_healthy }
   s3-egress:
     image: nginx:stable-alpine@sha256:0985e772fb9f729e6fa0980da05fca5d9c468e870eed43071545afa9d2e27d94

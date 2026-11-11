@@ -3,6 +3,7 @@ import { editorApi, ok } from "./editor-fixtures";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
 
 // Run against a local build with NEXT_PUBLIC_PRIVATE_LIBRARY_FILES_ENABLED=true.
+/** Строим канонические protected-file metadata с revision, MIME и URL, независимо от публичных обложек. */
 const entry = (material: string, key = "holly", mimeType = "image/webp") => ({
   fileKey: key,
   sortOrder: 0,
@@ -17,11 +18,13 @@ const pixel = Buffer.from(
   "base64",
 );
 
+/** Private-library suite запускается только при соответствующем build-флаге; все списки и media-ответы синтетические. */
 test.describe("private library delivery", () => {
   test.skip(
     process.env.NEXT_PUBLIC_PRIVATE_LIBRARY_FILES_ENABLED !== "true",
     "Requires a build with the private-library switch enabled.",
   );
+  /** Viewer закрывается после подтверждённого logout и больше не держит приватный файл. */
   test("private patterns use protected media and close the viewer on logout", async ({
     page,
   }) => {
@@ -58,6 +61,7 @@ test.describe("private library delivery", () => {
     ).toBeVisible();
   });
 
+  /** Гость не запрашивает ни protected metadata, ни старые исходные картинки выкроек. */
   test("guests request neither the list nor original pattern images", async ({
     page,
   }) => {
@@ -86,6 +90,7 @@ test.describe("private library delivery", () => {
     expect(requests).toEqual([]);
   });
 
+  /** Ошибка закрытой выдачи предлагает retry, а не публичный Yandex fallback; длинное имя PDF не ломает ширину диалога. */
   test("a failed private list has retry and never opens Yandex as a fallback", async ({
     page,
   }) => {
@@ -141,6 +146,7 @@ test.describe("private library delivery", () => {
     await expect(dialog).toHaveCount(0);
   });
 
+  /** При перепроверке доступа старые download-links убираются до ответа; ошибка оставляет retry, logout закрывает dialog. */
   test("Petersburg hides old links during access checks and closes on logout", async ({
     page,
   }) => {
@@ -213,6 +219,7 @@ test.describe("private library delivery", () => {
   });
 });
 
+/** Проверка доступности upload происходит до write: feature-off сохраняет выбранный документ и позволяет новый явный preflight без pending create. */
 for (const mode of ["full", "quick"] as const) {
   test(`${mode}: disabled uploads stay retryable and keep the selected file`, async ({
     page,
@@ -281,6 +288,7 @@ for (const mode of ["full", "quick"] as const) {
   });
 }
 
+/** Статья при недоступном upload-status сохраняет локальные files и остаётся повторяемой без creation-operation. */
 test("article: an unavailable upload keeps the editor retryable without a pending creation", async ({
   page,
 }) => {
@@ -337,6 +345,7 @@ test("article: an unavailable upload keeps the editor retryable without a pendin
   expect(writes).toEqual([]);
 });
 
+/** Фото комментария при feature-off остаётся выбранным; send можно повторить после нового preflight, не отправляя public или private upload. */
 test("comment: an unavailable photo upload keeps selection and allows another send", async ({
   page,
 }) => {

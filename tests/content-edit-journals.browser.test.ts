@@ -1,3 +1,4 @@
+/** Опциональный Chromium проверяет настоящую IndexedDB и File structured clone для article journals без API/БД. */
 import { expect, it } from "vitest";
 import { build } from "esbuild";
 import { chromium } from "@playwright/test";
@@ -9,6 +10,7 @@ type Journals =
     typeof import("../apps/frontend/src/domain/content/article-cover-journal") &
     typeof import("../apps/frontend/src/shared/browser/storage");
 
+/** В браузере последовательно сохраняем draft/cover/create intent, upload/write checkpoint и conflict412; base revision/оригинальные bytes сохраняются, owner102 не видит данные101. */
 it.skipIf(!process.env.PLAYWRIGHT_EXECUTABLE_PATH)(
   "real IndexedDB preserves article versions, original snapshots and File bytes in drafts, covers and write intents",
   async () => {

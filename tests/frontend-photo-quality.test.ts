@@ -1,10 +1,13 @@
+/** Проверяем отсутствие лишнего клиентского перекодирования и серверную нормализацию фото в памяти. */
 import { afterEach, expect, it, vi } from "vitest";
 import sharp from "sharp";
 import { fileForPhotoUpload } from "../apps/frontend/src/shared/media/image-upload";
 import { preparePhoto } from "../apps/backend/src/media/photos";
 
+/** Возвращаем browser globals после каждого формата. */
 afterEach(() => vi.unstubAllGlobals());
 
+/** Малый допустимый файл передаётся неизменённым, bitmap закрывается; итоговый серверный WebP сохраняет размер и поддерживаемую прозрачность. */
 it.each(["jpeg", "png", "webp"] as const)(
   "preserves already bounded %s bytes before the server's final encode",
   async (format) => {
@@ -45,6 +48,7 @@ it.each(["jpeg", "png", "webp"] as const)(
   },
 );
 
+/** Сервер применяет EXIF orientation и удаляет метаданные, даже если клиент не перекодировал исходник. */
 it("keeps orientation and metadata removal authoritative on the server", async () => {
   const bytes = await sharp({
     create: { width: 24, height: 16, channels: 3, background: "red" },

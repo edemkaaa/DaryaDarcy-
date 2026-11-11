@@ -1,3 +1,4 @@
+/** Проверяем зависимость ESLint minimatch на ограниченном времени и сохранении glob-семантики. */
 import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { expect, it } from "vitest";
@@ -6,6 +7,7 @@ const lintRequire = createRequire(require.resolve("eslint/package.json"));
 const matcherPath = lintRequire.resolve("minimatch");
 
 // Actual ESLint dependency; synthetic inputs run only in disposable children.
+/** Потенциально медленный шаблон запускается отдельно с малым heap и timeout; timeout не считается успешным совпадением. */
 it.each([
   ["consecutive stars", "'a' + '*'.repeat(100) + 'b'", "'a' + 'c'.repeat(25)"],
   [
@@ -34,6 +36,7 @@ it.each([
   expect(JSON.parse(output)).toEqual({ matched: false });
 });
 
+/** Обычные glob, скрытые файлы, braces и partial matching сохраняют прежние результаты. */
 it("preserves lint glob, dot, brace and partial matching semantics", () => {
   const match = lintRequire("minimatch") as (
     filename: string,

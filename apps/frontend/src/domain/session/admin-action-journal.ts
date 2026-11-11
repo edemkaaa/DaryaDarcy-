@@ -32,13 +32,16 @@ const schema = z
         value.outcome.userId === value.userId),
   );
 export type AdminActionIntent = z.infer<typeof schema>;
+/** Привязываем журнал команд к действующему администратору и версии формата. */
 export const adminActionStorageKey = (ownerId: number) =>
   `darcy:user:${ownerId}:admin-action:v1`;
 export class AdminActionJournalError extends Error {}
+/** Недоступное или повреждённое хранилище запрещает новую команду без восстанавливаемого ключа. */
 const storageError = () =>
   new AdminActionJournalError(
     "Не удалось надёжно сохранить или прочитать действие. Новый запрос не отправлен. Проверьте хранение данных сайта.",
   );
+/** Изменившийся журнал нельзя заменить новым намерением, пока исход прежней операции не выяснен. */
 const changedError = () =>
   new AdminActionJournalError(
     "Сохранённое действие изменилось или потеряно. Проверьте результат исходного запроса; новый ключ не создан.",
@@ -46,15 +49,18 @@ const changedError = () =>
 
 /** One durable intent per actor; only navigation-safe metadata, never email or tokens. */
 export class AdminActionJournal {
+  /** Фиксируем владельца, API и уведомление о checkpoint; сам конструктор не читает сеть или storage. */
   constructor(
     readonly ownerId: number,
     readonly api: AdminActionApi,
     private readonly checkpoint: (intent: AdminActionIntent) => void = () => {},
   ) {}
+  /** Проверяем отмену и персонального владельца до чтения/записи, чтобы другая сессия не продолжила старое действие. */
   private assertOwner(signal?: AbortSignal) {
     signal?.throwIfAborted();
     if (!isPersonalDataOwner(this.ownerId)) throw changedError();
   }
+  /** Читаем ограниченный strict-формат журнала только своего владельца; повреждение не трактуем как отсутствие намерения. */
   read(): AdminActionIntent | null {
     this.assertOwner();
     try {
@@ -72,6 +78,7 @@ export class AdminActionJournal {
     }
   }
   // Читаем записанное обратно: ошибка хранения до отправки безопаснее команды без восстанавливаемого ключа.
+  /** Сохраняем проверенный intent и читаем его обратно до checkpoint; сбой хранения прерывает сетевую команду. */
   private persist(intent: AdminActionIntent, signal: AbortSignal) {
     this.assertOwner(signal);
     try {
@@ -90,6 +97,7 @@ export class AdminActionJournal {
     return intent;
   }
   // Смена намерения атомарна между вкладками; сетевой запрос не должен получить новый ключ из гонки.
+  /** Web Lock сериализует вкладки владельца; предел 5 секунд относится к ожиданию lock, работа внутри использует исходный signal. */
   private async locked<T>(
     signal: AbortSignal,
     work: () => Promise<T>,
@@ -118,6 +126,7 @@ export class AdminActionJournal {
       clearTimeout(timer);
     }
   }
+  /** Сверяем прочитанный журнал с известным ключом/операцией; потеря уже известного intent считается конфликтом. */
   private current(known?: AdminActionIntent | null) {
     const current = this.read();
     if (known && !current) throw changedError();
@@ -129,6 +138,7 @@ export class AdminActionJournal {
       throw changedError();
     return current;
   }
+  /** Читаем статус прежнего ключа без отправки; подтверждённый outcome не может исчезнуть или поменяться. */
   private async inspect(intent: AdminActionIntent, signal: AbortSignal) {
     const status = parseAdminActionStatus(
       await this.api.status(intent, signal),
@@ -150,6 +160,7 @@ export class AdminActionJournal {
       throw invalidResponse();
     return this.persist({ ...current, outcome: status }, signal);
   }
+  /** Фиксируем attempted до write и соблюдаем cooldown писем; бизнес-отказ проверяем читающим статусом на наличие durable-квитанции. */
   private async send(intent: AdminActionIntent, signal: AbortSignal) {
     if (
       intent.kind === "resendAccessEmail" &&
@@ -188,12 +199,14 @@ export class AdminActionJournal {
       throw error;
     }
   }
+  /** Под lock перечитываем журнал и статус, не повторяя запись или отправку письма. */
   check(known: AdminActionIntent | null, signal: AbortSignal) {
     return this.locked(signal, async () => {
       const current = this.current(known);
       return current ? this.inspect(current, signal) : null;
     });
   }
+  /** Новое намерение допустимо только после явного подтверждения прежнего завершённого ключа; появившуюся в другой вкладке операцию сначала возвращаем владельцу. */
   start(
     kind: AdminActionKind,
     userId: number,
@@ -228,6 +241,7 @@ export class AdminActionJournal {
       return this.send(intent, signal);
     });
   }
+  /** Повторяем только прежний ключ после чтения статуса; уже завершённый outcome возвращаем без новой записи. */
   replay(known: AdminActionIntent, signal: AbortSignal) {
     return this.locked(signal, async () => {
       const current = this.current(known);

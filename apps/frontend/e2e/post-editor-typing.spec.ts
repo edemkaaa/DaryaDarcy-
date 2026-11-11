@@ -5,6 +5,7 @@ import { gotoWithSession } from "./layout-fixtures";
 type EditorWork = { observers: number; postDates: number };
 type MeasuredWindow = typeof window & { editorWork: EditorWork };
 
+/** Измеряем побочную работу вокруг обычного нативного ввода: список и наблюдатели не должны пересоздаваться на каждый символ; затем проверяем свежий payload и старые ссылки. */
 for (const mode of ["full", "quick"] as const) {
   test(`${mode}: native typing avoids rebuilding observers and the admin list, and saves the latest text`, async ({
     page,
@@ -14,12 +15,14 @@ for (const mode of ["full", "quick"] as const) {
       (window as MeasuredWindow).editorWork = work;
       const NativeObserver = window.ResizeObserver;
       window.ResizeObserver = class extends NativeObserver {
+        /** Считаем создание наблюдателей, сохраняя нативное поведение ResizeObserver. */
         constructor(callback: ResizeObserverCallback) {
           super(callback);
           work.observers++;
         }
       };
       const nativeDate = Date.prototype.toLocaleDateString;
+      /** Считаем форматирование только даты синтетических постов, не смешивая работу списка с другими датами интерфейса. */
       Date.prototype.toLocaleDateString = function (
         locales?: Intl.LocalesArgument,
         options?: Intl.DateTimeFormatOptions,
@@ -101,6 +104,7 @@ for (const mode of ["full", "quick"] as const) {
       node.setSelectionRange(0, 0);
       node.dispatchEvent(new Event("select", { bubbles: true }));
     });
+    /** Обнуляем счётчики после подготовки формы и шрифтов, чтобы измерять ввод, а не начальный монтаж редактора. */
     await page.evaluate(() => {
       (window as MeasuredWindow).editorWork.observers = 0;
       (window as MeasuredWindow).editorWork.postDates = 0;

@@ -10,6 +10,7 @@ import {
 } from "@/shared/styles/tab-assets";
 import classes from "./videos-screen.module.scss";
 
+/** Собираем статический декор каталога отдельно от запроса роликов. */
 function BannerContent() {
   return (
     <>
@@ -38,6 +39,7 @@ function BannerContent() {
 
 // Only actual browser entry marks this flag, never server rendering.
 let bannerHasEntered = false;
+/** Анимацию входа проигрываем только при первом реальном браузерном монтировании, не отмечая SSR как просмотр. */
 export function VideosBannerHeader() {
   const [entering] = useState(() =>
     bannerHasEntered ? undefined : FadeIn.duration(600),

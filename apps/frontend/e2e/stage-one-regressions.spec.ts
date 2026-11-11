@@ -7,6 +7,7 @@ const png = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jP1sAAAAASUVORK5CYII=",
   "base64",
 );
+/** Базовый пост дополняется точечными данными сценария; свежий publishedAt отличает окно комментариев от старой даты создания. */
 function post(extra: Record<string, unknown> = {}) {
   return {
     id: 1,
@@ -26,6 +27,7 @@ function post(extra: Record<string, unknown> = {}) {
     ...extra,
   };
 }
+/** Разделяем роль admin, оплаченность, canonical media и article-detail; считаем только updatePost, сохраняя все ответы локальными. */
 async function fixture(
   page: Page,
   options: {
@@ -102,6 +104,7 @@ async function fixture(
   return writes;
 }
 
+/** Канонический private-media URL сохраняется и в ленте, и в detail, без подмены на старый публичный источник. */
 test("canonical uploaded photo stays visible in feed and detail", async ({
   page,
 }) => {
@@ -116,6 +119,7 @@ test("canonical uploaded photo stays visible in feed and detail", async ({
     page.locator('img[src*="/api/media/content-files/"]'),
   ).toHaveCount(1);
 });
+/** Публичные закладки и выход доступны без подписки; подтверждённый logout убирает персональные карточки. */
 test("unpaid member can log out while public bookmarks remain available", async ({
   page,
 }) => {
@@ -142,6 +146,7 @@ test("unpaid member can log out while public bookmarks remain available", async 
   ).toBeVisible();
   await expect(page.getByText("AUDIT_POST", { exact: true })).toHaveCount(0);
 });
+/** Право комментировать старый draft определяется свежим опубликованием, а не createdAt. */
 test("newly published old draft permits comments in detail and club", async ({
   page,
 }) => {
@@ -155,6 +160,7 @@ test("newly published old draft permits comments in detail and club", async ({
   await page.getByRole("button", { name: "Комьюнити", exact: true }).click();
   await expect(page.getByPlaceholder("Написать комментарий...")).toBeVisible();
 });
+/** Нажатая обложка и body-photo выбирают соответствующий индекс одного viewer без лишних стрелок на границах. */
 test("article viewer opens the clicked cover and body photo", async ({
   page,
 }) => {
@@ -191,6 +197,7 @@ test("article viewer opens the clicked cover and body photo", async ({
     dialog.getByRole("button", { name: "Следующее фото", exact: true }),
   ).toBeDisabled();
 });
+/** Grid teaser статьи ведёт на полный article-route, а не на post-detail. */
 test("article teaser grid links to the full article", async ({ page }) => {
   await fixture(page, {
     posts: [
@@ -209,6 +216,7 @@ test("article teaser grid links to the full article", async ({ page }) => {
   await page.locator('a[href="/library/article/42"]').click();
   await expect(page).toHaveURL(/\/library\/article\/42$/);
 });
+/** Редактирование в клубе сохраняет прежний target=both до явного выбора club; update отправляет новую границу доступа. */
 test("club editor preserves both audience and saves an explicit club restriction", async ({
   page,
 }) => {
@@ -249,6 +257,7 @@ test("club editor preserves both audience and saves an explicit club restriction
   expect(writes[0]).toHaveProperty("target", "club");
 });
 
+/** Ожидающая либо ошибочная подписка не должна скрывать действие выхода из аккаунта. */
 for (const status of ["checking", "error"] as const) {
   test(`member can log out while subscription is ${status}`, async ({
     page,
@@ -289,6 +298,7 @@ for (const status of ["checking", "error"] as const) {
   });
 }
 
+/** Сохранённый article-teaser также открывает полный материал по source-связи. */
 test("saved article teaser opens the full article", async ({ page }) => {
   await fixture(page, {
     posts: [post({ source: "article:42" })],

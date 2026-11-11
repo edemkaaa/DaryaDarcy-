@@ -4,7 +4,7 @@ import { useAuth } from "./session-context";
 import { useClub } from "@/domain/subscription/subscription-context";
 import { useBackgroundNotice } from "@/shared/ui/background-notice";
 
-/** Render beside the screen so a failed background check cannot replace its state. */
+/** Регистрируем независимые фоновые ошибки сессии и подписки с приоритетами, оставляя подтверждённый контент на экране. */
 export function BackgroundCheckNotice() {
   const session = useAuth();
   const club = useClub();

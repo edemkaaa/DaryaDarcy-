@@ -37,6 +37,8 @@ const s3 = new S3Client({
 const S3_PUBLIC = `${env.S3_ENDPOINT}/${env.S3_BUCKET}/`;
 
 function dateSuffix(msg) {
+  // Формирует суффикс имени по локальному часовому поясу процесса; окружение должно совпадать с экспортом.
+
   const d = new Date(Number(msg.date_unixtime) * 1000);
   const dd = String(d.getDate()).padStart(2, "0");
   const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -48,10 +50,14 @@ function dateSuffix(msg) {
 }
 
 function expectedPhotoName(msg) {
+  // Восстанавливает ожидаемое имя экспортированного фото из идентификатора и даты сообщения.
+
   return `photo_${msg.id}${dateSuffix(msg)}.jpg`;
 }
 
 function resolveDiskPhotoNames(diskPhotos, msg, albumPhotos) {
+  // Возвращает точное сопоставление фото либо проверенный по количеству набор с суффиксом даты.
+
   const exact = expectedPhotoName(msg);
   if (diskPhotos.has(exact)) return [exact];
 
@@ -74,6 +80,8 @@ function resolveDiskPhotoNames(diskPhotos, msg, albumPhotos) {
 }
 
 function guessContentType(name) {
+  // Выводит MIME по расширению исходника; содержимое файла эта историческая эвристика не проверяет.
+
   const lower = name.toLowerCase();
   if (lower.endsWith(".png")) return "image/png";
   if (lower.endsWith(".webp")) return "image/webp";
@@ -81,6 +89,8 @@ function guessContentType(name) {
 }
 
 async function listDiskFiles(folder) {
+  // Читает полный список файлов публичного Диска страницами, чтобы сопоставлять имена из экспорта.
+
   const names = [];
   let offset = 0;
   while (true) {
@@ -103,6 +113,8 @@ async function listDiskFiles(folder) {
 }
 
 async function yandexDownload(diskPath) {
+  // Запрашивает временную ссылку скачивания конкретного файла публичного Диска.
+
   const url =
     "https://cloud-api.yandex.net/v1/disk/public/resources/download?public_key=" +
     encodeURIComponent(YANDEX_PUBLIC) +
@@ -116,6 +128,8 @@ async function yandexDownload(diskPath) {
 }
 
 async function getCachedOrDownload(diskPath) {
+  // Переиспользует локальную копию или скачивает исходник в кэш; этот исторический путь может обращаться к сети и в dry-run.
+
   fs.mkdirSync(CACHE_DIR, { recursive: true });
   const safe = diskPath.replace(/[^\w@.\-]+/g, "_");
   const cacheFile = path.join(CACHE_DIR, safe);
@@ -126,6 +140,8 @@ async function getCachedOrDownload(diskPath) {
 }
 
 async function uploadS3(key, body, contentType) {
+  // Историческая загрузка создаёт публичный объект public-read; не использовать как замену нынешнему защищённому переносу.
+
   if (DRY_RUN) return S3_PUBLIC + key;
   await s3.send(
     new PutObjectCommand({
@@ -140,12 +156,16 @@ async function uploadS3(key, body, contentType) {
 }
 
 function albumSiblingMessages(messages, anchor) {
+  // Собирает соседние сообщения одного альбома, сохраняя исходный порядок фотографий.
+
   return messages
     .filter((m) => m.type === "message" && m.date_unixtime === anchor.date_unixtime && m.photo)
     .sort((a, b) => a.id - b.id);
 }
 
 function expectedPhotoNamesForPost(messages, msg, albumPhotos, diskPhotos) {
+  // Восстанавливает весь список фото поста вместе с сообщениями альбома.
+
   const fromDisk = resolveDiskPhotoNames(diskPhotos, msg, albumPhotos);
   if (fromDisk.length) return fromDisk;
 
@@ -159,15 +179,21 @@ function expectedPhotoNamesForPost(messages, msg, albumPhotos, diskPhotos) {
 }
 
 function urlBasename(url) {
+  // Сравнивает имя последнего сегмента URL без параметров; это сопоставление имени, а не проверка байтов.
+
   return decodeURIComponent(url.split("/").pop()?.split("?")[0] || "");
 }
 
 function photosMatch(expected, current) {
+  // Проверяет совпадение текущих URL и ожидаемых имён перед потенциальной перезаписью массива photos.
+
   if (expected.length !== current.length) return false;
   return expected.every((name, i) => urlBasename(current[i]) === name);
 }
 
 async function main() {
+  // Пересопоставляет фото старого импорта; при отсутствии источника возможно очищение photos, поэтому нужен ручной план и бэкап.
+
   console.log("Loading disk photo index...");
   const diskPhotos = await listDiskFiles("/фото из клуба");
   const videoFiles = await listDiskFiles("/видео из клуба");

@@ -1,3 +1,4 @@
+/** Связка реального frontend caller с локальным TEST-контроллером проверяет общий quota bucket. */
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import type { INestApplication } from "@nestjs/common";
 import type { AddressInfo } from "node:net";
@@ -6,6 +7,7 @@ import { readProdamusReturnResult } from "../apps/frontend/src/features/club/pro
 
 let app: INestApplication;
 const actualFetch = globalThis.fetch;
+/** Поднимаем loopback Nest без БД; fetch меняет лишь базу относительного браузерного URL. */
 beforeAll(async () => {
   vi.stubEnv("DATABASE_URL", "");
   vi.stubEnv("PUBLIC_APP_URL", "https://daryadarcy.dev.reeskeen.ru");
@@ -23,12 +25,14 @@ beforeAll(async () => {
     actualFetch(new URL(String(input), base), options),
   );
 });
+/** Восстанавливаем fetch/окружение и закрываем своё приложение. */
 afterAll(async () => {
   vi.unstubAllGlobals();
   await app?.close();
   vi.unstubAllEnvs();
 });
 
+/** Невалидная подпись даёт unknown без settlement; 13-я проверка того же ключа получает 429. */
 it("the real frontend request reaches TEST result and keeps retries in one quota bucket", async () => {
   // Invalid HMAC: no SQL, settlement, provider, email or session side effects.
   const token =

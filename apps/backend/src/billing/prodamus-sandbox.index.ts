@@ -2,6 +2,7 @@
 import { createProdamusSandboxApplication } from "./prodamus-sandbox.application";
 import { ProdamusSandboxService } from "./prodamus-sandbox.service";
 
+/** Проверяет sandbox-конфигурацию до listen, запускает отдельное приложение и гарантирует close при ошибке запуска. */
 async function start(): Promise<void> {
   // Выключенная или неполная конфигурация отклоняется до открытия listener.
   new ProdamusSandboxService(process.env).buildLink();

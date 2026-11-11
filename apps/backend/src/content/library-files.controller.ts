@@ -15,9 +15,11 @@ import {
 
 @Controller("api")
 export class LibraryFilesController {
+  /** Получаем сервис сессий, чтобы доступ к Библиотеке проверялся по текущему пользователю на каждом запросе. */
   constructor(
     @Inject(SessionService) private readonly sessions: SessionService,
   ) {}
+  /** Проверяем оба флага, известный материал, наличие сессии и клубный доступ; недействительная сессия закрывает файл, инфраструктурная ошибка поднимается выше. */
   private async allowed(req: Request, material: string) {
     if (
       !libraryFilesEnabled() ||
@@ -34,6 +36,7 @@ export class LibraryFilesController {
       throw error;
     }
   }
+  /** Разбираем ограниченный курсор sortOrder:id, запрещаем лишние параметры и кеширование; недоступность скрываем за 404, временный сбой за 503. */
   @Get("library/materials/:materialKey/files")
   async list(
     @Param("materialKey") material: string,
@@ -63,6 +66,7 @@ export class LibraryFilesController {
       return res.status(503).json({ error: "Файл временно недоступен." });
     }
   }
+  /** Передаём скачивание общему обработчику приватных файлов с повторной проверкой материала, ключа и членства; произвольные параметры не допускаются. */
   @Get("media/library-files/:materialKey/:fileKey")
   read(
     @Param("materialKey") material: string,

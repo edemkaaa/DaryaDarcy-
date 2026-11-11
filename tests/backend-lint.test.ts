@@ -1,7 +1,9 @@
+/** Проверяем действующую typed ESLint-конфигурацию сервера на коде в памяти. */
 import { ESLint } from "eslint";
 import { resolve } from "node:path";
 import { expect, it } from "vitest";
 
+/** Используем настоящий путь проекта: незавершённые Promise и опасный finally обязаны дать конкретные правила, корректный await/catch должен пройти. */
 it("rejects unsafe async code while accepting awaited and handled operations", async () => {
   const cwd = resolve("apps/backend");
   const eslint = new ESLint({ cwd, overrideConfigFile: resolve(cwd, "eslint.config.mjs") });

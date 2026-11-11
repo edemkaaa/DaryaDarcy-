@@ -1,3 +1,4 @@
+// Архив Expo. Держит один reducer для welcome, вопросов и результата в пределах теста.
 /**
  * Quiz Entry Screen — "Тест: Какая твоя сказка?"
  * Shows welcome/intro, question flow, and results all managed via QuizContext.
@@ -9,6 +10,8 @@ import { QuizQuestion } from "@/components/quiz/quiz-question";
 import { QuizResultScreen } from "@/components/quiz/quiz-result";
 
 export default function QuizScreen() {
+  // Держит один reducer для welcome, вопросов и результата в пределах теста.
+
   const [state, dispatch] = useReducer(quizReducer, initialState);
 
   return (

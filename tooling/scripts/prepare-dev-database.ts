@@ -28,6 +28,8 @@ if (process.env.NODE_ENV === "production")
   throw new Error("Подготовка dev-базы запрещена в production");
 
 async function main() {
+  // Создаёт схему лишь в пустой локальной dev-БД и добавляет синтетические аккаунты через insert ignore, сохраняя существующие пароли.
+
   const connection = await createConnection(uri!);
   try {
     const [tables] = await connection.query("SHOW TABLES");

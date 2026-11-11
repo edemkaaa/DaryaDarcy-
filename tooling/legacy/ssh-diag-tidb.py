@@ -1,3 +1,4 @@
+# Загружает и запускает старую диагностику TiDB на VPS; внешнее выполнение не является локальным unit-тестом.
 import pathlib
 import socket
 import paramiko
@@ -9,6 +10,7 @@ for line in (root / ".env").read_text(encoding="utf-8").splitlines():
         k, v = line.split("=", 1)
         env[k.strip()] = v.strip()
 
+# Подключение использует историческое автоматическое доверие неизвестному SSH host key; перед новым запуском требуется отдельная сверка хоста.
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 sock = socket.create_connection((env["DEPLOY_HOST"], 22), 45)
@@ -26,6 +28,7 @@ sftp = client.open_sftp()
 sftp.put(str(root / "tooling" / "legacy" / "diag-tidb.mjs"), "/var/www/daryadarcy/diag-tidb.mjs")
 sftp.close()
 
+# Следующий текст — удалённая команда; её содержимое сохранено как историческое и не исполняется при чтении исходника.
 cmd = r"""
 set -e
 cd /var/www/daryadarcy

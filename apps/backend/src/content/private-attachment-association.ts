@@ -28,8 +28,10 @@ export type PrivateAttachmentChanges = {
   privateVideoPosters?: { videoAssetId: string; posterAssetId: string }[];
   actor?: PrivateAttachmentActor;
 };
+/** Формируем внутренний адрес вложения по записи postMedia: право скачивания проверяется отдельно, ID не является секретом. */
 export const privateMediaUrl = (id: number) =>
   `/api/media/post-attachments/${id}`;
+/** Возвращаем конфликт при неподходящем владельце, состоянии или прежней привязке вложения без раскрытия чужой квитанции. */
 const conflict = () =>
   new TRPCError({
     code: "CONFLICT",
@@ -37,6 +39,7 @@ const conflict = () =>
   });
 
 /** Lock actor before post/intent/asset locks. Legacy saves have no new dependency. */
+/** Проверяем уникальность пар видео/постера и явное включение видео в assetId; при новых приватных вложениях блокируем исполнителя раньше поста и проверяем схему. */
 export async function authorizePrivateAttachmentChanges(
   tx: PrivateAttachmentTransaction,
   changes: PrivateAttachmentChanges,
@@ -58,6 +61,7 @@ export async function authorizePrivateAttachmentChanges(
   await requirePrivateAttachmentSchema(tx);
 }
 /** Called under the post lock in its save transaction; never touches storage. */
+/** Под блокировкой поста связываем только готовые квитанции текущего исполнителя и пространства; повтор сохраняет mediaId, новая привязка учитывает окно и маркеры восстановления. */
 export async function bindPrivateAttachments(
   tx: Pick<MySql2Database, "select" | "insert" | "update" | "execute">,
   postId: number,
@@ -80,6 +84,7 @@ export async function bindPrivateAttachments(
       contentFileUrl(row.posterAssetId),
     ]),
   );
+// Сначала проверяется весь набор, включая уже привязанные строки; одно чужое или недоступное вложение отменяет операцию.
   for (const asset of assets) {
     if (posters.has(asset.assetId) && asset.type !== "video")
       throw new TRPCError({ code: "BAD_REQUEST" });
@@ -120,6 +125,7 @@ export async function bindPrivateAttachments(
     .from(postMedia)
     .where(eq(postMedia.postId, postId));
   let sortOrder = (last?.order ?? -1) + 1;
+// Порядок новых вложений задаёт входной список; служебный URL заменяется на окончательный в той же транзакции.
   for (const id of ids) {
     const asset = assets.find((row) => row.assetId === id)!;
     const posterUrl = posters.get(id);
@@ -166,6 +172,7 @@ export async function bindPrivateAttachments(
 }
 
 /** Internal media URL resolves only through a matching committed receipt. */
+/** Разрешаем внутренний mediaId лишь через готовую квитанцию того же поста, типа и пространства, возвращая серверный ключ и ETag. */
 export async function privateReceiptForMedia(
   reader: Pick<PrivateAttachmentTransaction, "select">,
   media: { id: number; postId: number; type: string },

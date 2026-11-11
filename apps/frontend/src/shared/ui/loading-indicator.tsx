@@ -1,7 +1,7 @@
 /** Индикатор локальной операции использует общую геометрию и доступную текстовую подпись. */
 import { Spinner } from "./spinner";
 
-/** One fixed group for access checks and local list operations. */
+/** Согласуем размер индикатора и подпись: диктор читает label из Spinner, видимый текст помечен как декоративный. Группа предназначена для проверки доступа и локальных операций списка. */
 export function LoadingIndicator({
   size = "large",
   label = "Загрузка…",

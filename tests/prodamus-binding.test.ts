@@ -1,3 +1,4 @@
+/** Field binding дополняет HMAC и settlement, но отдельно не является доказательством оплаты. */
 import { describe, expect, it } from "vitest";
 import { hasClubPaymentBinding } from "../apps/backend/src/billing/prodamus-binding";
 import type { PaymentProof } from "../apps/backend/src/billing/protocol";
@@ -15,7 +16,9 @@ const configured = Object.freeze({
   subscriptionId: "7",
 });
 
+/** Фиксируем правила merchant/currency/subscription/profile, сохраняя явно проверенную legacy-совместимость. */
 describe("Prodamus club field binding (not signature or settlement authorization)", () => {
+  /** Monthly-матрица проверяет exact merchant/tariff, RUB и ограниченный числовой profile, включая старый zero/leading zeros. */
   it.each<[string, Partial<PaymentProof>, boolean]>([
     ["complete monthly binding", {}, true],
     ["another merchant", { domain: "another.payform.ru" }, false],
@@ -55,6 +58,7 @@ describe("Prodamus club field binding (not signature or settlement authorization
     ).toBe(expected);
   });
 
+  /** Semiannual/recurring матрица различает обязательные и optional поля, не расширяя exemption на похожий prefix. */
   it.each<
     [string, string, string | undefined, string | undefined, string, boolean]
   >([
@@ -137,6 +141,7 @@ describe("Prodamus club field binding (not signature or settlement authorization
     },
   );
 
+  /** Binding только читает proof/configuration и не нормализует их на месте. */
   it("reads frozen inputs without changing the payment proof or configuration", () => {
     expect(hasClubPaymentBinding(monthly, "club-7-fixture", configured)).toBe(
       true,

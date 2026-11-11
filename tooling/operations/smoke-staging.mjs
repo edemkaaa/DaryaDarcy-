@@ -25,6 +25,8 @@ assert.ok(
 );
 
 async function read(path, status = 200, options = {}) {
+  // Проверяет ожидаемый HTTP-статус без переходов по redirect и с ограничением времени.
+
   const response = await fetch(new URL(path, base), {
     ...options,
     redirect: "error",
@@ -36,6 +38,8 @@ async function read(path, status = 200, options = {}) {
 }
 
 function emptyPost(path, status) {
+  // Отправляет только невалидное пустое тело: без почты, cookie, подписи или действительного заказа.
+
   // Invalid input only: never provide an email, sign, cookies or valid order.
   return read(path, status, {
     method: "POST",

@@ -39,6 +39,7 @@ const member: User = {
   lastSignedIn: new Date("2026-01-01T00:00:00Z"),
 };
 let application: INestApplication, base: string, cookie: string;
+// Nest слушает только loopback; настоящий JWT проверяется с синтетическим секретом, а временные отказы вводятся исключительно на SQL-границе.
 beforeAll(async () => {
   vi.stubEnv("DATABASE_URL", "");
   vi.stubEnv("JWT_SECRET", "session-availability-test-only-signing-key");
@@ -60,8 +61,10 @@ afterAll(async () => {
   vi.unstubAllEnvs();
 });
 const me = (session = cookie) =>
-  fetch(`${base}/api/auth/me`, { headers: session ? { cookie: session } : {} });
+  /* Читает текущую сессию через настоящий локальный REST с переданной cookie либо без неё. */ fetch(`${base}/api/auth/me`, { headers: session ? { cookie: session } : {} });
 it("returns 503 without issuing a session when login exhausts the SQL queue", async () => {
+  // Сценарий: Исчерпанная SQL-очередь входа даёт 503 без выдачи cookie и утечки SQL.
+
   vi.spyOn(db, "getUserByEmail").mockRejectedValueOnce(
     new Error("Failed query: PRIVATE_LOGIN_SQL_SENTINEL", { cause: new Error("Queue limit reached.") }),
   );
@@ -74,7 +77,7 @@ it("returns 503 without issuing a session when login exhausts the SQL queue", as
   expect(await response.text()).not.toMatch(/PRIVATE_LOGIN_SQL_SENTINEL|Queue limit|stack/);
 });
 const exchange = (token = cookie.slice(COOKIE_NAME.length + 1)) =>
-  fetch(`${base}/api/auth/session`, {
+  /* Обменивает Bearer на cookie через локальный сервер, не обращаясь к внешнему провайдеру. */ fetch(`${base}/api/auth/session`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -83,13 +86,13 @@ const exchange = (token = cookie.slice(COOKIE_NAME.length + 1)) =>
     body: "{}",
   });
 const legacyContext = (session = cookie) =>
-  createContext({
+  /* Создаёт прежний tRPC-контекст на тех же синтетических заголовках сессии. */ createContext({
     req: { headers: session ? { cookie: session } : {} } as Request,
     res: {} as Response,
     info: {} as Parameters<typeof createContext>[0]["info"],
   });
 const upload = (path: string) =>
-  fetch(base + path, {
+  /* Отправляет минимальное видео-тело с сохранённым ключом операции, чтобы изолировать проверку сессии на входе. */ fetch(base + path, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${cookie.slice(COOKIE_NAME.length + 1)}`,
@@ -105,6 +108,8 @@ it.each([
 ].flatMap(path => ["lookup", "activity", "untyped-denial"].map(boundary => ({ path, boundary }))))(
   "keeps an ingress $boundary failure at $path distinct from invalid authentication",
   async ({ path, boundary }) => {
+    // Сценарий: Ошибка lookup/activity на входе загрузки остаётся инфраструктурным 503.
+
     const fault = boundary === "untyped-denial"
       ? { statusCode: 403 }
       : new Error("PRIVATE_UPLOAD_SESSION_SENTINEL");
@@ -123,6 +128,8 @@ it.each([
 ].flatMap(path => ["lookup", "activity"].map(boundary => ({ path, boundary }))))(
   "keeps a second $boundary check failure at $path distinct from invalid authentication",
   async ({ path, boundary }) => {
+    // Сценарий: Повторная проверка сессии после допуска тела также сохраняет временный сбой как 503.
+
     const administrator = { ...member, role: "admin" as const };
     vi.mocked(db.getUserByOpenId).mockResolvedValue(administrator);
     const fault = new Error("PRIVATE_SECOND_SESSION_SENTINEL");
@@ -146,6 +153,8 @@ it.each([
 ].flatMap(path => ["blocked", "revoked", "role"].map(change => ({ path, change }))))(
   "still rejects an account changed by $change after body admission at $path",
   async ({ path, change }) => {
+    // Сценарий: Блокировка, отзыв версии или потеря роли после допуска тела прекращают загрузку.
+
     vi.mocked(db.getUserByOpenId)
       .mockResolvedValueOnce({ ...member, role: "admin" })
       .mockResolvedValueOnce({
@@ -163,6 +172,8 @@ it.each([
 it.each(["lookup", "activity"])(
   "does not reject a valid Bearer token as invalid on a temporary %s failure",
   async (boundary) => {
+    // Сценарий: Временный сбой Bearer-обмена не отзывает токен: тот же токен работает после восстановления.
+
     const fault = new Error("PRIVATE_SESSION_EXCHANGE_SENTINEL");
     if (boundary === "lookup")
       vi.mocked(db.getUserByOpenId).mockRejectedValueOnce(fault);
@@ -185,6 +196,8 @@ it.each(["lookup", "activity"])(
   },
 );
 it("keeps an invalid Bearer token unauthorized without setting a cookie", async () => {
+  // Сценарий: Неверный Bearer остаётся 401 и не требует SQL-поиска.
+
   const response = await exchange("invalid.jwt");
   expect(response.status).toBe(401);
   expect(await response.json()).toEqual({ error: "Invalid token" });
@@ -194,6 +207,8 @@ it("keeps an invalid Bearer token unauthorized without setting a cookie", async 
 it.each(["lookup", "activity", "untyped-denial"])(
   "does not turn a legacy tRPC %s failure into a guest and recovers with the same cookie",
   async (boundary) => {
+    // Сценарий: Прежний tRPC-контекст отличает сбой проверки от гостя и восстанавливается на той же cookie.
+
     const fault = boundary === "untyped-denial"
       ? { statusCode: 403 }
       : new Error("PRIVATE_LEGACY_SESSION_SENTINEL");
@@ -207,6 +222,8 @@ it.each(["lookup", "activity", "untyped-denial"])(
 it.each(["", `${COOKIE_NAME}=invalid.jwt`])(
   "preserves a confirmed legacy guest for %s",
   async (session) => {
+    // Сценарий: Отсутствующая или повреждённая cookie подтверждает гостя без SQL.
+
     expect((await legacyContext(session)).user).toBeNull();
     expect(db.getUserByOpenId).not.toHaveBeenCalled();
   },
@@ -215,6 +232,8 @@ it.each(["", `${COOKIE_NAME}=invalid.jwt`])(
 it.each(["lookup", "activity"])(
   "returns retryable 503, not a confirmed guest, on a temporary %s failure and recovers with the same cookie",
   async (boundary) => {
+    // Сценарий: REST возвращает временный 503 и затем профиль на той же cookie, не удаляя сессию.
+
     const fault = new Error(
       "SQL PRIVATE_SESSION_SENTINEL availability@example.test",
     );
@@ -237,12 +256,16 @@ it.each(["lookup", "activity"])(
   },
 );
 it("does not mistake an untyped upstream 403 for a confirmed invalid session", async () => {
+  // Сценарий: Нетипизированный upstream 403 не считается доказательством недействительной сессии.
+
   vi.mocked(db.getUserByOpenId).mockRejectedValueOnce({ statusCode: 403 });
   const response = await me();
   expect(response.status).toBe(503);
   expect(response.headers.get("set-cookie")).toBeNull();
 });
 it("does not report a missing database as a missing user for a valid JWT", async () => {
+  // Сценарий: Отсутствующая БД не маскируется под отсутствующего пользователя.
+
   vi.mocked(db.getUserByOpenId).mockRestore();
   const response = await me();
   expect(response.status).toBe(503);
@@ -252,6 +275,8 @@ it("does not report a missing database as a missing user for a valid JWT", async
   expect(response.headers.get("set-cookie")).toBeNull();
 });
 it.each(["lookup", "activity", "untyped-denial"])("does not return a successful null tRPC session on a %s failure", async (boundary) => {
+  // Сценарий: tRPC не возвращает успешный null при отказе SQL или регистрации активности.
+
   const fault = boundary === "untyped-denial"
     ? { statusCode: 403 }
     : new Error("PRIVATE_SESSION_SENTINEL");
@@ -277,6 +302,8 @@ it.each(["lookup", "activity", "untyped-denial"])("does not return a successful 
 it.each(["missing", "malformed", "expired"])(
   "preserves confirmed guest 200/null for a %s session without consulting SQL",
   async (kind) => {
+    // Сценарий: Отсутствующий, повреждённый и просроченный JWT остаются подтверждённым гостем без SQL.
+
     const session =
       kind === "missing"
         ? ""
@@ -297,6 +324,8 @@ it.each(["missing", "malformed", "expired"])(
 it.each(["deleted", "blocked", "revoked"])(
   "preserves confirmed guest 200/null for a %s account session",
   async (kind) => {
+    // Сценарий: Удалённый, заблокированный или отозванный аккаунт становится гостем без регистрации активности.
+
     vi.mocked(db.getUserByOpenId).mockResolvedValueOnce(
       kind === "deleted"
         ? undefined

@@ -5,8 +5,10 @@ import { assertTestDatabase } from "../tooling/scripts/test-database-policy";
 import { getPostsPaginated } from "../apps/backend/src/content/post-catalog-repository";
 
 const uri = process.env.POST_LIST_INDEX_DATABASE_URL;
+/** Проверяет индексы порядка feed/club на 12000 синтетических постов и неизменность выдаваемых ID. */
 describe.skipIf(!uri)("post listing indexes on a dedicated canonical database", () => {
   let conn: Connection;
+  /** Проверяет одноразовый URL, создаёт разнообразный dataset собственных постов и обновляет статистику optimizer. */
   beforeAll(async () => {
     assertTestDatabase(uri!); conn = await mysql.createConnection({ uri: uri!, timezone: "Z" });
     for (let offset = 0; offset < 12000; offset += 500) {
@@ -17,7 +19,9 @@ describe.skipIf(!uri)("post listing indexes on a dedicated canonical database", 
     }
     await conn.query("ANALYZE TABLE posts");
   });
+  /** Удаляет только source нагрузочной фикстуры и закрывает соединение. */
   afterAll(async () => { await conn?.query("DELETE FROM posts WHERE source='audit-list-index'"); await conn?.end(); });
+  /** EXPLAIN и принудительный индекс подтверждают индексный порядок при сохранении точного результата сортировки. */
   it.each(["feed", "club"])("provides a usable %s ordering index without changing page contents", async target => {
     const order = `${target === "feed" ? "sortOrder ASC," : ""}CAST(COALESCE(publishedAt,createdAt) AS DATETIME) DESC,id ASC`;
     const query = `SELECT * FROM posts WHERE published=1 AND status='published' AND target IN ('${target}','both') ORDER BY ${order} LIMIT 12`;
@@ -31,6 +35,7 @@ describe.skipIf(!uri)("post listing indexes on a dedicated canonical database", 
     const [reference] = await conn.query<RowDataPacket[]>(query.replace("CAST(COALESCE(publishedAt,createdAt) AS DATETIME)", "COALESCE(publishedAt,createdAt)"));
     expect(indexed.map(row => row.id)).toEqual(reference.map(row => row.id));
     const baseline = query.replace("FROM posts", "FROM posts IGNORE INDEX (posts_feed_listing_idx,posts_club_listing_idx)");
+    /** Прогревает SQL и считает среднюю длительность десяти повторов для сравнения индексных планов. */
     const measure = async (statement: string) => {
       await conn.query(statement);
       const start = performance.now(); for (let i = 0; i < 10; i++) await conn.query(statement);
@@ -38,11 +43,12 @@ describe.skipIf(!uri)("post listing indexes on a dedicated canonical database", 
     };
     console.info("listing measurement", JSON.stringify({ target, plan: plan[0].Extra, baselineMs: await measure(baseline), indexedMs: await measure(query), orderedMs: await measure(forced) }));
   });
+  /** Глубокая feed-страница использует FORCE INDEX без filesort и сохраняет offset и эталонные ID. */
   it("reads a deep feed page in index order and preserves its IDs and offset", async () => {
     const queries: { sql: string; params: unknown[] }[] = [];
     const database = drizzle({
       client: conn,
-      logger: { logQuery: (sql, params) => queries.push({ sql, params }) },
+      logger: { /** Фиксирует SQL репозитория и параметры, чтобы отдельно выполнить EXPLAIN того же запроса. */ logQuery: (sql, params) => queries.push({ sql, params }) },
     });
     const page = await getPostsPaginated(database, { limit: 12, cursor: 2400 });
     const statement = queries.find(({ sql }) => /from `posts`/.test(sql))!;
@@ -58,6 +64,7 @@ describe.skipIf(!uri)("post listing indexes on a dedicated canonical database", 
     expect(page.posts.map(({ id }) => id)).toEqual(reference.map(({ id }) => id));
     expect(page.nextCursor).toBe(2412);
   });
+  /** Индексы не меняют автоматический createdAt и допустимые NULL/задние даты при SYSTEM и UTC timezone. */
   it("retains implicit current timestamps, nullable/backdated dates and updates in both session timezones", async () => {
     for (const tz of ["SYSTEM", "+00:00"]) {
       await conn.query("SET SESSION time_zone=?", [tz]);

@@ -18,6 +18,7 @@ export function registerPublicResponseCompression(app: Express): void {
       threshold: 1024,
       level: 4,
       brotli: { params: { [constants.BROTLI_PARAM_QUALITY]: 4 } },
+      /** Разрешает сжатие лишь успешного публичного JSON из allowlist процедур: без cookie, Authorization, Range, Set-Cookie и private/no-store. */
       filter(req, res) {
         // The mounted tRPC adapter strips /api/trpc from req.path while
         // responding; originalUrl retains the public ingress path.

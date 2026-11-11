@@ -25,6 +25,7 @@ export async function queueShopDeliveryEmail(input: {
     });
 }
 
+/** Проверяем наличие sentAt у конкретного заказа; запись очереди сама по себе не подтверждает SMTP-отправку. */
 export async function isShopDeliveryEmailSent(
   orderId: string,
 ): Promise<boolean> {
@@ -50,6 +51,7 @@ export async function markShopDeliveryEmailSent(
     .where(eq(shopDeliveryEmails.orderId, orderId));
 }
 
+/** Возвращаем ограниченный список неотмеченных заданий по времени создания для фонового повтора. */
 export async function listPendingShopDeliveryEmails(limit = 20) {
   const db = await getDb();
   if (!db) return [];

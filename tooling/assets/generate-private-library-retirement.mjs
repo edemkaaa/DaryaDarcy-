@@ -22,7 +22,7 @@ const previous = await fs
   });
 const paths = new Set(),
   hashes = new Set();
-const sha = (bytes) => createHash("sha256").update(bytes).digest("hex");
+const sha = (bytes) => /* Сопоставляет точные байты старой платной копии с fingerprint-именем прежнего Next-build. */ createHash("sha256").update(bytes).digest("hex");
 for (const file of registry.visuals.files) {
   const base = file.uri.replace(/(?:\.lossless)?\.webp$/, "");
   for (const suffix of [

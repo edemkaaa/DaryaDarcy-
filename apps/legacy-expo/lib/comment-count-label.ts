@@ -1,5 +1,8 @@
+// Архив Expo. Применяет русские формы существительного с исключением 11–14 и целым модулем счётчика.
 /** Russian plural for «N комментарий/комментария/комментариев». */
 export function commentCountLabel(count: number): string {
+  // Применяет русские формы существительного с исключением 11–14 и целым модулем счётчика.
+
   const n = Math.abs(Math.trunc(count));
   const mod10 = n % 10;
   const mod100 = n % 100;

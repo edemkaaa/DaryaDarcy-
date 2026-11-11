@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { layoutApi, gotoWithSession } from "./layout-fixtures";
 import { CLUB_TESTIMONIALS } from "../src/features/club/club-testimonials.content";
 
+/** Проверяем читаемый текст отзывов без предварительного скачивания скриншотов; оригинал открывается в общей галерее и возвращает фокус. */
 for (const width of [390, 1440]) {
   test(`club testimonials are readable text with original sources at ${width}px`, async ({
     page,
@@ -86,6 +87,7 @@ for (const width of [390, 1440]) {
   });
 }
 
+/** Клавиатурные переходы меняют текущую карточку и корректно блокируются на обоих концах списка. */
 test("testimonial navigation works with keyboard and stops at both ends", async ({
   page,
 }) => {

@@ -19,6 +19,8 @@ interface ClubSetupFixture {
 }
 
 async function expectRetiredClubDraft(page: Page, memberId: number) {
+  // После подтверждения или смены владельца проверяет удаление всех личных draft/pending ключей анкеты, а не только видимого диалога.
+
   expect(
     await page.evaluate(
       (id) =>
@@ -31,6 +33,8 @@ async function expectRetiredClubDraft(page: Page, memberId: number) {
 }
 
 async function openSetup(fixture: ClubSetupFixture) {
+  // Готовит синтетический клубный доступ и настоящую сессию, фиксирует неизменяемые поля аккаунта до ввода анкеты.
+
   const { connection, rows, context, frontend, memberId } = fixture;
   await connection.query(
     "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'c3-setup-recovery-access','paid','0','2030-01-01')",
@@ -65,9 +69,13 @@ async function openSetup(fixture: ClubSetupFixture) {
 }
 
 export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
+  // Проверяет анкету Клуба при гонках /me и ACK, потере ответа и смене аккаунта; старый кэш не считается записью в БД.
+
   it.each(["lost", "newer"])(
     "C3 club setup reconciles its ACK after a pre-write read arrives during saving (%s refresh)",
     async (refresh) => {
+    // Сценарий: Устаревший /me приходит при удержанном ACK анкеты; после ACK UI принимает подтверждённую или более новую ревизию без повторного POST.
+
       const current = fixture();
       const { connection, rows, base, memberId } = current;
       await connection.query(
@@ -246,6 +254,8 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
     30_000,
   );
   it("C3 club setup supersedes a native auth read started before saving its identity", async () => {
+    // Сценарий: Сохранение анкеты требует нового post-write чтения, а удержанный pre-write /me не возвращает старое имя и пол.
+
     const current = fixture();
     const { rows, base, memberId } = current;
     const { page, setup, identitySql, identity, access } =
@@ -330,6 +340,8 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
     }
   }, 30_000);
   it("C3 club setup shows native acknowledged identity when refresh reply is lost, then accepts a newer server identity", async () => {
+    // Сценарий: Подтверждённые значения показываются даже при потерянном refresh; поздний новый снимок может легитимно очистить пол или имя.
+
     const current = fixture();
     const { rows, connection, base, memberId } = current;
     const { page, setup, identitySql, identity, access } =
@@ -451,6 +463,8 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
     ).toEqual(access);
   }, 30_000);
   it("C3 club setup closes without publishing a draft when native session access is revoked", async () => {
+    // Сценарий: Отзыв сессии до POST закрывает форму, не записывает введённую анкету и очищает личные browser ключи.
+
     const current = fixture();
     const { rows, connection, memberId } = current;
     const { page, setup, identitySql, access } = await openSetup(current);
@@ -509,6 +523,8 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
   it.each(["missing", "present"])(
     "C3 club avatar-cache cannot populate or overwrite a server avatar (%s)",
     async (serverAvatar) => {
+    // Сценарий: Недоверенный legacy URL аватара не создаёт upload или update и не заменяет подтверждённый серверный аватар.
+
       const current = fixture();
       const { connection, rows, context, frontend, memberId } = current;
       const cached = frontend + "assets/images/icon.png";
@@ -563,6 +579,8 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
   it.each(["uncommitted", "committed"])(
     "C3 club setup keeps the draft and requires manual retry after a lost native reply (%s)",
     async (lost) => {
+    // Сценарий: Потерянный ответ до или после commit сохраняет draft/pending; проверка и явное принятие базы определяют, нужен ли единственный ручной повтор.
+
       const current = fixture();
       const { rows, base, memberId } = current;
       const { page, setup, field, identitySql, identity, access } =
@@ -742,6 +760,8 @@ export function registerClubSetupBrowserCases(fixture: () => ClubSetupFixture) {
   );
 
   it("C3 club setup ignores a native committed reply after switching account", async () => {
+    // Сценарий: Закоммиченный ответ старой участницы приходит после смены на администратора и не меняет нового владельца или его личный кэш.
+
     const current = fixture();
     const { rows, context, frontend, base, memberId } = current;
     const { page, setup, field, identitySql, identity, access } =

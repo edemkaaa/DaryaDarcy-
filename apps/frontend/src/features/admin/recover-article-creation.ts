@@ -62,6 +62,8 @@ export async function recoverArticleCreation(
     notify,
   }: ArticleRecoveryDependencies,
 ) {
+  // Проверяет журнал и серверный статус до повторной записи; файлы и создание используют исходные ключи, неопределённый update только сравнивается.
+
   if (!creation) return;
   let record = creation;
   const task = operation.begin("recover-article");

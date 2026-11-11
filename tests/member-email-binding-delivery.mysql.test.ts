@@ -22,14 +22,17 @@ import { sendTransactionalEmail } from "../apps/backend/src/_core/email";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 import { openLoopbackSmtp } from "./helpers/loopback-smtp";
 
+/** Проверяет delivery proof-письма, retry и lease fencing реальными SQL и локальным SMTP. */
 describe.skipIf(!testDatabaseUrl)(
   "binding proof delivery through MySQL and loopback SMTP",
   () => {
     let conn: Connection, pool: Pool, database: MySql2Database;
     let smtp: Awaited<ReturnType<typeof openLoopbackSmtp>>;
+    /** Читает intents, outbox и пользователя независимо от delivery результата. */
     async function rows(query: string, values: unknown[] = []) {
       return (await conn.query<RowDataPacket[]>(query, values))[0];
     }
+    /** Удаляет свой ACK-fault trigger, intents/outbox, audit и два аккаунта suite. */
     async function cleanup() {
       await conn.query("DROP TRIGGER IF EXISTS binding_delivery_ack_failure");
       await conn.query(
@@ -43,6 +46,7 @@ describe.skipIf(!testDatabaseUrl)(
         "DELETE FROM users WHERE id IN (91101,91102) AND openId LIKE 'binding-delivery-%'",
       );
     }
+    /** Создаёт одноразовый пул и loopback SMTP с synthetic отправителем. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       pool = mysql.createPool({
@@ -60,6 +64,7 @@ describe.skipIf(!testDatabaseUrl)(
       vi.stubEnv("SMTP_PASS", "fixture-only-smtp-password");
       vi.stubEnv("SMTP_FROM", "sender@example.test");
     });
+    /** Очищает fixture и локальные письма и восстанавливает ключ шифрования, public origin и два аккаунта. */
     beforeEach(async () => {
       await cleanup();
       smtp.reset();
@@ -75,7 +80,9 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query(`INSERT INTO users (id,openId,phone,role,sessionVersion) VALUES
       (91101,'binding-delivery-admin',NULL,'admin',0), (91102,'binding-delivery-member','+70000091102','user',2)`);
     });
+    /** Возвращает spies доставки и логирования. */
     afterEach(() => vi.restoreAllMocks());
+    /** Удаляет fixture и закрывает соединения и локальный SMTP с восстановлением окружения. */
     afterAll(async () => {
       if (conn) {
         await cleanup();
@@ -85,6 +92,7 @@ describe.skipIf(!testDatabaseUrl)(
       if (smtp) await smtp.close();
       vi.unstubAllEnvs();
     });
+    /** Создаёт pending email-binding собственного получателя с уникальным ключом. */
     async function queue() {
       const requestKey = randomUUID();
       await requestMemberEmailBinding(
@@ -98,6 +106,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       return requestKey;
     }
+    /** Читает полную delivery-строку вместе с текущими state, email и proofHash. */
     async function status(key: string) {
       return (
         await rows(
@@ -106,6 +115,7 @@ describe.skipIf(!testDatabaseUrl)(
         )
       )[0];
     }
+    /** Декодирует MIME локального письма и извлекает proof только из fragment URL ожидаемого origin. */
     function emailedProof() {
       const decoded = smtp.messages[0]
         .split(/\r\n--/)
@@ -128,6 +138,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(match).not.toBeNull();
       return match![1];
     }
+    /** SMTP принимает proof один раз, cipher удаляется, а email пользователя меняется только отдельным подтверждением. */
     it("delivers a single-use fragment proof, clears its cipher and leaves the account unchanged until confirmation", async () => {
       const key = await queue();
       const before = await rows("SELECT * FROM users WHERE id=91102");
@@ -151,6 +162,7 @@ describe.skipIf(!testDatabaseUrl)(
       await processMemberEmailBindingEmails(database, sendTransactionalEmail);
       expect(smtp.messages).toHaveLength(1);
     });
+    /** SMTP-отказ сохраняет исходный proof и backoff; успешный последующий retry очищает cipher. */
     it("keeps an SMTP rejection retryable without changing its proof or sending on the backoff interval", async () => {
       const key = await queue();
       const before = await status(key);
@@ -180,6 +192,7 @@ describe.skipIf(!testDatabaseUrl)(
         tokenCipher: null,
       });
     });
+    /** Блокировка, удаление, expiry или уже привязанная почта отменяют proof до SMTP с очисткой секретов. */
     it.each(["blocked", "deleting", "expired", "bound"])(
       "discards a %s recipient proof without an SMTP request",
       async (condition) => {
@@ -209,6 +222,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(smtp.recipients).toEqual([]);
       },
     );
+    /** Два одновременно работающих sender получают одну delivery-попытку по owned lease. */
     it("two concurrent workers deliver one message", async () => {
       const key = await queue();
       await Promise.all([
@@ -222,6 +236,7 @@ describe.skipIf(!testDatabaseUrl)(
         tokenCipher: null,
       });
     });
+    /** Claim, просроченный, заменённый либо отменённый после коммита, не отправляет stale-письмо. */
     it.each(["expired", "replaced", "cancelled"] as const)(
       "does not send a paused claim after it becomes %s",
       async (change) => {
@@ -235,7 +250,9 @@ describe.skipIf(!testDatabaseUrl)(
         });
         let paused = false;
         // Pause after the real claim commits; a second worker uses real SQL/SMTP.
+        // Приостанавливаем после подтверждённого claim: финальная проверка должна увидеть сменившиеся lease или state перед SMTP.
         const slow = new Proxy(database, {
+          /** Перехватывает только настоящий transaction-return и ставит паузу после коммита claim, остальные методы сохраняют this. */
           get(target, property) {
             if (property === "transaction")
               return async (
@@ -306,6 +323,7 @@ describe.skipIf(!testDatabaseUrl)(
         }
       },
     );
+    /** Активный lease погибшего worker не забирается до истечения, после expiry delivery повторяется. */
     it("recovers a crashed lease only after expiry", async () => {
       const key = await queue();
       await conn.query(
@@ -326,6 +344,7 @@ describe.skipIf(!testDatabaseUrl)(
         sentAt: expect.any(Date),
       });
     });
+    /** Поздний ACK принятого SMTP не перезаписывает lease, уже назначенный другому worker. */
     it("does not let a stale acknowledgement overwrite a replacement lease", async () => {
       const key = await queue();
       const replacement = randomUUID();
@@ -344,6 +363,7 @@ describe.skipIf(!testDatabaseUrl)(
         tokenCipher: expect.any(String),
       });
     });
+    /** Подтверждение proof между SMTP и ACK остаётся terminal и не получает обратно cipher или lease. */
     it("does not resurrect a proof confirmed before its SMTP acknowledgement is recorded", async () => {
       const key = await queue();
       await processMemberEmailBindingEmails(database, async (mail) => {
@@ -363,6 +383,7 @@ describe.skipIf(!testDatabaseUrl)(
         discardedAt: expect.any(Date),
       });
     });
+    /** Отсутствующий ключ, плохой origin, повреждённый cipher и несовпадение proof/intent запрещают SMTP. */
     it.each([
       "missing-key",
       "bad-url",
@@ -398,6 +419,7 @@ describe.skipIf(!testDatabaseUrl)(
         leaseId: null,
       });
     });
+    /** Двенадцатый отказ завершает intent cancelled и очищает секреты, разрешая новое намерение. */
     it("stops after twelve failed attempts and releases the pending intent", async () => {
       const key = await queue();
       await conn.query(
@@ -416,6 +438,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       await queue();
     });
+    /** Истёкший lease после двенадцатой попытки не создаёт тринадцатую отправку. */
     it("does not create a thirteenth attempt after the last worker crashes", async () => {
       const key = await queue();
       await conn.query(
@@ -432,6 +455,7 @@ describe.skipIf(!testDatabaseUrl)(
         proofHash: null,
       });
     });
+    /** После принятого SMTP и отказа SQL-ACK допускается повтор того же proof и Message-ID, а не выдуманная exactly-once гарантия. */
     it("retries an unrecorded SMTP acceptance with the same proof and message identity", async () => {
       const key = await queue();
       await conn.query(`CREATE TRIGGER binding_delivery_ack_failure BEFORE UPDATE ON member_email_binding_outbox FOR EACH ROW
@@ -441,6 +465,7 @@ describe.skipIf(!testDatabaseUrl)(
         processMemberEmailBindingEmails(database, sendTransactionalEmail),
       ).rejects.toMatchObject({ code: "unavailable" });
       expect(smtp.messages).toHaveLength(1);
+      // SMTP уже принял письмо, но SQL-ACK упал: следующий retry обязан сохранить тот же proof, хотя дубль письма возможен.
       const firstToken = emailedProof();
       const before = await status(key);
       expect(before).toMatchObject({
@@ -460,6 +485,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(smtp.messages).toHaveLength(2);
       const first = smtp.messages.shift()!;
       expect(emailedProof()).toBe(firstToken);
+      /** Разворачивает folded MIME-заголовок и извлекает Message-ID для сравнения повторных SMTP-писем. */
       const messageId = (message: string) =>
         message.replace(/\r\n[ \t]+/g, " ").match(/Message-ID: (.+)/)?.[1];
       expect(messageId(first)).toBe(`<email-binding-${key}@daryadarcy.com>`);

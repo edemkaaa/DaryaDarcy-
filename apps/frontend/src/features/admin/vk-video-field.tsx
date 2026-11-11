@@ -21,16 +21,22 @@ export function VkVideoField({
   validateUrl?: (url: string) => string | null;
   helpText?: string;
 }) {
+  // Добавляет проверенную экспортную ссылку в videos формы, не загружая файл и не сохраняя пост самостоятельно.
+
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
   const [error, setError] = useState("");
   const id = useId();
   const close = () => {
+    // Сбрасывает временную строку и ошибку только диалога добавления ссылки.
+
     setOpen(false);
     setValue("");
     setError("");
   };
   const add = () => {
+    // Нормализует ссылку и проверяет дубли до передачи родителю; HTML и адрес страницы ролика не принимаются.
+
     if (disabled) return;
     const url = validateUrl(value.trim());
     if (!url) {
@@ -121,6 +127,8 @@ export function VkVideoPreviewButton({
   url: string;
   index: number;
 }) {
+  // Монтирует VK iframe только при открытом диалоге и допустимом адресе.
+
   const [open, setOpen] = useState(false);
   if (!getVkVideoEmbedUrl(url)) return null;
   return (

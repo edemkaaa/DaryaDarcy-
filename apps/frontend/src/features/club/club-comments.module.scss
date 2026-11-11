@@ -2,6 +2,7 @@
 @use "../../shared/styles/layers";
 
 @layer components {
+  /* Фото автора и fallback занимают одинаковую область, чтобы загрузка аватара не сдвигала заголовок комментария. */
   .avatar {
     width: 32px;
     height: 32px;
@@ -29,6 +30,7 @@
     text-decoration-line: underline;
   }
 
+  /* Действия комментария показываются нижним sheet поверх затемнения; отмена отделена от опасного действия. */
   .menuOverlay {
     flex: 1;
     background-color: rgba(0, 0, 0, 0.35);
@@ -86,6 +88,7 @@
     color: var(--muted);
   }
 
+  /* Граница и внутренний overflow удерживают текст и медиа в карточке комментария. */
   .commentBlock {
     background-color: #f5f0e6;
     border-radius: 14px;
@@ -127,6 +130,7 @@
     gap: 6px;
   }
 
+  /* Размер 16px сохраняет комфортный ввод в мобильном браузере; счётчик и сохранение размещены вне textarea. */
   .editInput {
     border-width: 1px;
     border-color: var(--border);
@@ -182,6 +186,7 @@
     line-height: 24px;
   }
 
+  /* Малые фото комментария имеют фиксированный размер для компактного списка, полный просмотр открывается отдельно. */
   .photoRow {
     flex-direction: row;
     gap: 6px;
@@ -251,6 +256,7 @@
     font-family: var(--font-italic);
   }
 
+  /* Поле нового комментария растёт в своей строке; фото и кнопка отправки не входят в текстовый слой. */
   .input {
     flex: 1;
     border-width: 1px;
@@ -271,6 +277,7 @@
     position: relative;
   }
 
+  /* Удаление выбранного фото вынесено поверх угла миниатюры и не меняет её ширину. */
   .removePhoto {
     position: absolute;
     top: -6px;
@@ -314,6 +321,7 @@
     font-size: 12px;
     color: #a85c5c;
   }
+  /* Условные цвета счётчика выделяют превышение лимита; сами ограничения проверяет логика формы. */
   .colorState {
     color: #a85c5c;
   }

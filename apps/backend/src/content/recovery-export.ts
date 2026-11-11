@@ -50,15 +50,18 @@ export const recoveryExportOutput = z.object({
 });
 type Item = z.output<typeof recoveryExportOutput>["items"][number];
 type Input = z.output<typeof recoveryExportInput>;
+/** Не выдаём неполные или противоречивые сведения восстановления как успешный экспорт. */
 const unavailable = () =>
   new TRPCError({
     code: "SERVICE_UNAVAILABLE",
     message: "Экспорт временно недоступен",
   });
+/** Открываем экспорт метаданных только по отдельному серверному флагу. */
 export function requireRecoveryExportEnabled() {
   if (process.env.CONTENT_RECOVERY_EXPORT_ENABLED !== "true")
     throw new TRPCError({ code: "NOT_FOUND" });
 }
+/** Превращаем только ожидаемый конфликт истечения срока в статус expired; сбой часов или инфраструктуры остаётся ошибкой. */
 function expired(createdAt: Date) {
   try {
     assertContentRecoveryWindow(createdAt);
@@ -68,6 +71,7 @@ function expired(createdAt: Date) {
     throw error;
   }
 }
+/** Читаем собственную keyset-пачку выбранного журнала, различая готовность файла, отзыв и существование результата; имена, байты и секреты хранилища не экспортируются. */
 async function details(
   tx: ContentTransaction,
   actor: ContentWriteActor,
@@ -193,6 +197,7 @@ async function details(
   });
 }
 /** Own metadata only. One nonlocking snapshot; never grants a file/content capability. */
+/** В одном read-only снимке сверяем сессию и блокировку пользователя, объединяем собственные подробности с маркерами истечения и выдаём ограниченную страницу без права доступа к содержимому. */
 export async function exportContentRecovery(
   database: MySql2Database,
   actor: ContentWriteActor,

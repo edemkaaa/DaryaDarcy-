@@ -1,3 +1,4 @@
+// Старое ручное добавление passwordHash не ведёт миграционную историю и не заменяет нынешний preflight.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -19,6 +20,7 @@ const sql = fs.readFileSync(
   path.join(root, "packages/database/drizzle/0007_password_hash.sql"),
   "utf8",
 );
+// С этого места выбранная БД реально изменяется; текущая история и рабочее назначение автоматически не проверены.
 const conn = await mysql.createConnection(env.DATABASE_URL);
 const [rows] = await conn.query("SHOW COLUMNS FROM users LIKE 'passwordHash'");
 if (Array.isArray(rows) && rows.length > 0) {

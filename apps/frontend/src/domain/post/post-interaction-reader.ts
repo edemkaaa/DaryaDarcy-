@@ -19,17 +19,19 @@ type Entry = {
   group?: Group;
 };
 
-/** One cache entry per post, one wire request per batch of newly needed IDs. */
+/** Коротким окном объединяем потребности карточек в wire batches; отдельные подписчики сохраняют свои сигналы и версии свежего чтения. Отдельная кеш-запись принадлежит одному посту. */
 export function createPostInteractionReader(
   load: (ids: number[], signal: AbortSignal) => Promise<unknown>,
 ) {
   const entries = new Set<Entry>();
   let scheduled: ReturnType<typeof setTimeout> | undefined;
   let readVersion = 0;
+  /** Удаляем ожидающего читателя и его abort-listener после любого завершения. */
   const release = (entry: Entry) => {
     entries.delete(entry);
     entry.signal.removeEventListener("abort", entry.abort);
   };
+  /** Валидируем batch один раз и раздаём каждому активному читателю только его ID с общей новой readVersion. */
   const run = async (group: Group, ids: number[]) => {
     try {
       const data = requirePostInteractions(
@@ -55,6 +57,7 @@ export function createPostInteractionReader(
       }
     }
   };
+  /** Формируем группы только для ещё не отправленных читателей; уже выполняющийся batch не переназначаем. */
   const flush = () => {
     scheduled = undefined;
     const queued = [...entries].filter((entry) => !entry.group);
@@ -69,6 +72,7 @@ export function createPostInteractionReader(
     }
   };
   return {
+    /** Ставим чтение одного поста в очередь; отмена последнего потребителя останавливает общий запрос группы. */
     read(id: number, signal: AbortSignal): Promise<PostInteractionSnapshot> {
       if (signal.aborted) return Promise.reject(signal.reason);
       if (!Number.isSafeInteger(id) || id <= 0)
@@ -79,6 +83,7 @@ export function createPostInteractionReader(
           signal,
           resolve,
           reject,
+          /** Снимаем одного читателя; общий controller отзываем лишь когда в группе не осталось ожидающих подписчиков. */
           abort: () => {
             if (!entries.has(entry)) return;
             release(entry);
@@ -102,6 +107,7 @@ export function createPostInteractionReader(
         if (scheduled === undefined) scheduled = setTimeout(flush, 5);
       });
     },
+    /** Отзываем всех ожидающих читателей при смене владельца, включая отложенный flush. */
     cancel() {
       for (const entry of entries) entry.abort();
     },

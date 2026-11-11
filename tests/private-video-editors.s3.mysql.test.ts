@@ -27,13 +27,16 @@ const endpoint = "https://s3.twcstorage.ru",
   Bucket = "daryadarcy-s3";
 const policyHash =
   "0484dfa2cc0164225db616bc516c53e8be377aca975d32701b6a6467ce1715e8";
+/** Вычисляет хеш принятой bucket policy для проверки её неизменности. */
 const hash = (text: string) => createHash("sha256").update(text).digest("hex");
 const admin = 98940,
   other = 98941,
   member = 98942;
 type Mode = "full" | "quick";
+/** Находит текстовое поле настоящего полного либо быстрого редактора. */
 const field = (form: Locator) =>
   form.getByPlaceholder("Текст поста… Enter — новый абзац");
+/** Выбирает кнопку сохранения полного редактора или публикации быстрого. */
 const submit = (form: Locator, mode: Mode) =>
   form
     .getByRole("button", {
@@ -41,10 +44,12 @@ const submit = (form: Locator, mode: Mode) =>
       exact: true,
     })
     .first();
+/** Находит явное действие восстановления неопределённого сохранения. */
 const recover = (form: Locator) =>
   form.getByRole("button", { name: "Проверить сохранение", exact: true });
 
 // Actual UI/File/IndexedDB/Next/Nest/SQL/S3. Only completed HTTP replies are lost/held.
+/** Опциональная приёмка проверяет настоящие File, IndexedDB, Next, API, SQL и S3 обоих видеоредакторов. */
 describe.skipIf(!enabled)("private videos through both actual editors", () => {
   let conn: Connection, storage: S3Client;
   let workers: Awaited<ReturnType<typeof privateAttachmentProcesses>>;
@@ -56,22 +61,29 @@ describe.skipIf(!enabled)("private videos through both actual editors", () => {
     tokens = new Map<number, string>();
   const messages: string[] = [],
     errors: string[] = [];
+  /** Читает контрольные SQL-строки только отдельной базы сценария. */
   const rows = async (sql: string, args: unknown[] = []) =>
     (await conn.query<RowDataPacket[]>(sql, args))[0];
+  /** Считает реальные PUT API-процесса для проверки однократной загрузки видео и постера. */
   const puts = () =>
     api.commands.filter((command) => command === "PutObjectCommand").length;
+  /** Отбирает бинарные upload-запросы из fault-proxy. */
   const rawUploads = () =>
     proxy.calls.filter(
       (call) => call.pathname === "/api/admin/private-video-uploads",
     );
+  /** Отбирает завершённые вызовы конкретной admin-процедуры. */
   const calls = (method: string) =>
     proxy.calls.filter((call) => call.pathname === `/api/trpc/admin.${method}`);
+  /** Формирует уникальное имя синтетического видео по режиму и фазе сценария. */
   const name = (mode: Mode, scenario: string) =>
     `${prefix}-${mode}-${scenario}.mp4`;
+  /** Читает durable-квитанции только выбранного синтетического имени файла. */
   const ledger = (filename: string) =>
     rows("SELECT * FROM private_attachment_uploads WHERE filename=?", [
       filename,
     ]);
+  /** Устанавливает cookie выбранного синтетического аккаунта в browser context. */
   async function identity(id = admin) {
     await browser.context.addCookies([
       {
@@ -83,6 +95,7 @@ describe.skipIf(!enabled)("private videos through both actual editors", () => {
       },
     ]);
   }
+  /** Открывает полный или быстрый редактор и при необходимости восстанавливает сохранённый локальный черновик. */
   async function open(mode: Mode, restore = false, editing = false) {
     const response = await page.goto(
       `${browser.origin}${mode === "full" ? "/admin" : editing ? "/club" : "/feed"}`,
@@ -114,6 +127,7 @@ describe.skipIf(!enabled)("private videos through both actual editors", () => {
         .click();
     return form;
   }
+  /** Передаёт настоящее синтетическое MP4 через filechooser и ждёт готовности выбранного вложения. */
   async function choose(form: Locator, filename: string) {
     const chooser = page.waitForEvent("filechooser");
     await form
@@ -126,6 +140,7 @@ describe.skipIf(!enabled)("private videos through both actual editors", () => {
       form.getByRole("button", { name: "Удалить видео 1", exact: true }),
     ).toBeEnabled({ timeout: 20000 });
   }
+  /** Читает оригинальные байты, имя, ключ и наличие постера из настоящего IndexedDB-журнала конкретного владельца. */
   async function storedVideo(mode: Mode) {
     return page.evaluate(
       ({ admin, mode }) =>
@@ -165,12 +180,14 @@ describe.skipIf(!enabled)("private videos through both actual editors", () => {
       { admin, mode },
     );
   }
+  /** Выполняет GET, HEAD либо Range защищённого файла через browser request с текущей cookie. */
   const read = (url: string, method = "GET", range?: string) =>
     browser.context.request.fetch(`${browser.origin}${url}`, {
       method,
       headers: range ? { range } : {},
       timeout: 20000,
     });
+  /** Проверяет одинаковый закрытый отказ GET, HEAD и Range без обращения к S3. */
   async function denied(url: string) {
     const before = api.commands.length;
     for (const [method, range] of [
@@ -184,6 +201,7 @@ describe.skipIf(!enabled)("private videos through both actual editors", () => {
     }
     expect(api.commands.length).toBe(before);
   }
+  /** Проверяет владение пустым tmpfs-стендом, место и bucket policy; создаёт только синтетические роли и поднимает отдельный browser/API-стенд. */
   beforeAll(async () => {
     const disk = await statfs(tmpdir());
     if (disk.bavail * disk.bsize < 2 * 1024 ** 3)
@@ -279,6 +297,7 @@ describe.skipIf(!enabled)("private videos through both actual editors", () => {
     );
     workers = await privateAttachmentProcesses();
     browser = await privateFilesBrowser("", {
+      /** Связывает отдельный API-процесс с fault-proxy до запуска Next, включая только требуемые video/content возможности. */
       beforeStart: async (origin) => {
         api = await workers.start({
           contentFiles: true,
@@ -301,12 +320,14 @@ describe.skipIf(!enabled)("private videos through both actual editors", () => {
     });
     page.on("pageerror", (error) => errors.push(error.message));
   }, 60000);
+  /** Возвращает browser-сессию исходному владельцу и очищает alert между сценариями. */
   beforeEach(async () => {
     if (conn) {
       await identity();
       messages.length = 0;
     }
   });
+  /** Останавливает стенд и удаляет только свои подтверждённые видео и постеры по metadata, ETag и условному delete. */
   afterAll(async () => {
     await browser?.close();
     await proxy?.close();
@@ -385,6 +406,7 @@ describe.skipIf(!enabled)("private videos through both actual editors", () => {
   }, 60000);
 
   for (const mode of ["full", "quick"] as const) {
+    /** Проверяет потерю upload/create-ответов, сохранность File в IndexedDB, отсутствие дублей, чтение/Range/воспроизведение и отзыв удалённого вложения. */
     it(`${mode}: lost upload/create responses and document reload preserve video bytes/keys without duplicate posts or PUT`, async () => {
       const filename = name(mode, "create"),
         text = `${prefix}-${mode}-create`,
@@ -529,6 +551,7 @@ describe.skipIf(!enabled)("private videos through both actual editors", () => {
     }, 90000);
 
     for (const stage of ["upload", "status"] as const) {
+      /** Меняет аккаунт при позднем upload/status-ответе и проверяет изоляцию исходного File, ключа и квитанции при восстановлении владельцем. */
       it(`${mode}: account switch during ${stage} isolates the original File/key and ignores late native responses`, async () => {
         const filename = name(mode, stage),
           text = `${prefix}-${mode}-${stage}`,

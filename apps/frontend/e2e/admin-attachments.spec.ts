@@ -4,6 +4,7 @@ import { editorApi, ok, failure } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
 test.setTimeout(45_000);
+/** Существующий пост содержит три разных вложения; текстовая правка не должна удалять или повторно загружать их. */
 const post = () => ({
   id: 1,
   text: "EXISTING_POST_WITH_ATTACHMENTS",
@@ -63,12 +64,14 @@ const post = () => ({
   ],
 });
 type Write = { name: string; input: Record<string, unknown> };
+/** Даём синтетическому файлу детерминированный UUID по типу и имени, чтобы проверить повторное использование квитанций. */
 function assetIdFor(input: Record<string, unknown>) {
   const hash = createHash("sha256")
     .update(`${input.type}:${input.filename}`)
     .digest("hex");
   return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-4${hash.slice(13, 16)}-8${hash.slice(17, 20)}-${hash.slice(20, 32)}`;
 }
+/** Собираем квитанцию с фактическим размером декодированной нагрузки; отдельные сценарии переопределяют подтверждённый сервером MIME. */
 function receipt(
   input: Record<string, unknown>,
   extra: Record<string, unknown> = {},
@@ -83,6 +86,7 @@ function receipt(
     ...extra,
   };
 }
+/** Добавляем приватный upload/status fixture поверх общего редактора; любое обращение к публичной legacy-загрузке считается ошибкой. */
 async function api(page: Page, answer?: Parameters<typeof editorApi>[1]) {
   await editorApi(page, async (name, input, route) => {
     const custom = await answer?.(name, input, route);
@@ -100,8 +104,10 @@ async function api(page: Page, answer?: Parameters<typeof editorApi>[1]) {
     }),
   );
 }
+/** Выбираем диалог редактора независимо от полного или быстрого входа. */
 const editor = (page: Page) =>
   page.getByRole("dialog", { name: "Редактор публикации" });
+/** Открываем создание или правку и ждём durable-состояние черновика до выбора файлов. */
 async function open(
   page: Page,
   mode: "full" | "quick" = "full",
@@ -128,6 +134,7 @@ async function open(
   ).toBeVisible();
   return editor(page);
 }
+/** Ждём завершения автосохранения перед filechooser, чтобы смещение notice не исказило нажатие; передаём только тестовые байты. */
 async function choose(
   page: Page,
   form: Locator,
@@ -145,6 +152,7 @@ async function choose(
   await form.getByRole("button", { name: kind, exact: true }).click();
   await (await chooser).setFiles({ name, mimeType, buffer });
 }
+/** Собираем пользовательские сообщения, автоматически закрывая диалоги без скрытого сетевого повтора. */
 function alerts(page: Page) {
   const messages: string[] = [];
   page.on("dialog", async (dialog) => {
@@ -154,6 +162,7 @@ function alerts(page: Page) {
   return messages;
 }
 
+/** Пустая правка должна отправить лишь изменяемые поля поста, сохранив серверные вложения и порядок. */
 test("the full editor restores existing attachments without reuploading or removing them", async ({
   page,
 }) => {
@@ -186,6 +195,7 @@ test("the full editor restores existing attachments without reuploading or remov
   expect(writes[0].input).not.toHaveProperty("removedMediaIds");
 });
 
+/** Удаление старого и добавление нового файла применяются одной явной записью привязок после upload receipt. */
 test("removing and adding attachments commits once and the reopened editor reads the saved media", async ({
   page,
 }) => {
@@ -250,6 +260,7 @@ test("removing and adding attachments commits once and the reopened editor reads
   await expect(form.getByText("existing.mp3", { exact: true })).toHaveCount(0);
 });
 
+/** Пост без текста допускает вложения; preview показывает имена, скрытые controls inert, а сохранение связывает assetId. */
 test("an attachment-only full post previews filenames at mobile and desktop widths and then saves", async ({
   page,
 }, testInfo) => {
@@ -319,6 +330,7 @@ test("an attachment-only full post previews filenames at mobile and desktop widt
   });
 });
 
+/** Первый upload ACK сохраняется после ошибки второго; явный retry не загружает подтверждённый файл заново. */
 test("partial upload failure retains files and reuses the confirmed upload on explicit retry", async ({
   page,
 }) => {
@@ -378,6 +390,7 @@ test("partial upload failure retains files and reuses the confirmed upload on ex
   ]);
 });
 
+/** Неопределённый ответ update блокирует повтор, сохраняя выбранное вложение и исходную нагрузку. */
 test("an unconfirmed full editor write is not repeated and keeps the attachment", async ({
   page,
 }) => {
@@ -409,6 +422,7 @@ test("an unconfirmed full editor write is not repeated and keeps the attachment"
   ]);
 });
 
+/** Закрытый редактор теряет право применить поздний upload ACK; следующая форма остаётся отдельным чистым черновиком. */
 test("closing during upload ignores a late result and resets attachments and preview for a new draft", async ({
   page,
 }) => {
@@ -477,6 +491,7 @@ for (const mode of ["full", "quick"] as const) {
         return create(blob);
       };
     });
+    /** Пустой, сверхлимитный и несоответствующий MIME-файл должны отклоняться до FileReader и создания object URL. */
     const cases = [
       {
         name: "empty.pdf",
@@ -579,6 +594,7 @@ for (const mode of ["full", "quick"] as const) {
 }
 
 for (const mode of ["full", "quick"] as const) {
+  /** Для create/update обоих редакторов квитанции остаются прежними после определённого отказа сохранения и используются явным повтором. */
   for (const editing of [false, true]) {
     test(`${mode} ${editing ? "update" : "create"} binds confirmed private assets after an explicit save retry`, async ({
       page,
@@ -675,6 +691,7 @@ for (const mode of ["full", "quick"] as const) {
 }
 
 for (const mode of ["full", "quick"] as const) {
+  /** Проверяем отличие text-only правки от явного удаления последнего видео; прочие служебные поля не должны попасть в payload. */
   for (const removeVideo of [false, true]) {
     test(`${mode} edit ${removeVideo ? "explicitly removes the last video" : "preserves videos and order during a text edit"}`, async ({
       page,
@@ -758,6 +775,7 @@ for (const mode of ["full", "quick"] as const) {
       form.getByText("97b2a854-6f40-414d-a7b4-67e233031ee4", { exact: true }),
     ).toHaveCount(0);
   });
+  /** Неполный browser MIME восстанавливается по поддерживаемому файлу, но привязка всё равно использует серверно подтверждённый assetId. */
   for (const mime of ["", "application/octet-stream"]) {
     test(`${mode} audio with ${mime || "empty"} MIME binds a server-confirmed private asset`, async ({
       page,

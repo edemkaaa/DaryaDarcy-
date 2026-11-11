@@ -12,6 +12,7 @@ import { testDatabaseUrl } from "./helpers/backend-mysql";
 import { openListPageFixture } from "./helpers/list-page-fixture";
 import * as mediaRepository from "../apps/backend/src/content/post-media-repository";
 
+/** Проверяет единый read snapshot карточки и вложений, чтобы следующая закрытая версия не попала в прежний открытый ответ. */
 describe.skipIf(!testDatabaseUrl)(
   "post and media share one HTTP read snapshot",
   () => {
@@ -20,9 +21,11 @@ describe.skipIf(!testDatabaseUrl)(
     let postId: number;
     const originalUrl = "https://fixture.invalid/public-before.mp4";
     const privateUrl = "https://fixture.invalid/club-after.mp4";
+    /** Создаёт отдельную HTTP/JWT page-фикстуру. */
     beforeAll(async () => {
       fixture = await openListPageFixture("post-read-snapshot", base);
     });
+    /** Восстанавливает both-пост, подписку, сохранение и исходный видеофайл. */
     beforeEach(async () => {
       await fixture.reset();
       postId = await fixture.post(0, "both");
@@ -36,11 +39,14 @@ describe.skipIf(!testDatabaseUrl)(
         [postId, originalUrl],
       );
     });
+    /** Восстанавливает перехваченный attachPostMedia после каждого сценария. */
     afterEach(() => vi.restoreAllMocks());
+    /** Закрывает API и удаляет собственные данные фикстуры. */
     afterAll(async () => {
       await fixture?.close();
     });
 
+    /** Между чтениями коммитит закрытую ревизию и требует старую согласованную пару в текущем ответе и новые права в следующем. */
     it.each([
       { path: "feed.list", input: {}, actor: null, shape: "list" },
       {

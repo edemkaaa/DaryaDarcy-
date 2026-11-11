@@ -15,11 +15,13 @@ const PRODUCT_DOWNLOAD_URLS: Record<string, string> = {
   "digital-2": (process.env.SHOP_DIGITAL_2_DOWNLOAD_URL || "").trim(),
 };
 
+/** Строим ссылку карточки цифрового товара из настроенного публичного адреса приложения. */
 function shopPageUrl(productId: string): string {
   const base = (process.env.PUBLIC_APP_URL || "https://daryadarcy.com").replace(/\/$/, "");
   return `${base}/shop/${productId}`;
 }
 
+/** При включённой онлайн-покупке проверяем прежнюю отметку, сохраняем задание до SMTP и отмечаем sent только после принятия письма; служебный push отправляется отдельно без ожидания. */
 export async function deliverShopPurchase(input: {
   orderId: string;
   productId: string;
@@ -70,6 +72,7 @@ export async function deliverShopPurchase(input: {
   }
 }
 
+/** Повторяем доставку ограниченной пачки неотправленных цифровых заказов через тот же контракт, только при включённой функции магазина. */
 export async function processPendingShopDeliveryEmails(): Promise<void> {
   if (!getCapabilities().shopOnlinePayment) return;
   const pending = await platformDb.listPendingShopDeliveryEmails(10);

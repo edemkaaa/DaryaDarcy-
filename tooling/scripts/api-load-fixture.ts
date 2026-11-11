@@ -13,6 +13,8 @@ import { hashPassword } from "../../apps/backend/src/_core/password";
 export const exec = promisify(execFile);
 export const root = fileURLToPath(new URL("../../", import.meta.url));
 export async function inspectLoad(uri: string, id: string) {
+  // Сверяет точный контейнер, его владение и loopback/tmpfs-профиль до чтения или заполнения SQL-fixture.
+
   const { stdout } = await exec(
     "docker",
     [
@@ -31,9 +33,11 @@ export const rows = async (
   conn: Connection,
   query: string,
   values: unknown[] = [],
-) => (await conn.query<RowDataPacket[]>(query, values))[0];
+) => /* Выделяет строки результата MySQL, сохраняя параметризацию значений у вызывающего сценария. */ (await conn.query<RowDataPacket[]>(query, values))[0];
 
 export async function seedLoad(conn: Connection) {
+  // Требует пустую мигрированную fixture и создаёт известный набор пользователей, постов и реакций для точных последующих инвариантов.
+
   if (
     (await rows(conn, "SELECT id FROM users")).length ||
     (await rows(conn, "SELECT id FROM __drizzle_migrations")).length !== 41
@@ -60,6 +64,8 @@ export async function seedLoad(conn: Connection) {
       );
   }
   const insert = async (table: string, columns: string, data: unknown[][]) => {
+    // Пишет заранее заданные таблицы партиями по 500, ограничивая размер одного запроса генератора.
+
     for (let offset = 0; offset < data.length; offset += 500)
       await conn.query(`INSERT INTO ${table}(${columns}) VALUES ?`, [
         data.slice(offset, offset + 500),
@@ -123,6 +129,8 @@ export async function seedLoad(conn: Connection) {
 }
 
 export async function startLoadApi(uri: string) {
+  // Собирает собственный API-процесс с разрешением TCP только к тестовой MySQL и собирает безопасные метрики без рабочих интеграций.
+
   const directory = await mkdtemp(join(tmpdir(), "daryadarcy-load-api-"));
   await symlink(join(root, "node_modules"), join(directory, "node_modules"));
   // Instrument only this child. All real application TCP may reach its own SQL port;
@@ -230,8 +238,10 @@ export async function startLoadApi(uri: string) {
       pid: child.pid!,
       metrics,
       errors,
-      alive: () => alive,
+      alive: () => /* Позволяет нагрузочному клиенту немедленно остановить сценарий при смерти своего API. */ alive,
       async close() {
+        // Штатно останавливает собственный API, ждёт его выхода и удаляет только его временную сборку.
+
         if (alive)
           await new Promise<void>((resolve) => {
             const timer = setTimeout(() => child.kill("SIGTERM"), 5000);

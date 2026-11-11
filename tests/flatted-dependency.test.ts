@@ -1,3 +1,4 @@
+/** Проверяем сериализацию реальной cache-зависимости ESLint на ограниченных фикстурах, без чтения рабочих кешей. */
 import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { expect, it } from "vitest";
@@ -8,6 +9,7 @@ const flatted = cacheRequire("flatted") as typeof import("flatted");
 
 // Characterize ESLint's actual cache dependency in bounded disposable children.
 // Hostile references are inspected, never mutated; no cache files are read.
+/** Неправильная ссылка не должна разрешаться через прототип массива. */
 it.each(["__proto__", "constructor", "toString"])(
   "does not resolve cache reference %s through the input array prototype",
   (reference) => {
@@ -27,6 +29,7 @@ it.each(["__proto__", "constructor", "toString"])(
   },
 );
 
+/** Длинную цепочку проверяем с маленьким stack/heap в отдельном процессе; ожидаем завершённое восстановление. */
 it("restores a bounded cache reference chain without recursive stack growth", () => {
   const output = execFileSync(
     process.execPath,
@@ -51,6 +54,7 @@ it("restores a bounded cache reference chain without recursive stack growth", ()
   expect(JSON.parse(output)).toEqual({ done: true });
 });
 
+/** Обычные значения, общие ссылки и циклы должны сохранять идентичность после round trip. */
 it("preserves ordinary cache values, shared references and cycles", () => {
   const parsed = flatted.parse(
     '[{"name":"1","self":"0","shared":"2","again":"2"},"fixture",{"count":3}]',

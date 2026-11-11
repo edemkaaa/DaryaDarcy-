@@ -19,12 +19,16 @@ const PER_TARGET = 24;
 const TIMEOUT_MS = 15000;
 
 function percentile(sorted, p) {
+  // Берёт ближайший верхний перцентиль уже отсортированного набора задержек.
+
   if (!sorted.length) return 0;
   const idx = Math.min(sorted.length - 1, Math.max(0, Math.ceil((p / 100) * sorted.length) - 1));
   return sorted[idx];
 }
 
 async function hit(url) {
+  // Отправляет один гостевой GET с дедлайном и учитывает полное получение тела в задержке.
+
   const started = performance.now();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -48,9 +52,13 @@ async function hit(url) {
 }
 
 async function runTarget(target) {
+  // Ограничивает число параллельных запросов для одной цели и сводит статусы и задержки.
+
   const results = [];
   let cursor = 0;
   async function worker() {
+    // Берёт следующий номер запроса из общего счётчика и последовательно выполняет свою часть нагрузки.
+
     while (cursor < PER_TARGET) {
       cursor += 1;
       results.push(await hit(target.url));

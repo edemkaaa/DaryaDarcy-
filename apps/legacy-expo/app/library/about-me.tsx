@@ -1,3 +1,4 @@
+// Архив Expo. Показывает публичную биографию с оглавлением, каруселью и полноэкранным viewer; авторский текст хранится статически.
 import React, { useRef, useState, useCallback } from "react";
 import * as Haptics from "expo-haptics";
 import {
@@ -130,6 +131,8 @@ const PART_TEXTS = [
 ];
 
 export default function AboutMeScreen() {
+  // Показывает публичную биографию с оглавлением, каруселью и полноэкранным viewer; авторский текст хранится статически.
+
   const [activeIndex, setActiveIndex] = useState(0);
   const [viewerVisible, setViewerVisible] = useState(false);
   const [viewerPhotos, setViewerPhotos] = useState<string[]>([]);
@@ -140,16 +143,22 @@ export default function AboutMeScreen() {
   const sectionPositions = useRef<Record<number, number>>({});
 
   const handleBack = () => {
+    // Возвращает на предыдущий маршрут Библиотеки.
+
     router.back();
   };
 
   const openViewer = (photos: string[], index: number) => {
+    // Передаёт выбранную фотосерию и индекс в полноэкранный просмотр.
+
     setViewerPhotos(photos);
     setViewerInitialIndex(index);
     setViewerVisible(true);
   };
 
   const scrollToSection = (index: number) => {
+    // Прокручивает к измеренной позиции главы с отступом от верхней границы.
+
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -160,6 +169,8 @@ export default function AboutMeScreen() {
   };
 
   const scrollToTop = () => {
+    // Возвращает чтение к началу биографии с native haptic.
+
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -168,6 +179,8 @@ export default function AboutMeScreen() {
 
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      // Обновляет индикатор по первому достаточно видимому кадру карусели.
+
       if (viewableItems.length > 0 && viewableItems[0].index != null) {
         setActiveIndex(viewableItems[0].index);
       }
@@ -177,7 +190,7 @@ export default function AboutMeScreen() {
 
   const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
 
-  const renderCarouselItem = ({ item, index }: { item: string; index: number }) => (
+  const renderCarouselItem = ({ item, index }: { item: string; index: number }) => /* Рисует полноширинный кадр биографии и связывает его с viewer. */ (
     <TouchableOpacity
       activeOpacity={0.9}
       onPress={() => openViewer(CAROUSEL_IMAGES, index)}
@@ -318,6 +331,7 @@ export default function AboutMeScreen() {
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 80,

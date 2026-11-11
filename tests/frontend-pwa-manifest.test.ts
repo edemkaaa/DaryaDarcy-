@@ -1,3 +1,4 @@
+/** Проверка реальных PWA-иконок, на которые ссылается manifest. */
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import sharp from "sharp";
@@ -5,6 +6,7 @@ import { expect, it } from "vitest";
 
 const publicRoot = resolve("apps/frontend/public");
 
+/** Для 192/512 px читаем локальный PNG и декодируем sharp: совпасть должны адрес origin, размер и заявленный формат. */
 it.each([192, 512])(
   "ships a decodable %ipx install icon matching its manifest declaration",
   async (size) => {

@@ -10,6 +10,8 @@ import {
 } from "../../apps/backend/src/workers/worker-operations";
 
 async function main() {
+  // Требует test/backend_test и моделирует зависшую транзакцию первого поколения при настоящих scheduler и MySQL-lock.
+
   const url = process.env.DATABASE_URL!;
   if (
     process.env.NODE_ENV !== "test" ||
@@ -30,6 +32,8 @@ async function main() {
   );
   const generation = Number(boots[0].n);
   const event = async (phase: string) => {
+    // Записывает фазу собственного actor и boot для проверки порядка и числа эффектов после рестарта.
+
     await control.query(
       "INSERT INTO backend_restart_events(actor,boot,phase) VALUES(?,?,?)",
       [actor, boot, phase],
@@ -38,15 +42,20 @@ async function main() {
   const production = app.get<WorkerOperations>(WORKER_OPERATIONS);
   // Настоящие Nest HTTP, WorkerJobs/IntervalJobs и production lock. Доменные
   // эффекты заменены одной транзакцией; платежи, письма и S3 не вызываются.
+  // Подменяются только доменные эффекты на SQL-маркеры; настоящие scheduler и coordination сохраняются, поэтому внешних отправок нет.
   const operations: WorkerOperations = {
     ...production,
     runExclusiveJob: async (name, run) => {
+      // Пропускает только publication, сохраняя production coordination; прочие внешние задачи тест не запускает.
+
       if (name !== "publication") return;
       await event("attempt");
       await production.runExclusiveJob(name, run);
       await event("settled");
     },
     publishDueScheduledPosts: async () => {
+      // Первое поколение удерживает незакоммиченную транзакцию, следующее может завершить её только один раз.
+
       const connection = await createConnection(url);
       try {
         await connection.beginTransaction();

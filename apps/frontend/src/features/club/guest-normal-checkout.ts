@@ -46,15 +46,18 @@ export type GuestCheckoutIntent = z.infer<typeof intentSchema>;
 export type GuestCheckoutSelection = z.infer<typeof selectionSchema>;
 export type GuestCheckoutActor = { id: number; email: string | null } | null;
 
+/** Сообщаем об утрате возможности проверить локальную покупку, сохраняя запрет на автоматическое создание другой. */
 const unavailable = () =>
   new Error(
     "Не удалось проверить или сохранить покупку на устройстве. Новая покупка не начата. Разрешите хранение данных сайта и попробуйте снова.",
   );
+/** Отмечаем несовпадение ключа или снимка вместо восстановления по одному email. */
 const changed = () =>
   new Error(
     "Сохранённая покупка изменилась или её ключ восстановления утрачен. Другой заказ автоматически не создаётся. Проверьте оплату или обратитесь в поддержку.",
   );
 export class GuestCheckoutRecipientError extends Error {
+  /** Помечаем отдельный случай покупки другого получателя, чтобы интерфейс мог предложить правильный вход. */
   constructor() {
     super(
       "На устройстве сохранена гостевая покупка другого получателя. Для восстановления войдите в соответствующий аккаунт. Прежняя покупка сохранена.",
@@ -62,23 +65,28 @@ export class GuestCheckoutRecipientError extends Error {
     this.name = "GuestCheckoutRecipientError";
   }
 }
+/** Создаём типизированную ошибку чужого получателя для ветвей журнала. */
 const differentRecipient = () => new GuestCheckoutRecipientError();
 
 /** One durable guest intent. Its secret is never a login credential or payment proof. */
 export class GuestCheckoutJournal {
+  /** Закрепляем экземпляр за гостем либо подтверждённым аккаунтом восстановления. */
   constructor(readonly actor: GuestCheckoutActor) {}
 
+  /** Не продолжаем операцию после отмены или смены текущего владельца browser storage. */
   private assertActor(signal?: AbortSignal) {
     signal?.throwIfAborted();
     if (!isPersonalDataOwner(this.actor?.id ?? null)) throw changed();
   }
   // Вошедший аккаунт должен совпасть с получателем гостевой покупки; чужое намерение не присваивается ему автоматически.
+  /** Для вошедшего пользователя сверяем владельца и нормализованную почту, не присваивая ему чужую гостевую покупку. */
   private assertRecipient(intent: GuestCheckoutIntent) {
     if (intent.ownerId !== null && intent.ownerId !== this.actor?.id)
       throw differentRecipient();
     if (this.actor && this.actor.email?.trim().toLowerCase() !== intent.email)
       throw differentRecipient();
   }
+  /** Строго читаем ограниченную запись и отдельно проверяем получателя; повреждение не считается пустым журналом. */
   read(): GuestCheckoutIntent | null {
     this.assertActor();
     let intent: GuestCheckoutIntent;
@@ -95,6 +103,7 @@ export class GuestCheckoutJournal {
     this.assertRecipient(intent);
     return intent;
   }
+  /** Записываем только проверенное намерение текущего получателя и подтверждаем сохранение обратным чтением. */
   private persist(intent: GuestCheckoutIntent) {
     this.assertActor();
     this.assertRecipient(intent);
@@ -110,6 +119,7 @@ export class GuestCheckoutJournal {
     }
     return intent;
   }
+  /** Все изменения гостевого журнала координируем между вкладками, ограничивая ожидание Web Lock пятью секундами. */
   private async locked<T>(
     signal: AbortSignal,
     work: () => Promise<T> | T,
@@ -138,6 +148,7 @@ export class GuestCheckoutJournal {
       clearTimeout(timer);
     }
   }
+  /** Новое гостевое намерение содержит проверенные контакты, UUID и случайный секрет восстановления; аккаунт после входа не создаёт его заново. */
   private reserve(
     selection: GuestCheckoutSelection,
     previous?: GuestCheckoutIntent,
@@ -179,6 +190,7 @@ export class GuestCheckoutJournal {
       ownerId: null,
     });
   }
+  /** Сравниваем весь неизменяемый набор покупки, включая секрет, контакт и владельца, перед продолжением сети. */
   requireCurrent(intent: GuestCheckoutIntent, signal: AbortSignal) {
     this.assertActor(signal);
     const current = this.read();
@@ -194,6 +206,7 @@ export class GuestCheckoutJournal {
       throw changed();
     return current;
   }
+  /** Сохраняем серверную паузу 429 и запрещаем обход её новым нажатием или вкладкой. */
   assertReady(intent: GuestCheckoutIntent, signal: AbortSignal) {
     const current = this.requireCurrent(intent, signal);
     if ((current.retryAt ?? 0) > Date.now())
@@ -204,6 +217,7 @@ export class GuestCheckoutJournal {
       );
     return current;
   }
+  /** Повторяем прежнюю гостевую покупку лишь с теми же контактами и планом; первый ключ сохраняется до отправки. */
   prepare(selection: GuestCheckoutSelection, signal: AbortSignal) {
     return this.locked(signal, () => {
       const current = this.read();
@@ -223,6 +237,7 @@ export class GuestCheckoutJournal {
       return this.reserve(selection);
     });
   }
+  /** Принимаем orderId один раз; аккаунт привязывается только после серверной проверки секрета исходной покупки. */
   remember(
     intent: GuestCheckoutIntent,
     result: NormalCheckoutStatus,
@@ -244,6 +259,7 @@ export class GuestCheckoutJournal {
       });
     });
   }
+  /** Сохраняем максимальную паузу 429 в журнале, чтобы повторная вкладка не обнулила ограничение. */
   async rememberRateLimit(
     intent: GuestCheckoutIntent,
     cause: unknown,
@@ -268,6 +284,7 @@ export class GuestCheckoutJournal {
       });
     });
   }
+  /** После свежего терминального статуса создаём следующий гостевой ключ либо явно возвращаем управление покупке аккаунта. */
   async next(
     client: TRPCClient<AppRouter>,
     intent: GuestCheckoutIntent,
@@ -301,10 +318,12 @@ export class GuestCheckoutJournal {
     }
   }
 }
+/** Передаём серверу пару ключа идемпотентности и секрета; она восстанавливает покупку, но не авторизует пользователя. */
 const proof = (intent: GuestCheckoutIntent) => ({
   idempotencyKey: intent.idempotencyKey,
   recoveryToken: intent.recoveryToken,
 });
+/** Читаем состояние гостевого NORMAL по секрету, не создавая новый заказ. */
 async function readStatus(
   client: TRPCClient<AppRouter>,
   intent: GuestCheckoutIntent,
@@ -317,6 +336,7 @@ async function readStatus(
   );
 }
 // Запрос статуса использует сохранённые параметры и возвращает доказательство исходного заказа, не новый checkout.
+/** Проверяем исходную покупку и сохраняем orderId и паузу, сверяя журнал после ответа. */
 export async function checkGuestCheckout(
   client: TRPCClient<AppRouter>,
   journal: GuestCheckoutJournal,
@@ -335,6 +355,7 @@ export async function checkGuestCheckout(
   }
 }
 // Создание или восстановление ссылки сохраняет прежний ключ и контакт, чтобы сетевой повтор не дублировал покупку.
+/** Создаём или восстанавливаем ссылку с неизменными ключами и контактами; сетевой повтор не меняет получателя. */
 export async function createGuestCheckout(
   client: TRPCClient<AppRouter>,
   journal: GuestCheckoutJournal,

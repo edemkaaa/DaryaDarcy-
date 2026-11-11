@@ -4,11 +4,13 @@ import { readFile } from "node:fs/promises";
 import { assertTestDatabase } from "../tooling/scripts/test-database-policy";
 
 const uri = process.env.READ_INDEX_TEST_DATABASE_URL;
+/** Проверяет миграцию lookup-индексов только на явно пустой выделенной схеме без прежних индексов. */
 describe.skipIf(!uri)(
   "read indexes on an explicitly empty disposable schema",
   () => {
     let conn: Connection;
     let claimed = false;
+    /** Подтверждает пустые таблицы и отсутствие индексов, затем создаёт по 10000 синтетических строк. */
     beforeAll(async () => {
       assertTestDatabase(uri!);
       conn = await mysql.createConnection(uri!);
@@ -40,6 +42,7 @@ describe.skipIf(!uri)(
       for (const table of ["likes", "saved_posts", "post_media"])
         await conn.query(`ANALYZE TABLE ${table}`);
     });
+    /** Только после успешного claim удаляет собственные строки и добавленные индексы, возвращая pre-migration состояние. */
     afterAll(async () => {
       if (!conn) return;
       if (!claimed) {
@@ -71,6 +74,7 @@ describe.skipIf(!uri)(
       }
       await conn.end();
     });
+    /** Применяет точный SQL миграции, сравнивает результаты и EXPLAIN до/после и запрещает случайный UNIQUE. */
     it("reduces examined candidates without changing rows or introducing UNIQUE", async () => {
       const queries = [
         "SELECT postId FROM likes WHERE userId=945777 AND postId IN(27,28)",

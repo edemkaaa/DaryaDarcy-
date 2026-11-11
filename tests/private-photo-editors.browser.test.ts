@@ -32,6 +32,8 @@ afterAll(async () => {
   await app?.close();
 });
 async function ownPage() {
+  // Создаёт изолированную страницу и запрещает все запросы за пределы локального origin.
+
   const context = await app.context.browser()!.newContext();
   await context.route("**/*", (route) =>
     new URL(route.request().url()).origin === app.origin
@@ -41,6 +43,8 @@ async function ownPage() {
   return context.newPage();
 }
 async function open(page: Page, mode: "full" | "quick") {
+  // Открывает полный либо быстрый редактор и дожидается завершения проверки durable-черновика.
+
   await gotoWithSession(
     page,
     `${app.origin}${mode === "full" ? "/admin" : "/feed"}`,
@@ -56,6 +60,8 @@ async function open(page: Page, mode: "full" | "quick") {
   return form;
 }
 async function choose(page: Page, form: Locator) {
+  // Выбирает синтетический PNG и проверяет декодирование локального blob-превью.
+
   const chooser = page.waitForEvent("filechooser");
   await form
     .getByRole("button", { name: "Выбрать из галереи", exact: true })
@@ -74,13 +80,15 @@ async function choose(page: Page, form: Locator) {
     .toBe(4);
 }
 const submit = (form: Locator, mode: "full" | "quick") =>
-  form
+  /* Находит кнопку сохранения полного редактора или публикации быстрого без принудительного клика. */ form
     .getByRole("button", {
       name: mode === "full" ? "Сохранить" : "Опубликовать",
       exact: true,
     })
     .first();
 function receipt(input: Record<string, unknown>) {
+  // Возвращает согласованную квитанцию частного postPhoto вместо обращения к S3.
+
   return {
     state: "ready",
     assetId,
@@ -92,10 +100,13 @@ function receipt(input: Record<string, unknown>) {
   };
 }
 
+// Одинаковые инварианты приватности и восстановления проверяются на полном и быстром редакторах; различие замены/добавления фото остаётся явным в ожиданиях.
 for (const mode of ["full", "quick"] as const) {
   native(
     `${mode}: local preview and real IndexedDB survive lost upload/create responses without duplicate writes`,
     async () => {
+      // Сценарий: Оба редактора сохраняют локальное превью и IndexedDB после потери upload/create ACK без лишних записей.
+
       const page = await ownPage();
       page.setDefaultTimeout(15000);
       page.setDefaultNavigationTimeout(60000);
@@ -209,6 +220,8 @@ for (const mode of ["full", "quick"] as const) {
   native(
     `${mode}: closing the editor revokes its local photo URL without a public upload`,
     async () => {
+      // Сценарий: Закрытие редактора отзывает blob-превью без публичной загрузки.
+
       const page = await ownPage();
       page.setDefaultNavigationTimeout(60000);
       try {
@@ -254,6 +267,8 @@ for (const mode of ["full", "quick"] as const) {
     native(
       `${mode}: live account switch during ${phase} ignores the old receipt and preserves the original owner's file`,
       async () => {
+        // Сценарий: Смена аккаунта при upload/status игнорирует позднюю квитанцию и сохраняет File первоначальному владельцу.
+
         const page = await ownPage();
         page.setDefaultNavigationTimeout(60000);
         let release!: () => void;
@@ -370,6 +385,8 @@ for (const mode of ["full", "quick"] as const) {
   native(
     `${mode}: removing a selected photo revokes its preview and never uploads the removed file`,
     async () => {
+      // Сценарий: Удаление выбранного фото отзывает его превью и публикует без удалённого файла.
+
       const page = await ownPage();
       page.setDefaultNavigationTimeout(60000);
       try {
@@ -438,6 +455,8 @@ for (const mode of ["full", "quick"] as const) {
   native(
     `${mode}: editing preserves existing links and replays a missing upload with the original bytes/key`,
     async () => {
+      // Сценарий: Редактирование сохраняет старые ссылки и повторяет отсутствующую загрузку с теми же байтами и ключом.
+
       const page = await ownPage();
       page.setDefaultNavigationTimeout(60000);
       try {

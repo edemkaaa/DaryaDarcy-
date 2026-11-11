@@ -1,5 +1,7 @@
+/** Архивная заглушка теста Vite. Полная действующая логика теста находится в основном frontend. */
 import { Link } from "react-router-dom";
 
+/** Показывает статическое описание без вопросов, подсчёта результата и сохранения ответов. */
 export default function Quiz() {
   return (
     <div className="page">

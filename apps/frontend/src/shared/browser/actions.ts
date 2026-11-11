@@ -1,12 +1,14 @@
 "use client";
 /** Действия браузера проверяют внешние URL и используют доступные возможности отправки или копирования ссылки. */
 import { safeExternalUrl } from "@/shared/navigation/external-url";
+/** Проверяем URL перед открытием; mailto/tel передаются текущему браузеру, обычные ссылки открываются без opener. */
 export async function openExternalUrl(url: string) {
   const safe = safeExternalUrl(url);
   if (!safe) return;
   if (/^(mailto:|tel:)/i.test(safe)) window.location.href = safe;
   else window.open(safe, "_blank", "noopener,noreferrer");
 }
+/** Используем системный share, а при его отсутствии копируем сообщение и URL; отказ разрешения не маскируем как успех. */
 export async function shareContent({
   message,
   title,
@@ -22,6 +24,7 @@ export async function shareContent({
       [message, url].filter(Boolean).join("\n"),
     );
 }
+/** Совместимую конфигурацию кнопок сводим к native confirm/alert: это не произвольный много-кнопочный диалог приложения. */
 export function showAlert(
   title: string,
   message?: string,

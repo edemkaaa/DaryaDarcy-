@@ -61,14 +61,17 @@ export class SessionService {
     }
   }
 
+  /** Определяем администратора через общую строгую политику роли, без повышения прав по адресу почты. */
   isAdministrator(user: Pick<User, "role">) {
     return isOwnerAccount(user);
   }
 
+  /** Разрешаем служебные операции только администратору или роли moderator. */
   isStaff(user: Pick<User, "role" | "email" | "openId">) {
     return this.isAdministrator(user) || user.role === "moderator";
   }
 
+  /** Разделяем создание нового аккаунта и безопасный повтор установки пароля; существующий аккаунт не обновляется, публичный транспорт скрывает исход duplicate. */
   async register(
     email: string,
     name: string,
@@ -92,6 +95,7 @@ export class SessionService {
       : "duplicate";
   }
 
+  /** Проверяем сохранённый хеш пароля и блокировку до выдачи JWT или записи успешного входа; неверные данные возвращают единый null. */
   async passwordUser(user: User | undefined, password: string) {
     if (
       !user?.passwordHash ||
@@ -152,15 +156,19 @@ export class SessionService {
     }
   }
 
+  /** Ищем существующий подтверждаемый SMS-путём номер через общий репозиторий пользователей. */
   findByPhone(phone: string) {
     return getUserByPhone(phone);
   }
+  /** Ищем аккаунт по нормализованной почте через общий репозиторий, не обходя ошибки инфраструктуры. */
   findByEmail(email: string) {
     return getUserByEmail(email);
   }
+  /** Читаем актуального пользователя по устойчивой идентичности сессии. */
   findByOpenId(openId: string) {
     return getUserByOpenId(openId);
   }
+  /** Сохраняем совместимые поля пользователя через общий фасад, сохраняя его правила ролей и activity. */
   updateUser(input: Parameters<typeof upsertUser>[0]) {
     return upsertUser(input);
   }

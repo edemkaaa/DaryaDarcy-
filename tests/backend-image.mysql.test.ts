@@ -18,6 +18,7 @@ import { testDatabaseUrl } from "./helpers/backend-mysql";
 
 // Opt-in acceptance of an ALREADY BUILT image, not host Nest/tsx code. Database
 // ownership must match the dedicated runner; never attach a working container.
+/** Опциональная приёмка уже собранного backend-образа с двумя API в изолированной сети и явно принадлежащей runner-у пустой tmpfs-базой. */
 describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
   "built backend image on disposable MySQL",
   () => {
@@ -27,6 +28,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
     const dbOwner = process.env.BACKEND_IMAGE_DATABASE_OWNER!;
     const owner = `darcy-image-${randomUUID()}`;
     const network = owner;
+    /** Выполняет ограниченную Docker-операцию с безопасной ошибкой без вывода аргументов и секретных переменных. */
     const docker = (...args: string[]) => {
       try {
         return execFileSync("docker", args, {
@@ -38,6 +40,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         throw new Error(`Owned Docker ${args[0]} operation failed`);
       }
     };
+    /** Читает metadata конкретного контейнера для проверки владения и состояния. */
     const inspect = (id: string) => JSON.parse(docker("inspect", id))[0];
     let conn: Connection,
       ownsNetwork = false,
@@ -57,6 +60,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
       headers: Record<string, string>;
     };
     const httpWire = `const fs=require('node:fs');const x=JSON.parse(fs.readFileSync(0,'utf8'));fetch('http://'+(x.host||'127.0.0.1')+':3000'+x.path,{method:x.method,headers:{'Content-Type':'application/json',...(x.cookie?{'Cookie':x.cookie}:{}),...x.headers},body:['GET','HEAD'].includes(x.method)?undefined:x.raw===undefined?JSON.stringify(x.data):x.raw,redirect:'manual',signal:AbortSignal.timeout(x.timeoutMs||5000)}).then(async r=>console.log(JSON.stringify({status:r.status,text:x.discardBody?(await r.body?.cancel(),''):await r.text(),cookies:r.headers.getSetCookie(),headers:Object.fromEntries([...r.headers].filter(([k])=>k!=='set-cookie'))}))).catch(()=>{process.exitCode=1})`;
+    /** Отправляет HTTP из указанного тестового контейнера встроенным Node-драйвером без обращения к рабочему сайту. */
     function request(
       container: string,
       path: string,
@@ -86,6 +90,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         throw new Error("Owned image HTTP request failed");
       }
     }
+    /** Запускает неблокирующий контейнерный HTTP-драйвер с deadline, собирает безопасный результат и удерживает обработчик отказа до наблюдения результата. */
     function pendingRequest(
       container: string,
       host: string,
@@ -138,6 +143,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
       );
       return { child, result };
     }
+    /** Оборачивает настоящий контейнерный tRPC HTTP-транспорт в superjson для запросов и ответов. */
     function trpc(
       container: string,
       path: string,
@@ -160,6 +166,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         error: wire.error ? superjson.deserialize(wire.error) : undefined,
       };
     }
+    /** Ожидает health только выбранного отдельного API-контейнера до начала сценариев. */
     function ready(container: string) {
       return vi.waitFor(
         () => {
@@ -170,6 +177,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         { timeout: 60000, interval: 250 },
       );
     }
+    /** Проверяет ownership, tmpfs, пустую базу и текущую историю миграций; создаёт свои аккаунты, внутреннюю сеть и две реплики собранного образа. */
     beforeAll(async () => {
       if (
         !/^[a-f0-9]{64}$/.test(dbId || "") ||
@@ -261,6 +269,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
       await ready(second);
       console.log("Both built APIs ready");
     }, 180000);
+    /** Сбрасывает только изолированный rate-limit журнал и получает свежие cookie двух synthetic-аккаунтов через настоящий вход. */
     beforeEach(async () => {
       await conn.query("DELETE FROM api_rate_limits");
       const admin = request(api, "/api/auth/login", {
@@ -276,6 +285,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
       expect(member.status).toBe(200);
       memberCookie = member.cookies.map((x) => x.split(";")[0]).join("; ");
     }, 30000);
+    /** Запускает отдельный non-root read-only API-контейнер без внешней сети с ограниченными CPU/RAM и собственными tmpfs. */
     function start(hostname: string, overrides: Record<string, string> = {}) {
       const id = docker(
         "run",
@@ -308,6 +318,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
       );
       return id;
     }
+    /** Удаляет только контейнеры и сеть с точной owner-меткой, отсоединяет тестовую базу и удаляет только свою restore-базу. */
     afterAll(async () => {
       if (ownsFixture)
         await conn.query("DROP DATABASE IF EXISTS backend_image_restore");
@@ -360,6 +371,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
       nextCursor: string | null;
       totalCount: number;
     };
+    /** Читает успешный query-результат настоящего образа с выбранной сессией и репликой. */
     function readData<T>(
       procedure: string,
       input: unknown,
@@ -370,6 +382,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
       expect(result.response.status).toBe(200);
       return result.data as T;
     }
+    /** Входит третьим синтетическим пользователем через вторую реплику и возвращает только cookie для проверки изоляции. */
     function otherSession() {
       const login = request(second, "/api/auth/login", {
         email: "image-other@example.test",
@@ -378,12 +391,14 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
       expect(login.status).toBe(200);
       return login.cookies.map((x) => x.split(";")[0]).join("; ");
     }
+    /** Передаёт сценарию создание временных постов и в finally удаляет только их, проверяя отсутствие дочерних реакций и комментариев. */
     async function fixturePosts(
       run: (
         create: (input: Record<string, unknown>) => number,
       ) => Promise<void>,
     ) {
       const ids: number[] = [];
+      /** Создаёт настоящий пост через API, сохраняет его ID для гарантированной адресной очистки и возвращает его сценарию. */
       const create = (input: Record<string, unknown>) => {
         const result = trpc(
           api,
@@ -427,6 +442,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         }
       }
     }
+    /** Временно заменяет только пару собственных API feature-enabled контейнерами для comment recovery, затем возвращает исходную топологию. */
     async function withCommentRecovery(
       run: (a: string, b: string) => Promise<void>,
     ) {
@@ -449,6 +465,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         await ready(second);
       }
     }
+    /** Проверяет страницы Ленты и Клуба двух реплик при неизменной выборке без черновиков, дублей и утечки закрытого текста. */
     it("pages real feed/club cards without duplicates, drafts or private text leakage", async () => {
       await fixturePosts(async (create) => {
         const publicA = create({
@@ -533,6 +550,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         expect(denied.response.text).not.toContain("Image secret");
       });
     }, 60000);
+    /** Проверяет SQL-запись реакций, публичные сохранения и owner-bound cursor между репликами. */
     it("persists reactions, pages public saves and scopes saved cursors to the current account", async () => {
       await fixturePosts(async (create) => {
         const a = create({ text: "Image saved one" }),
@@ -617,9 +635,11 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         expect(readData<Card>("feed.getById", { id: a }, "").likeCount).toBe(0);
       });
     }, 60000);
+    /** Группирует гонки удаления и отклонения жалоб с актуальными полномочиями модератора. */
     describe.each(["dismissCommentReport", "deleteReportedComment"] as const)(
       "in-flight moderation %s",
       (operation) => {
+        /** Удерживает actor-lock и проверяет отказ после смены роли или эпохи без изменения комментария, жалобы и аудита. */
         it.each(["role", "epoch"] as const)(
           "rejects a %s change committed while the writer waits",
           async (change) => {
@@ -726,6 +746,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         );
       },
     );
+    /** Удерживает настоящую SQL-строку actor, ждёт запрос через performance_schema, коммитит выбранную смену полномочий и всегда освобождает управление. */
     async function withActorLock(
       userId: number,
       startRequest: () => ReturnType<typeof pendingRequest>,
@@ -763,6 +784,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         await pending?.result.catch(() => {});
       }
     }
+    /** Проверяет версии исправленных production-зависимостей непосредственно внутри итогового образа. */
     it("ships the patched redirect and querystring production packages", () => {
       const versions = JSON.parse(
         docker(
@@ -779,6 +801,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
       );
       expect(versions).toEqual({ redirect: "1.16.2", querystring: "6.16.1" });
     });
+    /** Проверяет fail-fast production-запуска со слишком коротким JWT-ключом без успешного exit. */
     it("refuses production startup with an undersized JWT key", async () => {
       const weak = start("api-weak-key", { JWT_SECRET: "x" });
       await expect
@@ -792,6 +815,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
       expect(logs.status).toBe(0);
       expect(logs.stdout + logs.stderr).toContain("JWT_SECRET");
     });
+    /** Проверяет fencing legacy-grant и resend после отзыва actor во время lock-wait без новых привилегий, писем и аудита. */
     it.each([
       { operation: "grant", change: "epoch", status: 401 },
       { operation: "grant", change: "role", status: 403 },
@@ -811,6 +835,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
             "INSERT INTO club_payments(userId,orderId,status,expiresAt) VALUES (?,'image-legacy-resend-check','paid',DATE_ADD(NOW(),INTERVAL 1 DAY))",
             [targetId],
           );
+        /** Читает точный снимок платежей, outbox, токенов и аудита целевого получателя и вызывающего администратора. */
         const state = async () => {
           const [payments] = await conn.query(
             "SELECT * FROM club_payments WHERE userId=? ORDER BY id",
@@ -880,6 +905,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         }
       },
     );
+    /** Проверяет совместимость legacy-grant и resend в собранном HTTP API без реальной почтовой отправки. */
     it("keeps legacy grant and resend usable through the built HTTP API", async () => {
       const [targets] = await conn.query<RowDataPacket[]>(
         "SELECT id FROM users WHERE openId='image-other'",
@@ -912,6 +938,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         await conn.query("DELETE FROM club_payments WHERE userId=?", [userId]);
       }
     });
+    /** Проверяет отзыв сессии ожидающего block/unblock без изменений целевого пользователя и аудита. */
     it.each(["blockUser", "unblockUser"] as const)(
       "rejects revoked session during in-flight %s without target or audit changes",
       async (operation) => {
@@ -928,6 +955,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
             "UPDATE users SET blockedAt=NOW(),blockedReason='Image retained block' WHERE id=?",
             [targetId],
           );
+        /** Читает целевые признаки блокировки и аудит для сверки отсутствия побочных изменений. */
         async function state() {
           const [target] = await conn.query(
             "SELECT blockedAt,blockedReason,sessionVersion FROM users WHERE id=?",
@@ -979,6 +1007,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
       },
       45000,
     );
+    /** Проверяет актуальный доступ к посту после ожидания comment create/edit/delete/like/report при смене цели, статуса, оплаты или окна. */
     it.each([
       ["create", "private"],
       ["edit", "draft"],
@@ -1013,6 +1042,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
               [userId, orderId],
             );
           }
+          /** Читает комментарии, likes и reports выбранного поста для проверки отсутствия отложенных запрещённых записей. */
           async function state() {
             const [comments] = await conn.query(
               "SELECT id,text FROM post_comments WHERE postId=? ORDER BY id",
@@ -1096,11 +1126,13 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
       },
       45000,
     );
+    /** Проверяет ветки комментариев, счётчики, авторство, cross-post parent и атомарные связи SQL при удалении. */
     it("keeps threaded comment counts, ownership and SQL relations consistent", async () => {
       await fixturePosts(async (create) => {
         const postId = create({ text: "Image discussion" }),
           otherPost = create({ text: "Image other discussion" });
         const stranger = otherSession();
+        /** Создаёт комментарий выбранным synthetic-пользователем через настоящий API и возвращает его ID. */
         function comment(text: string, cookie: string, parentId?: number) {
           const result = trpc(
             api,
@@ -1223,6 +1255,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         ).toBe(0);
       });
     }, 60000);
+    /** Проверяет ограниченный и очищенный JSON-отказ malformed и oversized body без вывода payload или stack. */
     it.each([
       { path: "/api/auth/login", raw: "{PRIVATE_PARSE_SENTINEL", status: 400 },
       {
@@ -1250,6 +1283,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         );
       },
     );
+    /** Проверяет ранний отказ небезопасных origin, fetch metadata, типа тела и encoding без мутации и выдачи cookie. */
     it.each([
       { headers: { Origin: "https://foreign.example.test" }, status: 403 },
       { headers: { "Sec-Fetch-Site": "cross-site" }, status: 403 },
@@ -1282,6 +1316,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         expect(response.headers["x-content-type-options"]).toBe("nosniff");
       },
     );
+    /** Проверяет credentialed CORS preflight только настроенного origin с разрешённым Idempotency-Key. */
     it("accepts only the configured credentialed CORS preflight", () => {
       const response = request(
         api,
@@ -1305,6 +1340,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         "Idempotency-Key",
       );
     });
+    /** Проверяет отказ batch-усиления до входа в tRPC при лишних или повторных операциях. */
     it.each([Array(21).fill("auth.me").join(","), "feed.list,feed.list"])(
       "rejects amplification before entering tRPC: %s",
       (names) => {
@@ -1321,6 +1357,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         });
       },
     );
+    /** Проверяет явные guest/unknown-procedure ошибки без утечки внутренних полей и SQL. */
     it.each([
       ["admin.stats", 401],
       ["feed.savedPosts", 401],
@@ -1336,6 +1373,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         );
       },
     );
+    /** Проверяет строгую целочисленную пагинацию без неявного принятия неверных значений. */
     it.each([
       { limit: 0 },
       { limit: 51 },
@@ -1346,6 +1384,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         trpc(api, "feed.listPaginated", input, "", true).response.status,
       ).toBe(400);
     });
+    /** Проверяет недоступность retired и feature-disabled upload-путей даже администратору. */
     it.each([
       "club.uploadCommentPhoto",
       "admin.uploadMedia",
@@ -1359,6 +1398,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         ).toBe(404);
       },
     );
+    /** Проверяет одинаковый allowlisted публичный профиль REST и tRPC без внутренних полей SQL-модели. */
     it("keeps public profile fields consistent between REST and tRPC", () => {
       const rest = JSON.parse(
         request(api, "/api/auth/me", undefined, adminCookie, "GET").text,
@@ -1383,6 +1423,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         ).text,
       ).toBe('{"user":null}');
     });
+    /** Проверяет отказ пустого имени, небезопасного аватара и дробной ревизии без изменения пользователя. */
     it("rejects invalid profile values without changing the SQL row", async () => {
       const select =
         "SELECT name,profileRevision,avatarUrl FROM users WHERE openId='image-member'";
@@ -1403,6 +1444,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
       const [after] = await conn.query<RowDataPacket[]>(select);
       expect(after).toEqual(before);
     });
+    /** Временно скрывает users только одноразовой базы и проверяет серверный отказ вместо гостя, затем восстановление с той же cookie. */
     it("returns server errors, not a guest, during a real disposable SQL fault and recovers with the same cookie", async () => {
       await conn.query("RENAME TABLE users TO image_fixture_users_unavailable");
       try {
@@ -1438,6 +1480,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
       );
       expect(recovered.user.id).toBe(adminId);
     });
+    /** Проверяет UID 1000 и рабочую нативную WebP-конверсию непосредственно Linux-зависимостями образа. */
     it("executes the actual image as non-root with working Linux native media dependencies", () => {
       const result = JSON.parse(
         docker(
@@ -1451,6 +1494,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
       expect(result).toMatchObject({ uid: 1000, format: "webp" });
       expect(result.size).toBeGreaterThan(0);
     });
+    /** Проверяет текущую историю миграций и доступность API с общей MySQL-координацией. */
     it("connects through shared coordination to the migrated schema", async () => {
       const [history] = await conn.query<RowDataPacket[]>(
         "SELECT COUNT(*) AS n FROM __drizzle_migrations",
@@ -1468,6 +1512,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         ).status,
       ).toBe(200);
     });
+    /** Проверяет общие сессии между production-репликами и запрет admin-записи обычным пользователем. */
     it("shares sessions across two production API containers and denies non-admin writes", () => {
       const profile = request(
         second,
@@ -1492,6 +1537,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
       );
       expect(denied.response.status).toBe(403);
     });
+    /** Проверяет одну регистрацию, durable setup-письмо и установку пароля в образе без утверждения о внешней доставке. */
     it("registers once, queues access mail and completes password setup through the built API", async () => {
       const input = {
         email: "image-register@example.test",
@@ -1540,6 +1586,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
       expect(login.cookies.join(";")).toContain("HttpOnly");
       expect(login.cookies.join(";")).toContain("Secure");
     });
+    /** Проверяет межрепличный replay создания поста, optimistic conflict, публикацию и удаление через итоговый образ. */
     it("runs post creation replay, editing conflicts, publication and deletion through the image", async () => {
       const input = {
         text: "Image fixture draft",
@@ -1594,6 +1641,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
       );
       expect(remaining).toEqual([]);
     });
+    /** Проверяет межрепличный replay создания статьи, optimistic conflict, публикацию и удаление через итоговый образ. */
     it("runs article creation replay, publication, conflict and removal through the image", async () => {
       const input = {
         title: "Image article fixture",
@@ -1651,6 +1699,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
       );
       expect(remaining).toEqual([]);
     });
+    /** Проверяет отзыв сессии на одной реплике и отказ повторного использования на другой. */
     it("revokes a session on one API and rejects its reuse on the other", () => {
       expect(request(api, "/api/auth/logout", {}, memberCookie).status).toBe(
         200,
@@ -1665,6 +1714,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
       expect(previous.status).toBe(200);
       expect(JSON.parse(previous.text)).toEqual({ user: null });
     });
+    /** Проверяет единую IP-квоту входа двух контейнеров через общую MySQL-координацию. */
     it("uses one shared login IP quota across the two containers", async () => {
       await conn.query("DELETE FROM api_rate_limits WHERE kind='rate'");
       const statuses = [];
@@ -1676,6 +1726,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
       expect(statuses.slice(20)).toEqual([429, 429]);
     }, 30000);
 
+    /** Проверяет выдачу и отзыв клубного доступа синтетическим состоянием подписки без провайдера. */
     it("grants and revokes club access from synthetic subscription state without a provider", async () => {
       const member = (
         await conn.query<RowDataPacket[]>(
@@ -1720,7 +1771,9 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         );
       }
     }, 30000);
+    /** Проверяет настоящий сжатый backup клиентом из образа и его восстановление только в отдельную собственную базу. */
     it("creates a usable compressed backup with the client shipped in the image and restores it separately", async () => {
+      /** Перечисляет завершённые sql.gz в собственном tmpfs-каталоге backup API-контейнера. */
       const list = () =>
         JSON.parse(
           docker(
@@ -1755,6 +1808,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
       expect(user).toEqual([{ role: "admin" }]);
     }, 30000);
 
+    /** Проверяет общий account-cooldown двух реплик при попытках с разных source IP. */
     it("shares the account cooldown even when attempted logins use different source IPs", () => {
       const script = `Promise.all(Array.from({length:6},async(_,i)=>{const r=await fetch('http://api-'+(i%2?'a':'b')+':3000/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json','X-Forwarded-For':'198.51.100.'+(i+1)},body:JSON.stringify({email:'image-member@example.test',password:'wrong-fixture-password'}),signal:AbortSignal.timeout(10000)});await r.text();return r.status;})).then(x=>console.log(JSON.stringify(x))).catch(()=>{process.exitCode=1})`;
       const statuses = JSON.parse(
@@ -1762,6 +1816,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
       ) as number[];
       expect(statuses.sort()).toEqual([401, 401, 401, 401, 401, 429]);
     }, 30000);
+    /** Удерживает SQL-мутацию во время SIGTERM, проверяет доступность второй реплики и успешный drain-коммит перед чистым завершением первой. */
     it("drains an in-flight SQL mutation on SIGTERM while the second image stays available", async () => {
       const control = await mysql.createConnection({
         uri: testDatabaseUrl!,
@@ -1838,6 +1893,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
     }, 30000);
     // Container replacement discards /app/backups tmpfs. As with the drain
     // scenario above, run this lifecycle acceptance after backup/restore.
+    /** Проверяет восстановление comment-intent между репликами после потери ответа с изоляцией владельца, удалением и повторной авторизацией. */
     it("recovers committed comment intents across replicas without duplicates or access bypass", async () => {
       await fixturePosts(async (create) => {
         const postId = create({ text: "Image recoverable discussion" });
@@ -2027,6 +2083,7 @@ describe.skipIf(!testDatabaseUrl || !process.env.BACKEND_API_IMAGE)(
         }
       });
     }, 180000);
+    /** Проверяет ранжирование Pen Pals и общий журнал показов карточек между двумя собранными репликами без раскрытия адресов. */
     it("ranks Pen Pals candidates and shares shown cards across built replicas", () => {
       const otherCookie = otherSession();
       for (const [cookie, fullName, interests] of [

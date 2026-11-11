@@ -1,3 +1,4 @@
+/** Сопоставление приватного video/poster и SSR карточек не расходует фото галереи и не подставляет чужую обложку. */
 import { expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -17,6 +18,7 @@ const privateVideo = {
   url: "/api/media/post-attachments/42",
   filename: "lesson.mp4",
 };
+/** Явный private poster берётся из media и не мутирует photos. */
 it("uses an explicit private video poster without removing a gallery photo", () => {
   const photos = [...gallery];
   expect(
@@ -29,6 +31,7 @@ it("uses an explicit private video poster without removing a gallery photo", () 
   });
   expect(photos).toEqual(gallery);
 });
+/** Null/undefined poster у приватного video остаётся пустым. */
 it.each([null, undefined])(
   "does not guess a private video cover from the first gallery photo: %s",
   (posterUrl) => {
@@ -37,6 +40,7 @@ it.each([null, undefined])(
     ).toMatchObject({ posterUrl: undefined, stackPhotos: gallery });
   },
 );
+/** Для старого публичного video сохраняются отдельный thumb и прежний first-photo fallback. */
 it("retains the legacy public thumb and first-photo fallback", () => {
   const video = {
     ...privateVideo,
@@ -57,6 +61,7 @@ it("retains the legacy public thumb and first-photo fallback", () => {
     stackPhotos: gallery,
   });
 });
+/** SSR нескольких videos использует собственный poster каждого, а не общий запасной. */
 it("uses each video's own poster in the existing media player", () => {
   const secondPoster = "https://images.example.test/second.jpg";
   const markup = renderToStaticMarkup(
@@ -77,6 +82,7 @@ it("uses each video's own poster in the existing media player", () => {
   expect(markup).toContain(`poster="${secondPoster}"`);
   expect(markup).not.toContain("wrong-fallback");
 });
+/** Приватное video без poster не наследует несвязанный проп. */
 it("does not share another video's poster with a private video lacking one", () => {
   const markup = renderToStaticMarkup(
     createElement(PostMediaSection, {
@@ -87,6 +93,7 @@ it("does not share another video's poster with a private video lacking one", () 
   expect(markup).toContain(`src="${privateVideo.url}"`);
   expect(markup).not.toContain("poster=");
 });
+/** Совместимый fallback остаётся только у публичного старого URL. */
 it("keeps the old media-section poster fallback for a legacy video", () => {
   const markup = renderToStaticMarkup(
     createElement(PostMediaSection, {
@@ -98,6 +105,7 @@ it("keeps the old media-section poster fallback for a legacy video", () => {
   );
   expect(markup).toContain(`poster="${gallery[0]}"`);
 });
+/** В SSR карточке все gallery фото остаются открываемыми независимо от наличия private poster. */
 it.each([poster, null])(
   "feed cards keep the whole private-video gallery and explicit poster: %s",
   (posterUrl) => {

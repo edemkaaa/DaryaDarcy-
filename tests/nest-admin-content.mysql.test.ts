@@ -25,6 +25,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 // No mocks: admin schemas, native composition, sessions and SQL are real.
+/** Проверяет административные чтения через настоящий HTTP, JWT, схемы и SQL без подмен доменной логики. */
 describe.skipIf(!testDatabaseUrl)(
   "native admin content reads over HTTP/JWT/MySQL",
   () => {
@@ -32,6 +33,7 @@ describe.skipIf(!testDatabaseUrl)(
       conn: Connection,
       base: string,
       bearer: string;
+    /** Создаёт tRPC HTTP-клиент с выбранным JWT либо без авторизации. */
     const client = (token?: string) =>
       createTRPCProxyClient<AppRouter>({
         links: [
@@ -42,6 +44,7 @@ describe.skipIf(!testDatabaseUrl)(
           }),
         ],
       });
+    /** Создаёт администратора и набор публикаций разных статусов, целей и сроков с вложениями и реакциями; запускает локальный API. */
     beforeAll(async () => {
       conn = await openContentTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -77,11 +80,13 @@ describe.skipIf(!testDatabaseUrl)(
         sessionVersion: 0,
       });
     });
+    /** Возвращает полномочия и версию сессии тестового администратора перед каждым сценарием. */
     beforeEach(async () => {
       await conn.query(
         "UPDATE users SET role='admin',blockedAt=NULL,sessionVersion=0 WHERE id=9040",
       );
     });
+    /** Удаляет только собственные реакции, вложения, публикации и администратора и закрывает API и SQL-пул. */
     afterAll(async () => {
       await application?.close();
       if (conn) {
@@ -99,11 +104,13 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** Отбирает идентификаторы основного диапазона фикстуры из общего результата каталога. */
     const ownIds = (rows: { id: number }[]) =>
       rows
         .filter((row) => row.id >= 9040 && row.id <= 9044)
         .map((row) => row.id);
 
+    /** Собирает независимый production ESM и проверяет приватные административные чтения через настоящий HTTP и JWT. */
     it("retains private admin reads in compiled ESM with real HTTP/JWT/SQL", async () => {
       const directory = mkdtempSync(resolve(".tmp-nest-admin-content-"));
       const entry = join(directory, "application.mjs");
@@ -180,6 +187,7 @@ describe.skipIf(!testDatabaseUrl)(
       }
     }, 15_000);
 
+    /** Проверяет полные непубличные тексты и канонически отсортированные вложения административного каталога. */
     it("keeps unpublished bodies and sorted attachments in the full admin catalog", async () => {
       const rows = await client(bearer).admin.posts.query();
       expect(ownIds(rows)).toEqual([9043, 9041, 9042, 9040, 9044]);
@@ -202,6 +210,7 @@ describe.skipIf(!testDatabaseUrl)(
         "admin hidden club",
       );
     });
+    /** Проверяет лёгкие страницы карточек и полную запись черновика в отдельном защищённом detail-запросе. */
     it("pages lightweight admin cards without losing draft editing data", async () => {
       const admin = client(bearer).admin;
       const first = await admin.postsPage.query({ limit: 2 });
@@ -243,6 +252,7 @@ describe.skipIf(!testDatabaseUrl)(
       ]);
       expect(filtered.nextCursor).toBeNull();
     });
+    /** Проверяет forward-контракт infinite-query и отказ для неподдерживаемого обратного направления. */
     it("accepts forward infinite-query requests across admin pages", async () => {
       const admin = client(bearer).admin;
       const first = await admin.postsPage.query({
@@ -260,6 +270,7 @@ describe.skipIf(!testDatabaseUrl)(
         admin.postsPage.query({ direction: "backward" } as never),
       ).rejects.toMatchObject({ data: { httpStatus: 400 } });
     });
+    /** Проверяет ограничения текста, фото и тегов карточки при сохранении полного содержимого detail. */
     it("bounds card bodies and keeps complete data only in protected detail", async () => {
       const admin = client(bearer).admin;
       const text = "🌿".repeat(800);
@@ -290,6 +301,7 @@ describe.skipIf(!testDatabaseUrl)(
         );
       }
     });
+    /** Проверяет пределы пагинации и запрет чтения гостем и модератором. */
     it("rejects unbounded pagination and preserves admin authorization", async () => {
       for (const input of [
         { limit: 0 },
@@ -316,6 +328,7 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query("UPDATE users SET role='admin' WHERE id=9040");
       }
     });
+    /** Проверяет компактные календарные сводки плотного дня с локальными границами без передачи всех тел постов. */
     it("returns day summaries instead of all bodies, including a dense day and local boundaries", async () => {
       const admin = client(bearer).admin;
       const days = [
@@ -373,6 +386,7 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query("DELETE FROM posts WHERE id BETWEEN 98000 AND 98741");
       }
     });
+    /** Фиксирует прежнюю семантику счётчиков, включая скрытую запись с опубликованным статусом. */
     it("retains the existing header counts including a hidden published record", async () => {
       expect(await client(bearer).admin.postCounts.query()).toEqual({
         total: 5,
@@ -381,6 +395,7 @@ describe.skipIf(!testDatabaseUrl)(
         draft: 2,
       });
     });
+    /** Проверяет порядок каталога для записей с одинаковым ближайшим временем публикации. */
     it("keeps catalog order for scheduled posts sharing one upcoming time", async () => {
       try {
         await conn.query(`INSERT INTO posts(id,text,photos,tags,status,scheduledAt,sortOrder) VALUES
@@ -396,6 +411,7 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query("DELETE FROM posts WHERE id BETWEEN 99000 AND 99001");
       }
     });
+    /** Проверяет пределы и неперекрытие календарных окон, поддержку короткого DST-дня и полномочия календаря и счётчиков. */
     it("bounds calendar windows and checks access to calendar and counters", async () => {
       const day = { from: "2030-01-01T00:00:00Z", to: "2030-01-02T00:00:00Z" };
       const admin = client(bearer).admin;
@@ -443,6 +459,7 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query("UPDATE users SET blockedAt=NULL WHERE id=9040");
       }
     });
+    /** Проверяет сортировку одинаковых позиций по дате публикации с fallback на дату создания. */
     it("orders equal-position admin posts by publication date with creation fallback", async () => {
       try {
         await conn.query(`INSERT INTO posts (id,text,photos,tags,sortOrder,createdAt,publishedAt) VALUES
@@ -460,6 +477,7 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query("DELETE FROM posts WHERE id BETWEEN 9046 AND 9049");
       }
     });
+    /** Проверяет отсутствие ошибочного присоединения вложений одного закрытого черновика к другим постам. */
     it("does not attach a private draft's files to admin posts without media", async () => {
       const rows = await client(bearer).admin.posts.query();
       expect(rows.find((row) => row.id === 9041)?.media).toHaveLength(2);
@@ -470,6 +488,7 @@ describe.skipIf(!testDatabaseUrl)(
         });
       }
     });
+    /** Проверяет сочетания фильтров статуса и цели с установленным порядком дат. */
     it.each([
       [undefined, [9040, 9044, 9041, 9042, 9043]],
       [{}, [9040, 9044, 9041, 9042, 9043]],
@@ -485,6 +504,7 @@ describe.skipIf(!testDatabaseUrl)(
         ).toEqual(ids);
       },
     );
+    /** Проверяет сортировку календаря по scheduledAt независимо от catalog sortOrder и createdAt. */
     it("orders calendar entries by scheduled time, not catalog or creation order", async () => {
       const rows = await client(bearer).admin.scheduledPosts.query();
       expect(ownIds(rows)).toEqual([9043, 9042]);
@@ -492,6 +512,7 @@ describe.skipIf(!testDatabaseUrl)(
         new Date("2030-01-02T00:00:00Z"),
       );
     });
+    /** Проверяет выдачу только вложений запрошенного черновика с точными SQL-метаданными. */
     it("returns only the requested draft's ordered media with canonical SQL metadata", async () => {
       const rows = await client(bearer).admin.getPostMedia.query({
         postId: 9041,
@@ -512,11 +533,13 @@ describe.skipIf(!testDatabaseUrl)(
         },
       ]);
     });
+    /** Проверяет пустой массив для записи без вложений. */
     it("retains an empty result for a post without attachments", async () => {
       expect(
         await client(bearer).admin.getPostMedia.query({ postId: 9044 }),
       ).toEqual([]);
     });
+    /** Проверяет статистику и реальные SQL-реакции закрытого черновика в пределах собственных утверждений. */
     it("retains dashboard counts and the private draft's real SQL reaction count", async () => {
       const result = await client(bearer).admin.stats.query();
       // Other suites share the disposable DB; only fixture-local results are exact.
@@ -532,6 +555,7 @@ describe.skipIf(!testDatabaseUrl)(
         likeCount: 20,
       });
     });
+    /** Проверяет максимум пяти лидеров dashboard и ограниченный текст закрытого предпросмотра. */
     it("limits dashboard leaders to five and truncates private draft previews to 80 characters", async () => {
       const text = "Тестовая публикация ".repeat(8);
       await conn.query("UPDATE posts SET text=? WHERE id=9041", [text]);
@@ -553,6 +577,7 @@ describe.skipIf(!testDatabaseUrl)(
         );
       }
     });
+    /** Проверяет запрет всех административных чтений при актуальной смене роли, блокировке или отзыве сессии. */
     it.each([
       [null, "UNAUTHORIZED", 401],
       ["role='user'", "FORBIDDEN", 403],
@@ -577,6 +602,7 @@ describe.skipIf(!testDatabaseUrl)(
         }
       },
     );
+    /** Проверяет отклонение несуществующих значений фильтров на HTTP-границе. */
     it.each([{ status: "unknown" }, { target: "unknown" }])(
       "rejects invalid filters at the HTTP boundary (%#)",
       async (input) => {

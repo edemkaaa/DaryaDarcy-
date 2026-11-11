@@ -19,6 +19,8 @@ const secret = (env.PRODAMUS_SECRET || "").trim();
 const payform = (env.PRODAMUS_PAYFORM_URL || "https://daryadarcy-club.payform.ru").replace(/\/$/, "");
 
 function sortDeep(value) {
+  // Рекурсивно сортирует ключи объекта для воспроизводимой подписи диагностического payload.
+
   if (Array.isArray(value)) return value.map(sortDeep);
   if (value && typeof value === "object") {
     const out = {};
@@ -28,6 +30,8 @@ function sortDeep(value) {
   return value;
 }
 function stringifyValues(value) {
+  // Приводит скалярные значения к строкам согласно историческому формату подписи Prodamus.
+
   if (Array.isArray(value)) return value.map(stringifyValues);
   if (value && typeof value === "object") {
     const out = {};
@@ -38,6 +42,8 @@ function stringifyValues(value) {
   return String(value);
 }
 function sign(data) {
+  // Подписывает подготовленный JSON HMAC, не отправляя его провайдеру и не создавая оплату.
+
   const prepared = sortDeep(stringifyValues(data));
   const json = JSON.stringify(prepared).replace(/\//g, "\\/");
   return createHmac("sha256", secret).update(json, "utf8").digest("hex");

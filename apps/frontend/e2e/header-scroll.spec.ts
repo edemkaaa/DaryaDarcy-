@@ -4,6 +4,7 @@ import { gotoWithSession, layoutApi } from "./layout-fixtures";
 const headerSelector = 'header[aria-label="Навигация профиля"]';
 const screenSelector = "main .ui-scroll:not(.ui-scroll-horizontal):visible";
 
+/** Меняем scroll только видимого основного контейнера, не горизонтальных или вложенных областей. */
 async function scrollTo(page: Page, y: number) {
   await page
     .locator(screenSelector)
@@ -13,6 +14,7 @@ async function scrollTo(page: Page, y: number) {
     }, y);
 }
 
+/** Сверяем визуальную границу и inert со значением data-hidden: скрытая шапка не должна оставаться доступной фокусу. */
 async function expectHidden(page: Page, hidden: boolean) {
   const header = page.locator(headerSelector);
   await expect(header).toHaveAttribute("data-hidden", String(hidden));
@@ -29,6 +31,7 @@ async function expectHidden(page: Page, hidden: boolean) {
     .toBe(true);
 }
 
+/** Три эмулированных профиля проверяют направление, неизменность контента/меню и независимость от nested/horizontal scroll. */
 for (const device of [
   { name: "iPhone", viewport: { width: 375, height: 812 }, isMobile: true },
   { name: "Android", viewport: { width: 412, height: 915 }, isMobile: true },
@@ -130,6 +133,7 @@ for (const device of [
   });
 }
 
+/** Клавиатурная навигация возвращает шапку, а фокус внутри управляющих элементов удерживает её видимой. */
 test("keyboard navigation reveals the header and focused controls stay accessible", async ({
   page,
 }) => {
@@ -148,6 +152,7 @@ test("keyboard navigation reveals the header and focused controls stay accessibl
   await expectHidden(page, false);
 });
 
+/** Предпочтение reduced-motion снимает переход, сохраняя правило показа по направлению. */
 test("reduced motion disables the slide while retaining direction behavior", async ({
   page,
 }) => {
@@ -182,6 +187,7 @@ test("clicking a header link does not pin it on the next screen", async ({
   await expectHidden(page, true);
 });
 
+/** Отдельно проверяем настоящий wheel, чтобы программные scrollTop-пробы не скрыли ошибку обработки пользовательского события. */
 test("native wheel scrolling drives the header in both directions", async ({
   page,
 }) => {
@@ -196,6 +202,7 @@ test("native wheel scrolling drives the header in both directions", async ({
   await expectHidden(page, false);
 });
 
+/** Touch-путь запускается только в Chromium с CDP и разделяет samples кадрами. */
 test.describe("touch gestures", () => {
   test.use({
     viewport: { width: 412, height: 915 },
@@ -215,6 +222,7 @@ test.describe("touch gestures", () => {
     await gotoWithSession(page, "/feed");
     await expect(page.locator("main .ui-spinner")).toHaveCount(0);
     const client = await context.newCDPSession(page);
+    /** Посылаем движение пальца в восемь шагов между animation-frame, затем завершаем жест. */
     const swipe = async (from: number, to: number) => {
       await client.send("Input.dispatchTouchEvent", {
         type: "touchStart",

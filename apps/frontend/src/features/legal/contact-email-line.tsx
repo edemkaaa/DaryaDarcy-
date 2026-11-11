@@ -11,6 +11,7 @@ type Props = {
   className?: string;
   linkStyle?: CSSProperties;
 };
+/** Встраиваем единый контакт поддержки с необязательным префиксом, не дублируя сам email по экранам. */
 export function ContactEmailLine({
   prefix = "Вопросы и поддержка:",
   style,

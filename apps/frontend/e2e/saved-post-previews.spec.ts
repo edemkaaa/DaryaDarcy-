@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { editorApi, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
+/** Проверяем три колонки и подписи разных форматов в обеих вкладках сохранённого; превью не должно скачивать аудио/видео/документ ради отображения. */
 for (const width of [320, 390, 1280]) {
   test(`saved previews keep three columns and identify media at ${width}px`, async ({
     page,

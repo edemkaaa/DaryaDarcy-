@@ -18,6 +18,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const envPath = process.env.S3_BACKUP_ENV || path.join(root, "deploy", "s3-backup.env");
 
 function loadEnv(file) {
+  // Читает закрытый операторский файл настроек без выполнения shell-подстановок.
+
   if (!fs.existsSync(file)) return {};
   return Object.fromEntries(
     fs
@@ -53,6 +55,8 @@ const sampleKeys = [
 ];
 
 async function pickSampleKeys() {
+  // Выбирает до трёх существующих файлов по известным префиксам для ограниченной репетиции восстановления.
+
   const picked = [];
   for (const prefix of sampleKeys) {
     const res = await client.send(
@@ -84,14 +88,20 @@ async function pickSampleKeys() {
 }
 
 function copySource(bucket, key) {
+  // Кодирует сегменты ключа для серверного CopyObject, сохраняя структуру пути.
+
   return `${bucket}/${key.split("/").map(encodeURIComponent).join("/")}`;
 }
 
 function publicUrl(key) {
+  // Формирует адрес восстановленной копии для отчёта; сама строка не доказывает публичный доступ.
+
   return `${endpoint}/${backupBucket}/${key.split("/").map(encodeURIComponent).join("/")}`;
 }
 
 async function verifyObject(key, expectedSize) {
+  // Скачивает тестовую копию и сравнивает размер и простую сигнатуру; криптографической сверки исходника здесь нет.
+
   const head = await client.send(new HeadObjectCommand({ Bucket: backupBucket, Key: key }));
   const body = await client.send(new GetObjectCommand({ Bucket: backupBucket, Key: key }));
   const chunks = [];

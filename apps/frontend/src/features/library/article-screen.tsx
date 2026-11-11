@@ -28,6 +28,7 @@ import { PhotoViewer } from "@/shared/media/photo-viewer";
 import { useClubContentProtection } from "@/shared/browser/use-club-protection";
 import type { ArticleBlock } from "@/domain/content/article-blocks";
 import { PAPER } from "./article-screen.content";
+/** Читаем статью по валидному идентификатору; временный сбой оставляет подтверждённый текст, отказ закрывает текст и просмотр фото. */
 export default function LibraryArticleScreen({ id }: { id: string }) {
   const active = useScreenActive();
   const router = useRouter();
@@ -58,6 +59,7 @@ export default function LibraryArticleScreen({ id }: { id: string }) {
     photos: string[];
     index: number;
   } | null>(null);
+  /** Сбрасываем намерение просмотра при смене статьи или потере доступа, чтобы поздний ответ не открыл прежнее фото. */
   useEffect(() => {
     // Discard the old viewer intent; a later successful retry must not reopen it.
     setViewer(null);

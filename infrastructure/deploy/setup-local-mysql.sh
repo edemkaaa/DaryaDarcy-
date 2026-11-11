@@ -10,18 +10,21 @@ DB_USER=daryadarcy
 PASS_FILE=/root/daryadarcy-db.pass
 ENV_FILE=/root/daryadarcy-db.env
 
+# Устанавливается системная MariaDB; это не одноразовая тестовая MySQL из текущего CI.
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y mariadb-server
 
 systemctl enable --now mariadb
 
+# Создаётся локальный пароль с закрытыми правами; он сохраняется для повторного запуска.
 if [ ! -f "$PASS_FILE" ]; then
   openssl rand -base64 24 | tr -d '/+=' | head -c 24 > "$PASS_FILE"
   chmod 600 "$PASS_FILE"
 fi
 DB_PASS="$(tr -d '\n' < "$PASS_FILE")"
 
+# Создаются база и пользователи с широкими правами для исторического приложения.
 mysql <<SQL
 CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER IF NOT EXISTS '${DB_USER}'@'127.0.0.1' IDENTIFIED BY '${DB_PASS}';
@@ -37,6 +40,7 @@ if [ ! -d "$MIG_DIR" ]; then
   exit 1
 fi
 
+# Опасный прежний режим игнорирует ошибки SQL и не ведёт надёжную историю миграций; для текущего выпуска не подходит.
 for sql in $(ls "$MIG_DIR"/*.sql | sort); do
   echo "apply $(basename "$sql")"
   mysql --force "$DB_NAME" < "$sql" || true
@@ -46,6 +50,7 @@ DATABASE_URL="mysql://${DB_USER}:${DB_PASS}@127.0.0.1:3306/${DB_NAME}"
 printf 'DATABASE_URL=%s\n' "$DATABASE_URL" > "$ENV_FILE"
 chmod 600 "$ENV_FILE"
 
+# После локального бэкапа изменяется DATABASE_URL приложения; эта стадия фактически переключает подключение.
 if [ -f "$APP/.env" ]; then
   cp "$APP/.env" "$APP/.env.bak.$(date +%Y%m%d%H%M%S)"
   if grep -q '^DATABASE_URL=' "$APP/.env"; then

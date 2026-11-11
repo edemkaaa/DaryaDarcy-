@@ -3,6 +3,7 @@ import { editorApi } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
 // Geometry models only: desktop Chromium cannot open the native iPhone keyboard.
+/** Меняем только геометрию visualViewport и посылаем её события; это модель сдвига клавиатуры, не запуск нативной клавиатуры iPhone. */
 async function keyboard(page: Page, height: number, offsetTop: number) {
   await page.evaluate(
     ({ height, offsetTop }) => {
@@ -19,6 +20,7 @@ async function keyboard(page: Page, height: number, offsetTop: number) {
   );
 }
 
+/** Сравниваем кнопку с пересечением внутренней прокрутки и видимой области, чтобы доступность не зависела от общего размера окна. */
 async function visibleInKeyboardViewport(control: Locator) {
   await expect
     .poll(() =>
@@ -36,6 +38,7 @@ async function visibleInKeyboardViewport(control: Locator) {
     .toBe(true);
 }
 
+/** В обоих редакторах и двух узких ширинах проверяем выделение, фокус и кнопки форматирования при последовательных сдвигах viewport. */
 for (const mode of ["full", "quick"] as const) {
   for (const width of [320, 390]) {
     test.describe(`${mode} keyboard at ${width}px`, () => {
@@ -69,6 +72,7 @@ for (const mode of ["full", "quick"] as const) {
           node.setSelectionRange(0, 12);
           node.dispatchEvent(new Event("select", { bubbles: true }));
         });
+        /** Смена высоты и отдельные сдвиги при прежней высоте должны одинаково обновлять границы редактора, сохраняя выделенный текст. */
         for (const [height, top] of [
           [430, 180],
           [360, 240],

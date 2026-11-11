@@ -8,7 +8,7 @@ const cache = await createVideoCache({ root: "/cache", prepare: prepareVideo });
 const server = createVideoServer({
   cache,
   readPublication: (id, signal) =>
-    readPublicYoutubeState("http://edge:8080/api/trpc/videos.publicYoutubeState", id, signal),
+    /* Читает компактное решение API о публикации конкретного ID; worker не становится владельцем собственной копии доступа. */ readPublicYoutubeState("http://edge:8080/api/trpc/videos.publicYoutubeState", id, signal),
   readThumbnail: createThumbnailReader(),
 });
 server.listen(8082, "0.0.0.0");

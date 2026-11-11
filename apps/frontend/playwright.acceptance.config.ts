@@ -1,3 +1,4 @@
+/** Проверяем выбранные сценарии в мобильных профилях Chromium/WebKit; эмуляция не подтверждает работу физического iPhone или установленной PWA. */
 import { defineConfig, devices } from "@playwright/test";
 import base from "./playwright.config";
 

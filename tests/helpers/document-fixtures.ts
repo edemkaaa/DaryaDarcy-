@@ -1,5 +1,6 @@
 // Built locally with Python's in-memory ZIP writer: content types, root relationship
 // and a minimal Word document. No user's documents or remote fixtures are used.
+// DOCX/DOCM/ZIP ниже являются локальными бинарными fixture literals; DOCM содержит тип пакета, но не исполняемый макрос. Байты не редактируются.
 export const docxMime =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 export const docxFixture = Buffer.from(
@@ -17,6 +18,7 @@ export const zipFixture = Buffer.from(
 );
 
 // Minimal one-page PDF with independently constructed, byte-accurate xref offsets.
+// PDF собирается вручную с независимыми byte offsets xref: валидатор не проверяется собственным генератором production документов.
 let pdf = "%PDF-1.4\n";
 const offsets = [0];
 for (const [index, object] of [

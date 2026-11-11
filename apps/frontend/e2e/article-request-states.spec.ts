@@ -16,9 +16,11 @@ const originalText = "Прежний текст статьи";
 const recoveredText = "Содержание после успешного повтора";
 const photo = "https://article.example.test/original.png";
 const recoveredPhoto = "https://article.example.test/recovered.png";
+/** Выбираем отдельный просмотрщик фото статьи, который должен закрыться при подтверждённой потере содержимого. */
 const viewer = (page: Page) =>
   page.getByRole("dialog", { name: "Просмотр фотографий", exact: true });
 
+/** Моделируем отдельно сетевую ошибку, HTTP-коды, missing/locked и некорректный payload; ответ фиксируется до gate, чтобы поздний результат оставался старым. */
 async function articleApi(page: Page) {
   await layoutApi(page, true);
   await page.route("https://article.example.test/**", (route) =>
@@ -32,6 +34,7 @@ async function articleApi(page: Page) {
   let reads = 0;
   let gate = Promise.resolve();
   const releases = new Set<() => void>();
+  /** Снимок статьи меняет и текст, и фото после успешного recovery, позволяя обнаружить остатки прежнего viewer. */
   const article = () => ({
     id: 700,
     title,
@@ -106,18 +109,22 @@ async function articleApi(page: Page) {
     });
   });
   return {
+    /** Считаем начальные и фоновые detail-read без доступа к внутреннему query-state. */
     get reads() {
       return reads;
     },
+    /** Следующий read использует выбранный исход; success переключает содержимое на новую подтверждённую версию. */
     setOutcome(value: Outcome) {
       outcome = value;
       if (value === "success") recovered = true;
     },
+    /** Удерживаем текущие detail-read и регистрируем release для обязательной уборки. */
     hold() {
       let resume!: () => void;
       gate = new Promise<void>((resolve) => {
         resume = resolve;
       });
+      /** Снимаем собственный gate с учёта до разрешения promise, чтобы cleanup был повторно безопасен. */
       const release = () => {
         releases.delete(release);
         resume();
@@ -125,6 +132,7 @@ async function articleApi(page: Page) {
       releases.add(release);
       return release;
     },
+    /** Освобождаем все gate и ждём завершения route-handlers, даже если UI-проверка упала. */
     async cleanup() {
       for (const release of releases) release();
       await page.unrouteAll({ behavior: "wait" });
@@ -132,6 +140,7 @@ async function articleApi(page: Page) {
   };
 }
 
+/** Сначала подтверждаем статью, уходим в библиотеку и делаем кеш устаревшим до повторного открытия. */
 async function openCachedArticle(page: Page) {
   await gotoWithSession(page, "/library/article/700");
   await expect(page.getByText(originalText, { exact: true })).toBeVisible();
@@ -150,6 +159,7 @@ async function openCachedArticle(page: Page) {
   );
 }
 
+/** Временный отказ оставляет подтверждённый body/viewer; permission/missing/invalid убирают их. Повтор должен открыть только новое фото. */
 for (const width of [320, 1440])
   for (const outcome of [403, 404, 500, "network", "invalid"] as const)
     test(`article refetch ${outcome} ${outcome === 500 || outcome === "network" ? "keeps confirmed content" : "hides cached content and closes photos"} at ${width}px`, async ({
@@ -262,6 +272,7 @@ for (const width of [320, 1440])
       }
     });
 
+/** Null и locked-ответы закрывают старое содержимое без возможности оставить открытый приватный viewer. */
 for (const outcome of ["missing", "locked"] as const)
   test(`article refetch ${outcome} removes its old body and photo viewer`, async ({
     page,

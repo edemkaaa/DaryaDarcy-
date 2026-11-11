@@ -22,6 +22,8 @@ const SIZES = ["hqdefault.jpg", "sddefault.jpg", "mqdefault.jpg", "0.jpg"];
 const PROXY = "https://daryadarcy.com/media/yt-thumb";
 
 function s3Client() {
+  // Создаёт клиент публичных исторических обложек из окружения оператора.
+
   return new S3Client({
     endpoint: env.S3_ENDPOINT,
     region: "ru-1",
@@ -31,6 +33,8 @@ function s3Client() {
 }
 
 async function fetchThumb(youtubeId) {
+  // Пробует фиксированные размеры YouTube-превью с дедлайном и отбрасывает явно пустой ответ.
+
   for (const file of SIZES) {
     const url = `https://i.ytimg.com/vi/${youtubeId}/${file}`;
     const res = await fetch(url, { signal: AbortSignal.timeout(12000) });
@@ -43,6 +47,8 @@ async function fetchThumb(youtubeId) {
 }
 
 async function main() {
+  // Заполняет обложки старого YouTube-каталога: публичная S3-копия либо старый proxy fallback с обновлением thumbnailUrl.
+
   const conn = await mysql.createConnection(env.DATABASE_URL.replace(/\r/g, "").trim());
   const [rows] = await conn.query("SELECT id, youtubeId, thumbnailUrl FROM videos");
   const client = s3Client();

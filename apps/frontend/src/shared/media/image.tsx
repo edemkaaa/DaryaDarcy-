@@ -51,6 +51,7 @@ export type ImageProps = Omit<BoxProps, "onLoad" | "onError"> & {
 const RETRY_DELAYS = [2_000, 5_000];
 const VISIBLE_LOAD_TIMEOUT = 30_000;
 
+/** Отображаем терминальный отказ отдельно от ожидания; повтор не должен активировать переход карточки. */
 export function ImageFailure({ onRetry }: { onRetry?: () => void }) {
   return (
     <div className={classes.fallback}>
@@ -74,6 +75,7 @@ export function ImageFailure({ onRetry }: { onRetry?: () => void }) {
 }
 
 const PictureContent = forwardRef<HTMLDivElement, ImageProps>(
+  /** Ведём один жизненный цикл источника: ограниченные повторы явной ошибки, отдельный таймаут видимого фото и fallback с оптимизатора на оригинал. */
   function PictureContent(
     {
       source,
@@ -135,6 +137,7 @@ const PictureContent = forwardRef<HTMLDivElement, ImageProps>(
     // Явная ошибка допускает ограниченные повторы, а зависший запрос требует ручного решения пользователя.
     const terminalFailure =
       timedOut || (failed && attempt >= RETRY_DELAYS.length);
+    /** Ручной повтор сбрасывает отказ и создаёт новый DOM-img через номер попытки, не присоединяясь к зависшему элементу. */
     const retry = () => {
       setLoaded(false);
       setFailed(false);
@@ -146,6 +149,7 @@ const PictureContent = forwardRef<HTMLDivElement, ImageProps>(
       const image = imageRef.current;
       if (!image) return;
       let timer: number | undefined;
+      /** Запускаем дедлайн только для востребованного фото; уже готовый кешированный img распознаём без нового ожидания. */
       const start = () => {
         if (timer !== undefined) return;
         if (image.complete && image.naturalWidth > 0) {
@@ -187,6 +191,7 @@ const PictureContent = forwardRef<HTMLDivElement, ImageProps>(
     useEffect(() => {
       if (!failed) return;
       // Retry explicit failures only; a timeout requires a manual retry.
+      /** Повторяем явную ошибку только при наличии сети; задержки автоматических попыток ограничены RETRY_DELAYS. */
       const resume = () => {
         if (!navigator.onLine) return;
         setLoaded(false);
@@ -232,6 +237,7 @@ const PictureContent = forwardRef<HTMLDivElement, ImageProps>(
         <img
           key={`${attempt}-${useOriginal}`}
           ref={(image) => {
+            // Кешированный img может завершиться до подписки onLoad; распознаём это при присоединении DOM-узла.
             imageRef.current = image;
             // Cached images may finish before the load handler is attached.
             if (!timedOut && image?.complete && image.naturalWidth > 0) {
@@ -253,6 +259,7 @@ const PictureContent = forwardRef<HTMLDivElement, ImageProps>(
           src={timedOut ? undefined : resolved.src}
           draggable={false}
           onError={(event) => {
+            // Событие должно принадлежать текущему img; после повторов сбоя оптимизатора пробуем исходный адрес, сохраняя подпись URL.
             if (timedOut || imageRef.current !== event.currentTarget) return;
             // Recover a temporary preview failure before fetching a much
             // larger original. Preserve its URL/signature across retries.
@@ -269,6 +276,7 @@ const PictureContent = forwardRef<HTMLDivElement, ImageProps>(
             if (attempt >= RETRY_DELAYS.length) onError?.(event);
           }}
           onLoad={(event) => {
+            // Успех текущего элемента подтверждает показ и передаёт фактические размеры выбранного браузером варианта.
             if (timedOut || imageRef.current !== event.currentTarget) return;
             setFailed(false);
             setLoaded(true);
@@ -321,6 +329,7 @@ const PictureContent = forwardRef<HTMLDivElement, ImageProps>(
 );
 
 export const Picture = Object.assign(
+  /** Изменение источника, вариантов или retryKey пересоздаёт внутренний цикл целиком, включая таймеры и историю появления. */
   forwardRef<HTMLDivElement, ImageProps>(function Picture(props, ref) {
     const uri =
       typeof props.source === "string" ? props.source : props.source?.uri;

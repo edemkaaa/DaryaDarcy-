@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { editorApi, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
+/** Проверяем ссылки внутри карточек обычного поста и статьи отдельно от кнопки чтения: клик и Enter открывают внешний popup, не запрашивая сам материал. */
 for (const article of [false, true]) {
   test(`${article ? "article" : "post"} club card keeps rich-text links independent of its read action`, async ({
     page,
@@ -92,6 +93,7 @@ for (const article of [false, true]) {
     await expect(first).toHaveCSS("font-weight", "700");
     await expect(second).toHaveCSS("font-family", /Italic/i);
 
+    /** Один и тот же набор ссылок должен быть независимым элементом управления и для мыши, и для клавиатурной навигации. */
     for (const keyboard of [false, true]) {
       if (keyboard) {
         await first.focus();
@@ -114,6 +116,7 @@ for (const article of [false, true]) {
         expect(reads).toEqual([]);
       }
     }
+    /** Только отдельная кнопка чтения переводит к материалу и вызывает соответствующую процедуру. */
     const read = page.getByRole("button", {
       name: article ? "читать →" : "Открыть публикацию",
       exact: true,

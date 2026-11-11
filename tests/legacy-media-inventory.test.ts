@@ -9,6 +9,7 @@ import type { AddressInfo } from "node:net";
 
 const execute = promisify(execFile);
 const directories: string[] = [];
+/** Удаляет только временные каталоги, созданные текущим набором проверок CLI. */
 afterEach(async () => {
   await Promise.all(
     directories
@@ -17,9 +18,11 @@ afterEach(async () => {
   );
 });
 const url = "https://s3.twcstorage.ru/daryadarcy-s3/feed/photos/fixture.jpg";
+/** Создаёт минимальную ссылку из конкретного слота публикации с явно заданной видимостью. */
 function ref(id: number, access = "restricted", asset = url) {
   return { kind: "postPhoto", id, slot: "photos.0", access, url: asset };
 }
+/** Запускает CLI на локальном снимке в собственном каталоге и возвращает результат вместе с путями для проверки неизменности. */
 async function run(
   references: unknown[],
   extra: string[] = [],
@@ -52,7 +55,9 @@ async function run(
   }
   return { input, output, snapshot, code, stdout, stderr };
 }
+/** Проверяет режим инвентаризации старых медиа, который составляет отчёт и не разрешает изменение оригиналов. */
 describe("read-only legacy media inventory", () => {
+  /** Проверяет план копирования: общий публичный источник сохраняется, а отсутствие контрольных сумм запрещает закрытие оригиналов. */
   it("prepares an explicit plan without source checksums or permission to retire originals", async () => {
     const result = await run(
       [
@@ -90,6 +95,7 @@ describe("read-only legacy media inventory", () => {
     expect(JSON.stringify(plan)).not.toContain("signature");
     expect(plan.retirementAllowed).toBe(false);
   });
+  /** Проверяет классификацию общих, закрытых и неопубликованных ссылок без выдачи разрешения на удаление. */
   it("maps restricted, shared, unpublished and orphan references without granting deletion", async () => {
     const result = await run([
       ref(938),
@@ -123,6 +129,7 @@ describe("read-only legacy media inventory", () => {
     );
     expect(result.stdout).not.toContain("fixture.jpg");
   });
+  /** Проверяет удаление секретных query-параметров и учётных данных из отчёта и ручную проверку неоднозначных источников. */
   it("redacts signed URLs and credentials and marks ambiguous sources for review", async () => {
     const result = await run([
       ref(1, "restricted", url + "?secret=do-not-print"),
@@ -152,6 +159,7 @@ describe("read-only legacy media inventory", () => {
       ),
     ).toBe(true);
   });
+  /** Отличает защищённую ссылку API от доказанной готовности её файловой привязки. */
   it("recognizes protected API references without claiming their bindings are ready", async () => {
     const result = await run([
       ref(
@@ -169,6 +177,7 @@ describe("read-only legacy media inventory", () => {
         .sort(),
     ).toEqual(["protected-reference", "public-only"]);
   });
+  /** Отклоняет флаги изменения данных до создания выходного отчёта. */
   it.each(["--apply", "--delete"])(
     "rejects mutation mode %s",
     async (option) => {
@@ -177,11 +186,13 @@ describe("read-only legacy media inventory", () => {
       await expect(stat(result.output)).rejects.toThrow();
     },
   );
+  /** Проверяет отказ от перезаписи уже существующего отчёта. */
   it("refuses existing output instead of overwriting it", async () => {
     const result = await run([ref(1)], [], true);
     expect(result.code).not.toBe(0);
     expect(await readFile(result.output, "utf8")).toBe("preserve");
   });
+  /** Считает обращения к локальному HTTP-источнику и доказывает, что инвентаризация не скачивает файлы. */
   it("never fetches a source URL, including a local service", async () => {
     let requests = 0;
     const server = createServer((_request, response) => {
@@ -209,6 +220,7 @@ describe("read-only legacy media inventory", () => {
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }
   });
+  /** Объединяет ссылки на один объект S3 при различии регистра хоста и явного стандартного порта. */
   it("recognizes the same S3 object behind host case and default-port aliases", async () => {
     const alias = url.replace("s3.twcstorage.ru", "S3.TWCSTORAGE.RU:443");
     const result = await run([ref(1), ref(2, "public", alias)]);
@@ -217,6 +229,7 @@ describe("read-only legacy media inventory", () => {
     expect(groups).toHaveLength(1);
     expect(groups[0].classification).toBe("shared-public");
   });
+  /** Отклоняет повторные слоты и посторонние персональные поля снимка вместо неоднозначного плана. */
   it.each([
     { refs: [ref(1), ref(1)] },
     { refs: [{ ...ref(1), access: "perhaps" }] },

@@ -10,6 +10,7 @@ import { requireCommentFileSchema } from "./comment-file-creation";
 import { requirePrivateContentSchema } from "./private-content-uploads";
 
 /** Optional on pre-CF installations; partial or unsafe migrations fail the whole retirement. */
+/** Допускаем отсутствие обеих таблиц только до внедрения выключенной функции; частичная схема или не-InnoDB запрещает весь отзыв. */
 async function requireSchema(tx: ContentTransaction) {
   const [rows] =
     await tx.execute(sql`SELECT t.TABLE_NAME AS name,t.ENGINE AS engine,c.IS_NULLABLE AS nullable
@@ -35,6 +36,7 @@ async function requireSchema(tx: ContentTransaction) {
 }
 
 /** Called under the retiring user's PK lock, regardless of the upload feature flag. No storage effects. */
+/** Под блокировкой удаляемого пользователя удаляем его ключи создания комментариев и обезличиваем квитанции пачками; непривязанные файлы отзываем, доказательство доступа у сохранившегося материала оставляем. */
 export async function retirePrivateContent(
   tx: ContentTransaction,
   actorUserId: number,

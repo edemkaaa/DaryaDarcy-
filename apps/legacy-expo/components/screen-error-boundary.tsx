@@ -1,3 +1,4 @@
+// Архив Expo. Переводит render-сбой потомка в локальное fallback-состояние экрана.
 import { Component, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -16,21 +17,29 @@ export class ScreenErrorBoundary extends Component<Props, State> {
   state: State = { error: null };
 
   static getDerivedStateFromError(error: Error): State {
+    // Переводит render-сбой потомка в локальное fallback-состояние экрана.
+
     return { error };
   }
 
   componentDidCatch(error: Error) {
+    // Пишет подробность render-ошибки только в development.
+
     if (__DEV__) {
       console.error("[ScreenErrorBoundary]", error);
     }
   }
 
   private handleRetry = () => {
+    // Снимает локальную ошибку и вызывает необязательную повторную загрузку владельца.
+
     this.setState({ error: null });
     this.props.onRetry?.();
   };
 
   render() {
+    // Выбирает fallback с повтором либо исходных потомков; асинхронные ошибки boundary не ловит.
+
     if (this.state.error) {
       return (
         <View style={styles.wrap}>
@@ -46,6 +55,7 @@ export class ScreenErrorBoundary extends Component<Props, State> {
   }
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   wrap: {
     flex: 1,

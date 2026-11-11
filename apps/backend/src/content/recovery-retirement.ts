@@ -12,6 +12,7 @@ import { requirePrivateAttachmentSchema } from "./private-attachment-uploads";
 import { retirePrivateContent } from "./private-content-retirement";
 
 /** No runtime DDL or partial cleanup on missing/nontransactional rollout schema. */
+/** До отзыва проверяем все таблицы InnoDB, nullable-владельца квитанций и точные первичные ключи; частичная миграция не допускает частичного удаления. */
 export async function requireRecoveryRetirementSchema(tx: ContentTransaction) {
   for (const table of [
     postCreationRequests,
@@ -68,6 +69,7 @@ export async function requireRecoveryRetirementSchema(tx: ContentTransaction) {
 }
 
 /** Caller already holds the retiring user PK lock, shared with every recovery writer. */
+/** Под блокировкой удаляемого пользователя удаляем его журналы и маркеры, обезличиваем квитанции с сохранением технических привязок; отдельный флаг включает весь отзыв без удаления S3. */
 export async function retireContentRecovery(
   tx: ContentTransaction,
   actorUserId: number,

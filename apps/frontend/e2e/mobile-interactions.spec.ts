@@ -18,6 +18,7 @@ const video = {
   duration: "10:00",
   published: true,
 };
+/** Создаём синтетические карточки видео, фотоальбом и клубный доступ; жесты работают по настоящему интерфейсу без внешних медиа. */
 async function fixtures(page: Page) {
   await editorApi(page, (name) => {
     if (name === "videos.list")
@@ -60,24 +61,29 @@ async function fixtures(page: Page) {
     }),
   );
 }
+/** Открываем CDP-канал и возвращаем отдельные стадии touch, чтобы тест мог проверить состояние до отпускания пальца. */
 async function touch(page: Page) {
   const session = await page.context().newCDPSession(page);
   return {
+    /** Начинаем single-touch в конкретной точке, сохраняя последовательность нативных событий. */
     start: (x: number, y: number) =>
       session.send("Input.dispatchTouchEvent", {
         type: "touchStart",
         touchPoints: [{ x, y }],
       }),
+    /** Двигаем активное касание без синтетического click. */
     move: (x: number, y: number) =>
       session.send("Input.dispatchTouchEvent", {
         type: "touchMove",
         touchPoints: [{ x, y }],
       }),
+    /** Завершаем жест; последующий совместимый click обрабатывается самим браузером. */
     end: () =>
       session.send("Input.dispatchTouchEvent", {
         type: "touchEnd",
         touchPoints: [],
       }),
+    /** Явная отмена не должна превращаться в переход по карточке. */
     cancel: () =>
       session.send("Input.dispatchTouchEvent", {
         type: "touchCancel",
@@ -85,12 +91,14 @@ async function touch(page: Page) {
       }),
   };
 }
+/** Дожидаемся доступности контрола trial-click и находим безопасный центр для touch/mouse. */
 async function center(control: Locator) {
   await control.click({ trial: true });
   const box = (await control.boundingBox())!;
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 }
 
+/** Вертикальный touch по видео не меняет press-вид и не открывает detail; независимый tap после прокрутки открывает его. */
 test("touching and swiping a video card preserves its appearance and native scrolling; a fresh tap opens it", async ({
   page,
 }) => {
@@ -209,6 +217,7 @@ test("native horizontal photo swipes change the slide without opening the viewer
   ).toBeVisible();
 });
 
+/** Смещение за допустимый порог отменяет long-press, неподвижное удержание сохраняет существующий переход в admin. */
 test("moving off a held action cancels its timer; a stationary hold retains the existing action", async ({
   page,
 }) => {
@@ -231,6 +240,7 @@ test("moving off a held action cancels its timer; a stationary hold retains the 
   await expect(page).toHaveURL(/\/admin$/);
 });
 
+/** Совместимый click после moved-touch подавляется однократно, а следующий tap и клавиатура остаются рабочими. */
 test("a compatibility click after a moved touch is blocked, while the next tap and keyboard activation work", async ({
   page,
 }) => {
@@ -293,6 +303,7 @@ test("mouse press feedback and keyboard activation of actions remain available",
   await expect(page).toHaveURL(/\/video\/1$/);
 });
 
+/** Малое движение остаётся tap и сохраняет browser user-gesture для нативного file chooser. */
 test("small finger movement preserves a tap and a native file chooser in the editor", async ({
   page,
 }) => {
@@ -320,6 +331,7 @@ test("small finger movement preserves a tap and a native file chooser in the edi
   await expect(form.getByText("chosen.mp3", { exact: true })).toBeVisible();
 });
 
+/** Двухпальцевый CDP-жест меняет scale просмотрщика; следующее касание закрытия не должно быть поглощено прежним жестом. */
 test("two-finger zoom in the pattern viewer and the following close tap still work", async ({
   page,
 }) => {

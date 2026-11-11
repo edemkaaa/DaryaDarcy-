@@ -1,3 +1,4 @@
+/** Opt-in Node-приёмка платёжного egress на собственных Docker-ресурсах: TLS проверяется настоящим анонимным запросом к YooKassa, платежи не создаются. */
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
@@ -24,6 +25,7 @@ const config =
   );
 const owned = [];
 
+/** Проверяем resolved Compose: только API получает payment-control, gateway не публикует порт и сохраняет ограничения runtime. */
 test(
   "opt-in payment overlay retains existing media isolation and exposes no port",
   {
@@ -83,20 +85,24 @@ test(
   },
 );
 
+/** Возвращает stdout/status ограниченной по времени Docker-команды; вызывающий сценарий обязан проверить результат. */
 function docker(...args) {
   return spawnSync("docker", args, { encoding: "utf8", timeout: 20_000 });
 }
+/** Регистрирует имя для последующей очистки только после подтверждённого успешного создания ресурса. */
 function create(kind, name, ...args) {
   const result = docker(...args);
   assert.equal(result.status, 0, `Cannot create ${kind}: ${result.stderr}`);
   owned.push({ kind, name });
 }
+/** Выполняет сетевой probe внутри изолированного клиента и читает только JSON диагностику без provider body. */
 function inProbe(script) {
   const result = docker("exec", probe, "node", "-e", script);
   assert.equal(result.status, 0, "Probe failed (no provider body logged)");
   return JSON.parse(result.stdout);
 }
 
+/** На созданных тестом сетях проверяем TLS/SNI allowlist, отказ plaintext/direct egress и очистку по точной task label. */
 test(
   "payment gateway permits verified YooKassa TLS only while the caller stays isolated",
   { skip: !enabled, timeout: 120_000 },

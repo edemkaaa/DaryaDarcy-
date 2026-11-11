@@ -2,6 +2,7 @@
 @use "../../shared/styles/layers";
 
 @layer components {
+  /* Иконка шага имеет фиксированную область, инструкция занимает остаток строки и может переноситься. */
   .stepRow {
     flex-direction: row;
     align-items: center;
@@ -25,6 +26,7 @@
     color: var(--brown);
   }
 
+  /* Safe center и вертикальный скролл не прячут начало длинной инструкции на низком viewport. */
   .backdrop {
     --install-guide-gutter: 24px;
     flex: 1;
@@ -34,11 +36,13 @@
     padding: var(--install-guide-gutter);
   }
 
+  /* Невидимая подложка накрывает всё затемнение для закрытия вне карточки; сама карточка имеет отдельную геометрию. */
   .action {
     position: absolute;
     inset: 0;
   }
 
+  /* Ширина карточки ограничена общей шириной приложения с вычетом наружных полей. */
   .card {
     width: 100%;
     max-width: calc(var(--app-max-width) - 2 * var(--install-guide-gutter));
@@ -82,6 +86,7 @@
     margin-bottom: 24px;
   }
 
+  /* Основное подтверждение центрируется под шагами, его нажатие меняет только прозрачность. */
   .action2 {
     align-self: center;
     flex-direction: row;

@@ -1,3 +1,4 @@
+/** HTTP policy допускает только узкий top-level GET из письма, не открывая CORS API. */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import express from "express";
 import { createServer, request as httpRequest, type Server } from "node:http";
@@ -13,6 +14,7 @@ const navigation = {
 };
 
 // Node fetch overwrites Sec-Fetch-Mode with cors, unlike a document navigation.
+/** Используем Node http, чтобы сохранить настоящие Sec-Fetch-Mode/Dest вместо fetch-нормализации. */
 function request(
   path: string,
   options: { method?: string; headers: Record<string, string> },
@@ -41,6 +43,7 @@ function request(
   });
 }
 
+/** Локальный Express ставит всегда успешный handler после политики: 403 доказывает именно отказ middleware. */
 beforeAll(async () => {
   vi.stubEnv("PUBLIC_APP_URL", "https://club.example.test");
   const app = express();
@@ -52,12 +55,15 @@ beforeAll(async () => {
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 });
+/** Закрываем свой сервер и возвращаем PUBLIC_APP_URL. */
 afterAll(async () => {
   await new Promise<void>((resolve) => server.close(() => resolve()));
   vi.unstubAllEnvs();
 });
 
+/** Проверяем точную document-navigation оговорку, не включение отменённой функции привязки. */
 describe("email binding document navigation boundary", () => {
+  /** Оба canonical пути допускают документ с no-store/no-referrer/DENY без CORS credentials. */
   it.each(["/api/auth/email-binding", "/api/auth/email-binding/"])(
     "allows a top-level GET from webmail to %s without CORS permission",
     async (path) => {
@@ -74,6 +80,7 @@ describe("email binding document navigation boundary", () => {
     },
   );
 
+  /** POST/HEAD, iframe/fetch, соседние пути, неполные fetch-headers и чужой Origin не получают исключение. */
   it.each([
     { method: "POST", path: "/api/auth/email-binding", headers: navigation },
     { method: "HEAD", path: "/api/auth/email-binding", headers: navigation },

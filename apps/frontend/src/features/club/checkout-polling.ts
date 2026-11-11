@@ -12,9 +12,11 @@ type PollOptions = {
   onResult: (result: ReturnResult) => void;
 };
 
+/** Ждём пять секунд после завершения проверки; отмена снимает таймер и не допускает перекрывающихся запросов. */
 function waitForNextCheck(signal: AbortSignal): Promise<void> {
   signal.throwIfAborted();
   return new Promise((resolve, reject) => {
+    /** Прерываем паузу тем же сигналом, которым владелец остановил проверку. */
     const abort = () => {
       clearTimeout(timer);
       reject(signal.reason);
@@ -27,7 +29,7 @@ function waitForNextCheck(signal: AbortSignal): Promise<void> {
   });
 }
 
-/** One finite check campaign; only pending is polled, never errors or unknown. */
+/** Проверяем один сохранённый ключ до шести раз и только пока сервер сообщает pending; общий бюджет ограничен 30 секундами. */
 export async function pollClubTestCheckout(
   client: TRPCClient<AppRouter>,
   options: PollOptions,

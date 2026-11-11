@@ -1,3 +1,4 @@
+/** Выбор video создаёт локальное стабильное намерение, не загружает файл и ограждает поздний poster результат сменой аккаунта. */
 import { expect, it, vi } from "vitest";
 vi.mock("../apps/frontend/src/shared/media/video-poster", () => ({
   extractVideoPosterBlob: vi.fn(),
@@ -6,11 +7,13 @@ import { extractVideoPosterBlob } from "../apps/frontend/src/shared/media/video-
 import { preparePrivatePostVideo } from "../apps/frontend/src/features/admin/use-private-post-videos";
 import { OperationScope } from "../apps/frontend/src/shared/browser/operation-scope";
 const extract = vi.mocked(extractVideoPosterBlob);
+/** Создаём исходный File с известными байтами и lastModified. */
 const source = () =>
   new File(["original bytes"], "lesson.mp4", {
     type: "video/mp4",
     lastModified: 42,
   });
+/** Новый OperationScope проверяет отмену и динамическое владение текущего аккаунта. */
 function scope(owns = () => true) {
   const scope = new OperationScope();
   return {
@@ -18,6 +21,7 @@ function scope(owns = () => true) {
     task: scope.begin("video", new AbortController().signal, owns)!,
   };
 }
+/** Сохраняется именно исходный File, а не перекодированная копия; receipt/attempted ещё отсутствуют. */
 it("selects the immutable original File under one stable key, without network or a receipt", async () => {
   extract.mockClear();
   const file = source();
@@ -30,6 +34,7 @@ it("selects the immutable original File under one stable key, without network or
   expect(video).not.toHaveProperty("attempted");
   expect(extract).not.toHaveBeenCalled();
 });
+/** Синтетический poster становится отдельным File и ключом, связанным с тем же operation signal. */
 it("keeps an optional poster as a separate private File/key, not a gallery URL", async () => {
   const blob = new Blob(["poster bytes"], { type: "image/jpeg" });
   extract.mockResolvedValueOnce(blob);
@@ -41,6 +46,7 @@ it("keeps an optional poster as a separate private File/key, not a gallery URL",
   expect(video.poster?.file.type).toBe("image/jpeg");
   expect(await video.poster?.file.text()).toBe("poster bytes");
 });
+/** Отсутствующий/неподдержанный poster не теряет исходное video. */
 it.each([null, "error"])(
   "keeps the original video if optional cover extraction yields %s",
   async (outcome) => {
@@ -53,6 +59,7 @@ it.each([null, "error"])(
     expect(video.poster).toBeUndefined();
   },
 );
+/** Отменённый scope не запускает даже необязательное извлечение кадра. */
 it("refuses a cancelled selection before preparing a cover", async () => {
   extract.mockClear();
   const { scope: owner, task } = scope();
@@ -62,6 +69,7 @@ it("refuses a cancelled selection before preparing a cover", async () => {
   ).rejects.toMatchObject({ name: "AbortError" });
   expect(extract).not.toHaveBeenCalled();
 });
+/** Late resolve/reject после потери владельца даёт AbortError без присвоения чужому черновику. */
 it.each([false, true])(
   "ignores late cover results/errors after account change (%s)",
   async (reject) => {
@@ -83,6 +91,7 @@ it.each([false, true])(
     await expect(result).rejects.toMatchObject({ name: "AbortError" });
   },
 );
+/** Пустой File отвергается до codec-подготовки. */
 it("rejects an invalid source before optional cover work", async () => {
   extract.mockClear();
   await expect(

@@ -14,6 +14,8 @@ export function checkDocumentationLinks(
   markdown: string,
   repositoryFiles: ReadonlySet<string>,
 ): BrokenDocumentationLink[] {
+  // Проверяет локальные назначения вне code fences и inline code, сохраняя номера исходных строк и запрет выхода за репозиторий.
+
   const failures: BrokenDocumentationLink[] = [];
   const targets = new Set(repositoryFiles);
   for (const name of repositoryFiles) {
@@ -86,6 +88,8 @@ export function checkDocumentationLinks(
 }
 
 function readDestination(source: string): string {
+  // Читает destination с угловыми скобками, экранированием и вложенными скобками, не включая необязательный заголовок Markdown-ссылки.
+
   if (source.startsWith("<")) {
     const end = source.indexOf(">");
     return end < 0 ? "" : source.slice(1, end);

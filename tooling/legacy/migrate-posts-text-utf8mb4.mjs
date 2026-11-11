@@ -1,3 +1,4 @@
+// Переводит старые текстовые поля на utf8mb4 прямым ALTER, не через актуальную историю миграций.
 /**
  * Upgrade posts.text to utf8mb4 so emoji survive storage.
  * Usage: node tooling/legacy/migrate-posts-text-utf8mb4.mjs
@@ -20,6 +21,9 @@ const env = Object.fromEntries(
 );
 
 async function main() {
+  // Меняет тип/кодировку posts.text и richText на выбранной БД без актуального миграционного журнала.
+
+  // С этого места выбранная БД реально изменяется; текущая история и рабочее назначение автоматически не проверены.
   const conn = await mysql.createConnection(env.DATABASE_URL);
   await conn.query("SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci");
   const [before] = await conn.query(

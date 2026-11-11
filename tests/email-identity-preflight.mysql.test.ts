@@ -7,8 +7,10 @@ import {
   readEmailIdentityIssues,
 } from "../tooling/scripts/email-identity-preflight";
 
+/** Проверяет read-only диагностику legacy-email без исправления строк и раскрытия адресов в отчёте. */
 describe.skipIf(!testDatabaseUrl)("email preflight on disposable MySQL", () => {
   let conn: Connection;
+  /** Создаёт временную users только для данного соединения, сохраняя каноническую таблицу фикстуры. */
   beforeAll(async () => {
     conn = await openTestDatabase();
     // Connection-local legacy data: no changes to the real fixture users.
@@ -16,12 +18,15 @@ describe.skipIf(!testDatabaseUrl)("email preflight on disposable MySQL", () => {
       "CREATE TEMPORARY TABLE users (id INT PRIMARY KEY,email VARCHAR(320))",
     );
   });
+  /** Очищает временную таблицу перед новым набором legacy-адресов. */
   beforeEach(async () => {
     await conn.query("DELETE FROM users");
   });
+  /** Закрывает соединение вместе с его временной таблицей. */
   afterAll(async () => {
     await conn?.end();
   });
+  /** Выполняет preflight внутри read-only транзакции и завершает её rollback независимо от результата. */
   async function inspect() {
     await conn.query("START TRANSACTION READ ONLY");
     try {
@@ -30,12 +35,14 @@ describe.skipIf(!testDatabaseUrl)("email preflight on disposable MySQL", () => {
       await conn.rollback();
     }
   }
+  /** Несколько NULL и пустых email допустимы и не создают диагностик персональных данных. */
   it("accepts multiple absent emails and reports no personal data", async () => {
     await conn.query(
       "INSERT INTO users VALUES (1,NULL),(2,NULL),(3,''),(4,''),(5,'member@example.test')",
     );
     expect(await inspect()).toEqual([]);
   });
+  /** Варианты регистра и пробелов обнаруживаются как неканоничные дубли без переписывания аккаунтов. */
   it("rejects normalized duplicates and noncanonical data without changing any row", async () => {
     await conn.query(
       "INSERT INTO users VALUES (1,'member@example.test'),(2,'  MEMBER@EXAMPLE.TEST  ')",
@@ -52,6 +59,7 @@ describe.skipIf(!testDatabaseUrl)("email preflight on disposable MySQL", () => {
     );
     expect(after).toEqual(before);
   });
+  /** Диагностика проходит все страницы, включая проблемный адрес после границы 500 строк. */
   it("inspects every page, including an incompatible address after row 500", async () => {
     const values = Array.from({ length: 501 }, (_, i) => [
       i + 1,
@@ -60,13 +68,16 @@ describe.skipIf(!testDatabaseUrl)("email preflight on disposable MySQL", () => {
     await conn.query("INSERT INTO users (id,email) VALUES ?", [values]);
     expect(await inspect()).toEqual(["email-identity-noncanonical"]);
   });
+  /** Preflight не пропускает legacy-строки с отрицательными ID. */
   it("also checks legacy rows with nonpositive IDs", async () => {
     await conn.query("INSERT INTO users VALUES (-1,' MEMBER@EXAMPLE.TEST ') ");
     expect(await inspect()).toEqual(["email-identity-noncanonical"]);
   });
+  /** Публичный preflight открывает реальное read-only соединение и принимает каноническую схему. */
   it("opens a real read-only inspection connection for the canonical fixture", async () => {
     expect(await readEmailIdentityIssues(testDatabaseUrl!)).toEqual([]);
   });
+  /** Некорректный адрес отмечается диагностикой invalid и сохраняется без изменений. */
   it("rejects malformed legacy email without rewriting the account", async () => {
     await conn.query("INSERT INTO users VALUES (1,'not-an-email')");
     expect(await inspect()).toEqual(["email-identity-invalid"]);
@@ -75,11 +86,13 @@ describe.skipIf(!testDatabaseUrl)("email preflight on disposable MySQL", () => {
   });
 });
 
+/** Проверяет точный SQL миграции уникального email на отдельной legacy-таблице, не трогая ограничения основной users. */
 describe.skipIf(!testDatabaseUrl)(
   "unique email migration on disposable legacy data",
   () => {
     let conn: Connection;
     let migration: string;
+    /** Создаёт собственную именованную таблицу и подставляет её имя в прочитанный SQL миграции. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       // Named table belongs only to this run; exercise the exact migration on
@@ -97,12 +110,14 @@ describe.skipIf(!testDatabaseUrl)(
         )
       ).replace("`users`", "`email_identity_migration_fixture`");
     });
+    /** Удаляет только таблицу эксперимента миграции и закрывает соединение. */
     afterAll(async () => {
       if (conn) {
         await conn.query("DROP TABLE email_identity_migration_fixture");
         await conn.end();
       }
     });
+    /** При нормализованных дублях миграция отклоняется атомарно: строки прежние, уникальный индекс не создан. */
     it("fails atomically on duplicates instead of repairing or deleting old accounts", async () => {
       await conn.query(
         "INSERT INTO email_identity_migration_fixture VALUES (1,'member@example.test'),(2,' MEMBER@EXAMPLE.TEST ')",

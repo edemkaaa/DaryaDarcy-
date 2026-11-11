@@ -20,12 +20,14 @@ import { sdk } from "../apps/backend/src/_core/sdk";
 import type { AppRouter } from "../apps/backend/src/routers";
 import { ProfileService } from "../apps/backend/src/profile/profile.service";
 
+/** Проверяет каноническую запись профиля через настоящий HTTP и JWT с контрольными SQL-снимками. */
 describe.skipIf(!testDatabaseUrl)(
   "profile persistence through real HTTP, JWT and disposable SQL",
   () => {
     let conn: Connection;
     let app: INestApplication;
     let base: string;
+    /** Поднимает локальный API на отдельной SQL-базе с тестовым ключом подписи. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -34,6 +36,7 @@ describe.skipIf(!testDatabaseUrl)(
       await app.listen(0, "127.0.0.1");
       base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
     });
+    /** Удаляет собственный отказной триггер и пересоздаёт владельца профиля и соседний аккаунт. */
     beforeEach(async () => {
       await conn.query("DROP TRIGGER IF EXISTS profile_http_write_refusal");
       await conn.query("DELETE FROM users WHERE id IN (8441,8442)");
@@ -41,10 +44,12 @@ describe.skipIf(!testDatabaseUrl)(
       (8441,'profile-http-8441','Original','profile-one@example.invalid','user','female','https://example.invalid/old.webp',4,'synthetic-hash'),
       (8442,'profile-http-8442','Other','profile-two@example.invalid','user','male',NULL,0,NULL)`);
     });
+    /** Возвращает подменённые методы и удаляет триггер отказа записи. */
     afterEach(async () => {
       vi.restoreAllMocks();
       await conn.query("DROP TRIGGER IF EXISTS profile_http_write_refusal");
     });
+    /** Закрывает приложение, удаляет тестовых пользователей и освобождает SQL-пулы и окружение. */
     afterAll(async () => {
       await app?.close();
       await conn?.query("DELETE FROM users WHERE id IN (8441,8442)");
@@ -55,21 +60,25 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** Подписывает токен владельца с известной версией сессии. */
     async function authorization() {
       return `Bearer ${await sdk.createSessionToken("profile-http-8441", { sessionVersion: 4 })}`;
     }
+    /** Создаёт настоящий tRPC HTTP-клиент с опциональной потерей подтверждения уже выполненной записи. */
     function client(authenticated = true, dropAcknowledgement = false) {
       return createTRPCProxyClient<AppRouter>({
         links: [
           httpLink({
             url: `${base}/api/trpc`,
             transformer: superjson,
+            /** Добавляет JWT только для авторизованного варианта клиента. */
             headers: async () =>
               !authenticated
                 ? {}
                 : {
                     Authorization: await authorization(),
                   },
+            /** Выполняет настоящий запрос и при заданном сбое теряет ответ после чтения успешного тела. */
             fetch: async (url, options) => {
               const response = await fetch(url, options);
               if (
@@ -85,12 +94,14 @@ describe.skipIf(!testDatabaseUrl)(
         ],
       });
     }
+    /** Читает сравнимый снимок обоих аккаунтов, включая защищённые поля и запрос удаления. */
     async function users() {
       const [rows] = await conn.query<RowDataPacket[]>(
         "SELECT id,name,email,role,gender,avatarUrl,sessionVersion,passwordHash,blockedAt,accountDeletionRequestedAt FROM users WHERE id IN (8441,8442) ORDER BY id",
       );
       return rows;
     }
+    /** Проверяет, что лишние поля не позволяют поменять чужой профиль, роль или почту. */
     it("stores only profile fields for the session user despite a forged target or role", async () => {
       const before = await users();
       expect(
@@ -119,6 +130,7 @@ describe.skipIf(!testDatabaseUrl)(
         before[1],
       ]);
     });
+    /** Проверяет сохранение не переданных полей при частичном обновлении профиля. */
     it("keeps omitted fields on a partial patch", async () => {
       await client().profile.update.mutate({ expectedRevision: 0, name: "Name only" });
       const result = await users();
@@ -134,6 +146,7 @@ describe.skipIf(!testDatabaseUrl)(
         avatarUrl: null,
       });
     });
+    /** Проверяет допустимость одинакового содержимого при последовательных актуальных ревизиях. */
     it("accepts repeated identical profile writes for an existing account", async () => {
       expect(
         await client().profile.update.mutate({ expectedRevision: 0, name: "Original" }),
@@ -143,6 +156,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).toMatchObject({ success: true });
       expect((await users())[0].name).toBe("Original");
     });
+    /** Проверяет граничные допустимые имена по реальному UTF-8-размеру без усечения SQL. */
     it.each([
       { label: "ASCII boundary", name: "n".repeat(65_535) },
       { label: "multibyte boundary", name: "😀".repeat(16_383) + "abc" },
@@ -158,6 +172,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(after[1]).toEqual(before[1]);
       },
     );
+    /** Проверяет отказ 400 для пустого или слишком длинного имени и недопустимого URL аватара без записи. */
     it.each([
       { label: "whitespace name", input: { name: " \t\n " } },
       { label: "oversized ASCII name", input: { name: "n".repeat(65_536) } },
@@ -184,6 +199,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(await users()).toEqual(before);
     });
+    /** Проверяет восстановление уже сохранённого профиля через чтение после потери ответа записи. */
     it("recovers the committed profile via REST after the client loses the write response", async () => {
       const before = await users();
       await expect(
@@ -224,14 +240,17 @@ describe.skipIf(!testDatabaseUrl)(
         before[1],
       ]);
     });
+    /** Проверяет отказ прямой границы сохранения, если аккаунт исчез после авторизации. */
     it.each([
       {
         name: "profile field",
+        /** Вызывает сохранение имени для аккаунта, который сценарий удалит перед записью. */
         run: (service: ProfileService) =>
           service.update(8441, { expectedRevision:0, name: "Gone" },4),
       },
       {
         name: "avatar URL persistence",
+        /** Вызывает сохранение URL аватара для удалённого аккаунта без загрузки внешнего объекта. */
         run: (service: ProfileService) =>
           service.update(8441, {expectedRevision:0,
             avatarUrl: "https://example.invalid/gone.webp",
@@ -239,6 +258,7 @@ describe.skipIf(!testDatabaseUrl)(
       },
       {
         name: "deletion request",
+        /** Вызывает запрос удаления уже отсутствующего аккаунта с исходным actor-контекстом. */
         run: (service: ProfileService) => service.requestAccountDeletion({ id: 8441, openId: "profile-http-8441", sessionVersion: 4 }),
       },
     ])(
@@ -252,6 +272,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await users()).toEqual(before);
       },
     );
+    /** Фиксирует прежний успешный no-op для пустого изменения без затрагивания SQL. */
     it("preserves the existing no-op success for an empty patch", async () => {
       const before = await users();
       expect(await client().profile.update.mutate({ expectedRevision: 0,})).toMatchObject({
@@ -259,6 +280,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       expect(await users()).toEqual(before);
     });
+    /** Вставляет настоящее SQL-удаление между JWT-проверкой и записью, затем проверяет безопасный HTTP-отказ. */
     it.each([
       {
         name: "profile field",
@@ -300,6 +322,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await users()).toEqual([before[1]]);
       },
     );
+    /** Проверяет повторяемую отметку удаления только своего аккаунта без немедленного физического удаления. */
     it("records a repeatable deletion request only for the session account without erasing it", async () => {
       const before = await users();
       expect(
@@ -317,13 +340,16 @@ describe.skipIf(!testDatabaseUrl)(
         before[1],
       ]);
     });
+    /** Проверяет отсутствие записей при неавторизованном изменении профиля и запросе удаления. */
     it.each([
       {
         name: "profile update",
+        /** Отправляет изменение имени без заголовка авторизации. */
         run: () => client(false).profile.update.mutate({ expectedRevision: 0, name: "Forbidden" }),
       },
       {
         name: "deletion request",
+        /** Отправляет запрос удаления без заголовка авторизации. */
         run: () => client(false).profileExtras.requestAccountDeletion.mutate(),
       },
     ])(
@@ -336,13 +362,16 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await users()).toEqual(before);
       },
     );
+    /** Проверяет отсутствие ложного успеха и текста SQL-ошибки при отказе триггера. */
     it.each([
       {
         name: "profile update",
+        /** Запускает изменение имени, на котором сработает собственный отказной триггер. */
         run: () => client().profile.update.mutate({ expectedRevision: 0, name: "Rejected" }),
       },
       {
         name: "deletion request",
+        /** Запускает запрос удаления, на котором сработает собственный отказной триггер. */
         run: () => client().profileExtras.requestAccountDeletion.mutate(),
       },
     ])(

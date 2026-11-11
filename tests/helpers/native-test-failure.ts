@@ -2,6 +2,8 @@
 export function nativeTestNames(
   sources: readonly string[],
 ): ReadonlySet<string> {
+  // Доверенные имена берутся только из собственных исходников тестов, а не из потенциально чувствительного вывода процесса.
+
   return new Set(
     sources.flatMap((source) =>
       [...source.matchAll(/\btest\(\s*"([^"\r\n]{1,240})"/g)].map(
@@ -16,6 +18,8 @@ export function nativeTestFailure(
   failure: unknown,
   trustedNames: ReadonlySet<string>,
 ): Error {
+  // Возвращает лишь тип сбоя и ограниченный список доверенных имён; stdout, cause и параметры с доступами в ошибку не попадают.
+
   const captured =
     typeof failure === "object" && failure !== null ? failure : {};
   const kind =

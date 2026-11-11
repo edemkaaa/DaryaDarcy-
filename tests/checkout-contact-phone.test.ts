@@ -1,3 +1,4 @@
+/** Контактный номер проверяется на настоящем checkout-сервисе с mock DB: без SMS, provider HTTP и выдачи сессии. */
 import { beforeEach, afterEach, expect, it, vi } from "vitest";
 const data = vi.hoisted(() => ({
   orders: [] as Record<string, unknown>[],
@@ -15,11 +16,13 @@ vi.mock("../apps/backend/src/db", () => ({
 }));
 import { ClubCheckoutService } from "../apps/backend/src/billing/club-checkout.service";
 const service = new ClubCheckoutService();
+/** Вызываем гостевой checkout с фиксированным email и изменяемым непроверенным contactPhone. */
 const checkout = (phone: unknown) =>
   service.createCheckout(null, {
     email: "contact@example.test",
     contactPhone: phone,
   } as never);
+/** Сбрасываем account/order spies и включаем только синтетические TEST-настройки. */
 beforeEach(() => {
   data.orders = [];
   data.accounts = 0;
@@ -29,7 +32,9 @@ beforeEach(() => {
   vi.stubEnv("PRODAMUS_TEST_SECRET", "a".repeat(64));
   vi.stubEnv("YOOKASSA_TEST_ENABLED", "false");
 });
+/** Снимаем env после каждого варианта. */
 afterEach(() => vi.unstubAllEnvs());
+/** Обязательный нормализуемый номер проверяется до account/order записи. */
 it.each([
   undefined,
   null,
@@ -48,6 +53,7 @@ it.each([
     expect(data.orders).toEqual([]);
   },
 );
+/** Российские и международные форматы сохраняются канонически в заказе, но не попадают в provider URL. */
 it.each([
   ["8 (999) 123-45-67", "+79991234567"],
   ["+7 999 123-45-67", "+79991234567"],
@@ -64,6 +70,7 @@ it.each([
     expect(new URL(result.url).searchParams.has("customer_phone")).toBe(false);
   },
 );
+/** Обычная LIVE-сборка ссылки использует то же правило без реального платежа. */
 it("also requires and stores contact in LIVE checkout, without sending it to the provider", async () => {
   vi.stubEnv("PRODAMUS_TEST_ENABLED", "false");
   vi.stubEnv("GUEST_CHECKOUT_RECOVERY_ENABLED", "false");
@@ -83,6 +90,7 @@ it("also requires and stores contact in LIVE checkout, without sending it to the
 import { normalizeContactPhone } from "../packages/shared/src/checkout-contact";
 import { normalCheckoutInput } from "../apps/backend/src/billing/normal-checkout";
 import { guestCheckoutInput } from "../apps/backend/src/billing/guest-normal-checkout";
+/** Нормализация не вырезает script/переводы строк и не угадывает номер без международного префикса. */
 it.each([
   "+0 12345678",
   "+7<script>9991234567",
@@ -92,6 +100,7 @@ it.each([
 ])("does not silently remove arbitrary characters (%s)", (value) => {
   expect(normalizeContactPhone(value)).toBeNull();
 });
+/** Оба keyed контракта нормализуют контакт одинаково до долговечного создания. */
 it("accepts contact in both durable checkout contracts", () => {
   const common = {
     idempotencyKey: "0a14203e-0812-4f96-9dd4-56a5502f28cc",

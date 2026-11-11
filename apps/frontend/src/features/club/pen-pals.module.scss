@@ -2,6 +2,7 @@
 @use "../../shared/styles/layers";
 
 @layer components {
+  /* Самостоятельная оболочка анкеты отделяет шапку от формы и результата. */
   .container {
     flex: 1;
     background-color: var(--paper);
@@ -22,6 +23,7 @@
     background-color: rgba(139, 115, 85, 0.08);
   }
 
+  /* Подтверждение и пустые состояния центрируются в доступном пространстве с ограниченными полями. */
   .centered {
     flex: 1;
     align-items: center;
@@ -94,6 +96,7 @@
     margin-bottom: 28px;
   }
 
+  /* Совпадение оформлено отдельной карточкой: аватар, город и адрес сохраняют устойчивую иерархию. */
   .letterCard {
     background-color: rgba(255, 255, 255, 0.78);
     border-width: 1px;
@@ -164,6 +167,7 @@
     line-height: 22px;
   }
 
+  /* Интересы переносятся, не создавая горизонтального выхода длинного набора тегов. */
   .interestsGrid {
     flex-direction: row;
     flex-wrap: wrap;
@@ -183,6 +187,7 @@
     font-size: 14px;
   }
 
+  /* Подтверждение пары отделено от второстепенного текстового действия. */
   .matchActions {
     margin-top: 10px;
     gap: 8px;
@@ -233,6 +238,7 @@
     height: 40px;
   }
 
+  /* Поля города, адреса и согласия сгруппированы по смыслу, оставляя место пояснению приватности. */
   .section {
     margin-bottom: 24px;
   }
@@ -300,6 +306,7 @@
     padding-left: 12px;
     padding-right: 12px;
   }
+  /* Условные классы ниже различают выбранные интересы и недоступность отправки; факт доступа CSS не определяет. */
   .appearanceState {
     background-color: rgba(107, 123, 94, 0.15);
     border-color: var(--olive);

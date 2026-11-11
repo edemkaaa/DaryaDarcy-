@@ -21,6 +21,8 @@ export type TransferColumn = {
 };
 export type TransferTable = { name: string; columns: string[] };
 export function transferIdentifier(value: string): string {
+  // Принимает только простой проверенный SQL-идентификатор перед подстановкой имени таблицы или столбца.
+
   assert.match(value, /^[A-Za-z_][A-Za-z0-9_]*$/);
   return `\`${value}\``;
 }
@@ -29,6 +31,8 @@ export function transferColumnPlan(
   source: TransferColumn[],
   target: TransferColumn[],
 ): TransferTable[] {
+  // Сравнивает типы, collation, nullable и дополнительные столбцы; неподдерживаемое преобразование блокирует перенос до записи.
+
   assert(source.length > 0);
   for (const columns of [source, target]) {
     assert.equal(
@@ -73,9 +77,13 @@ export function transferColumnPlan(
 }
 
 async function dataRows(connection: Connection, query: string) {
+  // Читает фиксированный операторский запрос через уже проверенное соединение, не создавая дополнительный pool.
+
   return (await connection.query<RowDataPacket[]>(query))[0];
 }
 function rowDigest(rows: RowDataPacket[], columns: string[]) {
+  // Строит порядок-независимый отпечаток строк с явным представлением binary, сохраняя точность сравнения source и candidate.
+
   const encoded = rows
     .map((row) =>
       JSON.stringify(
@@ -102,6 +110,8 @@ function rowDigest(rows: RowDataPacket[], columns: string[]) {
 async function transferColumns(
   connection: Connection,
 ): Promise<TransferColumn[]> {
+  // Получает подробную SQL-метадату столбцов, исключая служебную историю миграций из обычного плана копирования.
+
   return (await dataRows(
     connection,
     "SELECT TABLE_NAME AS `table`,COLUMN_NAME AS name,COLUMN_TYPE AS type,IS_NULLABLE AS nullable,COLUMN_DEFAULT AS `default`,EXTRA AS extra,GENERATION_EXPRESSION AS generation,COLLATION_NAME AS collation,ORDINAL_POSITION AS ordinal FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME<>'__drizzle_migrations' ORDER BY TABLE_NAME,ORDINAL_POSITION",
@@ -117,6 +127,8 @@ export async function copyCandidateData(
   source: Connection,
   target: Connection,
 ) {
+  // Разрешает только известную пару БД, читает consistent source snapshot и переносит строки в пустой target с проверкой хешей до commit.
+
   let phase = "identity",
     sourceTransaction = false,
     targetTransaction = false,

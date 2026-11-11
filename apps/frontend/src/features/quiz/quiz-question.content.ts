@@ -11,6 +11,7 @@ export const WARM_MILKY = "#FDF8F0";
 export const BROWN_TEXT = "#5C4033";
 export const SWIPE_QUESTION_IDS = [3, 5];
 
+/** Рассчитываем общую геометрию сетки и высокий формат слайдера из viewport; настройки строк остаются в данных вопроса. */
 export function getQuizQuestionContent(viewport: ViewportSize) {
   const { width, height } = viewport;
   const CARD_WIDTH_2 = (width - GRID_PADDING * 2 - GRID_GAP) / 2;

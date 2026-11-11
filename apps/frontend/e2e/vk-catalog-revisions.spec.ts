@@ -15,15 +15,19 @@ const initial = {
   thumbnailUrl: "/assets/responsive/old.webp" as string | null,
   editRevision: 0,
 };
+/** Адресуем заголовок VK-формы, который должен оставаться локальным при конфликте. */
 const title = (page: Page) =>
   page.getByRole("textbox", { name: "Название видео VK", exact: true });
+/** Выбираем текущий save, чья блокировка зависит от base/review и durable-intent. */
 const save = (page: Page) =>
   page.getByRole("button", { name: "Сохранить видео", exact: true });
+/** Ручная сверка читает свежий detail и не считается подтверждением конкретного потерянного write. */
 const check = (page: Page) =>
   page.getByRole("button", {
     name: "Проверить актуальную версию",
     exact: true,
   });
+/** Каждый сценарий получает независимую серверную ревизию и счётчики неизвестных/отклонённых исходов. */
 const newState = () => ({
   current: { ...initial },
   writes: [] as Record<string, unknown>[],
@@ -34,6 +38,7 @@ const newState = () => ({
   reads: 0,
   gate: null as Promise<void> | null,
 });
+/** Owner и expectedRevision проверяются до синтетического commit; sessionStorage уже должен содержать uncertain-intent, а внешние provider-запросы только наблюдаются. */
 async function fixtures(
   page: Page,
   state: ReturnType<typeof newState>,
@@ -94,6 +99,7 @@ async function fixtures(
   );
   return { actor, providers };
 }
+/** Suite требует отдельную catalog-сборку; открываем её VK-admin-раздел. */
 async function open(page: Page) {
   await gotoWithSession(page, "/admin");
   await page.getByRole("button", { name: "Видео", exact: true }).click();
@@ -101,6 +107,7 @@ async function open(page: Page) {
     page.getByText("Видео VK в каталоге", { exact: true }),
   ).toBeVisible();
 }
+/** Загружаем исходный detail по ID через UI, не заполняя form-state напрямую. */
 async function load(page: Page) {
   await page
     .getByRole("button", { name: "Редактировать по ID", exact: true })
@@ -113,6 +120,7 @@ async function load(page: Page) {
     .click();
   await expect(title(page)).toBeEnabled();
 }
+/** Явное подтверждение сравнения разрешает следующий save; само решение не посылает update. */
 async function reconcile(page: Page) {
   page.once("dialog", (dialog) => dialog.accept());
   await page
@@ -121,6 +129,7 @@ async function reconcile(page: Page) {
   await expect(save(page)).toBeEnabled();
 }
 
+/** Оба admin читают revision0: проигравший сохраняет свой draft и после reload явно принимает revision1 перед новым write. */
 test("two administrators preserve the losing draft and explicitly reconcile before another update", async ({
   page,
   context,
@@ -184,6 +193,7 @@ test("two administrators preserve the losing draft and explicitly reconcile befo
   await other.close();
 });
 
+/** Совпадающий detail после потерянного ACK не доказывает авторство операции: base0 и review1 сохраняются раздельно. */
 test("a committed lost ACK survives reload; matching detail is not proof of this write", async ({
   page,
 }) => {
@@ -218,6 +228,7 @@ test("a committed lost ACK survives reload; matching detail is not proof of this
   expect(state.writes).toHaveLength(1);
 });
 
+/** PRECONDITION_FAILED читает актуальный detail, но не обновляет исходную base без согласия. */
 test("412 loads a fresh detail and cannot update the original revision implicitly", async ({
   page,
 }) => {
@@ -245,6 +256,7 @@ test("412 loads a fresh detail and cannot update the original revision implicitl
   expect(state.writes.map((row) => row.expectedRevision)).toEqual([0, 4]);
 });
 
+/** Некорректная ревизия, missing и временный read-error не создают редактируемую форму. */
 for (const kind of ["bad", "404", "503"] as const) {
   test(`${kind} detail cannot open an editable form or issue a mutation`, async ({
     page,
@@ -296,6 +308,7 @@ test("nullable embed is accepted but saving requires an explicit valid export li
   expect(state.writes[0].expectedRevision).toBe(0);
 });
 
+/** Нельзя отправлять update, если uncertain-intent не удалось сохранить; введённый заголовок остаётся видимым. */
 test("quota failure keeps the typed draft visible and blocks the write", async ({
   page,
 }) => {
@@ -305,6 +318,7 @@ test("quota failure keeps the typed draft visible and blocks the write", async (
   await load(page);
   await page.evaluate(() => {
     const original = Storage.prototype.setItem;
+    /** Инъекция quota-error затрагивает только VK-editor storage; остальные ключи проходят нативно. */
     Storage.prototype.setItem = function (key, value) {
       if (key.includes(":vk-editor:")) throw Error("quota");
       return original.call(this, key, value);
@@ -316,6 +330,7 @@ test("quota failure keeps the typed draft visible and blocks the write", async (
   expect(state.writes).toEqual([]);
 });
 
+/** Поздний detail прежнего admin не должен открыть форму у другого admin или пользователя. */
 for (const role of ["admin", "user"] as const) {
   test(`late detail cannot cross an account change to ${role}`, async ({
     page,
@@ -353,6 +368,7 @@ for (const role of ["admin", "user"] as const) {
   });
 }
 
+/** Новый цикл редактирования перечитывает detail и использует новую revision, не повторяя прежнюю base. */
 test("next editing rereads detail and uses the new revision", async ({
   page,
 }) => {

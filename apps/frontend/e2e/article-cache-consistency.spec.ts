@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { editorApi, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
+/** Переходим клиентским router в том же документе, сохраняя QueryClient для проверки инвалидации. */
 async function navigate(page: Page, path: string) {
   await page.evaluate((destination) => {
     const { next } = window as Window & {
@@ -13,6 +14,7 @@ async function navigate(page: Page, path: string) {
   await expect(page).toHaveURL(new RegExp(`${path}$`));
 }
 
+/** Одна и та же статья уже находится в кэше читателя; после подтверждённой правки или удаления возврат должен перечитать её без reload. */
 for (const action of ["edit", "delete"] as const) {
   test(`cached article reflects confirmed ${action} without reloading`, async ({
     page,

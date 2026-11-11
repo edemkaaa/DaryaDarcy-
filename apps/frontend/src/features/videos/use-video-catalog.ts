@@ -35,8 +35,7 @@ import {
   type VideoCard,
 } from "./catalog-api";
 
-/** Poll the head and at most two visible pages. Revisited pages may be at most
- * one minute old; an explicit refresh starts a new cursor chain on success. */
+/** Храним ограниченное окно страниц с отдельным head; свежие границы, ownerScope и request time не дают смешать старый хвост с новым. Фоновое чтение ограничено головой и двумя видимыми страницами; явное обновление подтверждает новую цепочку атомарно. */
 export function useVideoCatalog(enabled: boolean, ownerScope: string) {
   const client = useQueryClient();
   const utils = trpc.useUtils();
@@ -58,6 +57,7 @@ export function useVideoCatalog(enabled: boolean, ownerScope: string) {
     ) !== null;
   useEffect(() => () => previousRead.cancel(), [previousRead, enabled]);
   const restart = useRef(0);
+  /** Ключ query включает точный wire-input и владельца; метаданные клубного каталога не наследуются другим аккаунтом. */
   const pageKey = (cursor?: number) => [
     ...getQueryKey(trpc.videos.catalog, videoCatalogInput(20, cursor), "query"),
     { ownerScope },
@@ -157,6 +157,7 @@ export function useVideoCatalog(enabled: boolean, ownerScope: string) {
     },
     [enabled],
   );
+  /** Отмечаем не больше двух видимых страниц хвоста для фонового обновления, head наблюдаем независимо. */
   const onVisibleItemsChange = ({
     visibleItems,
   }: {
@@ -177,6 +178,7 @@ export function useVideoCatalog(enabled: boolean, ownerScope: string) {
         : visible,
     );
   };
+  /** Перезапускаем цепочку только после успешного свежего head; ticket не позволяет позднему refresh отменить более новый запуск. */
   const refresh = async () => {
     previousRead.cancel();
     const ticket = ++restart.current;
@@ -190,6 +192,7 @@ export function useVideoCatalog(enabled: boolean, ownerScope: string) {
   };
   const isFetching =
     previousBusy || connected.some((query) => query.isFetching);
+  /** Сначала повторяем неудавшееся чтение хвоста, иначе добавляем свежую границу и вытесняем дальние страницы до лимита. */
   const fetchNextPage = useCallback(() => {
     if (!enabled || isFetching) return;
     if (tail.isError && waitingForTail)
@@ -220,6 +223,7 @@ export function useVideoCatalog(enabled: boolean, ownerScope: string) {
     windowed &&
     cursors[1] !== undefined &&
     previousCursors.current.has(cursors[1]);
+  /** Читаем предыдущий курсор scoped-задачей и проверяем стык; временный observer удерживает gcTime=0 страницу до принятия useQueries. */
   const fetchPreviousPage = async () => {
     if (!enabled || isFetching || !hasPreviousPage) return;
     if (previousFailure instanceof CursorChainError) return refresh();
@@ -274,6 +278,7 @@ export function useVideoCatalog(enabled: boolean, ownerScope: string) {
       task.finish();
     }
   };
+  /** При нарушенной цепочке начинаем с head, иначе перечитываем только страницы с ошибкой без новой записи. */
   const retry = () => {
     if (isFetching) return;
     if (stalled) return refresh();

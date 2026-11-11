@@ -1,3 +1,4 @@
+/** Опциональные Chromium-сценарии восстановления превью и ленивой картинки используют только собственный HTTP fixture. */
 import { it, expect } from "vitest";
 import { chromium, expect as ui } from "@playwright/test";
 import { startPictureRecoveryFixture } from "./helpers/picture-recovery-fixture";

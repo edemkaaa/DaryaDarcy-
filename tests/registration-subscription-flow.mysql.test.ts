@@ -27,6 +27,7 @@ type FlowResult = {
 // Catches a missing transition across registration/mail/login/order/settlement
 // and cancellation on ONE identity. Only provider cancellation is a double;
 // JWT/cookies, SQL, webhook HMAC, password hashing and SMTP are native.
+/** Проверяет связный жизненный цикл одного аккаунта от регистрации до оплаты, блокировки, восстановления пароля и подтверждённой отмены. */
 describe.skipIf(!testDatabaseUrl)(
   "registration to subscription on isolated SQL/SMTP",
   () => {
@@ -42,15 +43,18 @@ describe.skipIf(!testDatabaseUrl)(
     const nativeFetch = globalThis.fetch;
     let confirmCancellation = false;
 
+    /** Читает контрольные строки текущего пользователя и его платёжной истории. */
     async function rows(sql: string, values: unknown[] = []) {
       return (await conn.query<RowDataPacket[]>(sql, values))[0];
     }
+    /** Отправляет настоящий JSON POST в локальный API без внешних адресов. */
     const post = (path: string, body: unknown) =>
       fetch(`${base}${path}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+    /** Отправляет tRPC через HTTP с cookie и superjson и сохраняет безопасное wire-представление для проверки утечки закрытого текста. */
     async function trpc(
       path: string,
       input: unknown,
@@ -80,6 +84,7 @@ describe.skipIf(!testDatabaseUrl)(
           : null,
       };
     }
+    /** Обрабатывает durable-outbox до отсутствия pending-писем через настоящий локальный SMTP. */
     async function drainMail() {
       await vi.waitFor(
         async () => {
@@ -97,6 +102,7 @@ describe.skipIf(!testDatabaseUrl)(
         { timeout: 3000, interval: 20 },
       );
     }
+    /** Декодирует обе MIME-части письма и проверяет кликабельный href с точным одноразовым fragment доказательства. */
     function setupToken(index = 0) {
       const part = smtp.messages[index]
         .split(/\r\n--[^\r\n]+(?:\r\n|$)/)
@@ -133,6 +139,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(html.match(/<a\b[^>]*href="([^"]+)"/i)?.[1]).toBe(link);
       return url.hash.slice("#token=".length);
     }
+    /** Подписывает синтетический success-webhook независимо от production signing-helper и отправляет его локальному API. */
     async function notify(
       orderId: string,
       paymentId: string,
@@ -160,6 +167,7 @@ describe.skipIf(!testDatabaseUrl)(
         body: JSON.stringify(body),
       });
     }
+    /** Создаёт синтетические роли, закрытый пост и локальный SMTP, запрещая любой non-loopback fetch и подменяя только provider-отмену. */
     beforeAll(async () => {
       conn = await openContentTestDatabase();
       await conn.query(
@@ -215,6 +223,7 @@ describe.skipIf(!testDatabaseUrl)(
       base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
       vi.stubEnv("PUBLIC_APP_URL", base);
     });
+    /** Закрывает API и SMTP, удаляет только собственную цепочку аккаунта, аудита, платежей и закрытого поста и восстанавливает подмены. */
     afterAll(async () => {
       await app?.close();
       await smtp?.close();
@@ -256,6 +265,7 @@ describe.skipIf(!testDatabaseUrl)(
       vi.unstubAllGlobals();
       vi.unstubAllEnvs();
     });
+    /** Проходит регистрацию и setup, оплату и продление, блокировку с отзывом сессии, восстановление пароля и отмену без потери оплаченной истории. */
     it("revokes blocked paid sessions without losing entitlement across unblock, recovery and cancellation", async () => {
       const register = {
         email,
@@ -382,6 +392,7 @@ describe.skipIf(!testDatabaseUrl)(
       const cookieHeader = login.headers.get("set-cookie")!;
       expect(cookieHeader).toMatch(/HttpOnly/i);
       let cookie = cookieHeader.split(";")[0];
+      // После доказанной установки пароля фиксируем идентичность: покупки не должны менять пароль, роль и эпоху сессии.
       const initialIdentity = await rows(
         "SELECT id,passwordHash,sessionVersion,role FROM users WHERE id=?",
         [userId],
@@ -462,6 +473,7 @@ describe.skipIf(!testDatabaseUrl)(
         ).data,
       ).toMatchObject({ state: "succeeded", orderId: order.data!.orderId });
 
+      // Отдельно фиксируем оплаченную историю перед блокировкой: отзыв сессии закрывает чтение, но не стирает платежи.
       const paidBeforeBlock = await rows(
         "SELECT orderId,status,expiresAt,cancelAtPeriodEnd FROM club_payments WHERE userId=? ORDER BY id",
         [userId],
@@ -607,6 +619,7 @@ describe.skipIf(!testDatabaseUrl)(
         "SELECT orderId,status,expiresAt,cancelAtPeriodEnd FROM club_payments WHERE userId=? ORDER BY id",
         [userId],
       );
+      // Восстановление пароля начинается без отзыва действующей сессии; отзыв наступает только после доказанного завершения.
       const recovery = await post("/api/auth/password/request", { email });
       expect(recovery.status).toBe(202);
       expect((await post("/api/auth/login", { email, password })).status).toBe(
@@ -670,6 +683,7 @@ describe.skipIf(!testDatabaseUrl)(
           .sessionVersion,
       ).toBe(initialIdentity[0].sessionVersion + 2); // block + password reset.
       expect((await trpc("club.cancel", undefined, "")).status).toBe(401);
+      // Принятое намерение отмены остаётся pending до подтверждения провайдера и сохраняет доступ до оплаченного срока.
       const requestedCancellation = await trpc(
         "club.cancel",
         undefined,

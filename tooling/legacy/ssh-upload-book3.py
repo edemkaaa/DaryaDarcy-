@@ -1,3 +1,4 @@
+# Передаёт подготовленные фото третьей книги и upload-helper на VPS, затем запускает запись S3.
 import pathlib
 import socket
 import paramiko
@@ -12,6 +13,7 @@ for line in (root / ".env").read_text(encoding="utf-8").splitlines():
 local_dir = root / ".tmp-shop-book3"
 files = [p for p in local_dir.iterdir() if p.suffix.lower() in {".jpg", ".mjs"}]
 
+# Подключение использует историческое автоматическое доверие неизвестному SSH host key; перед новым запуском требуется отдельная сверка хоста.
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 sock = socket.create_connection((env["DEPLOY_HOST"], 22), 20)

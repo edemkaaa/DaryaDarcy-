@@ -18,6 +18,7 @@ import { saveProfile } from "./profile-writes";
 /** Адаптер проверяет вход и права; транзакции и обработка фото сохраняют собственные политики. */
 @Injectable()
 export class ProfileService {
+  /** Выдаём только собственные метаданные восстановления при включённом флаге, сохраняя доменные статусы и скрывая внутреннюю ошибку БД. */
   async recoveryExport(
     actor: ContentWriteActor,
     input: z.output<typeof recoveryExportInput>,
@@ -72,6 +73,7 @@ export class ProfileService {
     const database = await db.getDb();
     if (!database) throw new Error("Database not available");
     const precondition = { expectedRevision: actor.profileRevision };
+    /** Проверяем сессию и ожидаемую ревизию пустой правкой без увеличения версии до дорогой обработки и непосредственно перед публичным PUT. */
     const checkProfile = async () => {
       await saveProfile(database, actor.id, actor.sessionVersion, precondition);
     };
@@ -90,6 +92,7 @@ export class ProfileService {
     return { url: result.url };
   }
 
+  /** Ставим запрос удаления текущего аккаунта по его идентичности и epoch, не удаляя рабочие данные синхронно из HTTP-запроса. */
   async requestAccountDeletion(
     actor: Pick<User, "id" | "openId" | "sessionVersion">,
   ): Promise<{ ok: true }> {

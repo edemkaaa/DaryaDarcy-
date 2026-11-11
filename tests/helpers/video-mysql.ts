@@ -3,6 +3,8 @@ import { openTestDatabase } from "./backend-mysql";
 import { readFile } from "node:fs/promises";
 
 export async function openVideoTestDatabase() {
+  // Применяет VK-схему и ревизии лишь к охраняемой тестовой БД под проверенной блокировкой; ошибка закрывает созданное соединение.
+
   const conn = await openTestDatabase();
   try {
     const [locks] = await conn.query<RowDataPacket[]>(

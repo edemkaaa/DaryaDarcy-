@@ -16,6 +16,7 @@ export const articleCreationKey = z
   .regex(
     /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
   );
+/** Выводит SHA-256 ключа/канонического intent без сохранения исходного клиентского ключа в SQL. */
 const hash = (value: string) =>
   createHash("sha256").update(value).digest("hex");
 
@@ -56,6 +57,7 @@ export function articleCreationIntent(
 export type ArticleCreationIntent = ReturnType<typeof articleCreationIntent>;
 
 /** Inside the transaction: the table metadata lock lasts until commit. No DDL. */
+/** В транзакции проверяет PRIMARY(requestKey) и InnoDB под metadata lock, не выполняя DDL. */
 export async function requireArticleCreationSchema(
   reader: Pick<MySql2Database, "select" | "execute">,
 ) {
@@ -82,6 +84,7 @@ export type ArticleCreationStatus =
   | { status: "created" | "deleted"; articleId: number };
 
 /** Восстанавливаем результат исходного намерения без повторного создания статьи. */
+/** Одним read-only snapshot согласует creation-ledger, spent-marker и наличие статьи; возвращает notRecorded/created/deleted, не создавая новую статью. */
 export async function articleCreationStatus(
   database: MySql2Database,
   actorUserId: number,

@@ -2,6 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
 
 type Role = "user" | "admin" | "moderator" | "manager";
+/** Создаём одну синтетическую личность с изменяемой ролью, отделяя доступ к интерфейсу от настоящих полномочий сервера. */
 function actor(role: Role) {
   return {
     id: 101,
@@ -12,6 +13,7 @@ function actor(role: Role) {
     lastSignedIn: "2026-10-09T00:00:00Z",
   };
 }
+/** Перехватываем сессию и вход и считаем staff-запросы: отказ интерфейса не должен предварительно читать административные данные. */
 async function fixtures(
   page: Page,
   role: Role | null = null,
@@ -35,6 +37,7 @@ async function fixtures(
   });
   return { staffRequests };
 }
+/** Проходим реальную форму входа с тестовыми credentials, не подменяя состояние провайдера напрямую. */
 async function enter(page: Page) {
   await page.getByLabel("Email", { exact: true }).fill("routing@example.test");
   await page
@@ -43,6 +46,7 @@ async function enter(page: Page) {
   await page.getByRole("button", { name: "Войти", exact: true }).click();
 }
 
+/** Прямой вход гостя в /admin сохраняет проверенное назначение после reload, затем обычный пользователь получает отказ без staff-запросов. */
 test("guest admin entry uses a clean login and retains its destination across reload", async ({
   page,
 }) => {
@@ -68,6 +72,7 @@ test("guest admin entry uses a clean login and retains its destination across re
   await expect(page).toHaveURL(/\/profile$/);
 });
 
+/** Каждая роль видит только свой экран: manager не наследует admin, moderator не запрашивает admin-процедуры. */
 for (const role of ["user", "manager", "admin", "moderator"] as const) {
   test(`${role} receives only its allowed admin interface`, async ({
     page,
@@ -102,6 +107,7 @@ for (const role of ["user", "manager", "admin", "moderator"] as const) {
   });
 }
 
+/** Временный сбой сессии оставляет возможность повтора на исходном URL, а не превращает посетителя в гостя. */
 test("a failed session check does not redirect or request staff data", async ({
   page,
 }) => {
@@ -115,6 +121,7 @@ test("a failed session check does not redirect or request staff data", async ({
   expect(staffRequests).toEqual([]);
 });
 
+/** Старый next переносится в безопасное состояние, а лишние query/fragment-секреты не попадают в sessionStorage. */
 test("a legacy login link is cleaned and still returns an administrator correctly", async ({
   page,
 }) => {
@@ -131,6 +138,7 @@ test("a legacy login link is cleaned and still returns an administrator correctl
   ).toBeVisible();
 });
 
+/** Внешний return-target отвергается и после входа используется безопасный профиль. */
 test("an unsafe legacy return falls back to the profile", async ({ page }) => {
   await fixtures(page);
   await gotoWithSession(
@@ -142,6 +150,7 @@ test("an unsafe legacy return falls back to the profile", async ({ page }) => {
   await expect(page).toHaveURL(/\/profile$/);
 });
 
+/** Назначение возврата после успешного входа расходуется один раз. */
 test("profile entry uses a clean login and consumes its return after success", async ({
   page,
 }) => {
@@ -156,6 +165,7 @@ test("profile entry uses a clean login and consumes its return after success", a
   ).toBeNull();
 });
 
+/** Две вкладки сохраняют собственные назначения входа и не перезаписывают друг друга. */
 test("login destinations remain independent between two tabs", async ({
   page,
   context,
@@ -173,6 +183,7 @@ test("login destinations remain independent between two tabs", async ({
   await expect(page).toHaveURL(/\/admin$/);
 });
 
+/** Проверяем возврат к конкретному числовому маршруту поста после гостевого сохранения и reload формы входа. */
 test("a post save entry returns to that exact post after login", async ({
   page,
 }) => {
@@ -221,6 +232,7 @@ test("a post save entry returns to that exact post after login", async ({
   ).toBeVisible();
 });
 
+/** Намерение продления переживает reload текущей истории, но не переносится на последующий обычный вход в клуб. */
 test("renewal uses a clean club URL, survives reload and does not affect normal club entry", async ({
   page,
 }) => {

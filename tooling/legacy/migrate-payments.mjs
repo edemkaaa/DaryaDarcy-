@@ -1,3 +1,4 @@
+// Старый DDL платежей добавляет поля отмены и shop_purchases; не проверяет совместимость с текущим выпуском.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,9 +12,12 @@ for (const line of fs.readFileSync(path.join(root, ".env"), "utf8").split(/\r?\n
   env[line.slice(0, i).trim()] = line.slice(i + 1).trim();
 }
 
+// С этого места выбранная БД реально изменяется; текущая история и рабочее назначение автоматически не проверены.
 const conn = await mysql.createConnection(env.DATABASE_URL.replace(/\r/g, "").trim());
 
 async function run(sql, label) {
+  // Применяет один старый DDL-запрос, подавляя только ожидаемые duplicate/already-exists ошибки; журнал миграций не ведётся.
+
   try {
     await conn.query(sql);
     console.log("ok", label);

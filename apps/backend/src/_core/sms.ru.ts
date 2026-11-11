@@ -11,6 +11,7 @@ type SmsRuSendResult = {
   >;
 };
 
+/** Преобразует коды отказа SMS.ru в безопасные подсказки о номере, квоте или временной недоступности. */
 function userMessageForCode(code: number | undefined): string {
   switch (code) {
     case 201:
@@ -35,15 +36,18 @@ function userMessageForCode(code: number | undefined): string {
   }
 }
 
+/** Выбирает результат конкретного номера из группового ответа SMS.ru. */
 function nestedResult(result: SmsRuSendResult, to: string) {
   return result.sms?.[to];
 }
 
+/** Распознаёт отказ подписи отправителя, при котором допустима одна повторная попытка без from. */
 function senderRejected(result: SmsRuSendResult, to: string): boolean {
   const nested = nestedResult(result, to);
   return result.status_code === 204 || result.status_code === 221 || nested?.status_code === 204;
 }
 
+/** Передаёт код фиксированному HTTPS endpoint SMS.ru с 15-секундным timeout и разбирает JSON без журналирования содержимого. */
 async function postSms(to: string, msg: string, ip: string, withFrom: boolean): Promise<SmsRuSendResult> {
   const body = new URLSearchParams({
     api_id: ENV.smsRuApiId,
@@ -73,6 +77,7 @@ async function postSms(to: string, msg: string, ip: string, withFrom: boolean): 
   }
 }
 
+/** Проверяет ключ провайдера, отправляет код и при отказе from повторяет без подписи; успех требует общего и адресного подтверждения. */
 export async function sendLoginSms(to: string, code: string, ip: string): Promise<void> {
   if (!ENV.smsRuApiId) {
     throw new Error("Вход по SMS временно недоступен");

@@ -1,3 +1,4 @@
+/** Проверяем отказ новых page-методов при отсутствии БД вместо успешной пустой страницы. */
 import { afterAll, expect, it, vi } from "vitest";
 import type { User } from "../packages/database/src/schema";
 import { ContentReadService } from "../apps/backend/src/content/content-read.service";
@@ -5,9 +6,11 @@ import { ContentCommentService } from "../apps/backend/src/content/content-comme
 import { listAdminMembersPage } from "../apps/backend/src/db";
 
 vi.stubEnv("DATABASE_URL", "");
+/** Возвращаем окружение после изолированной проверки отсутствующего DATABASE_URL. */
 afterAll(() => vi.unstubAllEnvs());
 // No actor field is used before missing infrastructure is rejected.
 const actor = { id: 1 } as User;
+/** Сохранённое, участники и комментарии должны вернуть SERVICE_UNAVAILABLE до использования неполной actor-фикстуры. */
 it.each([
   () =>
     new ContentReadService().savedPostsPage(actor, {

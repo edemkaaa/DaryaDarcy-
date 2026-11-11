@@ -2,7 +2,9 @@ import { expect, test, type Page } from "@playwright/test";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
 
 const listSelector = '[data-tab-screen="/club"] [data-windowed-collection]';
+/** Каждому синтетическому посту даём собственный адрес для точного наблюдения раннего запроса фотографии. */
 const imageUrl = (id: number) => `https://club-preload.test/${id}.svg`;
+/** Строим клубную карточку с детерминированной датой и единственной фотографией. */
 const post = (id: number) => ({
   id,
   text: `Публикация ${id}.\nПроверка ранней загрузки фотографий клуба.`,
@@ -19,6 +21,7 @@ const post = (id: number) => ({
   publishedAt: new Date(Date.UTC(2026, 9, 25 - id)).toISOString(),
 });
 
+/** Вторую страницу наблюдаем по реальному остатку прокрутки; тринадцатую фотографию задерживаем до явного разрешения теста. */
 async function setup(page: Page) {
   const state = { pages: 0, remainingAtNextRequest: 0 };
   let releasePhoto = () => {};
@@ -57,6 +60,7 @@ async function setup(page: Page) {
   return { state, releasePhoto };
 }
 
+/** На мобильной и широкой геометрии следующая страница и соседние фото должны запрашиваться заранее, а декодирование не менять высоту при входе в экран. */
 for (const width of [390, 1440]) {
   test(`club loads the next page and its photos before they enter view (${width}px)`, async ({
     page,

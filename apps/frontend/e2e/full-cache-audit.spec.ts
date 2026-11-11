@@ -33,6 +33,7 @@ type RouteCase = {
   destination?: string;
   service?: boolean;
 };
+/** Инвентарь включает обычные разделы, товары, legal-slugs и отсутствующие материалы; service-маршруты имеют отдельные ожидания RSC. */
 const routes: RouteCase[] = [
   { path: "/", selector: 'img[src*="hero_header"]' },
   { path: "/feed", text: "Публикация аудита" },
@@ -88,6 +89,7 @@ const routes: RouteCase[] = [
   { path: "/video/999", text: "Видео не найдено" },
 ];
 
+/** Устанавливаем синтетическую роль и прогресс после формирования account-scope, не подменяя HTTP-кеш перехватами браузера. */
 async function setup(page: Page, role: RouteCase["role"] = "member") {
   await page
     .context()
@@ -100,6 +102,7 @@ async function setup(page: Page, role: RouteCase["role"] = "member") {
       "darcy:user:101:@darcy_club_profile_completed",
       "true",
     );
+    /** Учитываем hidden/inert и каждое обрезающее overflow-поле предков, чтобы в измерения попадали только реально видимые пиксели. */
     window.cacheAuditVisible = (element) => {
       if (element.closest("[hidden], [inert]")) return false;
       const rect = element.getBoundingClientRect();
@@ -164,6 +167,7 @@ async function setup(page: Page, role: RouteCase["role"] = "member") {
   );
 }
 
+/** Сохраняем документ и QueryClient клиентским переходом Next, не превращая возврат в reload. */
 async function navigate(page: Page, path: string) {
   await page.evaluate((path) => {
     const next = (
@@ -174,6 +178,7 @@ async function navigate(page: Page, path: string) {
   }, path);
 }
 
+/** Выбираем устойчивый видимый признак готовности конкретного маршрута вместо произвольной задержки. */
 function landmark(page: Page, route: RouteCase): Locator {
   return route.selector
     ? page.locator(route.selector).filter({ visible: true }).first()
@@ -183,6 +188,7 @@ function landmark(page: Page, route: RouteCase): Locator {
         .first();
 }
 
+/** Дожидаемся шрифтов, видимых картинок и конечных анимаций; бесконечный декор не удерживает проверку. */
 async function settle(page: Page) {
   await page.evaluate(async () => {
     await document.fonts.ready;
@@ -203,6 +209,7 @@ async function settle(page: Page) {
   });
 }
 
+/** Каждый маршрут проверяем на двух ширинах с холодным входом, уходом и прогретым возвратом; CDP различает cache hit и реально переданные байты. */
 for (const width of [390, 1440])
   test.describe(`${width}px`, () => {
     test.use({
@@ -304,6 +311,7 @@ for (const width of [390, 1440])
             }[] = [];
             Object.assign(window, { cacheAuditSamples: samples });
             const start = performance.now();
+            /** На кадрах возврата фиксируем загрузку и повторное исчезновение уже известных картинок; непрозрачный дубль crossfade не считается пустым кадром. */
             const sample = () => {
               if (location.pathname === path) {
                 const visible = [
@@ -314,6 +322,7 @@ for (const width of [390, 1440])
                     window.cacheAuditVisible(image)
                   );
                 });
+                /** Проверяем opacity не только самой картинки, но и её предков до main. */
                 const isFaded = (image: Element) => {
                   let node: Element | null = image;
                   while (node && node.tagName !== "MAIN") {
@@ -431,6 +440,7 @@ for (const width of [390, 1440])
         ).toEqual([]);
       });
 
+    /** Уход и браузерный Back должны восстановить вопрос и выбранный ответ, сохранив текущий документ. */
     test("quiz answers and the current question survive leaving and browser Back", async ({
       page,
     }) => {
@@ -459,6 +469,7 @@ for (const width of [390, 1440])
     });
   });
 
+/** Сверяем инвентарь с реальными page.tsx, товарами и legal-документами, чтобы новая страница не выпала из аудита. */
 test("every page route, product and legal slug is in the audit inventory", () => {
   const pages = readdirSync(resolve(__dirname, "../src/app"), {
     recursive: true,
@@ -489,6 +500,7 @@ test("every page route, product and legal slug is in the audit inventory", () =>
   expect(Object.values(LEGAL_DOCUMENTS)).toHaveLength(8);
 });
 
+/** HTML fallback входа не должен отдавать кешируемый credential-response; проверяем redirect без следования ему. */
 test("login fallback has no cached credential response", async ({
   request,
 }) => {

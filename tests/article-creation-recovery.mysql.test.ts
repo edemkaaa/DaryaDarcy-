@@ -26,6 +26,7 @@ import { resolve, join } from "node:path";
 import { tmpdir } from "node:os";
 
 // Native HTTP/JWT/SQL. No mocks for authorization, writes or lost-response recovery.
+/** Проверяет долговечное восстановление создания статьи через настоящий HTTP, журнал SQL и независимые процессы API. */
 describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
   let conn: Connection,
     application: INestApplication,
@@ -38,6 +39,7 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
     sections: [{ type: "text" as const, text: "body" }],
     idempotencyKey: key,
   };
+  /** Создаёт tRPC-клиент с выбранной сессией и транспортом; подмена транспорта позволяет потерять уже полученный ответ. */
   const client = (
     token: string | null = bearer,
     transport: typeof fetch = fetch,
@@ -52,10 +54,12 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
         }),
       ],
     });
+  /** Читает фактическое состояние одноразовой БД для независимой проверки результатов HTTP. */
   async function rows(query: string, values: unknown[] = []) {
     const [result] = await conn.query<RowDataPacket[]>(query, values);
     return result;
   }
+  /** Удаляет только статьи с префиксом suite, их тизеры и журналы двух тестовых редакторов. */
   async function cleanup() {
     const ids = (
       await rows("SELECT id FROM articles WHERE title LIKE ?", [prefix + "%"])
@@ -74,6 +78,7 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
       "DELETE FROM content_recovery_markers WHERE kind='article' AND actorUserId IN (9090,9091)",
     );
   }
+  /** Запрашивает статус создания по ключу и возвращает HTTP-код вместе с результатом либо кодом tRPC. */
   async function status(token: string | null = bearer, requestKey = key) {
     const response = await fetch(
       `${base}/api/trpc/admin.articleCreationStatus?input=${encodeURIComponent(superjson.stringify({ idempotencyKey: requestKey }))}`,
@@ -87,6 +92,7 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
         : body.error?.json?.data?.code,
     };
   }
+  /** Поднимает одноразовую схему, двух редакторов и настоящий Nest API на случайном локальном порту. */
   beforeAll(async () => {
     conn = await openContentTestDatabase();
     vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -105,6 +111,7 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
       sessionVersion: 0,
     });
   });
+  /** Очищает собственные результаты и восстанавливает полномочия редактора и выключенный срок хранения журнала. */
   beforeEach(async () => {
     await cleanup();
     vi.stubEnv("CONTENT_RECOVERY_RETENTION_ENABLED", "false");
@@ -112,6 +119,7 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
       "UPDATE users SET role='admin',blockedAt=NULL,sessionVersion=0 WHERE id=9090",
     );
   });
+  /** Закрывает HTTP, удаляет свои записи и соединения, затем возвращает переменные окружения. */
   afterAll(async () => {
     await application?.close();
     if (conn) {
@@ -124,6 +132,7 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
     )?.$client.end();
     vi.unstubAllEnvs();
   });
+  /** Сверяет переходы notRecorded, created и deleted с исходным ID без повторного создания статьи. */
   it("checks a committed result without creating another article", async () => {
     expect(await status()).toEqual({
       code: 200,
@@ -143,6 +152,7 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
       await rows("SELECT id FROM articles WHERE title=?", [input.title]),
     ).toEqual([]);
   });
+  /** После истечения срока восстановления требует конфликт для повтора и статуса удалённой статьи; журнал не позволяет воскресить её. */
   it("expired article recovery refuses create and status without recreating a deleted material", async () => {
     const id = await client().admin.createArticle.mutate(input);
     await client().admin.deleteArticle.mutate({ id });
@@ -166,6 +176,7 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
       ),
     ).toEqual([{ articleId: id }]);
   });
+  /** Для сохранённой статьи с просроченным журналом требует конфликт вместо ложного отсутствия или успешного восстановления. */
   it("expired status of a live article is not reported as notRecorded or success", async () => {
     const id = await client().admin.createArticle.mutate(input);
     await conn.query(
@@ -177,6 +188,7 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
       await rows("SELECT id FROM articles WHERE title=?", [input.title]),
     ).toEqual([{ id }]);
   });
+  /** При выключенном ограничении срока старый журнал продолжает возвращать тот же ID и статус created. */
   it("disabled expiry retains old article creation and status replay", async () => {
     const id = await client().admin.createArticle.mutate(input);
     await conn.query(
@@ -188,6 +200,7 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
       data: { status: "created", articleId: id },
     });
   });
+  /** После компакции проверяет постоянный маркер: удаление подробного журнала не разрешает повторить создание. */
   it("a compacted article refuses replay and never returns notRecorded", async () => {
     const id = await client().admin.createArticle.mutate(input);
     await conn.query(
@@ -210,6 +223,7 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
       ),
     ).toEqual([]);
   });
+  /** Без сессии запрещает и создание, и чтение результата; существующий журнал остаётся неизменным. */
   it("does not reveal a successful creation to a guest", async () => {
     await client().admin.createArticle.mutate(input);
     expect(await status(null)).toEqual({ code: 401, data: "UNAUTHORIZED" });
@@ -222,6 +236,7 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
       ),
     ).toHaveLength(1);
   });
+  /** Повтор исходного создания возвращает ID и сохраняет последующее редактирование и снятие публикации. */
   it("never reverts an edited article when its original create is replayed", async () => {
     const id = await client().admin.createArticle.mutate(input);
     await client().admin.updateArticle.mutate({
@@ -237,6 +252,7 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
       await rows("SELECT id FROM posts WHERE source=?", [`article:${id}`]),
     ).toEqual([]);
   });
+  /** Перестановка упорядоченных разделов считается изменением намерения и конфликтует с принятым ключом. */
   it("rejects reordering the accepted section sequence under the same key", async () => {
     const sections = [
       { type: "text" as const, text: "first" },
@@ -250,6 +266,7 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
       }),
     ).rejects.toMatchObject({ data: { code: "CONFLICT" } });
   });
+  /** Временно переводит журнал в MyISAM и проверяет отказ до записи статьи, затем восстанавливает InnoDB. */
   it("refuses a nontransactional journal rather than pretending creation is atomic", async () => {
     await conn.query("ALTER TABLE article_creation_requests ENGINE=MyISAM");
     try {
@@ -267,6 +284,7 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
       await conn.query("ALTER TABLE article_creation_requests ENGINE=InnoDB");
     }
   });
+  /** Без уникального ключа журнала запрещает создание и статус; восстановление ограничения выполняется даже при ошибке проверки. */
   it("fails closed before creating when the ledger lacks its unique request key", async () => {
     await conn.query("ALTER TABLE article_creation_requests DROP PRIMARY KEY");
     try {
@@ -286,8 +304,10 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
       );
     }
   });
+  /** Теряет ответ после коммита и новым клиентом восстанавливает единственный ID, статью и тизер. */
   it("recovers the original ID with a fresh client after a committed response is lost", async () => {
     let committedId = 0;
+    /** Пропускает настоящий запрос до успешного ответа, запоминает committed ID и имитирует потерю ответа у клиента. */
     const lostReply: typeof fetch = async (request, options) => {
       const response = await fetch(request, options);
       expect(response.status).toBe(200);
@@ -314,6 +334,7 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
       ]),
     ).toHaveLength(1);
   });
+  /** Двенадцать параллельных повторов одного ключа должны оставить одну статью, один тизер и одну запись журнала. */
   it("serializes twelve concurrent creation attempts into one article and teaser", async () => {
     const ids = await Promise.all(
       Array.from({ length: 12 }, () =>
@@ -333,6 +354,7 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
       ),
     ).toEqual([{ articleId: ids[0] }]);
   });
+  /** Одинаковый ключ разных редакторов не раскрывает чужой результат и создаёт независимые статьи. */
   it("scopes the same key to its authenticated creator", async () => {
     const id = await client().admin.createArticle.mutate(input);
     const other = await sdk.createSessionToken("recovery-other-editor", {
@@ -349,6 +371,7 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
       data: { status: "created", articleId: otherId },
     });
   });
+  /** Эквивалентные нормализованные значения повторяют результат, а изменённое содержание раздела вызывает конфликт. */
   it("hashes equivalent accepted defaults but detects changed ordered sections", async () => {
     const id = await client().admin.createArticle.mutate(input);
     expect(
@@ -378,6 +401,7 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
       }),
     ).rejects.toMatchObject({ data: { code: "CONFLICT" } });
   });
+  /** Некорректные UUID отклоняются созданием и статусом до любых записей статьи или журнала. */
   it.each([
     "",
     "invalid",
@@ -406,6 +430,7 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
       ).toEqual([]);
     },
   );
+  /** После смены роли, блокировки или отзыва сессии повтор и статус повторно проверяют актуальные полномочия. */
   it.each([
     "role='user'",
     "role='moderator'",
@@ -429,6 +454,7 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
       ).toEqual([{ id }]);
     },
   );
+  /** Повреждённый журнал без articleId приводит к серверной ошибке и не создаёт вторую статью. */
   it("refuses to take over an incomplete committed result", async () => {
     const id = await client().admin.createArticle.mutate(input);
     await conn.query(
@@ -445,6 +471,7 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
       await rows("SELECT id FROM articles WHERE title=?", [input.title]),
     ).toEqual([{ id }]);
   });
+  /** Триггер ломает вставку тизера; транзакция откатывает статью и намерение, а повтор после снятия сбоя проходит. */
   it("rolls the intent and article back when its teaser insert fails", async () => {
     await conn.query(
       `CREATE TRIGGER backend_test_recovery_rollback BEFORE INSERT ON posts FOR EACH ROW BEGIN IF NEW.text='recovery fixture article' THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Owned teaser failure'; END IF; END`,
@@ -469,6 +496,7 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
       data: { status: "created", articleId: id },
     });
   });
+  /** Совместимые вызовы без ключа создают разные числовые ID и не попадают в журнал восстановления. */
   it("keeps legacy unkeyed calls independent and numeric", async () => {
     const { idempotencyKey: _key, ...legacy } = input;
     const first = await client().admin.createArticle.mutate(legacy);
@@ -480,6 +508,7 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
       data: { status: "notRecorded" },
     });
   });
+  /** Отсутствие таблицы журнала запрещает новые keyed-вызовы, сохраняя прежний независимый контракт без ключа. */
   it("fails closed with no ledger while legacy calls keep their semantics", async () => {
     await conn.query(
       "RENAME TABLE article_creation_requests TO backend_test_recovery_ledger_backup",
@@ -505,6 +534,7 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
       );
     }
   });
+  /** Удерживает создание именованным SQL-барьером, проверяет видимость до коммита и сериализацию повтора на строке редактора. */
   it("never interprets an uncommitted creation as a confirmed absence", async () => {
     const gate = "backend_test_recovery_gate";
     await conn.query("SELECT GET_LOCK(?,3)", [gate]);
@@ -558,6 +588,7 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
       await conn.query("DROP TRIGGER backend_test_recovery_wait");
     }
   });
+  /** Дважды запускает отдельный собранный API: второй процесс восстанавливает тот же результат из БД, а не из памяти. */
   it("keeps the original creation across two independent compiled server processes", async () => {
     const directory = mkdtempSync(resolve(".tmp-article-recovery-"));
     const entry = join(directory, "application.mjs");
@@ -589,6 +620,7 @@ describe.skipIf(!testDatabaseUrl)("durable article creation recovery", () => {
         format: "esm",
         outfile: entry,
       });
+      /** Запускает собранный дочерний API с одноразовой БД и извлекает его подтверждённый результат из stdout. */
       const run = () => {
         const output = execFileSync(process.execPath, [entry], {
           cwd: tmpdir(),

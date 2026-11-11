@@ -12,6 +12,7 @@ const slot = `darcy:guest:${mode}:checkout-guard:v1`;
 const destination = testMode
   ? "https://testpage1.payform.ru/?demo_mode=1&payments_limit=1&sum=790.00&currency=rub&order_id=club-test-101-00000000-0000-4000-8000-000000000001"
   : "https://payments.example.test/legacy-guard";
+/** Выбираем кнопку именно текущего TEST/legacy-профиля; NORMAL/GUEST имеют отдельную suite. */
 const pay = (page: Page) =>
   page
     .getByRole("button", {
@@ -19,6 +20,7 @@ const pay = (page: Page) =>
       exact: true,
     })
     .first();
+/** Синтетический провайдер не списывает деньги; считаем только createCheckout и намеренно теряем подтверждение. */
 async function fixture(page: Page) {
   await layoutApi(page);
   const state = { writes: 0, success: false };
@@ -42,6 +44,7 @@ async function fixture(page: Page) {
   );
   return state;
 }
+/** Заполняем почту и обязательный контакт через реальные поля после подтверждения гостевой сессии. */
 async function form(page: Page) {
   await gotoWithSession(page, "/club");
   await page
@@ -54,8 +57,10 @@ async function form(page: Page) {
     .fill("+79991234567");
   await expect(pay(page)).toBeEnabled();
 }
+/** Читаем точную запись локального guard текущего режима для сравнения после reload и второй вкладки. */
 const saved = (page: Page) =>
   page.evaluate((key) => JSON.parse(localStorage.getItem(key)!), slot);
+/** Неизвестный исход переживает reload; отказ подтверждать новую legacy-заявку не создаёт write. */
 test("unknown checkout survives reload and cancellation sends no new request", async ({
   page,
 }) => {
@@ -80,6 +85,7 @@ test("unknown checkout survives reload and cancellation sends no new request", a
   await expect(page).toHaveURL(destination);
   expect(state.writes).toBe(2);
 });
+/** Вторая вкладка видит тот же unknown и не заменяет его без явного решения. */
 test("another tab sees the same unknown request and cannot silently replace it", async ({
   page,
   context,
@@ -103,6 +109,7 @@ test("another tab sees the same unknown request and cannot silently replace it",
   expect(secondState.writes).toBe(0);
   await second.close();
 });
+/** Ошибка durable-записи останавливает checkout до отправки байтов. */
 test("unavailable storage blocks checkout before sending bytes", async ({
   page,
 }) => {

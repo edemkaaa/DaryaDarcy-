@@ -36,15 +36,18 @@ type Result =
       avatarApplied: boolean;
       isCurrent: boolean | null;
     };
+/** Сообщаем неопределённый исход загрузки как временный сбой с проверкой прежнего ключа, не предлагая создавать новый файл. */
 const unavailable = () =>
   new TRPCError({
     code: "SERVICE_UNAVAILABLE",
     message:
       "Загрузка временно недоступна. Проверьте статус и повторите с прежним ключом.",
   });
+/** Изолируем ключ операции по пользователю и публичному назначению, чтобы аватар и обложка не делили квитанцию. */
 const requestId = (actor: Actor, purpose: Purpose, key: string) =>
   digest(JSON.stringify(["public-photo:v1", actor.id, purpose, key]));
 
+/** Под блокировкой пользователя сверяем сессию, блокировку, удаление аккаунта и админскую роль для публичной обложки. */
 async function currentActor(
   tx: ContentTransaction,
   actor: Actor,
@@ -65,6 +68,7 @@ async function currentActor(
     throw new TRPCError({ code: "FORBIDDEN" });
   return user;
 }
+/** Выдаём только клиентское состояние; для аватара отдельно сообщаем факт прежнего применения и совпадение с текущим фото. */
 function result(row: Receipt, user: User): Result {
   if (row.state === "pending") return { state: "pending" };
   if (!row.url) throw unavailable();
@@ -75,6 +79,7 @@ function result(row: Receipt, user: User): Result {
     isCurrent: row.purpose === "avatar" ? user.avatarUrl === row.url : null,
   };
 }
+/** Требуем доступную БД и транзакционную таблицу публичных квитанций до статуса или записи. */
 async function database() {
   const db = await getDb();
   if (!db) throw unavailable();
@@ -85,6 +90,7 @@ async function database() {
     throw unavailable();
   return db;
 }
+/** Сохраняем ожидаемые доменные ошибки, а внутренние исключения превращаем в временную ошибку загрузки. */
 async function safe<T>(work: () => Promise<T>): Promise<T> {
   try {
     return await work();
@@ -116,6 +122,7 @@ export function publicPhotoStatus(
 }
 
 /** Явное назначение отличает аватар от публичной обложки в журнале загрузок. */
+/** После нормализации закрепляем неизменяемые исходный/выходной хеши и UUID до S3; финальная транзакция повторно проверяет права и применяет аватар лишь если прежнее фото не менялось. */
 export function uploadPublicPhoto(
   actor: Actor,
   purpose: Purpose,
@@ -191,6 +198,7 @@ export function uploadPublicPhoto(
       )
         throw unavailable();
       if (current.state === "ready") return result(current, user);
+// Потерянный ответ или параллельная загрузка не должны возвращать устаревший аватар: применяем только к сохранённому ожидаемому значению и увеличиваем ревизию профиля.
       const avatarApplied =
         purpose === "avatar" && user.avatarUrl === current.expectedAvatarUrl;
       if (avatarApplied) {
@@ -214,6 +222,7 @@ export function uploadPublicPhoto(
 }
 
 /** Caller holds the retiring user lock. Keep technical ownership; never delete files. */
+/** Под блокировкой удаляемого пользователя обезличиваем квитанции и ожидаемый аватар, сохраняя технические доказательства и все файлы; отсутствие старой таблицы допустимо. */
 export async function retirePublicPhotoReceipts(
   tx: ContentTransaction,
   actorId: number,

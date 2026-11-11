@@ -12,6 +12,7 @@ for line in (root / ".env").read_text(encoding="utf-8").splitlines():
         k, v = line.split("=", 1)
         env[k.strip()] = v.strip()
 
+# Требуется прежний Expo entry-бандл: нынешний Next runtime этому формату не соответствует.
 entry_dir = root / "web-dist" / "_expo" / "static" / "js" / "web"
 entry_files = sorted(p.name for p in entry_dir.glob("entry-*.js") if not p.name.endswith(".gz"))
 if not entry_files:
@@ -39,6 +40,7 @@ cmd = (
     "echo DONE\n"
 )
 
+# Повторяются только попытки SSH-подключения; после входа замена статики выполняется один раз.
 sock = None
 last_error = None
 for attempt in range(1, 4):

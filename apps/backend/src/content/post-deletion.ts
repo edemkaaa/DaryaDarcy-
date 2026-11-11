@@ -17,6 +17,7 @@ export type ContentTransaction = Parameters<
 >[0];
 
 /** Caller owns the transaction; preserve the post-before-comments lock order. */
+/** В транзакции вызывающего кода блокируем пост и комментарии по ID, отвязываем ответы и удаляем связанные реакции, жалобы, медиа и пост; объекты хранилища здесь не удаляются. */
 export async function deletePostRows(
   tx: ContentTransaction,
   id: number,
@@ -53,6 +54,7 @@ export async function deletePostRows(
 }
 
 /** Проверяем актуальное состояние публикации и удаляем её зависимости согласованно. */
+/** Проверяем актуальную роль и версию сессии исполнителя перед каскадным удалением строк поста одной транзакцией. */
 export async function deletePost(
   database: MySql2Database,
   id: number,

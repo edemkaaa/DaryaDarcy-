@@ -24,6 +24,7 @@ export class NotificationsService {
     return { success: true };
   }
 
+  /** Возвращаем актуальное согласие пользователя вместе с текущими текстом и версией, не считая наличие токена согласием. */
   async marketingConsent(
     userId: number,
   ): Promise<{ enabled: boolean; label: string; version: string }> {
@@ -35,6 +36,7 @@ export class NotificationsService {
     };
   }
 
+  /** Пишем явное предоставление или отзыв маркетингового согласия под текущей сессией исполнителя с точной версией и текстом. */
   async setMarketingConsent(
     actor: db.PushWriteActor,
     input: SetMarketingConsentInput,
@@ -50,6 +52,7 @@ export class NotificationsService {
     return { success: true, enabled: input.enabled };
   }
 
+  /** Удаляем push-данные заданного пользователя через проверку текущего администратора внутри транзакции. */
   async purgeUserPushData(
     userId: number,
     actor: db.PushWriteActor,

@@ -4,6 +4,7 @@ import { gotoWithSession } from "./layout-fixtures";
 
 const embed =
   "https://vkvideo.ru/video_ext.php?oid=-227034863&id=456239527&hash=99fae216cf20dcdc";
+/** Подаём один и тот же видеоисточник в detail/catalog/playback и post-media; poster задаётся отдельно для проверки обложки клуба. */
 async function fixture(page: Page, url: string, posterUrl?: string) {
   const post = {
     id: 42,
@@ -72,6 +73,7 @@ async function fixture(page: Page, url: string, posterUrl?: string) {
   });
 }
 
+/** Матрица четырёх маршрутов и трёх ширин проверяет выбор iframe, 16:9, локализацию тега и отсутствие лишнего нативного video; внешний VK здесь заменён HTML. */
 for (const width of [320, 390, 1440]) {
   for (const path of ["/feed", "/club", "/post/42", "/video/42"]) {
     test(`VK uses the existing video frame at ${width}px on ${path}`, async ({
@@ -163,6 +165,7 @@ for (const width of [320, 390, 1440]) {
   }
 }
 
+/** Удерживаем первый iframe-request за gate: предупреждение возникает только после timeout, а retry или поздний load снимает его. */
 for (const path of ["/club", "/video/42"]) {
   for (const recovery of ["retry", "late load"]) {
     test(`VK ${recovery} on ${path}: recovery appears only for a stalled frame and stays away from the post menu`, async ({
@@ -245,6 +248,7 @@ for (const path of ["/club", "/video/42"]) {
   }
 }
 
+/** Прямой MP4 остаётся нативным источником, а не пытается открыться через VK iframe. */
 test("a direct video file retains the native player", async ({ page }) => {
   const url = "https://example.test/kept.mp4";
   await fixture(page, url);
@@ -253,6 +257,7 @@ test("a direct video file retains the native player", async ({ page }) => {
   await expect(page.getByTitle("VK Видео", { exact: true })).toHaveCount(0);
 });
 
+/** Настоящее внешнее воспроизведение разрешено только явным env opt-in; проверяем прогресс времени без сохранения изменений. */
 test("optional public VK playback advances in the embedded provider player", async ({
   page,
 }) => {

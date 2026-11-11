@@ -9,6 +9,7 @@ import {
 import { z } from "zod";
 import { ENV } from "../_core/env";
 
+/** Вычисляем SHA-256 строк или байтов для неизменяемых идентификаторов намерения и пространства хранилища. */
 export const digest = (value: string | Buffer) =>
   createHash("sha256").update(value).digest("hex");
 /** Привязка к конфигурации хранилища не даёт повтору операции сменить назначение. */
@@ -117,6 +118,7 @@ export function verifyPrivateUploadPolicy(
 }
 
 /** Only new owned keys. Never overwrite, delete, grant public ACL or fall back. */
+/** Проверяем защитную bucket policy, затем принимаем совпадающий объект либо создаём новый условным private PUT; потерю ACK восстанавливаем HEAD, а конфликтующий объект никогда не перезаписываем. */
 export async function ensurePrivateUploadObject(
   receipt: PrivateUploadObject,
   bytes: Buffer,
@@ -169,6 +171,7 @@ export async function ensurePrivateUploadObject(
       namespace.bucket,
       contentScope,
     );
+    /** Читаем метаданные точного ключа закреплённого assetId под общим сигналом отмены. */
     const head = () =>
       client.send(new HeadObjectCommand(object), { abortSignal: signal });
     let meta;

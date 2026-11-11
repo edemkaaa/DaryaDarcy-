@@ -17,6 +17,7 @@ import {
   providers: [
     {
       provide: ProdamusSandboxService,
+      /** Создаёт единственный sandbox-сервис из process.env без рабочего AppModule и SQL-портов. */
       useFactory: () => new ProdamusSandboxService(process.env),
     },
   ],

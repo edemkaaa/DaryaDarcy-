@@ -52,19 +52,27 @@ const s3 = new S3Client({
 const S3_PUBLIC = `${env.S3_ENDPOINT}/${env.S3_BUCKET}/`;
 
 function loadProgress() {
+  // Читает локальную отметку обработанных записей; наличие отметки не доказывает целостность всех вложений.
+
   if (!fs.existsSync(PROGRESS_FILE)) return { importedIds: [] };
   return JSON.parse(fs.readFileSync(PROGRESS_FILE, "utf8"));
 }
 
 function saveProgress(progress) {
+  // Сохраняет локальный прогресс для следующего ручного запуска; это не SQL-транзакция.
+
   fs.writeFileSync(PROGRESS_FILE, JSON.stringify(progress, null, 2));
 }
 
 function plainFromMessage(msg) {
+  // Получает обычный текст сообщения Telegram независимо от формы массива текстовых фрагментов.
+
   return buildTelegramPostContent(msg).text;
 }
 
 function matchesFilter(msg) {
+  // Применяет выбранные оператором условия отбора сообщений до переноса.
+
   if (FILTER === "all") return true;
   return isTaggedClubMessage(msg);
 }
@@ -72,10 +80,14 @@ function matchesFilter(msg) {
 const FILE_NOT_INCLUDED = /not included/i;
 
 function isMissingExportFile(value) {
+  // Распознаёт служебную отметку отсутствующего файла в Telegram-экспорте.
+
   return !value || FILE_NOT_INCLUDED.test(String(value));
 }
 
 function yandexDiskPath(relativePath) {
+  // Переводит относительный путь Telegram-экспорта в путь файла на согласованном публичном Яндекс Диске.
+
   const base = path.basename(relativePath.replace(/\\/g, "/"));
   const rel = relativePath.replace(/\\/g, "/");
   if (rel.startsWith("photos/")) return `/фото из клуба/${base}`;
@@ -87,6 +99,8 @@ function yandexDiskPath(relativePath) {
 
 /** When TG export omits file paths, map file_name to Yandex Disk folders. */
 function yandexDiskPathFromFileName(fileName, msg) {
+  // Строит путь Диска по имени файла, когда полный экспортированный путь отсутствует.
+
   const base = path.basename(String(fileName).replace(/\\/g, "/"));
   const lower = base.toLowerCase();
   if (lower.endsWith(".m4a") || lower.endsWith(".mp3") || msg.media_type === "voice_message") {
@@ -109,6 +123,8 @@ const ALT_DISK_PATHS = {
 };
 
 function localMediaCandidates(fileName) {
+  // Перебирает исторические локальные альтернативы, включая tickets.docx; пригодность подмены нужно проверять вручную.
+
   const base = path.basename(String(fileName).replace(/\\/g, "/"));
   return [
     path.join(root, ".tmp-media", base),
@@ -117,6 +133,8 @@ function localMediaCandidates(fileName) {
 }
 
 async function loadMediaBody(diskPath, fileName) {
+  // Читает доступную локальную копию либо скачивает с Диска; весь файл оказывается в памяти.
+
   for (const localPath of localMediaCandidates(fileName)) {
     if (fs.existsSync(localPath)) {
       console.log("local file", localPath);
@@ -137,6 +155,8 @@ async function loadMediaBody(diskPath, fileName) {
 }
 
 function resolveMediaFile(msg) {
+  // Подбирает исходник вложения из экспортированных метаданных и исторических локальных альтернатив.
+
   if (!isMissingExportFile(msg.file)) {
     return {
       name: path.basename(msg.file.replace(/\\/g, "/")),
@@ -154,6 +174,8 @@ function resolveMediaFile(msg) {
 }
 
 function resolveThumbnailFile(msg, mediaFileName) {
+  // Ищет экспортированное превью видео отдельно от основного файла.
+
   if (!isMissingExportFile(msg.thumbnail)) {
     return {
       name: path.basename(msg.thumbnail.replace(/\\/g, "/")),
@@ -166,6 +188,8 @@ function resolveThumbnailFile(msg, mediaFileName) {
 }
 
 async function yandexDownload(diskPath) {
+  // Запрашивает временную ссылку скачивания конкретного файла публичного Диска.
+
   const url =
     "https://cloud-api.yandex.net/v1/disk/public/resources/download?public_key=" +
     encodeURIComponent(YANDEX_PUBLIC) +
@@ -179,6 +203,8 @@ async function yandexDownload(diskPath) {
 }
 
 async function getCachedOrDownload(diskPath) {
+  // Переиспользует локальную копию или скачивает исходник в кэш; этот исторический путь может обращаться к сети и в dry-run.
+
   fs.mkdirSync(CACHE_DIR, { recursive: true });
   const safe = diskPath.replace(/[^\w@.\-]+/g, "_");
   const cacheFile = path.join(CACHE_DIR, safe);
@@ -189,6 +215,8 @@ async function getCachedOrDownload(diskPath) {
 }
 
 async function uploadS3(key, body, contentType) {
+  // Историческая загрузка создаёт публичный объект public-read; не использовать как замену нынешнему защищённому переносу.
+
   if (DRY_RUN) return S3_PUBLIC + key;
   await s3.send(
     new PutObjectCommand({
@@ -203,6 +231,8 @@ async function uploadS3(key, body, contentType) {
 }
 
 function guessContentType(name) {
+  // Выводит MIME по расширению исходника; содержимое файла эта историческая эвристика не проверяет.
+
   const lower = name.toLowerCase();
   if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
   if (lower.endsWith(".png")) return "image/png";
@@ -214,6 +244,8 @@ function guessContentType(name) {
 }
 
 async function importThumbnail(msg, photos, mediaFileName) {
+  // Переносит найденное превью старого сообщения в публичное хранилище.
+
   const thumb = resolveThumbnailFile(msg, mediaFileName);
   if (!thumb?.diskPath) return;
   const body = await getCachedOrDownload(thumb.diskPath);
@@ -222,6 +254,8 @@ async function importThumbnail(msg, photos, mediaFileName) {
 }
 
 async function importPhotoPath(msgId, photoPath) {
+  // Переносит фото по исходному пути и возвращает новую публичную ссылку.
+
   const diskPath = yandexDiskPath(photoPath);
   if (!diskPath) return null;
   const name = path.basename(photoPath);
@@ -231,6 +265,8 @@ async function importPhotoPath(msgId, photoPath) {
 }
 
 async function importMedia(msg, albumPhotoPaths = []) {
+  // Создаёт историческое описание вложения после загрузки; старый маршрут не обеспечивает приватность объекта.
+
   const photos = [];
   const media = [];
   const paths = albumPhotoPaths.length ? albumPhotoPaths : msg.photo ? [msg.photo] : [];
@@ -265,6 +301,8 @@ async function importMedia(msg, albumPhotoPaths = []) {
 }
 
 async function main() {
+  // Исторически импортирует сообщения по одному и сохраняет прогресс; dry-run не исключает чтение сети и локального кэша.
+
   console.log("Reading", RESULT_JSON);
   const data = JSON.parse(fs.readFileSync(RESULT_JSON, "utf8"));
   const messages = data.messages.filter((m) => m.type === "message");

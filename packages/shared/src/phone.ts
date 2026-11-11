@@ -1,6 +1,7 @@
 /** Форматирование российского номера отделено от проверки владения телефоном. */
 /** Russian mobile numbers as 11 digits: 79XXXXXXXXX */
 
+/** Удаляем символы форматирования, возвращая только десятичные цифры без проверки допустимости номера. */
 export function digitsOnly(value: string): string {
   return value.replace(/\D/g, "");
 }

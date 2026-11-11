@@ -12,9 +12,11 @@ import {
 } from "../apps/frontend/src/shared/media/private-content-upload";
 
 vi.mock("../apps/frontend/src/shared/media/read-attachment", () => ({
+  /** Возвращает известные исходные байты документа в Base64 для проверки неизменного upload payload. */
   attachmentBase64: async () =>
     Buffer.from("original document").toString("base64"),
 }));
+/** Отменяет сессионные запросы и очищает управляемые таймеры и globals после сценария. */
 afterEach(() => {
   cancelSessionRequests();
   vi.clearAllTimers();
@@ -29,14 +31,17 @@ const uploads = [
   "club.uploadPrivateCommentPhoto",
   "admin.uploadMedia",
 ] as const;
+/** Формирует одиночный или batch tRPC-ответ в зависимости от фактического URL транспорта. */
 const reply = (url: RequestInfo | URL, value: unknown) => {
   const result = { result: { data: { json: value } } };
   return Response.json(String(url).includes("batch=1") ? [result] : result);
 };
 const input = { idempotencyKey: "original-file-key-0001", base64: "Ynl0ZXM=" };
+/** Сохраняет отказ Promise как проверяемое значение, чтобы fake timers не оставляли необработанное отклонение. */
 const errorOf = (promise: Promise<unknown>) =>
   promise.catch((error: unknown) => error);
 
+/** Проверяет, что файловая mutation может завершиться позже обычного 15-секундного дедлайна. */
 it.each(uploads)(
   "%s can finish after the ordinary 15-second deadline",
   async (path) => {
@@ -57,6 +62,7 @@ it.each(uploads)(
   },
 );
 
+/** Отправляет файлы отдельными запросами без batch с соседними файлами или обычными записями и сохраняет исходные тела. */
 it("isolates every file from other files and ordinary writes, keeping the original payload", async () => {
   const fetcher = vi.fn(async (url: RequestInfo | URL, _init?: RequestInit) =>
     reply(url, { state: "ready" }),
@@ -90,6 +96,7 @@ it("isolates every file from other files and ordinary writes, keeping the origin
   ).toEqual([input, second]);
 });
 
+/** Оставляет короткий дедлайн чтению status и обычным query. */
 it.each([
   "feed.tags",
   "admin.privateContentFileStatus",
@@ -110,6 +117,7 @@ it.each([
   expect(vi.getTimerCount()).toBe(0);
 });
 
+/** Разделяет бюджеты обычной записи и долгой загрузки одного клиента. */
 it("an ordinary mutation still times out in 15 seconds while a file has its own budget", async () => {
   vi.useFakeTimers();
   const fetcher = vi.fn(() => new Promise<Response>(() => {}));
@@ -132,6 +140,7 @@ it("an ordinary mutation still times out in 15 seconds while a file has its own 
   expect(vi.getTimerCount()).toBe(0);
 });
 
+/** Останавливает зависший fetch или body загрузки ровно по 180-секундному сроку без автоматического повтора. */
 it.each(["request", "body"])(
   "a hung upload %s stops at 180 seconds without automatic retry",
   async (part) => {
@@ -139,7 +148,7 @@ it.each(["request", "body"])(
     const fetcher = vi.fn((_url: RequestInfo | URL, _init?: RequestInit) =>
       part === "request"
         ? new Promise<Response>(() => {})
-        : Promise.resolve(new Response(new ReadableStream({ start() {} }))),
+        : Promise.resolve(new Response(new ReadableStream({ /** Оставляет поток ответа открытым без байтов, моделируя зависшее чтение body. */ start() {} }))),
     );
     vi.stubGlobal("fetch", fetcher);
     let finished = false;
@@ -162,6 +171,7 @@ it.each(["request", "body"])(
   },
 );
 
+/** Отмена caller или сессии прерывает долгую загрузку и не принимает позднюю квитанцию. */
 it.each(["caller", "session"])(
   "%s cancellation aborts a long upload without accepting a late receipt",
   async (owner) => {
@@ -191,6 +201,7 @@ it.each(["caller", "session"])(
   },
 );
 
+/** Сохраняет явно заданный валидный Idempotency-Key на изолированном файловом запросе. */
 it("preserves an explicitly supplied operation header on an isolated file", async () => {
   const key = "8d427a00-4a92-4508-874c-b265d7e92d1c";
   const fetcher = vi.fn(async (url: RequestInfo | URL, _init?: RequestInit) =>
@@ -207,6 +218,7 @@ it("preserves an explicitly supplied operation header on an isolated file", asyn
   ).toBe(key);
 });
 
+/** Отклоняет повреждённый operation header до отправки файла. */
 it("rejects a malformed operation header before dispatching a file", async () => {
   const fetcher = vi.fn();
   vi.stubGlobal("fetch", fetcher);
@@ -220,6 +232,7 @@ it("rejects a malformed operation header before dispatching a file", async () =>
   expect(fetcher).not.toHaveBeenCalled();
 });
 
+/** После таймаута восстанавливает ready-файл через status с прежним ключом, не отправляя исходные байты повторно. */
 it("recovers a timed-out file status-first using its original key and bytes without re-uploading", async () => {
   vi.useFakeTimers();
   const file: PrivateContentFile<"articleDocument"> = {
@@ -255,13 +268,16 @@ it("recovers a timed-out file status-first using its original key and bytes with
   vi.stubGlobal("fetch", fetcher);
   const client = createTRPCClient();
   const api = {
+    /** Связывает helper загрузки с настоящей tRPC mutation и передаёт её AbortSignal. */
     upload: (
       value: Parameters<typeof client.admin.uploadPrivateContentFile.mutate>[0],
       signal: AbortSignal,
     ) => client.admin.uploadPrivateContentFile.mutate(value, { signal }),
+    /** Связывает helper восстановления с query статуса прежнего ключа и AbortSignal. */
     status: (value: { idempotencyKey: string }, signal: AbortSignal) =>
       client.admin.privateContentFileStatus.query(value, { signal }),
   };
+  /** Создаёт файловую операцию в текущем поколении сессии для проверки её отмены. */
   const task = () =>
     new OperationScope().begin("file", getSessionRequestSignal(), () => true)!;
   const checkpoint = vi.fn(async () => {});

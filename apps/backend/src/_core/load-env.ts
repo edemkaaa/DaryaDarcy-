@@ -2,6 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
+/** Читает простой key=value env-файл, удаляет BOM/внешние кавычки и заполняет лишь отсутствующие либо пустые переменные процесса. */
 function applyEnvFile(file: string) {
   if (!fs.existsSync(file)) return;
   const text = fs.readFileSync(file, "utf8").replace(/^\uFEFF/, "");

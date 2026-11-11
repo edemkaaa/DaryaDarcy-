@@ -11,11 +11,13 @@ import type { Connection, RowDataPacket } from "mysql2/promise";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 import { getDb, upsertUser } from "../apps/backend/src/db";
 
+/** Проверяет уникальную нормализованную email-идентичность при обновлениях и конкурентной регистрации. */
 describe.skipIf(!testDatabaseUrl)(
   "normalized email identity on disposable MySQL",
   () => {
     let conn: Connection;
     const prefix = "email-identity-fixture-";
+    /** Находит и удаляет только аккаунты с собственным openId-префиксом. */
     async function cleanup() {
       const [rows] = await conn.query<RowDataPacket[]>(
         "SELECT id FROM users WHERE openId LIKE ?",
@@ -24,11 +26,13 @@ describe.skipIf(!testDatabaseUrl)(
       for (const row of rows)
         await conn.query("DELETE FROM users WHERE id=?", [row.id]);
     }
+    /** Открывает одноразовую схему и подключает прикладной пул. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
     });
     beforeEach(cleanup);
+    /** Удаляет собственные аккаунты, закрывает соединения и возвращает окружение. */
     afterAll(async () => {
       if (conn) {
         await cleanup();
@@ -39,6 +43,7 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** Другой openId с тем же нормализованным email не захватывает исходный аккаунт, роль или пароль. */
     it("rejects a whitespace/case variant without changing the existing address or credentials", async () => {
       await upsertUser({
         openId: `${prefix}owner`,
@@ -68,6 +73,7 @@ describe.skipIf(!testDatabaseUrl)(
         logger.mockRestore();
       }
     });
+    /** NULL и пустая почта сохраняют независимые legacy-аккаунты. */
     it("keeps separate legacy accounts with absent or empty email", async () => {
       await upsertUser({ openId: `${prefix}none-a`, email: null });
       await upsertUser({ openId: `${prefix}none-b`, email: null });
@@ -79,6 +85,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(rows.map((row) => row.email).sort()).toEqual(["", "", null, null]);
     });
+    /** В гонке разных openId за один email выигрывает одна полная идентичность без смешивания имени и hash. */
     it("gives simultaneous different identities competing for an email exactly one winner", async () => {
       const logger = vi.spyOn(console, "error").mockImplementation(() => {});
       try {
@@ -115,6 +122,7 @@ describe.skipIf(!testDatabaseUrl)(
         logger.mockRestore();
       }
     });
+    /** Шесть конкурентных повторов одинаковых openId и email завершаются одним аккаунтом. */
     it("keeps simultaneous retries of the same identity on one account", async () => {
       const results = await Promise.allSettled(
         Array.from({ length: 6 }, () =>

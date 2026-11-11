@@ -1,3 +1,4 @@
+/** Потоковый перенос проверяется на собственном S3 wire без БД: original bytes/key остаются нетронутыми. */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createHash, randomUUID } from "node:crypto";
 import { openPrivateUploadWire } from "./helpers/private-upload-wire";
@@ -16,6 +17,7 @@ const bytes = Buffer.concat([
 ]);
 const key = "club/tg/копия@2026.mp4",
   etag = '"' + createHash("md5").update(bytes).digest("hex") + '"';
+/** Создаём synthetic source object с pinned ETag и отдельный loopback namespace. */
 beforeEach(async () => {
   wire = await openPrivateUploadWire({ content: true });
   for (const [name, value] of Object.entries({
@@ -32,10 +34,12 @@ beforeEach(async () => {
     metadata: {},
   });
 });
+/** Закрываем wire и возвращаем S3 env. */
 afterEach(async () => {
   await wire?.close();
   vi.unstubAllEnvs();
 });
+/** Новый destination intent связан с namespace, типом и размером исходника. */
 function receipt() {
   return {
     assetId: randomUUID(),
@@ -46,8 +50,11 @@ function receipt() {
     namespaceHash: privateStorageNamespace().hash,
   };
 }
+/** Передаём разрешённый старый key и ожидаемый ETag, без произвольного URL. */
 const source = () => ({ key, etag, sha256: null });
+/** Проверяем metadata/content integrity и условный PUT; настоящий Timeweb здесь не вызывается. */
 describe("private conditional streaming transport without a database", () => {
+  /** Оба SHA и bytes совпадают, повтор не делает PUT/DELETE и не изменяет original. */
   it("verifies full source/destination SHA and reuses the same owned copy", async () => {
     const row = receipt(),
       result = await ensurePrivateTransferredObject(row, source());
@@ -60,6 +67,7 @@ describe("private conditional streaming transport without a database", () => {
     expect(wire.effects.filter((x) => x.startsWith("PUT "))).toHaveLength(1);
     expect(wire.effects.some((x) => x.startsWith("DELETE "))).toBe(false);
   });
+  /** Потерянный ACK восстанавливается по имеющемуся объекту без второй записи. */
   it("recovers a lost streaming PUT acknowledgement from persisted object metadata", async () => {
     const row = receipt();
     wire.dropPutAck();
@@ -72,6 +80,7 @@ describe("private conditional streaming transport without a database", () => {
     expect(wire.objects.size).toBe(2);
     expect(wire.effects.filter((x) => x.startsWith("PUT "))).toHaveLength(1);
   });
+  /** Многоchunk video копируется байт-в-байт с полным digest и повторной проверкой source. */
   it("streams multiple network chunks without changing the video bytes", async () => {
     const video = Buffer.concat([bytes, Buffer.alloc(512 * 1024, 41)]);
     const pinned = '"' + createHash("md5").update(video).digest("hex") + '"';
@@ -95,6 +104,7 @@ describe("private conditional streaming transport without a database", () => {
       wire.effects.filter((x) => x.startsWith("GET ") && x.includes("club/tg")),
     ).toHaveLength(2);
   });
+  /** Неверный известный digest останавливает до PUT. */
   it("rejects a mismatching source SHA before creating any destination", async () => {
     await expect(
       ensurePrivateTransferredObject(receipt(), {
@@ -104,6 +114,7 @@ describe("private conditional streaming transport without a database", () => {
     ).rejects.toThrow();
     expect(wire.effects.filter((x) => x.startsWith("PUT "))).toHaveLength(0);
   });
+  /** Недостаточная private-policy не допускает destination write. */
   it("refuses an unsafe policy before copying", async () => {
     wire.rejectPolicy(true);
     await expect(
@@ -111,6 +122,7 @@ describe("private conditional streaming transport without a database", () => {
     ).rejects.toThrow();
     expect(wire.effects.filter((x) => x.startsWith("PUT "))).toHaveLength(0);
   });
+  /** Чужой existing object не перезаписывается под видом retry. */
   it("refuses unrelated pre-existing destination data without overwriting it", async () => {
     const row = receipt(),
       destination = privateAttachmentObjectKey("video", row.assetId),
@@ -127,6 +139,7 @@ describe("private conditional streaming transport without a database", () => {
     expect(wire.objects.get(destination)!.bytes).toEqual(foreign);
     expect(wire.effects.filter((x) => x.startsWith("PUT "))).toHaveLength(0);
   });
+  /** Объявленный video/mp4 с не-video bytes не копируется. */
   it("verifies actual bytes instead of trusting video metadata", async () => {
     const bad = Buffer.from("this is not a video");
     wire.objects.set(key, {
@@ -143,6 +156,7 @@ describe("private conditional streaming transport without a database", () => {
     ).rejects.toThrow();
     expect(wire.effects.filter((x) => x.startsWith("PUT "))).toHaveLength(0);
   });
+  /** Traversal, private destination namespace и control characters запрещены до wire. */
   it.each([
     "../other",
     "club/tg/../other",
@@ -154,6 +168,7 @@ describe("private conditional streaming transport without a database", () => {
     ).rejects.toThrow();
     expect(wire.effects).toHaveLength(0);
   });
+  /** Intent сверх1ГиБ или другого namespace не начинает даже чтение объекта. */
   it("rejects oversized or foreign-namespace intents without allocating the file", async () => {
     await expect(
       ensurePrivateTransferredObject(

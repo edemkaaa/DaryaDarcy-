@@ -1,3 +1,4 @@
+/** Проверки восстановления работают только с явно подготовленной временной средой; результат и trace отделены от обычного UI-прогона. */
 import { readFileSync } from "node:fs";
 import { defineConfig } from "@playwright/test";
 import base from "./playwright.config";

@@ -21,6 +21,7 @@ const post = {
   commentCount: 0,
 };
 
+/** Для ширины и DPR создаём отдельный контекст; реальный выбор currentSrc проверяется на детерминированных байтах, а не на живом S3. */
 for (const width of [390, 1440])
   for (const dpr of [1, 2, 3]) {
     test(`thumbnail resources fit actual slots at ${width}px DPR${dpr}`, async ({
@@ -69,6 +70,7 @@ for (const width of [390, 1440])
           bytes.set(url.href, body.length);
           await route.fulfill({ contentType: "image/webp", body });
         });
+        /** Сверяем реальный CSS-слот с выбранной шириной ресурса в админке, сохранённом и статье; измерения прикладываем к отчёту. */
         const measurements = [];
         for (const [path, slot] of [
           ["/admin", 56],

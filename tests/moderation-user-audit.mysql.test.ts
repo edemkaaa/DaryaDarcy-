@@ -19,6 +19,7 @@ import { createBackendApplication } from "../apps/backend/src/_core/application"
 import { sdk } from "../apps/backend/src/_core/sdk";
 import { ModerationService } from "../apps/backend/src/moderation/moderation.service";
 
+/** Проверяет атомарность блокировки, session revocation, запроса отмены подписки и обязательного admin-аудита. */
 describe.skipIf(!testDatabaseUrl)(
   "moderation user mutations and audit on disposable MySQL",
   () => {
@@ -26,6 +27,7 @@ describe.skipIf(!testDatabaseUrl)(
     let app: INestApplication;
     let base: string;
     const moderation = new ModerationService();
+    /** Открывает одноразовую схему и настоящий локальный API с synthetic JWT. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -34,6 +36,7 @@ describe.skipIf(!testDatabaseUrl)(
       await app.listen(0, "127.0.0.1");
       base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
     });
+    /** Убирает fault-триггер и восстанавливает собственного модератора, получателя и billing-профиль. */
     beforeEach(async () => {
       await conn.query("DROP TRIGGER IF EXISTS moderation_user_audit_failure");
       await conn.query("DELETE FROM admin_audit_log WHERE actorUserId=8400");
@@ -46,9 +49,11 @@ describe.skipIf(!testDatabaseUrl)(
         "INSERT INTO billing_profiles (profileKey,userId,domain,subscriptionId,profileId,email,amountMinor) VALUES ('moderation-audit-profile',8401,'fixture.payform.ru','123','456','target@example.test',79000)",
       );
     });
+    /** Гарантированно снимает адресный отказ INSERT аудита. */
     afterEach(async () => {
       await conn.query("DROP TRIGGER IF EXISTS moderation_user_audit_failure");
     });
+    /** Закрывает API и соединения и возвращает окружение. */
     afterAll(async () => {
       await app?.close();
       await conn?.end();
@@ -58,6 +63,7 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** Читает блокировку и epoch получателя, pending/confirmed отмену и аудит актёра. */
     async function state() {
       const [account] = await conn.query<RowDataPacket[]>(
         "SELECT blockedAt,blockedReason,sessionVersion FROM users WHERE id=8401",
@@ -70,12 +76,14 @@ describe.skipIf(!testDatabaseUrl)(
       );
       return { account: account[0], profile: profile[0], audit };
     }
+    /** Устанавливает trigger отказа audit только для собственного тестового модератора. */
     async function rejectAudit() {
       await conn.query(`CREATE TRIGGER moderation_user_audit_failure BEFORE INSERT ON admin_audit_log FOR EACH ROW
       BEGIN IF NEW.actorUserId=8400 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='synthetic audit failure'; END IF; END`);
     }
     for (const operation of ["blockUser", "unblockUser"] as const) {
       for (const target of ["admin", "moderator", "self"] as const) {
+        /** Модератор не может блокировать или разблокировать admin, moderator либо себя; аккаунты, отмена и аудит неизменны. */
         it(`forbids moderator ${operation} against ${target} without account, cancellation or audit changes`, async () => {
           const targetId = target === "self" ? 8400 : 8401;
           if (target !== "self")
@@ -117,6 +125,7 @@ describe.skipIf(!testDatabaseUrl)(
           expect(actorAfter).toEqual(actorBefore);
         });
       }
+      /** Внутри транзакции block/unblock заново проверяется снятая роль актёра. */
       it(`rechecks a revoked actor inside the ${operation} transaction`, async () => {
         await conn.query("UPDATE users SET role='user' WHERE id=8400");
         const before = await state();
@@ -133,6 +142,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
     }
     for (const operation of ["blockUser", "unblockUser"] as const) {
+      /** Старый контекст запрещён после смены epoch, включая блокировку и последующую разблокировку актёра. */
       it.each(["epoch", "blocked-then-restored"] as const)(
         `${operation} rejects an in-flight context after %s without side effects`,
         async (change) => {
@@ -166,6 +176,7 @@ describe.skipIf(!testDatabaseUrl)(
           expect(await state()).toEqual(before);
         },
       );
+      /** Новая аутентификация после отзыва epoch восстанавливает разрешённое действие и audit. */
       it(`${operation} allows a newly authenticated context after revocation`, async () => {
         if (operation === "unblockUser")
           await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=8401");
@@ -191,6 +202,7 @@ describe.skipIf(!testDatabaseUrl)(
           operation === "blockUser",
         );
       });
+      /** Отсутствующий участник даёт явный 404 без ложного подтверждения или аудита. */
       it(`does not confirm ${operation} for a deleted member or write a misleading audit`, async () => {
         await conn.query("DELETE FROM users WHERE id=8401");
         const before = await state();
@@ -228,6 +240,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
     }
     for (const operation of ["blockUser", "unblockUser"] as const) {
+      /** Fault аудита через HTTP откатывает block/unblock и возвращает безопасный 500 без SQL-деталей. */
       it(`returns a safe HTTP failure with no persisted ${operation} when the audit fails`, async () => {
         if (operation === "unblockUser")
           await conn.query(
@@ -263,6 +276,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await state()).toEqual(before);
       });
     }
+    /** Ошибка audit откатывает блокировку, увеличение epoch и запрос отмены как одну операцию. */
     it("rolls back blocking, session revocation and cancellation intent when audit insertion fails", async () => {
       await rejectAudit();
       await expect(
@@ -278,6 +292,7 @@ describe.skipIf(!testDatabaseUrl)(
         audit: [],
       });
     });
+    /** Без обязательного audit прежние блокировка и причина сохраняются. */
     it("rolls back unblocking when audit insertion fails", async () => {
       await conn.query(
         "UPDATE users SET blockedAt='2026-10-01 00:00:00',blockedReason='saved reason' WHERE id=8401",
@@ -289,6 +304,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).rejects.toThrow();
       expect(await state()).toEqual(before);
     });
+    /** Успешная блокировка увеличивает epoch и сохраняет audit с pending-отменой, не утверждая подтверждение провайдера. */
     it("commits blocking with its audit and pending cancellation without provider confirmation", async () => {
       expect(
         await moderation.blockUser(
@@ -318,6 +334,7 @@ describe.skipIf(!testDatabaseUrl)(
         },
       ]);
     });
+    /** Разблокировка снимает только блок и причину, сохраняя epoch и ранее запрошенную отмену. */
     it("commits unblocking with its audit without resetting sessions or cancellation intent", async () => {
       await conn.query(
         "UPDATE users SET blockedAt='2026-10-01 00:00:00',blockedReason='saved reason' WHERE id=8401",

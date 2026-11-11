@@ -39,6 +39,7 @@ import {
   CARD_META_HEIGHT,
 } from "./library-screen.content";
 import type { MaterialItem } from "./library-screen.content";
+/** Сохраняем исходную очередность карточек, каждый раз добавляя следующую в более короткую колонку по оценке высоты обложки и подписи. */
 function splitMasonryColumns(
   items: MaterialItem[],
   aspectFor: (item: MaterialItem) => number,
@@ -62,6 +63,7 @@ function splitMasonryColumns(
   }
   return { left, right };
 }
+/** Объединяем статические материалы и статьи API; тип действия определяет переход, внешний PDF или диалог защищённых файлов. */
 export default function LibraryScreen() {
   const active = useScreenActive();
   const router = useRouter();
@@ -72,6 +74,7 @@ export default function LibraryScreen() {
     title: string;
   } | null>(null);
   const { hasClubAccess } = useClub();
+  /** Закрываем диалог файлов сразу после потери клубного доступа. */
   useEffect(() => {
     if (!hasClubAccess) setFileMaterial(null);
   }, [hasClubAccess]);
@@ -107,6 +110,7 @@ export default function LibraryScreen() {
       item.title.toLowerCase().includes(query),
     );
   }, [searchQuery, allMaterials]);
+  /** Проверяем клубный доступ перед выбором действия, затем открываем ровно предусмотренный карточкой маршрут или файл. */
   const handleMaterialPress = async (item: MaterialItem) => {
     if (item.isClubOnly && !hasClubAccess) {
       router.push("/club");
@@ -120,6 +124,7 @@ export default function LibraryScreen() {
       await WebBrowser.openBrowserAsync(item.pdfUrl);
     }
   };
+  /** Согласуем подпись с доступом и действием карточки, не раскрывая содержимое закрытого файла. */
   const getActionLabel = (item: MaterialItem): string => {
     if (item.isClubOnly && !hasClubAccess) {
       return "Для участниц клуба Darcy →";
@@ -137,6 +142,7 @@ export default function LibraryScreen() {
       ),
     [filteredMaterials, columnWidth],
   );
+  /** Собираем обложку, название и действие из одной карточки; обе области нажатия используют одинаковую проверку доступа. */
   const renderCard = (item: MaterialItem) => {
     const aspect = item.coverAspectRatio;
     return (

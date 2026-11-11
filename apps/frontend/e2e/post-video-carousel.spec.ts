@@ -29,6 +29,7 @@ const videos = [
     posterUrl: "https://media.example.test/three.svg",
   },
 ];
+/** Смешиваем два коротких файловых ролика и контролируемый VK iframe; считаем запросы отдельно от обложек и не обращаемся к внешнему плееру. */
 async function fixture(page: Page, count = 3, photos: string[] = []) {
   const requests: string[] = [];
   await page.route("https://**", (route) => route.abort());
@@ -96,14 +97,17 @@ async function fixture(page: Page, count = 3, photos: string[] = []) {
   });
   return requests;
 }
+/** Выбираем область нескольких видео отдельно от самостоятельного single-video и фотоальбома. */
 const carousel = (page: Page) =>
   page.getByRole("region", { name: "Видео поста", exact: true });
+/** Переключаем слайд клавиатурой на самой scroll-области, проверяя доступный navigation-путь. */
 async function navigate(region: Locator, direction: "next" | "previous") {
   const scroll = region.getByLabel("Перелистывание видео", { exact: true });
   await scroll.focus();
   await scroll.press(direction === "next" ? "ArrowRight" : "ArrowLeft");
 }
 
+/** Плеер создаётся только у выбранного активированного слайда; переход освобождает src нативного video либо удаляет iframe. */
 test.describe("desktop video carousel", () => {
   test.use({
     viewport: { width: 1440, height: 1000 },
@@ -182,6 +186,7 @@ test.describe("desktop video carousel", () => {
       await oldFrame?.dispose();
     });
   }
+  /** Изменение ширины сохраняет выбранный индекс; фото остаются отдельным блоком, а drag не открывает detail поста. */
   test("resize preserves selection, photos stay separate, and drag never opens the post", async ({
     page,
   }, info) => {
@@ -236,6 +241,7 @@ test.describe("desktop video carousel", () => {
   });
 });
 
+/** Touch-проверка использует Chromium CDP; overlay позволяет уйти со слайда даже при открытом iframe. */
 test.describe("mobile video carousel", () => {
   test.use({
     viewport: { width: 390, height: 844 },
@@ -254,6 +260,7 @@ test.describe("mobile video carousel", () => {
     await gotoWithSession(page, "/feed");
     const region = carousel(page);
     const session = await page.context().newCDPSession(page);
+    /** Совершаем native swipe и ждём завершения scroll-snap перед следующим независимым жестом или tap. */
     async function swipe(target: Locator, forward = true) {
       await target.scrollIntoViewIfNeeded();
       const box = (await target.boundingBox())!;

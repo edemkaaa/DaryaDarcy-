@@ -23,12 +23,13 @@ type Drag = {
   horizontal: boolean;
 };
 
-/** Mouse dragging augments native touch/trackpad scrolling, never replaces it. */
+/** Дополняем нативный touch/trackpad drag-жестом мыши и после движения подавляем только порождённый им клик. */
 export function usePhotoMouseDrag(width: number, count: number) {
   const drag = useRef<Drag | null>(null);
   const suppressClick = useRef(false);
 
   const finish = useCallback(
+    /** Возвращаем snap и pointer capture на любом завершении; отмена возвращает исходный кадр, уверенный горизонтальный жест выбирает соседний. */
     (cancelled: boolean) => {
       const current = drag.current;
       if (!current) return;
@@ -57,6 +58,7 @@ export function usePhotoMouseDrag(width: number, count: number) {
 
   useEffect(() => {
     // Losing the window or resizing it must not leave capture/snap disabled.
+    /** Потеря окна, resize и cleanup завершают жест одинаково, не оставляя отключённый scroll-snap. */
     const cancel = () => finish(true);
     window.addEventListener("blur", cancel);
     window.addEventListener("resize", cancel);
@@ -67,11 +69,13 @@ export function usePhotoMouseDrag(width: number, count: number) {
     };
   }, [finish]);
 
+  /** Завершение чужого pointerId не должно прервать активное перетаскивание этой карусели. */
   const end = (event: PointerEvent<HTMLDivElement>, cancelled: boolean) => {
     if (drag.current?.id === event.pointerId) finish(cancelled);
   };
   return {
     className: classes.draggable,
+    /** Начинаем только основной кнопкой мыши и при известной ширине; касания остаются нативной прокруткой. */
     onPointerDown: (event) => {
       suppressClick.current = false;
       if (
@@ -94,6 +98,7 @@ export function usePhotoMouseDrag(width: number, count: number) {
         horizontal: false,
       };
     },
+    /** После порога отличаем горизонтальный drag от вертикального движения, захватываем указатель и временно отключаем snap. */
     onPointerMove: (event) => {
       const current = drag.current;
       if (!current || current.id !== event.pointerId) return;
@@ -112,9 +117,13 @@ export function usePhotoMouseDrag(width: number, count: number) {
         if (current.horizontal) current.node.scrollLeft = current.left - dx;
       }
     },
+    /** Обычное отпускание может переключить кадр в направлении достаточного горизонтального жеста. */
     onPointerUp: (event) => end(event, false),
+    /** Отмена браузером возвращает исходный кадр и восстанавливает настройки области. */
     onPointerCancel: (event) => end(event, true),
+    /** Потеря capture проходит через ту же безопасную отмену активного указателя. */
     onLostPointerCapture: (event) => end(event, true),
+    /** Подавляем один мышиный клик после drag, но сохраняем клавиатурную активацию detail=0. */
     onClickCapture: (event) => {
       if (event.detail && suppressClick.current) {
         suppressClick.current = false;

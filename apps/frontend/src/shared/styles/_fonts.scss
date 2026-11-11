@@ -1,5 +1,6 @@
 /* Подключения локальных шрифтов и начертания вынесены отдельно; интерфейс использует их через общие семейства. */
 @font-face {
+  /* Начертания Garamond подключены отдельными локальными файлами; swap не задерживает показ текста до загрузки шрифта. */
   font-family: "EBGaramond-Bold";
   src: url("/assets/fonts/EBGaramond-Bold.ttf") format("truetype");
   font-display: swap;
@@ -24,12 +25,14 @@
 }
 
 @font-face {
+  /* Декоративное начертание заголовков отделено от основного шрифта текста. */
   font-family: "Gogol-Regular";
   src: url("/assets/fonts/Gogol-Regular.ttf") format("truetype");
   font-display: swap;
 }
 
 @font-face {
+  /* Display-начертания и wordmark подключаются независимо, без внешнего запроса к шрифтовому CDN. */
   font-family: "PlayfairDisplay-Italic";
   src: url("/assets/fonts/PlayfairDisplay-Italic.ttf") format("truetype");
   font-display: swap;
@@ -48,6 +51,7 @@
 }
 
 @font-face {
+  /* Иконочный шрифт имеет своё семейство, чтобы коды глифов не смешивались с обычной типографикой. */
   font-family: "MaterialIcons";
   src: url("/assets/fonts/MaterialIcons.ttf") format("truetype");
   font-display: swap;

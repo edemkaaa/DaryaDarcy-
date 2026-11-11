@@ -6,6 +6,8 @@
 import mysql from "mysql2/promise";
 
 function sanitizePlainPostText(text) {
+  // Удаляет управляющие артефакты старого импорта и нормализует пробелы в обычном тексте.
+
   return text
     .replace(/\r\n?/g, "\n")
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
@@ -17,6 +19,8 @@ function sanitizePlainPostText(text) {
 }
 
 function sanitizeRichTextForDisplay(value) {
+  // Нормализует текстовые узлы сохранённой структуры richText, сохраняя структуру поддерживаемых блоков.
+
   if (!Array.isArray(value)) return null;
   const blocks = value
     .filter((block) => block && typeof block === "object")
@@ -45,6 +49,7 @@ if (!url) {
   process.exit(1);
 }
 
+// Ниже начинается прямое исправление выбранной БД; отдельного dry-run в этом старом CLI нет.
 const conn = await mysql.createConnection(url);
 const [rows] = await conn.query("SELECT id, text, richText FROM posts");
 let updated = 0;

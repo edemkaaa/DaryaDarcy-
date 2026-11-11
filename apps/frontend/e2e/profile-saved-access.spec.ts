@@ -3,6 +3,7 @@ import { layoutApi, gotoWithSession } from "./layout-fixtures";
 import { failure, ok } from "./editor-fixtures";
 
 // Real profile/router/query state; only HTTP responses are synthetic.
+/** Готовим одинаковые по структуре сохранённые посты с различным target; publicId позволяет отдельно проверить UUID и старый numeric URL. */
 const post = (id: number, text: string, target: "feed" | "club" | "both", publicId?: string) => ({
   id,
   publicId,
@@ -32,6 +33,7 @@ type State = {
   staleSavedSnapshot?: boolean;
   savedPosts?: ReturnType<typeof post>[];
 };
+/** Отделяем подтверждение сессии, право клуба, ошибки подписки и устаревший snapshot сохранённого; ответы HTTP синтетические, роутер и query-state настоящие. */
 async function fixture(page: Page, state: State) {
   await page.route("**/*", (route) =>
     ["localhost", "127.0.0.1"].includes(new URL(route.request().url()).hostname)
@@ -134,9 +136,11 @@ async function fixture(page: Page, state: State) {
     });
   });
 }
+/** Выбираем кликабельную карточку только внутри main, исключая retained-копии текста вне текущего экрана. */
 const card = (page: Page, text: string) =>
   page.getByRole("main").getByRole("button").filter({ hasText: text });
 
+/** UUID является новым адресом карточки профиля, ленты и клуба; прямой старый numeric URL остаётся отдельным совместимым входом. */
 for (const section of ["profile", "feed", "club"] as const) {
   test(`${section} opens a post by UUID and keeps its old link working`, async ({ page }) => {
     const publicId = "c22db58f-698b-41ea-8e12-524d8323b034";
@@ -155,6 +159,7 @@ for (const section of ["profile", "feed", "club"] as const) {
   });
 }
 
+/** Открытые и both-посты доступны без оплаты; закрытый snapshot не должен отобразиться ни в сохранённом, ни по прямому detail URL. */
 test("an unpaid member opens saved public posts without opening club-only content", async ({
   page,
 }) => {
@@ -226,6 +231,7 @@ test("saved photo and article cards have content names and independent keyboard 
   await expect(page).toHaveURL(/\/library\/article\/9$/);
 });
 
+/** Отделяем оплаченный срок пользователя от служебного доступа модератора, сохраняя доступ к клубным закладкам. */
 for (const role of ["user", "moderator"] as const) {
   test(`confirmed ${role} club access preserves saved club posts and the correct subscription state`, async ({
     page,
@@ -246,6 +252,7 @@ for (const role of ["user", "moderator"] as const) {
   });
 }
 
+/** Сбой проверки подписки не равен подтверждённому отсутствию права; открытые закладки остаются, закрытые скрыты до проверки. */
 test("subscription lookup failure does not lock public bookmarks or claim an absent subscription", async ({
   page,
 }) => {
@@ -267,6 +274,7 @@ test("subscription lookup failure does not lock public bookmarks or claim an abs
   await expect(card(page, "BOTH_SAVED_POST")).toBeVisible();
 });
 
+/** Свежий отказ скрывает даже сохранённый клубный snapshot, сохраняя открытые карточки при переключении вкладок. */
 test("revoked access hides a retained club bookmark snapshot without hiding public ones", async ({
   page,
 }) => {

@@ -3,6 +3,7 @@
 import { useClub } from "./subscription-context";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
 
+/** Отображаем проверку и ошибку прав отдельно от подтверждённого отсутствия подписки; повтор читает сервер заново. */
 export function SubscriptionStatus() {
   const { status, refreshSubscription } = useClub();
   return (

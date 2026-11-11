@@ -5,7 +5,7 @@ import { ScreenContainer } from "./screen-container";
 import { ScrollArea } from "./scroll-area";
 import classes from "./screen-status.module.scss";
 
-/** Full-screen fallbacks have no banner to keep their content below the header. */
+/** Размещаем полноэкранное состояние в прокручиваемой безопасной области без участия автоскрытия шапки. */
 export function ScreenStatus({ children }: { children: ReactNode }) {
   return (
     <ScreenContainer edges={["left", "right", "bottom"]}>

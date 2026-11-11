@@ -7,6 +7,7 @@ export type StyleInput =
   | null
   | undefined
   | readonly StyleInput[];
+/** Рекурсивно разворачиваем массивы и пропускаем false/null; более поздние свойства перекрывают ранние как в совместимых style-массивах. */
 export function mergeStyles(...inputs: StyleInput[]): CSSProperties {
   const result: CSSProperties = {};
   for (const input of inputs) {
@@ -15,8 +16,10 @@ export function mergeStyles(...inputs: StyleInput[]): CSSProperties {
   }
   return result;
 }
+/** Число становится CSS-длиной px, готовая строка сохраняет собственную единицу измерения. */
 export const px = (value: number | string) =>
   typeof value === "number" ? `${value}px` : value;
+/** Последовательность transform сохраняет порядок; translate/perspective получают px, остальные числовые значения остаются безразмерными. */
 export function cssTransform(
   transforms: readonly Record<string, string | number>[],
 ): string {

@@ -13,19 +13,24 @@ import { openPrivateUploadWire } from "./helpers/private-upload-wire";
 import { sdk } from "../apps/backend/src/_core/sdk";
 import { getDb } from "../apps/backend/src/db";
 
+/** Проверяем SIGTERM настоящей точки запуска с зависшей локальной загрузкой без рабочего хранилища. */
 describe.skipIf(!testDatabaseUrl)("real executable shutdown", () => {
   let conn: Connection;
+  /** Создаём тестового администратора и соединение одноразовой БД с синтетическим JWT. */
   beforeAll(async () => {
     conn = await openContentTestDatabase();
     vi.stubEnv("DATABASE_URL", testDatabaseUrl!); vi.stubEnv("JWT_SECRET", "shutdown-owned-synthetic-session-secret");
     await conn.query("INSERT INTO users(id,openId,role) VALUES (98770,'shutdown-fixture-admin','admin')");
   });
+  /** Удаляем свои квитанции и аккаунт, закрываем соединения и восстанавливаем окружение. */
   afterAll(async () => {
     await conn?.query("DELETE FROM private_content_files WHERE actorUserId=98770");
     await conn?.query("DELETE FROM users WHERE id=98770"); await conn?.end();
     await ((await getDb()) as unknown as { $client: Pool })?.$client.end(); vi.unstubAllEnvs();
   });
+  /** Убираем только квитанции выделенного администратора перед режимом остановки. */
   beforeEach(async () => { await conn.query("DELETE FROM private_content_files WHERE actorUserId=98770"); });
+  /** При drain новый HTTP уже закрыт, принятая загрузка коммитится и процесс завершается 0; при deadline процесс завершается 1, а pending-намерение остаётся восстановимым. */
   it.each(["drain", "deadline"])("stops accepting requests and preserves the in-flight upload on %s", async mode => {
     const wire = await openPrivateUploadWire({ content: true });
     const cwd = await mkdtemp(resolve(tmpdir(), "daryadarcy-shutdown-"));
@@ -53,6 +58,7 @@ describe.skipIf(!testDatabaseUrl)("real executable shutdown", () => {
       pending = fetch(`http://127.0.0.1:${port}/api/trpc/admin.uploadPrivateContentFile`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: superjson.stringify({ usage: "postPhoto", filename: "synthetic.png", mimeType: "image/png", idempotencyKey: "shutdown-owned-intent-0001", base64: photo.toString("base64") }), signal: AbortSignal.timeout(15000) });
       // Handle a rejected connection even in the RED test where SIGTERM kills it.
       void pending.catch(() => {});
+// Барьер подтверждает реальный вход в локальный S3 PUT до SIGTERM: отказ новых соединений не должен убить уже принятую работу.
       await gate.entered;
       child.kill("SIGTERM");
       // A new connection must be refused while the accepted operation remains alive.

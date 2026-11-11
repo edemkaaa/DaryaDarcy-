@@ -20,8 +20,8 @@ buffer pool128МиБ/max_connections30. Это предложение, наст�
 
 ## Дополнение 30 октября: готовый сборочный пакет
 
-Подготовлены [build-only Compose и инструкция](../../infrastructure/deploy/teamassist/README.build.md),
-[публичный env-пример](../../infrastructure/deploy/teamassist/build.public.env.example)
+Подготовлены [build-only Compose и инструкция](../../infrastructure/build/README.md),
+[публичный env-пример](../../infrastructure/build/build.public.env.example)
 и [image-only overlay](../../infrastructure/deploy/teamassist/compose.release-images.example.yaml).
 Существующий web Dockerfile теперь явно принимает Next public build flags;
 API и combined Dockerfile собирают также отдельный Prodamus TEST bundle.
@@ -253,8 +253,8 @@ source SHA/digests/build flags; местоположение secrets без их
 - [Compose стенда](../../infrastructure/deploy/teamassist/compose.yaml),
   [публичные превью](../../infrastructure/deploy/teamassist/compose.images.yaml),
   [S3 egress](../../infrastructure/deploy/teamassist/compose.private-uploads.yaml).
-- [Backend Dockerfile](../../infrastructure/deploy/teamassist/Dockerfile.backend)
-  и [web/API Dockerfile](../../infrastructure/deploy/teamassist/Dockerfile).
+- [Backend Dockerfile](../../infrastructure/build/Dockerfile.backend)
+  и [web/API Dockerfile](../../infrastructure/build/Dockerfile).
 - [Актуальный backend audit](../audits/backend-remediation-2026-10-25.md),
   [передача фронтендеру](../development/frontend-audit-final-handoff-2026-10-26.md),
   [план](../../tasks/plan.md), [историческое резервирование S3](s3-backup.md).

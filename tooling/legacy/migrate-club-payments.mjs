@@ -1,3 +1,4 @@
+// Применяет старую схему club_payments напрямую к выбранной БД; текущие данные и историю заранее не сверяет.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,6 +13,7 @@ for (const line of fs.readFileSync(path.join(root, ".env"), "utf8").split(/\r?\n
 }
 
 const sql = fs.readFileSync(path.join(root, "drizzle", "0009_club_payments.sql"), "utf8");
+// С этого места выбранная БД реально изменяется; текущая история и рабочее назначение автоматически не проверены.
 const conn = await mysql.createConnection(env.DATABASE_URL.replace(/\r/g, "").trim());
 await conn.query(sql);
 console.log("club_payments table ready");

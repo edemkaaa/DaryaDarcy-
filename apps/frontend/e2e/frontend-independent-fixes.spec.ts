@@ -3,6 +3,7 @@ import { editorApi, failure, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 import { mp4Fixture } from "../../../tests/helpers/media-fixtures";
 
+/** Календарь использует собственную проекцию и не перечитывает stale-архив постов при смене месяца; возврат к постам проверяет их свежесть отдельно. */
 test("calendar reads its own projection without fetching the stale post archive", async ({
   page,
 }) => {
@@ -75,6 +76,7 @@ test("calendar reads its own projection without fetching the stale post archive"
   expect(reads).toBe(before + 1);
 });
 
+/** Ошибка проекции календаря имеет собственный retry, независимый от состояния списка постов. */
 test("calendar can retry its projection after a failed read", async ({
   page,
 }) => {
@@ -108,6 +110,7 @@ test("calendar can retry its projection after a failed read", async ({
   await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
 });
 
+/** Совместимый YouTube-proxy проверяет retry с коротким MP4, скрытие внутренних ошибок и освобождение src после ухода. */
 for (const width of [320, 1440]) {
   test(`YouTube proxy failure can be retried and playback is released at ${width}px`, async ({
     page,
@@ -185,6 +188,7 @@ for (const width of [320, 1440]) {
   });
 }
 
+/** 404 feature-off и 413 body-parser сохраняют исходный upload-intent в редакторах статьи/поста; recovery использует прежние файл и ключ без публикации. */
 for (const status of [404, 413]) {
   test(`article upload HTTP ${status} explains the refusal and preserves its original operation`, async ({
     page,

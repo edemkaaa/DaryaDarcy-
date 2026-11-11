@@ -9,6 +9,7 @@ export type ProdamusCancellationProfile = Readonly<{
 }>;
 
 /** Только сопоставление полей; исходное уведомление аутентифицирует вызывающая граница. */
+/** Извлекает вложенные subscription/profile идентификаторы лишь при точном совпадении configured domain и subscription; подпись проверяет вызывающая граница. */
 export function readProdamusCancellationProfile(
   body: Record<string, unknown>,
   configured: Readonly<{ domain: string; subscriptionId: string }>,

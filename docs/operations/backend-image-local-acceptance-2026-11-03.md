@@ -336,7 +336,7 @@ Root TypeScript проходит. Новых ошибок runtime в выбра�
 03.11.2026. Проверен готовый артефакт исходного HEAD
 `2c67be67628837542f9015f816872d8dd3804f36`, а не только приложение, запущенное
 через host TypeScript. Использован существующий
-`infrastructure/deploy/teamassist/Dockerfile.backend`; код продукта, Dockerfile,
+`infrastructure/build/Dockerfile.backend`; код продукта, Dockerfile,
 фронт, рабочие данные, S3, сервер и удалённый Git не менялись.
 
 ## Образы и среда

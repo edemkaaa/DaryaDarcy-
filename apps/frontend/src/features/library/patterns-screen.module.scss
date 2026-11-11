@@ -10,6 +10,7 @@
     padding-bottom: var(--page-end-gap);
   }
 
+  /* Баннер резервирует 16:9, затемнение и заголовок накладываются поверх картинки. */
   .bannerContainer {
     width: 100%;
     aspect-ratio: 1.7777777777777777;
@@ -37,6 +38,7 @@
     text-transform: uppercase;
   }
 
+  /* Закрытое состояние, preview и переход к клубу отделены от выдачи настоящих выкроек. */
   .lockedContainer {
     align-items: center;
     padding-left: 24px;
@@ -87,6 +89,7 @@
     text-decoration-line: underline;
   }
 
+  /* Декоративное закрытое preview обрезается рамкой; это визуализация, а не механизм защиты файла. */
   .blurPreviewWrapper {
     width: 100%;
     margin-top: 24px;
@@ -151,6 +154,7 @@
     line-height: 22px;
   }
 
+  /* Сетка переносит карточки по доступной ширине, каждая обложка сохраняет собственную портретную пропорцию. */
   .patternGrid {
     flex-direction: row;
     flex-wrap: wrap;
@@ -189,6 +193,7 @@
     color: var(--muted);
   }
 
+  /* PDF «Лошадки» показан отдельной секцией со своей обложкой и разделителем, независимо от сетки клубных выкроек. */
   .pdfSection {
     padding-left: 24px;
     padding-right: 24px;
@@ -219,6 +224,7 @@
     background-color: #efe6d6;
   }
 
+  /* Полноэкранный просмотр использует тёмную поверхность; равный spacer центрирует заголовок относительно кнопки закрытия. */
   .backdrop {
     flex: 1;
     background-color: #000;
@@ -254,6 +260,7 @@
     width: 40px;
   }
 
+  /* Картинка центрируется и обрезается границами viewer, а действие скачивания вынесено отдельно. */
   .imageContainer {
     flex: 1;
     justify-content: center;

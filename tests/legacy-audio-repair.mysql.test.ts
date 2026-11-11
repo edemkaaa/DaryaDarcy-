@@ -7,6 +7,7 @@ import {
   rollbackLegacyAudioRepair,
 } from "../tooling/data/legacy-audio-repair";
 
+/** Проверяет адресную SQL-привязку совместимых private-аудиокопий с audit и безопасным rollback. */
 describe.skipIf(!testDatabaseUrl)(
   "atomic legacy audio replacement on disposable MySQL",
   () => {
@@ -16,6 +17,7 @@ describe.skipIf(!testDatabaseUrl)(
     const assets = ids.map(
       (id) => `00000000-0000-4000-8000-${String(id).padStart(12, "0")}`,
     );
+    /** Удаляет только receipts, audit, media, посты и администратора собственного диапазона. */
     const clean = async () => {
       await db.query(
         "DELETE FROM private_attachment_uploads WHERE mediaId IN (9460,9461) OR assetId IN (?,?)",
@@ -26,6 +28,7 @@ describe.skipIf(!testDatabaseUrl)(
       await db.query("DELETE FROM posts WHERE id IN (9460,9461)");
       await db.query("DELETE FROM users WHERE id=9460");
     };
+    /** Подготавливает одноразовую content-схему и открывает соединение со строковыми датами для точного сравнения. */
     beforeAll(async () => {
       const schema = await openContentTestDatabase();
       await schema.end();
@@ -35,6 +38,7 @@ describe.skipIf(!testDatabaseUrl)(
         timezone: "Z",
       });
     });
+    /** Восстанавливает два клубных подкаста и полный before-snapshot с synthetic evidence новых копий. */
     beforeEach(async () => {
       await clean();
       await db.query(
@@ -70,6 +74,7 @@ describe.skipIf(!testDatabaseUrl)(
         },
       }));
     });
+    /** Удаляет собственную fixture и закрывает соединение. */
     afterAll(async () => {
       if (db) {
         await clean();
@@ -77,6 +82,7 @@ describe.skipIf(!testDatabaseUrl)(
       }
     });
 
+    /** Ремонт меняет только URL, совместимый MIME, размер и duration, сохраняя ID, даты, порядок, посты и аккаунт. */
     it("keeps original media IDs, post bodies, order and dates while binding ready private copies", async () => {
       const [postsBefore] = await db.query(
         "SELECT * FROM posts WHERE id IN (9460,9461) ORDER BY id",
@@ -115,6 +121,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
     });
 
+    /** Повтор после неизвестного ответа распознаёт тот же ремонт без дополнительных assets или audit. */
     it("reconciles a lost acknowledgement without duplicate assets or audit writes", async () => {
       await applyLegacyAudioRepair(db, 9460, changes);
       expect(await applyLegacyAudioRepair(db, 9460, changes)).toEqual({
@@ -127,6 +134,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(counts[0]).toEqual({ receipts: 2, audits: 2 });
     });
 
+    /** Изменение последнего source-row блокирует всю партию без применения первого элемента. */
     it("rolls back the entire batch when the last source row changed", async () => {
       await db.query("UPDATE post_media SET sortOrder=9 WHERE id=9461");
       await expect(applyLegacyAudioRepair(db, 9460, changes)).rejects.toThrow();
@@ -141,6 +149,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(assets).toHaveLength(0);
     });
 
+    /** Коллизия второго receipt откатывает все media-привязки партии. */
     it("does not apply the first row when the second receipt collides", async () => {
       await db.query(
         "INSERT INTO private_attachment_uploads (requestKey,assetId,payloadHash,namespaceHash,type,filename,mimeType,fileSize,state) VALUES (?,?,?,?,'audio','other.m4a','audio/mp4',1,'ready')",
@@ -160,6 +169,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
     });
 
+    /** Реальный fault последнего UPDATE откатывает ранние media, receipts и audit одной транзакцией. */
     it("rolls back earlier media, receipts and audits after a real SQL failure on the final update", async () => {
       await db.query(
         "CREATE TRIGGER audio_repair_fixture_failure BEFORE UPDATE ON post_media FOR EACH ROW BEGIN IF NEW.id=9461 AND NEW.mimeType='audio/mp4' THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='audio fixture failure'; END IF; END",
@@ -183,6 +193,7 @@ describe.skipIf(!testDatabaseUrl)(
       }
     });
 
+    /** Неверный текущий оператор, открытый target и превышение 32 МиБ запрещают ремонт без изменений. */
     it("refuses blocked actors, non-club posts, and renditions beyond the existing 32 MiB quota", async () => {
       await db.query(
         "UPDATE users SET blockedAt=UTC_TIMESTAMP() WHERE id=9460",
@@ -208,6 +219,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
     });
 
+    /** Rollback восстанавливает исходные media только при неизменённой своей привязке, остаётся повторяемым с audit trail. */
     it("restores only unchanged own bindings and retains an audit trail", async () => {
       await applyLegacyAudioRepair(db, 9460, changes);
       expect(await rollbackLegacyAudioRepair(db, 9460, changes)).toEqual({
@@ -235,6 +247,7 @@ describe.skipIf(!testDatabaseUrl)(
       ]);
     });
 
+    /** Поздняя ручная правка media запрещает rollback всей партии вместо потери нового имени. */
     it("refuses rollback after later edits instead of discarding the edit", async () => {
       await applyLegacyAudioRepair(db, 9460, changes);
       await db.query(

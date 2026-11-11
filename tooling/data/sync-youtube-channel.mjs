@@ -13,6 +13,7 @@ for (const line of fs.readFileSync(path.join(root, ".env"), "utf8").split(/\r?\n
   env[line.slice(0, i).trim()] = line.slice(i + 1).trim();
 }
 
+// Внешний yt-dlp получает старый YouTube-каталог; сетевое чтение выполняется ещё до подключения БД.
 const listed = spawnSync(
   "python",
   ["-m", "yt_dlp", "--flat-playlist", "--playlist-end", "250", "--print", "%(id)s\t%(title)s\t%(duration_string)s", "https://www.youtube.com/@daryadarcy"],
@@ -32,6 +33,7 @@ const videos = listed.stdout
   })
   .filter((v) => v.id && v.title);
 
+// Отсутствующие youtubeId далее вставляются опубликованными; это историческая запись, не текущая синхронизация VK.
 const conn = await mysql.createConnection(env.DATABASE_URL.replace(/\r/g, "").trim());
 const [rows] = await conn.query("SELECT youtubeId FROM videos");
 const existing = new Set(rows.map((r) => r.youtubeId));

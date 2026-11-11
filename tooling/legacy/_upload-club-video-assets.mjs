@@ -1,3 +1,4 @@
+// Исторически скачивает фиксированные ресурсы оформления и музыку, публикуя их public-read; это не приватная загрузка поста.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -26,6 +27,8 @@ const tmpDir = path.join(root, ".tmp-media");
 fs.mkdirSync(tmpDir, { recursive: true });
 
 async function download(url, dest) {
+  // Скачивает заранее заданный ресурс целиком и сохраняет локальную копию до последующей публикации S3.
+
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Download failed ${res.status}: ${url}`);
   const buf = Buffer.from(await res.arrayBuffer());
@@ -52,6 +55,7 @@ const files = [
   { url: musicUrlFixed, file: path.join(tmpDir, "club-ambient.mp3"), key: "app-assets/club/club-ambient.mp3", type: "audio/mpeg" },
 ];
 
+// Ниже начинается внешняя запись S3 по историческим фиксированным ключам; исходные объекты и ACL нужно проверить до запуска.
 for (const item of files) {
   console.log("Downloading", item.key, "...");
   const size = await download(item.url, item.file);

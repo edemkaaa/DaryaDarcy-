@@ -9,6 +9,7 @@ const photos = Array.from(
 const svg =
   '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="800"><rect width="640" height="800" fill="#d8c7ac"/></svg>';
 
+/** Принудительно снимаем нативную lazy-эвристику: ограничение запросов альбома должно обеспечиваться самим приложением и расширяться только при навигации. */
 test("a ten-photo carousel requests only adjacent slides and loads a distant slide on navigation", async ({
   page,
 }) => {
@@ -73,6 +74,7 @@ test("a ten-photo carousel requests only adjacent slides and loads a distant sli
   expect(requested.size).toBeLessThanOrEqual(4);
 });
 
+/** Проверяем совместимый legacy-маршрут обложек на локальных данных, не обращаясь к старому production-сайту. */
 test("YouTube covers use our media route instead of the old production site", async ({
   page,
 }) => {
@@ -114,6 +116,7 @@ test("YouTube covers use our media route instead of the old production site", as
     .toBeGreaterThan(0);
 });
 
+/** Карточка и просмотрщик должны выбирать ограниченный preview; отдельно ловим любое прямое скачивание исходника браузером. */
 test("public feed cards and the viewer use bounded previews without fetching the original", async ({
   page,
 }) => {
@@ -177,6 +180,7 @@ test("public feed cards and the viewer use bounded previews without fetching the
   expect(originals).toEqual([]);
 });
 
+/** Этот сценарий обращается к реальному image processor тестового web-сервера и сравнивает тип/размер результата с источником. */
 test("club previews are smaller WebP files served by the real image processor", async ({
   page,
   request,
@@ -204,6 +208,7 @@ test("club previews are smaller WebP files served by the real image processor", 
   await page.screenshot({ path: test.info().outputPath("club-previews.png") });
 });
 
+/** Набор непубличных и чужих адресов проверяет отказ до внешней загрузки, а не успешность самого источника. */
 test("the image processor refuses private, signed and foreign sources before fetching", async ({
   request,
 }) => {

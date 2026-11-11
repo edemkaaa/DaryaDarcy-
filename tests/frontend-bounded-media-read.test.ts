@@ -1,3 +1,4 @@
+/** Настоящий bounded stream reader проверяет накопленные bytes, не доверяя одному Content-Length. */
 import { afterEach, expect, it, vi } from "vitest";
 import { attachmentBase64 } from "../apps/frontend/src/shared/media/read-attachment";
 import { uriToBase64 } from "../apps/frontend/src/shared/media/image-upload";
@@ -12,12 +13,14 @@ import { readResponseBlob } from "../apps/frontend/src/shared/browser/file-opera
 import { createServer } from "node:http";
 import { once } from "node:events";
 
+/** Возвращаем globals и отменяем старую session generation. */
 afterEach(() => {
   vi.unstubAllGlobals();
   cancelSessionRequests();
 });
 
 // Real Response/ReadableStream; replace only remote transport, never the reader.
+/** Attachment/photo/avatar/video прекращают чтение на лимите и отменяют источник, даже если header лжёт о размере. */
 it.each([
   ["attachment", MAX_ATTACHMENT_BYTES, attachmentBase64],
   ["photo", MAX_ATTACHMENT_BYTES, uriToBase64],
@@ -70,6 +73,7 @@ it.each([
   },
 );
 
+/** Data URI сверх input budget не запускает atob или fetch. */
 it("rejects oversized local avatar data before decoding or fetching", async () => {
   const fetch = vi.fn();
   const decode = vi.fn();
@@ -82,6 +86,7 @@ it("rejects oversized local avatar data before decoding or fetching", async () =
   expect(decode).not.toHaveBeenCalled();
 });
 
+/** При отсутствующем/неверном/точном header допустимые8bytes сохраняются вместе с MIME, reader lock освобождён. */
 it.each([undefined, "1", "8"])(
   "preserves bytes and MIME up to the exact limit, headers=%j",
   async (length) => {
@@ -99,6 +104,7 @@ it.each([undefined, "1", "8"])(
   },
 );
 
+/** Очевидно большой header отклоняется до allocation первого chunk. */
 it("rejects an advertised oversize before pulling its first chunk", async () => {
   let pulled = false,
     cancelled = false;
@@ -122,6 +128,7 @@ it("rejects an advertised oversize before pulling its first chunk", async () => 
   expect(response.body?.locked).toBe(false);
 });
 
+/** Abort редактора отменяет body stream и освобождает lock. */
 it("cancels a stalled body when the editor operation is aborted", async () => {
   const controller = new AbortController();
   let cancelled = false;
@@ -139,6 +146,7 @@ it("cancels a stalled body when the editor operation is aborted", async () => {
   expect(response.body?.locked).toBe(false);
 });
 
+/** Ошибка источника и пустой body не становятся готовым Blob. */
 it("does not turn a broken or empty stream into a successful file", async () => {
   const failure = new Error("stream interrupted");
   const response = new Response(
@@ -153,6 +161,7 @@ it("does not turn a broken or empty stream into a successful file", async () => 
   await expect(readResponseBlob(new Response(null), 8)).rejects.toThrow("пуст");
 });
 
+/** На настоящем chunked socket достижение budget закрывает соединение до отправки полного ответа. */
 it("closes a real chunked loopback HTTP response after reaching the limit", async () => {
   let sent = 0;
   let closed!: () => void;

@@ -3,7 +3,7 @@ import { invalidResponse } from "@/shared/api/errors";
 
 export type PostInteractions = { likedIds: number[]; savedIds: number[] };
 
-/** Deduplicate requested IDs and keep each wire batch within the API limit. */
+/** Убираем дубли и недопустимые ID, затем формируем упорядоченные сетевые пачки не больше 50 элементов. */
 export function interactionBatches(postIds: readonly number[]): number[][] {
   const ids = [...new Set(postIds)].filter(
     (id) => Number.isSafeInteger(id) && id > 0,
@@ -14,6 +14,7 @@ export function interactionBatches(postIds: readonly number[]): number[][] {
   return batches;
 }
 
+/** Принимаем likedIds/savedIds только из запрошенного множества; некорректный ответ не должен изменить чужие карточки. */
 export function requirePostInteractions(
   value: unknown,
   postIds: readonly number[],

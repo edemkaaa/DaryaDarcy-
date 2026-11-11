@@ -26,6 +26,7 @@ export const savedPostsPageInput = z
   })
   .strict();
 
+/** Читаем личные сохранения по дате/id с курсором аккаунта и раздела; фильтруем опубликованность и клубный доступ до LIMIT, подавляем исторические дубли и гидратируем выбранные карточки в том же контексте. */
 export async function savedPostsPage(
   database: MySql2Database | null,
   actor: User,
@@ -54,6 +55,7 @@ export async function savedPostsPage(
           eq(posts.status, "published"),
           or(eq(posts.target, input.target), eq(posts.target, "both")),
           hasClub ? undefined : ne(posts.target, "club"),
+// Если старые данные содержат несколько сохранений одного поста, в выдаче участвует только последнее по дате и ID.
           notExists(
             tx
               .select({ id: newer.id })

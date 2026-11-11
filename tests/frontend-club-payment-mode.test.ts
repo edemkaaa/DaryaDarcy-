@@ -1,3 +1,4 @@
+/** Проверяем выбор LIVE/TEST и строгую форму одноразовой Prodamus demo-ссылки, не открывая её. */
 import { afterEach, expect, it, vi } from "vitest";
 import {
   getClubPaymentMode,
@@ -5,7 +6,9 @@ import {
   isNormalCheckoutRecoveryEnabled,
 } from "../apps/frontend/src/features/club/payment-mode";
 
+/** Изолируем build-флаги между сценариями. */
 afterEach(() => vi.unstubAllEnvs());
+/** Только канонические согласованные значения выбирают режим; конфликт означает unavailable. */
 it.each([
   [undefined, undefined, "live"],
   ["false", "false", "live"],
@@ -27,9 +30,11 @@ it.each([
 
 const demo =
   "https://testpage1.payform.ru/?demo_mode=1&payments_limit=1&sum=790.00&currency=rub&order_id=club-test-101-00000000-0000-4000-8000-000000000001";
+/** Разрешённая demo-ссылка фиксирует магазин, валюту, сумму, одно списание и test-order. */
 it("accepts the isolated one-off 790 RUB demo checkout", () => {
   expect(requireProdamusTestUrl(demo)).toBe(demo);
 });
+/** Подмена origin, протокола, пути, реквизитов или повтор параметра должна отклоняться. */
 it.each([
   demo.replace("testpage1", "live"),
   demo.replace("https:", "http:"),
@@ -46,6 +51,7 @@ it.each([
   expect(() => requireProdamusTestUrl(url)).toThrow();
 });
 
+/** Восстановление NORMAL включается только своим точным флагом и не смешивается с TEST. */
 it.each([
   [undefined, "false", "false", false],
   ["false", "false", "false", false],

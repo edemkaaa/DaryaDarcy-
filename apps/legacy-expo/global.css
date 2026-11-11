@@ -1,7 +1,10 @@
+/** Порядок базовых слоёв сохранён: директивы требуют прежнего Tailwind pipeline, а не самостоятельной загрузки CSS. */
+/** Архивное Expo web-оформление: базовые Tailwind слои, ограниченный корневой контейнер и визуальные ограничения Клуба. Не является стилями текущего Next-клиента. */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/** Внешний document не скроллится: прокрутка принадлежит внутренним экранам прежней оболочки. */
 html,
 body {
   height: 100%;
@@ -11,6 +14,7 @@ body {
 html {
   background-color: #cbbba6;
 }
+/** Старый web-клиент ограничен480px и центрируется; этот контейнер не переносится автоматически в новый интерфейс. */
 #root {
   height: 100%;
   width: 100%;
@@ -26,6 +30,7 @@ html {
 }
 
 /* Club post tags sit at the bottom of the card and should read comfortably. */
+/** Локальные important-переопределения исправляют читаемость карточных тегов при смешении native/web стилей. */
 .club-post-tag {
   display: inline-flex !important;
   align-items: center !important;
@@ -51,6 +56,7 @@ html {
 }
 
 /* Club content: no copy / long-press callout / image drag. */
+/** CSS убирает выделение и drag, но не ограничивает HTTP-доступ к исходному файлу. */
 .club-protected,
 .club-protected * {
   -webkit-user-select: none !important;
@@ -58,6 +64,7 @@ html {
   -webkit-touch-callout: none !important;
   -webkit-user-drag: none !important;
 }
+/** Поля ввода сохраняют обычное выделение текста даже внутри визуально защищённого Клуба. */
 .club-protected input,
 .club-protected textarea,
 .club-protected [contenteditable="true"] {

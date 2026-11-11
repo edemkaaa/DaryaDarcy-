@@ -10,6 +10,7 @@
     font-weight: 600;
     color: var(--ink);
   }
+  /* Кнопки выбора делят доступную строку поровну, а список файлов располагается ниже. */
   .buttons {
     flex-direction: row;
     gap: 8px;
@@ -34,6 +35,7 @@
     gap: 6px;
     margin-top: 8px;
   }
+  /* Вложение занимает отдельную строку; min-width:0 разрешает имени сжиматься рядом с кнопкой удаления. */
   .item {
     flex-direction: row;
     align-items: center;
@@ -57,6 +59,7 @@
     justify-content: center;
     align-items: center;
   }
+  /* Нажатие меняет прозрачность, сохраняя размер области действия. */
   .pressed {
     opacity: 0.7;
     --action-base-opacity: 0.7;

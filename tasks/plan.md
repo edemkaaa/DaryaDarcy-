@@ -2,6 +2,16 @@
 
 ## Пояснения к исходникам и навигация — 11 ноября
 
+Продолжение по требованию «сделать полностью»: пройти все рукописные файлы
+небольшими пачками, прочитать тела функций и дополнить объяснение каждого
+именованного callable, важных callbacks и этапов. Для тестов описать сценарии
+и подготовку окружения, для конфигураций — смысл секций. Генерируемые файлы,
+миграции, данные и ресурсы описывать снаружи, не портя их формат и хеши.
+Отдельно сверить действующие документы, сохранить датированные свидетельства,
+обновить справочник и доказать неизменность AST/конфигураций/ресурсов.
+Критерий завершения: учтён каждый путь и каждый именованный блок, исключения
+перечислены явно; автоматический инвентарь не засчитывается за ручное чтение.
+
 Задача владельца: понятные русские пояснения функций и смысловых этапов,
 справочник каждого файла, актуальные инструкции и удаление доказанно лишних
 артефактов. Существующие исправления сохраняются. Комментарии не должны менять
@@ -12,6 +22,27 @@
 проверка ссылок и потребителей перед уборкой; проверка неизменности кода,
 типов, линтера и сборки. Датированные аудиты сохраняют статус исторических
 снимков. Подробный состав работ фиксируется в текущем чек-листе.
+
+### Упорядочивание структуры по поручению владельца
+
+Спецификации собрать в docs/specifications, журнал фронтенда — в docs/development,
+регрессионные проверки — в tests/regression, Dockerfile и build-only профиль —
+в infrastructure/build. Runtime Compose остаётся в infrastructure/deploy.
+Сохранить apps/backend и apps/frontend как независимые workspace; общие пакеты
+и генерируемый контракт согласовываются двумя разработчиками. Обновить все
+ссылки, импорты, относительные build contexts и команды; проверить регрессии,
+типы, границы, API, документацию и конфигурацию сборки без запуска сервисов.
+Корневые package/lock/workspace/CI-конфиги остаются на обязательных местах.
+Пуш, выкладка и изменение данных в этот этап не входят.
+
+Итог полного прохода: 1 947 рукописных исходников учтены ручным чтением,
+19 авторских/генерируемых исключений явно описаны; непокрытого рукописного кода
+в инвентаре нет. Сохранность AST/literals, стилей, схемы и ресурсов проверена.
+Изменения генератора, проверки ссылок, путь тестов и архивный secret guard
+отделены от комментариев. Unit/HTTP 4 118 passed / 98 skipped; бот78passed.
+Структура: 32 переноса, independent review без обязательных замечаний.
+[Итоговые границы и приоритеты](../docs/development/source-explanation-2026-11-11.md).
+Это закрывает документирование/организацию, но не серверную или внешнюю приёмку.
 
 ## Восстановление API после потери lock — 9 ноября
 
@@ -2842,10 +2873,10 @@ push/deploy не тронуты. Frontend purpose/cancellation/generated integra
 
 Основания: [сохранённая матрица ТЗ 2.1/4.1–4.16](../docs/audits/frontend-stage-one-scope-2026-10-03.md),
 последние прямые поручения пользователя, документ «Задачи_бэкендеру_2026-10-12.md»,
-[план фронтендера](../apps/frontend/WORK_PLAN.md), принятые
-[email-binding](../SPEC-email-binding.md),
-[article-create-recovery](../SPEC-article-create-recovery.md) и
-[private-files](../SPEC-private-files.md).
+[план фронтендера](../docs/development/frontend-work-plan.md), принятые
+[email-binding](../docs/specifications/SPEC-email-binding.md),
+[article-create-recovery](../docs/specifications/SPEC-article-create-recovery.md) и
+[private-files](../docs/specifications/SPEC-private-files.md).
 Оригинал договора повторно доступен20 октября; страницы5–6 (§2.1/3.1/4.1–4.16)
 сверены в [аудите](../docs/development/frontend-fixes-contract-audit-2026-10-20.md).
 Полный экспорт переписки не восстановлен. Документы служат источниками
@@ -4056,7 +4087,7 @@ HEAD и не подтверждение версии сервера. В нача
 #### VU — закрытая загрузка видео постов, принято16 октября
 
 Последнее прямое поручение: реализовать принятый минимальный контракт
-[VU](../SPEC-private-files.md), локально, без дизайна/рабочей DB/старых файлов,
+[VU](../docs/specifications/SPEC-private-files.md), локально, без дизайна/рабочей DB/старых файлов,
 push/deploy. Browser/mobile отложены. VU1/VU2/VU3 проверены локально:
 private binary endpoint/receipt/schema, atomic poster/binding/read/removal,
 typed coordinator и binary owner journal; оба existing editors теперь выбирают
@@ -4620,7 +4651,7 @@ synthetic fixture. При отсутствии предоставленных п
 
 #### AG6 — Остатки обычной оплаты и отмены на локальном сервере (P2/P3; M на сценарий)
 
-14 октября принят [normal-checkout recovery contract](../SPEC-normal-checkout-recovery.md):
+14 октября принят [normal-checkout recovery contract](../docs/specifications/SPEC-normal-checkout-recovery.md):
 первый срез только authenticated аккаунт, две отдельные protected процедуры,
 ledger/transactional replay, существующие guest/TEST пути неизменны. Пользователь
 явно разрешил локальную реализацию без фронта/рабочей БД. AG6a/AG6b реализованы:
@@ -4660,7 +4691,7 @@ module и соответствующий тест. Реальные платеж
 
 #### AG8 — Зафиксировать необходимый объём VK (V1/V2; S, исследование)
 
-14 октября принят и реализован локально [контракт](../SPEC-vk-catalog-access.md).
+14 октября принят и реализован локально [контракт](../docs/specifications/SPEC-vk-catalog-access.md).
 Сохранённое ТЗ 4.11 предусматривает раздел Видео и вложения; старый public каталог
 не являлся защищённым mixed каталогом. Добавлены catalog/playback/admin VK write,
 default-off VK_CATALOG_ENABLED, schema 0031 и legacy/worker guards. Native: 88
@@ -4812,7 +4843,7 @@ replay, immutable intent, no TTL; browser integration отдельно фрон�
 
 Пользователь поручил защиту от дублей после потери ответа/reload, сначала
 согласовать серверный контракт, фронт не трогать. Accepted local contract:
-[SPEC-article-create-recovery](../SPEC-article-create-recovery.md).
+[SPEC-article-create-recovery](../docs/specifications/SPEC-article-create-recovery.md).
 Optional actor-bound UUID key/прежний numeric result, read-only status и отдельный
 durable ledger с atomic article/teaser commit. Working migration/retention/
 rollout отдельно gated; no automatic cleanup or schema repair.
@@ -4867,7 +4898,7 @@ container/volume or working DB touched. No push/deploy; integration gates above.
 **Уточнение пользователя: продолжать по документу, без новых правок фронтендера.**
 
 **M2a — approved first read-only proxy slice, 13 октября:** accepted contract
-[SPEC-private-files](../SPEC-private-files.md), explicit go to implement. Порядок:
+[SPEC-private-files](../docs/specifications/SPEC-private-files.md), explicit go to implement. Порядок:
 native HTTP/JWT/SQL RED → Content-owned attachment/parent access boundary и
 default-off controller → S3 signed transport stream/HEAD/range + loopback wire
 → failures/abort/revocation acceptance → types/build/boundaries/docs/review/commit.
@@ -5134,9 +5165,9 @@ eligibility guard для write/read, hooks без новой условност�
 
 Это рабочий приоритет поверх исторического журнала ниже. Основание:
 [разбор приложения № 1, пп. 2.1 и 4.1–4.16](../docs/audits/frontend-stage-one-scope-2026-10-03.md),
-[план фронтендера](../apps/frontend/WORK_PLAN.md),
+[план фронтендера](../docs/development/frontend-work-plan.md),
 [аудит админки](../docs/audits/admin-completion-2026-10-10.md),
-[согласованная привязка почты](../SPEC-email-binding.md) и текущий код.
+[согласованная привязка почты](../docs/specifications/SPEC-email-binding.md) и текущий код.
 Исходный PDF договора сейчас не найден: это сверка сохранённого разбора с кодом,
 а не повторная экспертиза оригинала. Старые записи «не выложено» и «Docker не
 работает» не описывают нынешнее состояние. Свежий fetch: staging = origin/staging
@@ -8966,7 +8997,7 @@ Manifest IDs match all 459 cases exactly once. The attachment chooser failure
 in batch 4 was fixed and the whole 77-case batch passed on rerun; the interrupted
 partial 90-case run is not used in the final result.
 Dockerfile restored on user request; no image-build mode selection added.
-Final results are recorded in `apps/frontend/WORK_PLAN.md`.
+Final results are recorded in `docs/development/frontend-work-plan.md`.
 Shop manager form is discussion only; legacy Expo online checkout is not that
 form. No real payment/callback, server deployment or device acceptance claimed.
 
@@ -14658,8 +14689,8 @@ First-email identity scenario, M07c drain bound, provider/SMTP/recurring/device 
 previous dependency/rollout gates remain open.
 
 Verification notes: the attempted tests/docs-links.test.ts filter does not exist
-and ran no tests; the correct __tests__/documentation-links.test.ts and
-__tests__/documentation-cli.test.ts then passed all 14 checks. Docs command
+and ran no tests; the correct tests/regression/documentation-links.test.ts and
+tests/regression/documentation-cli.test.ts then passed all 14 checks. Docs command
 itself passed 51 documents.
 Formatting of old Markdown produced unrelated changes; restored those exact
 original hunks and kept only new sections before commit. No waived test failure.
@@ -15701,7 +15732,7 @@ remote push, deployment, provider request, email dispatch or working SQL fixture
 
 The human approved admin-only first binding with recipient confirmation, no
 merge/replacement and rejection of occupied email. The prior feature-scenario
-question is resolved. [Detailed spec](../SPEC-email-binding.md) now records the
+question is resolved. [Detailed spec](../docs/specifications/SPEC-email-binding.md) now records the
 API, threat boundaries, ordered slices and acceptance before production code.
 
 New prerequisite found by source inspection: users.email has only a non-unique

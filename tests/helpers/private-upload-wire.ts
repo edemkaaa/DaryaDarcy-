@@ -4,6 +4,8 @@ import type { AddressInfo } from "node:net";
 
 /** Owned SDK wire fixture, not Timeweb ACL acceptance. Stores actual request bytes. */
 export async function openPrivateUploadWire(options: { content?: boolean; publicPhotos?: boolean; attachments?: boolean } = {}) {
+  // Локальный S3-подобный HTTP wire хранит фактические байты и условные записи; это проверка SDK-протокола, а не приёмка ACL Timeweb.
+
   const objects = new Map<
     string,
     {
@@ -70,6 +72,7 @@ export async function openPrivateUploadWire(options: { content?: boolean; public
       return;
     }
     const key = decodeURIComponent(url.pathname.slice(`/${bucket}/`.length));
+    // Условный PUT проверяется и до чтения, и непосредственно перед commit, чтобы конкурентная запись не перезаписала объект.
     if (req.method === "PUT") {
       if (
         req.headers["if-none-match"] !== "*" ||
@@ -131,6 +134,7 @@ export async function openPrivateUploadWire(options: { content?: boolean; public
       res.writeHead(404).end();
       return;
     }
+    // Удаление требует ETag исходного объекта; fault injection может потерять квитанцию уже после удаления.
     if (req.method === "DELETE") {
       if (req.headers["if-match"] !== object.etag) {
         res.writeHead(412).end();
@@ -160,6 +164,7 @@ export async function openPrivateUploadWire(options: { content?: boolean; public
       res.end();
       return;
     }
+    // Чтение проверяет ETag и ограниченный Range, обеспечивая побайтовые утверждения без настоящего S3.
     if (req.method === "GET") {
       if (req.headers["if-match"] !== object.etag) { res.writeHead(412).end(); return; }
       if (req.headers.range) {
@@ -182,20 +187,30 @@ export async function openPrivateUploadWire(options: { content?: boolean; public
     bucket,
     endpoint: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
     dropPutAck: () => {
+      // Теряет следующий ответ уже после сохранения объекта, моделируя неопределённый исход PUT.
+
       dropNextPut = true;
     },
     pausePut: () => {
+      // Удерживает PUT между чтением байтов и коммитом, чтобы управляемо проверить гонку и отключение клиента.
+
       let enter!:()=>void,release!:()=>void;
       let disconnected = false;
       const entered=new Promise<void>(resolve=>{enter=resolve;});
       const wait=new Promise<void>(resolve=>{release=resolve;});
-      putGate = { entered: enter, wait, disconnected: () => { disconnected = true; } };
-      return { entered, release, isDisconnected: () => disconnected };
+      putGate = { entered: enter, wait, disconnected: () => {
+        // Фиксирует закрытие ответа до успешной отправки квитанции клиенту.
+ disconnected = true; } };
+      return { entered, release, isDisconnected: () => /* Даёт тесту наблюдать отключение без доступа к внутреннему сокету. */ disconnected };
     },
     dropDeleteAck: () => {
+      // Теряет ответ после фактического удаления, проверяя восстановление неизвестного DELETE.
+
       dropNextDelete = true;
     },
     pauseDelete: () => {
+      // Удерживает удаление до явного разрешения теста, оставляя возможность проверить конкурентную привязку.
+
       let enter!: () => void, release!: () => void;
       const entered = new Promise<void>((resolve) => {
         enter = resolve;
@@ -207,9 +222,13 @@ export async function openPrivateUploadWire(options: { content?: boolean; public
       return { entered, release };
     },
     rejectPolicy: (value: boolean) => {
+      // Имитирует отсутствие требуемой deny-policy, чтобы приложение отказало в небезопасной приватной загрузке.
+
       rejectPolicy = value;
     },
     close: async () => {
+      // Закрывает только собственный HTTP wire и незавершённые соединения.
+
       server.closeAllConnections();
       await new Promise<void>((resolve) => server.close(() => resolve()));
     },

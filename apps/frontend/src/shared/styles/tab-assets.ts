@@ -1,6 +1,5 @@
 "use client";
-/** Изображения вкладок собраны отдельно от навигации, чтобы подписи маршрутов не зависели от выбора ресурсов. */
-/** Licensed ambient music for Club Darcy tab (Darcy's Autumn). */
+/** Изображения вкладок собраны отдельно от навигации, чтобы подписи маршрутов не зависели от выбора ресурсов. Лицензированная фоновая музыка клуба хранится отдельно от навигационных ресурсов. */
 export const CLUB_MUSIC_URL =
   "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/club/darcys-autumn.mp3";
 /** Video tab banner decorations (from design reference) */

@@ -1,3 +1,4 @@
+// Архив Expo. Декодирует CORS-совместимую картинку для последующего Canvas-экспорта.
 import type { MoodboardDoc } from "@/lib/moodboard/types";
 import {
   boardLayout,
@@ -9,6 +10,8 @@ const EXPORT_W = 1000;
 const EXPORT_H = Math.round(EXPORT_W / BOARD_FRAME_ASPECT);
 
 function loadImage(src: string): Promise<HTMLImageElement> {
+  // Декодирует CORS-совместимую картинку для последующего Canvas-экспорта.
+
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
@@ -19,12 +22,16 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 function boardFrameSrc(): string {
+  // Разрешает локальный alpha-PNG рамки в URI сборки web.
+
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const asset = require("@/assets/images/moodboard/board-frame-alpha.png");
   return asset?.uri ?? asset;
 }
 
 export async function exportMoodboardImage(board: MoodboardDoc): Promise<Blob> {
+  // Собирает PNG 1000 px в координатах доски, пропуская изображения с ошибкой загрузки.
+
   const canvas = document.createElement("canvas");
   canvas.width = EXPORT_W;
   canvas.height = EXPORT_H;
@@ -64,6 +71,8 @@ export async function exportMoodboardImage(board: MoodboardDoc): Promise<Blob> {
 }
 
 export async function saveAndShareMoodboard(board: MoodboardDoc): Promise<void> {
+  // Предлагает системный share файла, иначе запускает скачивание и освобождает object URL.
+
   const blob = await exportMoodboardImage(board);
   const fileName = `${board.title.replace(/\s+/g, "-") || "moodboard"}.png`;
   const file = new File([blob], fileName, { type: "image/png" });

@@ -33,12 +33,16 @@ type TileRect = {
 };
 const webBlockImageMenu = {
   onContextMenu: (event: MouseEvent<HTMLDivElement>) => {
+    // Не даёт системному меню перехватить длинное нажатие, предназначенное для перестановки фото.
+
     event.preventDefault?.();
     event.stopPropagation?.();
     event.nativeEvent?.preventDefault?.();
     return false;
   },
   onDragStart: (event: DragEvent<HTMLDivElement>) => {
+    // Отключает браузерный drag картинки, чтобы им управлял общий жест перестановки.
+
     event.preventDefault?.();
   },
 };
@@ -58,6 +62,8 @@ export function PhotoEditor({
   onReplace,
   replaceDisabled,
 }: PhotoEditorProps) {
+  // Переставляет выбранные ссылки, не меняя файлы; длинный набор показывает карусель с отдельными draggable миниатюрами.
+
   const viewport = useViewport();
 
   const tileRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -72,8 +78,12 @@ export function PhotoEditor({
   const useCarousel = photos.length > 10;
   const canDragReorder = Boolean(onReorder) && photos.length > 1;
   useEffect(() => {
+    // На время drag-перестановки подавляет contextmenu только в области фото; при закрытии снимает обработчик.
+
     if (!canDragReorder) return;
     const blockMenu = (event: Event) => {
+      // Подавляет contextmenu только у помеченных draggable фото, оставляя обычное меню страницы доступным.
+
       const target = event.target as HTMLElement | null;
       if (target?.closest?.("[data-photo-drag]")) {
         event.preventDefault();
@@ -83,6 +93,8 @@ export function PhotoEditor({
     return () => document.removeEventListener("contextmenu", blockMenu, true);
   }, [canDragReorder]);
   const measureAllTiles = useCallback(() => {
+    // Снимает viewport-координаты всех плиток перед поиском цели жеста.
+
     photos.forEach((_, index) => {
       const rect = tileRefs.current[index]?.getBoundingClientRect();
       if (rect)
@@ -96,6 +108,8 @@ export function PhotoEditor({
   }, [photos]);
   const findIndexAtPoint = useCallback(
     (pageX: number, pageY: number) => {
+      // Определяет плитку под абсолютными координатами указателя по последнему измерению.
+
       for (let i = 0; i < photos.length; i++) {
         const rect = tileLayouts.current[i];
         if (!rect) continue;
@@ -113,6 +127,8 @@ export function PhotoEditor({
     [photos.length],
   );
   const resetDrag = useCallback(() => {
+    // Сбрасывает синхронные индексы и визуальный сдвиг после завершения перестановки.
+
     dragFromRef.current = null;
     overIndexRef.current = null;
     setDragFrom(null);
@@ -122,6 +138,8 @@ export function PhotoEditor({
   }, []);
   const startDrag = useCallback(
     (index: number) => {
+      // Измеряет плитки до начала жеста и сохраняет исходный индекс независимо от React-рендера.
+
       measureAllTiles();
       dragFromRef.current = index;
       overIndexRef.current = index;
@@ -138,6 +156,8 @@ export function PhotoEditor({
       pageX: number,
       pageY: number,
     ) => {
+      // Обновляет визуальный сдвиг и цель только при попадании указателя в другую измеренную плитку.
+
       setDragOffset({ x: translationX, y: translationY });
       const next = findIndexAtPoint(pageX, pageY);
       if (next != null) {
@@ -148,6 +168,8 @@ export function PhotoEditor({
     [findIndexAtPoint],
   );
   const finishDrag = useCallback(() => {
+    // Передаёт одну перестановку родителю лишь при отличающейся цели, затем очищает состояние жеста.
+
     const from = dragFromRef.current;
     const to = overIndexRef.current;
     if (from != null && to != null && from !== to && onReorder) {
@@ -157,7 +179,7 @@ export function PhotoEditor({
   }, [onReorder, resetDrag]);
   const makeDragGesture = useCallback(
     (index: number) =>
-      Gesture.Pan()
+      /* Начинает перенос после удержания, чтобы обычная прокрутка и короткое нажатие не меняли порядок фото. */ Gesture.Pan()
         .activateAfterLongPress(LONG_PRESS_MS)
         .onStart(() => {
           runOnJS(startDrag)(index);
@@ -183,6 +205,8 @@ export function PhotoEditor({
     surfaceClassName?: string,
     imageWidth?: number,
   ) => {
+    // Добавляет жест только при поддержке перестановки; изображение блокирует native drag и контекстное меню.
+
     const image = (
       <Picture
         source={{ uri }}
@@ -211,7 +235,7 @@ export function PhotoEditor({
     );
   };
   const tileClassName = (index: number) =>
-    [
+    /* Отделяет визуальные состояния источника и цели без изменения порядка массива во время движения. */ [
       dragging && dragFrom === index ? tileStyles.dragging : "",
       dragging && overIndex === index && dragFrom !== index
         ? tileStyles.dropTarget
@@ -220,6 +244,8 @@ export function PhotoEditor({
       .filter(Boolean)
       .join(" ");
   const tileChrome = (index: number) => {
+    // Переносит только исходную плитку поверх остальных, оставляя её место в раскладке.
+
     const isSource = dragging && dragFrom === index;
     return [
       isSource
@@ -236,7 +262,7 @@ export function PhotoEditor({
         : null,
     ];
   };
-  const renderThumbStrip = () => (
+  const renderThumbStrip = () => /* Даёт отдельные измеряемые цели для длинной карусели, где большие слайды неудобны для drag. */ (
     <ScrollArea horizontal hideScrollbar className={classes.thumbStrip}>
       {photos.map((uri, i) => (
         <MeasuredBox
@@ -394,6 +420,8 @@ function PhotoControls({
   hideReorder?: boolean;
   hideIndex?: boolean;
 }) {
+  // Предлагает удаление, замену и кнопочную перестановку; при жестах дублирующие стрелки скрываются.
+
   return (
     <>
       <Action

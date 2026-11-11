@@ -11,6 +11,7 @@ import { preparePhoto } from "./photos";
 
 /** Server-owned public covers only. Content-addressed keys never replace files.
  * A retry after lost PUT acknowledgement reuses the verified object by HEAD. */
+/** Нормализуем найденную обложку в отдельный WebP, выводим неизменяемый ключ из sourceKey и SHA-256 результата и создаём условно; повтор принимает только проверенную прежнюю копию. */
 export async function saveVkPoster(
   sourceKey: string,
   input: Buffer,
@@ -41,6 +42,7 @@ export async function saveVkPoster(
       throwOnRequestTimeout: true,
     },
   });
+  /** Проверяем HEAD по размеру, MIME, хешу и VK-источнику; только настоящий 404 разрешает новую запись. */
   async function exists() {
     try {
       const head = await client.send(new HeadObjectCommand(object), {

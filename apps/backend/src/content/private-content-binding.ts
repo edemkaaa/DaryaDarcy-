@@ -11,9 +11,11 @@ import { assertContentRecoveryWindow } from "./recovery-window";
 export type ContentFileUsage = typeof privateContentFiles.$inferSelect.usage;
 export type ContentFileReference = { url: string; usage: ContentFileUsage };
 type Writer = Pick<ContentTransaction, "select" | "insert" | "update" | "execute">;
+/** Отказываем в привязке недоступного или уже занятого приватного файла одинаковым конфликтом. */
 const conflict = () => new TRPCError({ code: "CONFLICT", message: "Файл недоступен для привязки" });
 
 /** Only exact application references are accepted. Reserved S3/URL aliases cannot bypass receipts. */
+/** Распознаём зарезервированные приватные маршруты после декодирования, но принимаем только точную относительную ссылку приложения с UUIDv4; алиасы S3 не обходят квитанции. */
 export function contentAssetId(raw: string): string | undefined {
   let decoded = raw;
   try { decoded = decodeURIComponent(raw); } catch { /* Preserve unrelated legacy strings. */ }
@@ -22,6 +24,7 @@ export function contentAssetId(raw: string): string | undefined {
   if (!match) throw new TRPCError({ code: "BAD_REQUEST", message: "Нужна ссылка приложения на загруженный файл" });
   return match[1];
 }
+/** Помечаем каждую ссылку массива фотографий назначением postPhoto для последующей проверки квитанций. */
 export const postPhotoReferences = (photos: string[]): ContentFileReference[] => photos.map(url => ({ url, usage: "postPhoto" }));
 /** Собираем текущие ссылки вложений поста в контексте переданной транзакции. */
 export async function postFileReferences(tx: Pick<Writer, "select">,
@@ -30,6 +33,7 @@ export async function postFileReferences(tx: Pick<Writer, "select">,
     .where(and(eq(postMedia.postId, postId), eq(postMedia.type, "video")));
   return postPhotoReferences([...photos, ...media.flatMap(row => row.posterUrl ? [row.posterUrl] : [])]);
 }
+/** Определяем наличие приватных ссылок через тот же строгий разбор, который используется при привязке. */
 export function hasPrivateContent(references: ContentFileReference[]): boolean { return references.some(ref => Boolean(contentAssetId(ref.url))); }
 /** Собираем ссылки из структурированных блоков статьи для проверки привязок. */
 export function articleFileReferences(blocks: ArticleBlock[]): ContentFileReference[] {
@@ -46,6 +50,7 @@ export function assertPublicContentCover(url: string | null | undefined) {
 }
 
 /** Caller locks actor then parent. No storage operations occur inside a material write. */
+/** Под блокировкой исполнителя и материала сверяем полный набор старых и новых файлов по назначению, владельцу и готовности; удалённые ссылки отзываем, новые связываем в той же транзакции. */
 export async function bindContentFiles(tx: Writer, parentKind: "post" | "article" | "comment", parentId: number,
   references: ContentFileReference[], previous: ContentFileReference[], actor: ContentWriteActor | undefined, commentPostId?: number) {
   const current = new Map<string, ContentFileUsage>();
@@ -59,6 +64,7 @@ export async function bindContentFiles(tx: Writer, parentKind: "post" | "article
   requirePrivateContentEnabled(); if (!actor) throw new TRPCError({ code: "UNAUTHORIZED" });
   await requirePrivateContentSchema(tx);
   const ids = [...new Set([...current.keys(), ...oldIds])];
+// Объединяем прежние и новые assetId и блокируем их в одном порядке: нельзя оставить непроверенный удалённый файл или захватить чужую привязку.
   const files = await tx.select().from(privateContentFiles).where(inArray(privateContentFiles.assetId, ids)).orderBy(asc(privateContentFiles.assetId)).for("update");
   if (files.length !== ids.length) throw conflict();
   for (const file of files) {

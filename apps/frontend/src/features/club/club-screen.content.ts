@@ -101,6 +101,7 @@ export interface ClubPost {
   date: string;
   type: "letter" | "broadcast" | "discussion" | "exclusive";
 }
+/** Старые демонстрационные карточки отделены от живой ленты ClubSubscribed, которая читает публикации только из API. */
 export const CLUB_POSTS: ClubPost[] = [
   {
     id: "cp1",
@@ -146,6 +147,7 @@ export const TYPE_LABELS: Record<string, string> = {
   exclusive: "Эксклюзив",
 };
 
+/** Передаём ширину viewport в размеры рекламных каруселей клуба. */
 export function getClubScreenContent(viewport: ViewportSize) {
   const { width: SCREEN_WIDTH } = viewport;
   return { SCREEN_WIDTH };

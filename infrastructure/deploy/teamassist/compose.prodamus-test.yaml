@@ -1,6 +1,7 @@
 # Отдельный TEST ingress использует принятый runtime и versioned bundle. Наличие этого сервиса не разрешает реальные списания или автоматическое включение на боевом хосте.
 # Append to existing dev overlays; never enable this service on a live-money host.
 services:
+# Отдельный процесс обслуживает только согласованные TEST-запросы; bundle монтируется read-only по версионированному пути.
   prodamus-test:
     image: ${PRODAMUS_TEST_RUNTIME_IMAGE:?Pin the accepted runtime image ID}
     pull_policy: never

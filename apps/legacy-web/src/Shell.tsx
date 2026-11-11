@@ -1,3 +1,4 @@
+/** Архивная оболочка Vite: общая шапка, вложенный маршрут и нижние вкладки. */
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "./auth";
 
@@ -10,6 +11,7 @@ const TABS = [
   { to: "/shop", label: "Магазин", icon: IconBag },
 ];
 
+/** Декоративная SVG-иконка Ленты; название раздела остаётся текстом ссылки. */
 function IconNews({ color }: { color: string }) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill={color} aria-hidden>
@@ -17,6 +19,7 @@ function IconNews({ color }: { color: string }) {
     </svg>
   );
 }
+/** Декоративная SVG-иконка каталога Видео с цветом текущего состояния вкладки. */
 function IconPlay({ color }: { color: string }) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill={color} aria-hidden>
@@ -24,6 +27,7 @@ function IconPlay({ color }: { color: string }) {
     </svg>
   );
 }
+/** Декоративная SVG-иконка Клуба; права доступа она не определяет. */
 function IconStar({ color }: { color: string }) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill={color} aria-hidden>
@@ -31,6 +35,7 @@ function IconStar({ color }: { color: string }) {
     </svg>
   );
 }
+/** Декоративная SVG-иконка Интерактива. */
 function IconSpark({ color }: { color: string }) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill={color} aria-hidden>
@@ -38,6 +43,7 @@ function IconSpark({ color }: { color: string }) {
     </svg>
   );
 }
+/** Декоративная SVG-иконка Библиотеки. */
 function IconBook({ color }: { color: string }) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill={color} aria-hidden>
@@ -45,6 +51,7 @@ function IconBook({ color }: { color: string }) {
     </svg>
   );
 }
+/** Декоративная SVG-иконка Магазина. */
 function IconBag({ color }: { color: string }) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill={color} aria-hidden>
@@ -52,6 +59,7 @@ function IconBag({ color }: { color: string }) {
     </svg>
   );
 }
+/** Рисует значок главной; доступное название задаётся кнопкой снаружи. */
 function IconHome({ color }: { color: string }) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill={color} aria-hidden>
@@ -59,6 +67,7 @@ function IconHome({ color }: { color: string }) {
     </svg>
   );
 }
+/** Рисует значок аккаунта; переход на профиль или вход выбирает оболочка. */
 function IconPerson({ color }: { color: string }) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" aria-hidden>
@@ -68,6 +77,7 @@ function IconPerson({ color }: { color: string }) {
   );
 }
 
+/** На главной использует светлую шапку поверх изображения; остальные экраны получают обычную шапку. Навигация аккаунта зависит от старого AuthProvider. */
 export function Shell() {
   const navigate = useNavigate();
   const location = useLocation();

@@ -14,6 +14,7 @@ import { openExternalUrl } from "@/shared/browser/actions";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { ScreenContainer } from "@/shared/ui/screen-container";
 import { PAPER_TEXTURE_URI } from "./video-screen.content";
+/** Отображаем готовый player в общей геометрии; право воспроизведения и выбор источника остаются у родителя. */
 export function VideoDetailView({
   title,
   player,

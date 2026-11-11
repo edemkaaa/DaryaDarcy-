@@ -20,6 +20,7 @@ const observations: unknown[] = [];
 let server: Server | undefined;
 let origin: string;
 const ranges: string[] = [];
+/** Проверяет явно заданные локальные исходник и rendition и поднимает loopback HTTP с точными MIME, HEAD и Range для неизменённого production-плеера. */
 beforeAll(async () => {
   if (!enabled) return;
   for (const path of [source!, rendition!])
@@ -92,6 +93,7 @@ beforeAll(async () => {
   await new Promise<void>((done) => server!.listen(0, "127.0.0.1", done));
   origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 });
+/** Закрывает локальный сервер и при явном пути создаёт новый защищённый отчёт рядом с исходником без перезаписи чужого файла. */
 afterAll(async () => {
   await new Promise<void>((done) => {
     if (!server) return done();
@@ -107,6 +109,7 @@ afterAll(async () => {
   }
 });
 
+/** Сравнивает реальную воспроизводимость локальных audio-файлов в Chromium и WebKit без SQL, внешней сети и Next-сборки. */
 describe.skipIf(!enabled)(
   "real HTTP audio with the unchanged production player",
   () => {
@@ -114,6 +117,7 @@ describe.skipIf(!enabled)(
       ["chromium", chromium],
       ["webkit", webkit],
     ] as const) {
+      /** Запускает выбранный browser engine с опциональным явно заданным WebKit executable. */
       const launch = () =>
         type.launch({
           headless: true,
@@ -121,6 +125,7 @@ describe.skipIf(!enabled)(
             ? { executablePath: process.env.AUDIO_WEBKIT_EXECUTABLE_PATH }
             : {}),
         });
+      /** Наблюдает playback либо media-error исходника с прежним и исправленным MIME, не предполагая заранее отказ Safari от ALAC. */
       it(`${engine}: observes original MIME versus corrected MIME without assuming Safari rejects ALAC`, async () => {
         const browser = await launch();
         try {
@@ -159,6 +164,7 @@ describe.skipIf(!enabled)(
         }
       }, 45000);
 
+      /** Проверяет звук без muted, запуск, seek, pause и resume утверждённого rendition на настоящем HTTP. */
       it(`${engine}: plays, seeks, pauses and resumes the approved rendition without muting`, async () => {
         const browser = await launch();
         try {
@@ -173,6 +179,7 @@ describe.skipIf(!enabled)(
           );
           await page.goto(`${origin}/?src=/rendition`);
           await page.click("#play");
+          /** Читает snapshot плеера из тестовой страницы для ожидания реального продвижения времени и ошибок. */
           const state = async () =>
             JSON.parse(await page.locator("#state").innerText());
           await ui

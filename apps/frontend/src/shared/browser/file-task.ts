@@ -1,5 +1,5 @@
 /** Локальная подготовка файла тоже имеет срок и сигнал отмены; поздно созданные ресурсы должны освобождаться вызывающей операцией. */
-/** Bound local decoding/preparation as well as network work. Late resources must be released by the task. */
+/** Даём локальной обработке общий сигнал с timeout и ждём гонку завершения/отмены; очистку ресурсов позднего task выполняет его реализация. */
 export async function runFileTask<T>(
   task: (signal: AbortSignal) => Promise<T>,
   signal?: AbortSignal,
@@ -11,10 +11,12 @@ export async function runFileTask<T>(
   const aborted = new Promise<never>((_, reject) => {
     rejectAbort = reject;
   });
+  /** Один исход прерывает signal и ожидающее Promise.race, даже если нативный декодер не умеет остановиться сразу. */
   const abort = (reason: unknown) => {
     controller.abort(reason);
     rejectAbort(reason);
   };
+  /** Переносим причину внешнего abort, чтобы вызывающий код различал отмену владельца и собственный timeout задачи. */
   const cancel = () =>
     abort(
       signal?.reason ?? new DOMException("Операция отменена", "AbortError"),

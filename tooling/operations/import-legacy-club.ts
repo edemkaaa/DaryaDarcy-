@@ -19,6 +19,8 @@ export function assertLegacyClubStagingIdentity(identity: {
   tables: number;
   history: number;
 }) {
+  // Привязывает старую одноразовую операцию к точным UUID, версии, числу таблиц и миграций; новый сервер не подходит автоматически.
+
   assert(
     identity.schema === "daryadarcy_candidate_20261019" &&
       identity.uuid === "2a41f961-c168-11f1-8660-0a4124b25f9f" &&
@@ -30,6 +32,8 @@ export function assertLegacyClubStagingIdentity(identity: {
 }
 
 export function assertLegacyClubStagingConnection(uri: string) {
+  // Разрешает ровно заранее согласованный внутренний адрес и схему MySQL без произвольных параметров.
+
   const url = new URL(uri);
   assert(
     url.protocol === "mysql:" &&
@@ -44,6 +48,8 @@ export function assertLegacyClubStagingConnection(uri: string) {
 
 type Profile = Pick<LegacyClubPlan, "schemaHash" | "baseline">;
 export function assertLegacyClubSchemaProfile(plan: Profile, profile: Profile) {
+  // Сверяет схему и историю миграций с проверенным бэкапом, не заменяя текущие данные пользователей старым снимком.
+
   assert.equal(
     plan.schemaHash,
     profile.schemaHash,
@@ -59,6 +65,8 @@ export function assertLegacyClubSchemaProfile(plan: Profile, profile: Profile) {
 }
 
 async function main() {
+  // Выполняет строго согласованную историческую фазу импорта с проверкой срока, идентичности БД, baseline и приватности файлов.
+
   const [phase] = process.argv.slice(2);
   assert(
     process.argv.length === 3 &&

@@ -7,8 +7,10 @@ import {
   requestClubCancellation,
   processCancellations,
 } from "../apps/backend/src/billing/cancellation";
+/** Проверяет сохраняемый запрос отмены, повтор worker и отсутствие ложного подтверждения при сбое провайдера. */
 describe.skipIf(!testDatabaseUrl)("durable subscription cancellation", () => {
   let conn: mysql.Connection, pool: mysql.Pool, database: MySql2Database;
+  /** Создаёт контрольное соединение, Drizzle-пул и собственного тестового плательщика. */
   beforeAll(async () => {
     conn = await openTestDatabase();
     pool = mysql.createPool({ uri: testDatabaseUrl!, timezone: "Z" });
@@ -17,6 +19,7 @@ describe.skipIf(!testDatabaseUrl)("durable subscription cancellation", () => {
       "INSERT IGNORE INTO users (id,openId,email) VALUES (779,'cancel-test','cancel@example.test')",
     );
   });
+  /** Восстанавливает согласованную историю paid-периода, профиля, receipt и outbox. */
   beforeEach(async () => {
     for (const table of [
       "access_email_outbox",
@@ -54,6 +57,7 @@ describe.skipIf(!testDatabaseUrl)("durable subscription cancellation", () => {
       [`club-access:${paymentKey}`],
     );
   });
+  /** Закрывает пул и удаляет только платежные данные и аккаунт suite. */
   afterAll(async () => {
     await pool?.end();
     for (const table of [
@@ -68,12 +72,14 @@ describe.skipIf(!testDatabaseUrl)("durable subscription cancellation", () => {
     );
     await conn?.end();
   });
+  /** Читает флаг окончания автопродления и оплаченный срок независимо от результата операции. */
   async function flags() {
     const [rows] = await conn.query<mysql.RowDataPacket[]>(
       "SELECT cancelAtPeriodEnd,expiresAt FROM club_payments WHERE userId=779",
     );
     return rows[0];
   }
+  /** Отказ провайдера оставляет запрос pending и не выставляет подтверждённый флаг cancelAtPeriodEnd. */
   it("provider failure is pending, not a confirmed cancellation", async () => {
     expect(
       (await requestClubCancellation(database, 779, async () => false))
@@ -86,6 +92,7 @@ describe.skipIf(!testDatabaseUrl)("durable subscription cancellation", () => {
     expect(rows[0].cancelRequestedAt).not.toBeNull();
     expect(rows[0].cancelledAt).toBeNull();
   });
+  /** Успешная отмена прекращает будущие списания, сохраняя уже оплаченный expiresAt. */
   it("confirmed cancellation preserves the entire paid period", async () => {
     expect(
       (await requestClubCancellation(database, 779, async () => true))
@@ -96,6 +103,7 @@ describe.skipIf(!testDatabaseUrl)("durable subscription cancellation", () => {
       expiresAt: new Date("2026-12-01T00:00:00Z"),
     });
   });
+  /** Сохранённый pending-запрос повторно обрабатывается worker после наступления nextAttemptAt. */
   it("worker retries a failed cancellation after a restart", async () => {
     await requestClubCancellation(database, 779, async () => false);
     await conn.query(
@@ -104,6 +112,7 @@ describe.skipIf(!testDatabaseUrl)("durable subscription cancellation", () => {
     await processCancellations(database, async () => true, 779);
     expect((await flags()).cancelAtPeriodEnd).toBe(1);
   });
+  /** Четыре одновременных worker получают единственный lease и вызывают провайдера один раз. */
   it("parallel workers claim a cancellation once", async () => {
     await requestClubCancellation(database, 779, async () => false);
     await conn.query(
@@ -124,6 +133,7 @@ describe.skipIf(!testDatabaseUrl)("durable subscription cancellation", () => {
     );
     expect(calls).toBe(1);
   });
+  /** Legacy-платёж без проверенного профиля даёт явный отказ и не меняет флаг отмены. */
   it("legacy monthly subscriptions without a verified provider profile cannot falsely report success", async () => {
     await conn.query("DELETE FROM billing_profiles WHERE userId=779");
     await expect(

@@ -8,10 +8,12 @@ import { savedPostsPage } from "../apps/backend/src/content/saved-posts-page";
 import { membersPage } from "../apps/backend/src/admin/members-page";
 import { commentsPage } from "../apps/backend/src/content/comments-page";
 
+/** Проверяет фактически отправленный SQL пагинации: кандидаты ограничены до гидратации и агрегаций. */
 describe.skipIf(!testDatabaseUrl)(
   "pagination SQL sent to disposable MySQL",
   () => {
     let fixture: Awaited<ReturnType<typeof openListPageFixture>>;
+    /** Создаёт собственную page-фикстуру и три сохранённых поста. */
     beforeAll(async () => {
       fixture = await openListPageFixture("pagination-query", 889000);
       await fixture.reset();
@@ -23,12 +25,14 @@ describe.skipIf(!testDatabaseUrl)(
         );
       }
     });
+    /** Закрывает и очищает изолированную фикстуру. */
     afterAll(async () => fixture?.close());
+    /** Подключает Drizzle-logger, читает текущего участника и начинает наблюдение с пустого журнала SQL. */
     async function observed() {
       const queries: { sql: string; params: unknown[] }[] = [];
       const database = drizzle({
         client: fixture.conn,
-        logger: { logQuery: (sql, params) => queries.push({ sql, params }) },
+        logger: { /** Запоминает отправленный SQL и параметры для проверки LIMIT и области ID. */ logQuery: (sql, params) => queries.push({ sql, params }) },
       });
       const [actor] = await database
         .select()
@@ -37,6 +41,7 @@ describe.skipIf(!testDatabaseUrl)(
       queries.length = 0;
       return { database, actor, queries };
     }
+    /** Сначала выбирается limit+1 сохранений, затем посты и вложения только возвращаемого ID. */
     it("limits save candidates before hydrating posts and media for page IDs", async () => {
       const { database, actor, queries } = await observed();
       await savedPostsPage(database, actor, { target: "feed", limit: 1 });
@@ -56,6 +61,7 @@ describe.skipIf(!testDatabaseUrl)(
         ]);
       }
     });
+    /** Агрегация сроков подписки ограничена участниками страницы, а не всей платежной таблицей. */
     it("aggregates payments only for returned member IDs, not the whole ledger", async () => {
       const { database, queries } = await observed();
       const result = await membersPage(database, 889002, {
@@ -72,6 +78,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(ledger.sql).toMatch(/ in \(\?\)/);
       expect(ledger.params[0]).toBe(889000);
     });
+    /** Список корней имеет отдельный parentId IS NULL и limit+1 независимо от count-запросов. */
     it("bounds a root group query separately from aggregate counts", async () => {
       const { database, actor, queries } = await observed();
       await commentsPage(database, actor, { postId: 889100, limit: 20 });

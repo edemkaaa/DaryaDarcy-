@@ -39,6 +39,7 @@ const member = {
   updatedAt: new Date("2026-10-28T10:00:00Z"),
   lastSignedIn: new Date("2026-10-28T10:00:00Z"),
 } satisfies User;
+/** Поднимает настоящий Nest HTTP на loopback с тестовым JWT и без доступа к БД и внешним провайдерам. */
 beforeAll(async () => {
   vi.stubEnv("DATABASE_URL", "");
   vi.stubEnv("JWT_SECRET", "public-auth-fixture-only-signing-key");
@@ -48,17 +49,21 @@ beforeAll(async () => {
   base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
   sessions = app.get(SessionService);
 });
+/** Изолирует persistence-вызовы SessionService для проверки публичного HTTP-контракта авторизации. */
 beforeEach(() => {
   vi.spyOn(sessions, "register").mockResolvedValue("created");
   vi.spyOn(sessions, "findByEmail").mockResolvedValue(undefined);
   vi.spyOn(sessions, "passwordUser").mockResolvedValue(null);
   vi.spyOn(sessions, "updateUser").mockResolvedValue(undefined);
 });
+/** Снимает spy-подмены, чтобы результат прошлого входа не влиял на следующий сценарий. */
 afterEach(() => vi.restoreAllMocks());
+/** Закрывает тестовое приложение и возвращает переменные окружения. */
 afterAll(async () => {
   await app?.close();
   vi.unstubAllEnvs();
 });
+/** Отправляет JSON в локальное приложение с управляемым адресом клиента для раздельной проверки IP и account-квот. */
 const post = (path: string, body: object, ip = "198.51.100.11") =>
   fetch(base + path, {
     method: "POST",
@@ -66,6 +71,7 @@ const post = (path: string, body: object, ip = "198.51.100.11") =>
     body: JSON.stringify(body),
   });
 
+/** Проверяет одинаковый принятый ответ регистрации нового, ожидающего и существующего аккаунта без cookie. */
 it("returns the same accepted registration response for new, pending and existing accounts", async () => {
   const bodies: unknown[] = [];
   for (const outcome of ["created", "pending", "duplicate"] as const) {
@@ -84,6 +90,7 @@ it("returns the same accepted registration response for new, pending and existin
   expect(bodies[0]).toEqual({ ok: true, message: expect.any(String) });
 });
 
+/** Отличает недоступную инфраструктуру регистрации от успешно принятой обработки. */
 it("keeps infrastructure registration failure distinct from accepted processing", async () => {
   vi.mocked(sessions.register).mockResolvedValueOnce("unavailable");
   const response = await post("/api/auth/register", {
@@ -94,6 +101,7 @@ it("keeps infrastructure registration failure distinct from accepted processing"
   expect(await response.json()).not.toHaveProperty("ok", true);
 });
 
+/** Проверяет выпуск JWT только в HttpOnly-cookie и ограниченный публичный профиль в JSON. */
 it("issues the session only in an HttpOnly cookie and returns just the public profile", async () => {
   vi.mocked(sessions.findByEmail).mockResolvedValueOnce(member);
   vi.mocked(sessions.passwordUser).mockResolvedValueOnce(member);
@@ -119,6 +127,7 @@ it("issues the session only in an HttpOnly cookie and returns just the public pr
   });
 });
 
+/** Проверяет общую квоту нормализованного email при смене IP до следующей проверки пароля. */
 it("throttles one normalized account across different IPs before checking another password", async () => {
   for (let attempt = 0; attempt < 5; attempt++) {
     const response = await post(
@@ -155,6 +164,7 @@ it("throttles one normalized account across different IPs before checking anothe
   ).toBe(401);
 });
 
+/** Сохраняет IP-квоту при переборе разных аккаунтов одним клиентом. */
 it("retains the IP quota when an attacker rotates accounts", async () => {
   for (let attempt = 0; attempt < 20; attempt++) {
     expect(
@@ -180,6 +190,7 @@ it("retains the IP quota when an attacker rotates accounts", async () => {
   expect(sessions.passwordUser).toHaveBeenCalledTimes(20);
 });
 
+/** Удерживает проверки пароля и доказывает резервирование квоты до их завершения. */
 it("reserves quota before concurrent password checks complete", async () => {
   let release!: () => void,
     arrived!: () => void,
@@ -224,6 +235,7 @@ it("reserves quota before concurrent password checks complete", async () => {
   }
 });
 
+/** Не расходует account-квоту на уже завершившиеся успешные входы. */
 it("does not penalize completed successful sign-ins", async () => {
   vi.mocked(sessions.findByEmail).mockResolvedValue(member);
   vi.mocked(sessions.passwordUser).mockResolvedValue(member);
@@ -239,6 +251,7 @@ it("does not penalize completed successful sign-ins", async () => {
 });
 
 
+/** Проверяет безопасный отказ для обрезанного сохранённого digest без обновления аккаунта и cookie. */
 it.each([0, 1, 31])(
   "rejects a %i-byte stored digest over HTTP without updating the account or issuing a cookie",
   async (length) => {
@@ -264,6 +277,7 @@ it.each([0, 1, 31])(
   },
 );
 
+/** Проверяет положительный путь настоящего password verifier до выпуска HTTP-сессии. */
 it("keeps a valid stored password usable through the real verifier and HTTP session issuance", async () => {
   const password = "synthetic-valid-password";
   vi.mocked(sessions.findByEmail).mockResolvedValueOnce({
@@ -285,6 +299,7 @@ it("keeps a valid stored password usable through the real verifier and HTTP sess
 });
 
 
+/** Отклоняет неподдерживаемую стоимость сохранённого хеша обычной ошибкой входа без cookie и обновлений. */
 it.each(["invalid", "3", "1048576"])(
   "returns an ordinary login refusal for unsupported stored cost %s",
   async (cost) => {
@@ -309,6 +324,7 @@ it.each(["invalid", "3", "1048576"])(
   },
 );
 
+/** Отличает исключение verifier от неверных данных и не раскрывает внутреннюю диагностику. */
 it("keeps an infrastructure verifier failure distinct from invalid credentials", async () => {
   vi.mocked(sessions.passwordUser).mockRejectedValueOnce(new Error("PRIVATE_VERIFIER_FAILURE"));
   const response = await post("/api/auth/login", {

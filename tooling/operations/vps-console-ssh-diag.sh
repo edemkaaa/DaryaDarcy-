@@ -10,6 +10,7 @@ ip -4 addr show scope global 2>/dev/null | awk '/inet /{print $2, $NF}'
 ip -6 addr show scope global 2>/dev/null | awk '/inet6 /{print $2, $NF}' | head -5
 
 echo "=== SSH SERVICE ==="
+# Состояние SSH и правила сети читаются без перезапуска службы.
 systemctl is-active ssh 2>/dev/null || systemctl is-active sshd 2>/dev/null || echo "ssh unit unknown"
 systemctl status ssh --no-pager -l 2>/dev/null | head -12 || systemctl status sshd --no-pager -l 2>/dev/null | head -12
 
@@ -42,12 +43,14 @@ else
 fi
 
 echo "=== RECENT SSH AUTH (last 30) ==="
+# Журнал может содержать IP и имена пользователей; это приватная диагностика.
 journalctl -u ssh -u sshd --no-pager -n 30 2>/dev/null \
   || tail -30 /var/log/auth.log 2>/dev/null \
   || tail -30 /var/log/secure 2>/dev/null \
   || echo "no auth logs found"
 
 echo "=== LOCAL SSH SELF-TEST ==="
+# Локальный self-test касается только loopback SSH и не доказывает доступность сервера извне.
 ssh -o BatchMode=yes -o ConnectTimeout=3 -o StrictHostKeyChecking=no root@127.0.0.1 echo ok 2>&1 || true
 
 echo "=== NGINX / API (local) ==="

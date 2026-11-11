@@ -2,6 +2,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { editorApi, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
+/** Прокручиваем настоящий внутренний контейнер wheel или CDP-touch после завершения анимации; проверяем неподвижность шапки и всегда освобождаем CDP-сессию. */
 async function scrollWithGesture(page: Page, form: Locator, touch: boolean) {
   const scroll = form.locator(".ui-scroll").first();
   const close = form.getByRole("button", {
@@ -54,6 +55,7 @@ async function scrollWithGesture(page: Page, form: Locator, touch: boolean) {
   });
 }
 
+/** Повторяем восстановление черновика для полного и быстрого редактора с мышью и касанием: ожидание записи запрещает ввод, но не просмотр формы. */
 for (const mode of ["full", "quick"] as const) {
   for (const touch of [false, true]) {
     test.describe(`${mode}: ${touch ? "touch" : "wheel"} scroll`, () => {
@@ -79,6 +81,7 @@ for (const mode of ["full", "quick"] as const) {
           }
         });
         await gotoWithSession(page, mode === "full" ? "/admin" : "/feed");
+        /** Дожидаемся проверки локального черновика прежде, чем разрешать тесту вводить текст. */
         const open = async () => {
           await page
             .getByRole("button", {
@@ -96,6 +99,7 @@ for (const mode of ["full", "quick"] as const) {
         };
         let form = await open();
         await scrollWithGesture(page, form, touch);
+        /** Находим поле у текущего экземпляра формы после reload, не удерживая локатор прежнего диалога. */
         const field = () =>
           form.getByPlaceholder("Текст поста… Enter — новый абзац");
         if (touch) await field().tap();
@@ -118,6 +122,7 @@ for (const mode of ["full", "quick"] as const) {
         expect(
           await field().evaluate((node) => Boolean(node.closest("[inert]"))),
         ).toBe(false);
+        /** Проверяем не только inert-атрибут, но и невозможность программно вернуть фокус во время незавершённой записи. */
         const assertLocked = async () => {
           expect(
             await field().evaluate((node) => Boolean(node.closest("[inert]"))),

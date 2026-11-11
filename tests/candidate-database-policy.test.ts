@@ -1,3 +1,4 @@
+/** Исторический candidate operator допускает только закреплённую цель/план; проверки не создают БД. */
 import { expect, it } from "vitest";
 import { spawnSync } from "node:child_process";
 import * as policy from "../tooling/scripts/migration-policy";
@@ -9,9 +10,11 @@ const input = {
   CANDIDATE_SOURCE_REVISION: "a".repeat(40),
   CANDIDATE_PLAN_HASH: plan,
 };
+/** Полный набор synthetic candidate identity/hash разрешает только булевый результат. */
 it("accepts only the explicitly reviewed fresh candidate and returns no credentials", () => {
   expect(policy.candidateTargetAllowed?.(input, plan)).toBe(true);
 });
+/** Другой host/schema/user/options/port/UUID/revision/plan блокируется до подключения. */
 it.each([
   { CANDIDATE_DATABASE_URL: undefined },
   {
@@ -59,6 +62,7 @@ it.each([
     false,
   );
 });
+/** После соединения ещё раз сверяется actual identity и InnoDB/MySQL версия. */
 it.each([
   { name: "daryadarcy_staging" },
   { serverUuid: "87654321-1234-1234-1234-123456789abc" },
@@ -78,6 +82,7 @@ it.each([
     ),
   ).toBe(false);
 });
+/** Synthetic matched actual metadata проходит вторую границу. */
 it("accepts the connected candidate only after checking its live identity", () => {
   expect(
     policy.candidateIdentityAllowed?.(
@@ -91,6 +96,7 @@ it("accepts the connected candidate only after checking its live identity", () =
     ),
   ).toBe(true);
 });
+/** Произвольное подтверждение нового hash не расширяет встроенный review allowlist. */
 it("refuses changed source bytes even when the caller approves their new hash", () => {
   expect(
     policy.candidateTargetAllowed?.(
@@ -99,6 +105,7 @@ it("refuses changed source bytes even when the caller approves their new hash", 
     ),
   ).toBe(false);
 });
+/** Отсутствующий candidate URL не берётся из рабочего DATABASE_URL. */
 it("does not substitute application credentials when the candidate URI is absent", () => {
   expect(
     policy.candidateTargetAllowed?.(
@@ -111,6 +118,7 @@ it("does not substitute application credentials when the candidate URI is absent
     ),
   ).toBe(false);
 });
+/** Дочерний CLI с пустым PATH и недопустимой целью прекращается до SQL, скрывая пароль и выдавая только phase/code. */
 it.each(["--force", "--initialize-candidate", "--check-api"])(
   "the actual operator refuses %s without authorized configuration and keeps errors private",
   (mode) => {

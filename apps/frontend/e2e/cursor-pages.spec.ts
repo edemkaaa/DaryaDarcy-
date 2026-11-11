@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { editorApi, failure, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
+/** Создаём стабильные saved-card fixtures для курсорных цепочек, не зависящих от DOM-позиции. */
 const saved = (id: number, target = "feed") => ({
   id,
   target,
@@ -19,6 +20,7 @@ const saved = (id: number, target = "feed") => ({
   publishedAt: null,
 });
 
+/** FORBIDDEN дочерней ветки закрывает retained-комментарии всего поста, а не оставляет прежний private snapshot. */
 test("a forbidden reply group immediately hides retained comments of the post", async ({
   page,
 }) => {
@@ -71,6 +73,7 @@ test("a forbidden reply group immediately hides retained comments of the post", 
   ).toHaveCount(0);
 });
 
+/** Head и видимый хвост перепроверяются; смена nextCursor перестраивает цепочку, не оставляя старые tail-строки. */
 test("saved polling refreshes the visible tail and rebuilds a changed cursor chain", async ({
   page,
 }) => {
@@ -132,6 +135,7 @@ test("saved polling refreshes the visible tail and rebuilds a changed cursor cha
     .toEqual(["next", "next", "fresh"]);
 });
 
+/** Поздняя saved-page прежнего аккаунта не должна попасть в новый account-cache. */
 test("a late saved page cannot enter another account cache", async ({
   page,
 }) => {
@@ -208,10 +212,12 @@ test("a late saved page cannot enter another account cache", async ({
   }
 });
 
+/** Root, children и grandchildren имеют независимые cursor-группы; displayed total берётся из серверной метрики, а не числа смонтированных строк. */
 test("comment roots and nested replies load independently and keep the server total", async ({
   page,
 }) => {
   const reads: Record<string, unknown>[] = [];
+  /** ParentId и replyCount задаются отдельно, чтобы проверить ленивое раскрытие каждого уровня без предварительного чтения детей. */
   const comment = (
     id: number,
     parentId: number | null = null,
@@ -304,12 +310,14 @@ test("comment roots and nested replies load independently and keep the server to
   );
 });
 
+/** Payments не читает участниц; неизвестный результат блокировки page-two пользователя проверяется точечным userId/limit1 read. */
 test("members do not load for payments, and lost moderation replies inspect the exact page-two account", async ({
   page,
 }) => {
   const reads: Record<string, unknown>[] = [];
   let blocked = false,
     writes = 0;
+  /** Состояние блокировки принадлежит только нужному fixture-id, остальные строки не изменяются. */
   const member = (id: number) => ({
     id,
     name: `MEMBER_${id}`,
@@ -373,6 +381,7 @@ test("members do not load for payments, and lost moderation replies inspect the 
   expect(writes).toBe(1);
 });
 
+/** Feed/club saved-cursors независимы: overlapping rows дедуплицируются, а retry сохраняет тот же opaque cursor. */
 test("saved tabs request only their own pages, deduplicate overlap and retry the same cursor", async ({
   page,
 }) => {

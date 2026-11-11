@@ -21,6 +21,7 @@ export class YookassaClubService {
   private client?: YookassaTestClient;
   private clientIdentity?: string;
 
+  /** Повторно проверяет TEST-настройки и пересоздаёт клиент только при изменении их identity; неполная конфигурация даёт явный отказ. */
   private context() {
     let config;
     try {
@@ -39,6 +40,7 @@ export class YookassaClubService {
     return { config, client: this.client };
   }
 
+  /** Резервирует неизменяемый SQL-intent, создаёт/восстанавливает provider payment тем же ключом и сверяет outcome, сохраняя неизвестный результат для повтора. */
   async createCheckout(
     recipient: User | null,
     email: string,
@@ -129,6 +131,7 @@ export class YookassaClubService {
     };
   }
 
+  /** Не доверяет metadata нового webhook: сначала требует локальную providerPaymentId-привязку, затем перечитывает финальный платёж у провайдера. */
   async handleNotification(id: string): Promise<void> {
     const { config, client } = this.context();
     const database = await db.getDb();
@@ -143,6 +146,7 @@ export class YookassaClubService {
     await this.reconcile(repo, payment, config.shopId);
   }
 
+  /** Только восстанавливает существующий intent по UUID и проверяет actor/получателя; отсутствие привязки возвращает unknown и никогда не вызывает POST create. */
   async reconcileCheckout(
     actor: User | null,
     rawKey: unknown,
@@ -199,6 +203,7 @@ export class YookassaClubService {
     }
   }
 
+  /** Сверяет TEST/shop/order/RUB/сумму/период; succeeded требует paid и атомарный settlement, canceled не может противоречить уже оплаченной записи. */
   private async reconcile(
     repo: YookassaIntentRepository,
     payment: YookassaPayment,

@@ -16,6 +16,7 @@ import type { VisibleItem } from "./types";
 import { ScrollArea, type ScrollAreaProps } from "./scroll-area";
 import { CollectionItemWindow } from "./collection-item-window";
 type Slot = ReactNode | (() => ReactNode);
+/** Вычисляем ленивое содержимое слота только при его отображении; готовый ReactNode используем без преобразования. */
 const slot = (value: Slot) => (typeof value === "function" ? value() : value);
 type CollectionProps<T> = Omit<ScrollAreaProps, "children"> & {
   data?: readonly T[];
@@ -41,6 +42,7 @@ type CollectionProps<T> = Omit<ScrollAreaProps, "children"> & {
   preserveScroll?: boolean;
   retentionKey?: string;
 };
+/** Связываем страницы данных с DOM-окном: удерживаем взаимодействующие карточки отдельно от данных и явно сохраняем якорь прокрутки. */
 function CollectionInner<T>(
   {
     data = [],
@@ -80,6 +82,7 @@ function CollectionInner<T>(
     keys: Set<string>;
   }>({ scope: retentionKey, keys: new Set() });
   const onRetentionChange = useCallback(
+    /** Изменяем набор удерживаемых карточек только в текущем retentionKey; смена владельца не наследует чужое состояние. */
     (key: string, retained: boolean) => {
       setRetention((current) => {
         const keys =
@@ -105,6 +108,7 @@ function CollectionInner<T>(
       : [];
   useLayoutEffect(() => {
     const next = new Map<string, T>();
+    // После commit обновляем доступные данные; за пределами страницы сохраняем только явно удержанные карточки своего scope.
     data.forEach((item, index) =>
       next.set(keyExtractor?.(item, index) ?? String(index), item),
     );
@@ -126,7 +130,9 @@ function CollectionInner<T>(
   useEffect(() => {
     const element = container.current;
     if (!windowItems || !element) return;
+    // Изменение геометрии создаёт новую эпоху измерений; до неё сохраняем якорь и отменяем browser overflow anchoring.
     let previous = `${element.clientWidth}:${element.clientHeight}`;
+    /** Находим первую строку ниже верхней границы бинарным поиском и сохраняем смещение до изменения размеров окна. */
     const captureAnchor = () => {
       if (element.scrollTop < 1) delete element.dataset.collectionScrollTarget;
       if (`${element.clientWidth}:${element.clientHeight}` !== previous) return;
@@ -150,6 +156,7 @@ function CollectionInner<T>(
           element.scrollHeight - element.clientHeight - element.scrollTop < 2,
       };
     };
+    /** Ручной жест отменяет программную цель «в начало», после чего обычная пагинация снова может работать. */
     const interruptScrollTarget = () => {
       delete element.dataset.collectionScrollTarget;
     };
@@ -177,6 +184,7 @@ function CollectionInner<T>(
   useLayoutEffect(() => {
     const element = container.current;
     if (!element || !anchorLocked.current) return;
+    // После измерения новой эпохи возвращаем видимую строку на прежнее место, кроме явного перехода к началу.
     const saved =
       element.dataset.collectionScrollTarget === "start"
         ? null
@@ -193,6 +201,7 @@ function CollectionInner<T>(
   useLayoutEffect(() => {
     const element = body.current;
     if (!revealItems || !element || itemsShown.current) return;
+    // Появление проигрываем один раз на экземпляр; reduced motion и cleanup отключают лишнюю анимацию.
     itemsShown.current = true;
     if (
       !element.animate ||
@@ -211,6 +220,7 @@ function CollectionInner<T>(
   previousLoad.current = onLoadPrevious;
   useEffect(() => {
     if (!head.current || !container.current || !onLoadPrevious) return;
+    // Верхний sentinel запрашивает предыдущую страницу; сетевые блокировки и повтор курсора остаются у владельца списка.
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) previousLoad.current?.();
@@ -224,6 +234,7 @@ function CollectionInner<T>(
   visible.current = onVisibleItemsChange;
   useEffect(() => {
     if (!tail.current || !container.current || !onLoadMore) return;
+    // Нижний sentinel запускает раннюю подгрузку, но не вмешивается в программный возврат к началу.
     const obs = new IntersectionObserver(
       (entries) => {
         if (
@@ -242,6 +253,7 @@ function CollectionInner<T>(
   }, [data.length, onLoadMore, loadMoreThreshold]);
   useEffect(() => {
     if (!body.current || !container.current || !onVisibleItemsChange) return;
+    // Публикуем только строки, достигшие порога видимости; сеточные строки разворачиваем в индексы отдельных элементов.
     const items = new Map<number, VisibleItem<T>>();
     const obs = new IntersectionObserver(
       (entries) => {
@@ -390,6 +402,7 @@ export const Collection = forwardRef(CollectionInner) as <T>(
   },
 ) => React.ReactElement;
 
+/** Выбираем измеряемое окно только при включённом windowing; обычная строка сохраняет ту же разметку и индекс. */
 function CollectionRow({
   windowed,
   ...props
@@ -419,6 +432,7 @@ export class CollectionScrollAnchor extends React.Component<{
   children: ReactNode;
   trackLayout?: boolean;
 }> {
+  /** Снимаем якоря до изменения DOM: сохраняем несколько кандидатов на случай удаления первой видимой строки. */
   getSnapshotBeforeUpdate(
     previous: Readonly<typeof this.props>,
   ): ScrollSnapshot {
@@ -454,6 +468,7 @@ export class CollectionScrollAnchor extends React.Component<{
         }),
     };
   }
+  /** После изменения страниц компенсируем сдвиг по первому сохранившемуся якорю, используя захваченный DOM-узел, а не callback ref. */
   componentDidUpdate(
     _previous: Readonly<typeof this.props>,
     _state: unknown,
@@ -472,6 +487,7 @@ export class CollectionScrollAnchor extends React.Component<{
         root.getBoundingClientRect().top -
         anchor.offset;
   }
+  /** Обёртка не добавляет DOM: её задача — порядок измерений до и после обновления детей. */
   render() {
     return this.props.children;
   }

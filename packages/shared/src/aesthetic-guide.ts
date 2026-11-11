@@ -77,6 +77,7 @@ export interface AestheticGuideContent {
   inspiration: InspirationSection;
 }
 export type AestheticGuide = AestheticGuideContent & { key: AestheticGuideKey };
+/** Строим типизированную карту строковых Zod-полей из фиксированного перечня ключей, сохраняя их имена в типе результата. */
 const strings = <const K extends readonly string[]>(keys: K) =>
   Object.fromEntries(keys.map((key) => [key, z.string()])) as Record<
     K[number],

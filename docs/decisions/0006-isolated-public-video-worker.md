@@ -3,6 +3,10 @@
 - **Status:** Accepted for the user-approved test stand, not production rollout
 - **Date:** 2026-10-07
 
+## Актуальность на 11 ноября 2026
+
+Это историческое решение для промежуточного YouTube-адаптера. Текущий каталог использует VK; наличие опционального worker и старого Compose не означает, что его нужно включать при новом развёртывании. Источник текущей конфигурации — [интеграции](../architecture/integrations.md) и выбранный выпускной пакет.
+
 ## Context
 
 The imported catalog contains YouTube IDs, not local MP4 copies. Existing

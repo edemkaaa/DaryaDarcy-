@@ -19,6 +19,7 @@
     padding-bottom: var(--page-end-gap);
   }
 
+  /* Обложка резервирует верхний зазор общей шапки через screen-safe-top. */
   .coverSection {
     align-items: center;
     padding-left: 0;
@@ -57,6 +58,7 @@
     margin-bottom: 10px;
   }
 
+  /* Между фото задан gap внутренней горизонтальной коллекции; поля по краям не заменяют промежутки между слайдами. */
   .carouselList {
     padding-left: 24px;
     padding-right: 24px;
@@ -77,6 +79,7 @@
     height: 100%;
   }
 
+  /* Основной заказ отделён от вторичных действий и описания товара. */
   .buySection {
     padding-left: 24px;
     padding-right: 24px;
@@ -101,11 +104,13 @@
     color: var(--paper);
   }
 
+  /* Браузерный active применяется только вне touch-press, чтобы мобильное состояние не дублировалось. */
   :global(:root:not([data-touch-press])) .managerOrderLink:active {
     transform: scale(0.97);
     opacity: 0.68;
   }
 
+  /* Вторичные действия делят строку поровну и допускают многострочные подписи. */
   .secondaryRow {
     flex-direction: row;
     gap: 8px;
@@ -164,6 +169,7 @@
     color: var(--muted);
   }
 
+  /* Описание и характеристики имеют отдельные секции с текстом в доступной flex-области. */
   .descriptionSection {
     padding-left: 24px;
     padding-right: 24px;
@@ -214,6 +220,7 @@
     flex: 1;
   }
 
+  /* Отзыв-картинка и текстовый отзыв используют разные поверхности; кавычка вынесена декоративным слоем. */
   .reviewsSection {
     padding-left: 24px;
     padding-right: 24px;
@@ -267,6 +274,7 @@
     text-align: right;
   }
 
+  /* Декоративный разделитель не заменяет юридический футер с собственным нижним запасом. */
   .footerDecor {
     flex-direction: row;
     align-items: center;
@@ -288,6 +296,7 @@
     padding-bottom: 24px;
   }
 
+  /* Просмотр фотографий использует отдельное тёмное перекрытие; закрытие и навигация позиционируются поверх кадра. */
   .zoomOverlay {
     flex: 1;
     background-color: rgba(0, 0, 0, 0.95);
@@ -329,6 +338,7 @@
     font-size: 16px;
     color: #fff;
   }
+  /* Нижние классы переключают вид обложки и доступность навигации, не меняя исходные изображения. */
   .appearanceState {
     aspect-ratio: 0.77;
     border-radius: 0;

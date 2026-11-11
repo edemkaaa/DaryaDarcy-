@@ -14,6 +14,7 @@ export async function closeDb(): Promise<void> {
 }
 
 // Ленивое создание позволяет импортировать локальные инструменты без обязательной БД.
+/** Лениво создаём один MySQL-пул процесса с UTC и конечной очередью; отсутствие URL допускает локальный импорт без подключения, фабрики приложения не создают отдельные пулы. */
 export async function getDb() {
   if (_db) return _db;
   const url = process.env.DATABASE_URL?.replace(/\r/g, "").trim();

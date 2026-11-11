@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 
+/** Проверяем снятые с публикации оригиналы частичным запросом и отдельно доступную публичную обложку; платный файл не должен вернуться через старый путь. */
 test("retired public pattern originals are unavailable while public covers remain available", async ({
   request,
 }) => {

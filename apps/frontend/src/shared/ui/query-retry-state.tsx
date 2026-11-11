@@ -16,6 +16,7 @@ type Props = {
   loadingContent?: React.ReactNode;
   loadingSize?: "small" | "large";
 };
+/** Подменяем содержимое только до первого результата: при повторной загрузке уже полученные данные остаются видимыми. */
 export function QueryRetryState({
   isLoading,
   isError,

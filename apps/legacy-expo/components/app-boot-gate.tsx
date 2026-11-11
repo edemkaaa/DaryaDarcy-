@@ -1,3 +1,4 @@
+// Архив Expo. Нормализует string/native module/default-экспорт ресурса в URI без внешней загрузки.
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useState } from "react";
 import { ImageBackground, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
@@ -37,6 +38,8 @@ type BootAnimMode = "paper" | "chroma" | "static";
 type AssetModule = string | number | { uri?: string; default?: string | { uri?: string } };
 
 function resolveAssetUri(mod: AssetModule): string {
+  // Нормализует string/native module/default-экспорт ресурса в URI без внешней загрузки.
+
   if (typeof mod === "string" && mod) return mod;
   if (typeof mod === "number") {
     const { resolveAssetSource } = require("react-native/Libraries/Image/resolveAssetSource");
@@ -59,12 +62,16 @@ const bootVideoWebmUri = resolveAssetUri(bootVideoWebmModule as AssetModule);
 const bootVideoMp4Uri = resolveAssetUri(bootVideoMp4Module as AssetModule);
 
 function initialAnimMode(): BootAnimMode {
+  // Выбирает paper, затем chroma, затем статичный fallback по наличию ресурсов.
+
   if (bootVideoPaperMp4Uri || bootVideoPaperWebmUri) return "paper";
   if (bootVideoWebmUri || bootVideoMp4Uri) return "chroma";
   return "static";
 }
 
 function BootLockImage({ width, height }: { width: number; height: number }) {
+  // Показывает прозрачный замок с пропорциями и memory-disk кешем.
+
   return (
     <ExpoImage
       source={bootLockImage}
@@ -77,6 +84,8 @@ function BootLockImage({ width, height }: { width: number; height: number }) {
 }
 
 function BootLockPoster() {
+  // Размещает статичный замок поверх бумажной текстуры с ограничением доли экрана.
+
   const { width: screenW } = useWindowDimensions();
   const lockW = Math.min(LOCK_WIDTH, Math.round(screenW * LOCK_SCREEN_FRACTION));
   const lockH = Math.round(lockW / LOCK_ASPECT);
@@ -104,6 +113,8 @@ function BootScreen({
   showRetry?: boolean;
   fading?: boolean;
 }) {
+  // Показывает выбранную анимацию и последовательно деградирует до статичного изображения.
+
   const { width: screenW } = useWindowDimensions();
   const lockW = Math.min(LOCK_WIDTH, Math.round(screenW * LOCK_SCREEN_FRACTION));
   const lockH = Math.round(lockW / LOCK_ASPECT);
@@ -114,6 +125,8 @@ function BootScreen({
   const [animReady, setAnimReady] = useState(false);
 
   const onPaperFail = useCallback(() => {
+    // После сбоя paper снимает ready и выбирает chroma либо статичный режим.
+
     setAnimReady(false);
     if (bootVideoWebmUri || bootVideoMp4Uri) {
       setMode("chroma");
@@ -123,6 +136,8 @@ function BootScreen({
   }, []);
 
   const onChromaFail = useCallback(() => {
+    // После сбоя Canvas окончательно оставляет статичную заставку.
+
     setAnimReady(false);
     setMode("static");
   }, []);
@@ -222,9 +237,13 @@ function BootScreen({
 }
 
 export function AppBootGate({ fontsLoaded, fontError, children }: Props) {
+  // Ограничивает заставку таймерами, отдельно дожидается native шрифтов и не блокирует web детей их загрузкой.
+
   const [phase, setPhase] = useState<BootPhase>("playing");
 
   const fadeHtmlBootLayer = () => {
+    // Снимает pointer events HTML boot-слоя и удаляет его после короткого fade.
+
     if (Platform.OS !== "web" || typeof document === "undefined") return;
     const htmlLayer = document.getElementById("dd-boot-layer");
     if (!htmlLayer) return;
@@ -235,6 +254,8 @@ export function AppBootGate({ fontsLoaded, fontError, children }: Props) {
   };
 
   useEffect(() => {
+    // Планирует playing/fading/hidden и аварийное скрытие; cleanup снимает три основных таймера.
+
     if (Platform.OS === "web") {
       fadeHtmlBootLayer();
     }
@@ -257,6 +278,8 @@ export function AppBootGate({ fontsLoaded, fontError, children }: Props) {
   }, []);
 
   useEffect(() => {
+    // После hidden удаляет оставшийся HTML boot-layer, чтобы он не перекрывал приложение.
+
     if (Platform.OS !== "web" || phase !== "hidden") return;
     document.getElementById("dd-boot-layer")?.remove();
   }, [phase]);
@@ -281,6 +304,7 @@ export function AppBootGate({ fontsLoaded, fontError, children }: Props) {
   );
 }
 
+// Overlay выше приложения, но pointerEvents none не блокирует жесты; fade управляет только видимостью заставки.
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,

@@ -1,3 +1,4 @@
+// Архив Expo. Применяет русские overrides старого YouTube-каталога, не изменяя сохранённый заголовок.
 const TITLE_OVERRIDES_BY_ID: Record<string, string> = {
   sq7pY1H_fYU: "Весенний влог | Пасхальный декор и обновления сада",
   ynAGqVHf6kg: "Как устроить красивый праздник? | идеи, декор, торт и подарки",
@@ -13,6 +14,8 @@ const TITLE_OVERRIDES: Record<string, string> = {
 
 /** Prefer Russian display titles; DB may still hold English YouTube defaults. */
 export function displayVideoTitle(title: string, youtubeId?: string | null): string {
+  // Применяет русские overrides старого YouTube-каталога, не изменяя сохранённый заголовок.
+
   const id = (youtubeId || "").trim();
   if (id && TITLE_OVERRIDES_BY_ID[id]) return TITLE_OVERRIDES_BY_ID[id];
 

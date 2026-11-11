@@ -1,3 +1,4 @@
+/** CI-wrapper проверяется собственным fake pnpm и отчётами, без Next build/browser/API/SQL. */
 import { afterEach, expect, it } from "vitest";
 import {
   mkdtempSync,
@@ -13,9 +14,11 @@ import { spawnSync } from "node:child_process";
 
 const script = resolve("tooling/scripts/check-checkout-browser.mjs");
 const owned: string[] = [];
+/** Удаляем только temp-папки, созданные run этого теста. */
 afterEach(() => {
   for (const p of owned.splice(0)) rmSync(p, { recursive: true });
 });
+/** Создаём executable-двойник pnpm, записывающий args/env и synthetic Playwright report для выбранного failure mode. */
 function run(profile: string, mode = "valid") {
   const cwd = mkdtempSync(join(tmpdir(), "darcy-checkout-ci-"));
   owned.push(cwd);
@@ -64,11 +67,13 @@ fs.writeFileSync(process.env.PLAYWRIGHT_JSON_OUTPUT_FILE,JSON.stringify({suites,
     : [];
   return { result, calls, output: result.stdout + result.stderr };
 }
+/** Неизвестный profile не запускает даже fake build. */
 it("rejects unknown profiles before spawning a command", () => {
   const { result, calls } = run("../../working");
   expect(result.status).not.toBe(0);
   expect(calls).toEqual([]);
 });
+/** Build и browser-команда обязаны получить одинаковые явные flags, пустые DB/proxy и не вывести inherited sentinel. */
 it.each(["prodamus-test", "guest-normal"])(
   "builds %s and then tests with the same explicit flags and no SQL/proxy",
   (profile) => {
@@ -98,20 +103,24 @@ it.each(["prodamus-test", "guest-normal"])(
     expect(output).not.toContain("PRIVATE_DATABASE_SENTINEL");
   },
 );
+/** Build exit7 сохраняется; второй процесс не стартует. */
 it("does not start browser tests after a build failure", () => {
   const { result, calls } = run("prodamus-test", "build-fail");
   expect(result.status).toBe(7);
   expect(calls).toHaveLength(1);
 });
+/** Browser exit8 не маскируется общим успехом. */
 it("propagates a browser failure", () => {
   expect(run("prodamus-test", "browser-fail").result.status).toBe(8);
 });
+/** Отсутствующий report/suite, все skips и неизвестный skip запрещают зелёный CI. */
 it.each(["missing-report", "all-skip", "missing-suite", "unexpected-skip"])(
   "rejects a false green browser run: %s",
   (mode) => {
     expect(run("guest-normal", mode).result.status).not.toBe(0);
   },
 );
+/** Единственная известная оговорка разрешена только своему profile, не TEST-платежу. */
 it("allows only the known legacy guest skip in the guest/NORMAL profile", () => {
   expect(run("guest-normal", "legacy-skip").result.status).toBe(0);
   expect(run("prodamus-test", "legacy-skip").result.status).not.toBe(0);

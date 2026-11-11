@@ -14,12 +14,16 @@ interface ShopManagerBrowserFixture {
 export function registerShopManagerBrowserCases(
   fixture: () => ShopManagerBrowserFixture,
 ) {
+  // Проверяет настоящий launch-config и mailto для обоих товаров; почтовый клиент не открывается, доставка заказа этим тестом не подтверждается.
+
   it.each([
     { id: "digital-1", title: "Пособие по атмосферной фотографии" },
     { id: "digital-2", title: "Винтажные книги и открытки" },
   ])(
     "S2 prepares $id mail from the native launch configuration without sending it",
     async (product) => {
+    // Сценарий: Для двух товаров проверяется адрес, тема и тело mailto из native конфигурации; потерянное обновление скрывает старого менеджера, отправка письма не вызывается.
+
       const { connection, rows, context, frontend, base } = fixture();
       const recipient = "synthetic-manager@example.test";
       const replacement = "synthetic-new-manager@example.test";

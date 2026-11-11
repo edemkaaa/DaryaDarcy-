@@ -10,6 +10,7 @@ type Props = {
   officialPlayer?: boolean;
   onRetry?: () => void;
 };
+/** Оставляем совместимость старых роликов: адрес proxy-видео или официальный iframe выбирается явным флагом. */
 export function YouTubeEmbed({
   youtubeId,
   catalogMode = false,
@@ -43,12 +44,14 @@ export function YouTubeEmbed({
   );
 }
 
+/** Подключаем официальный iframe и удаляем src при pagehide/cleanup, чтобы не оставить ресурс после ухода. */
 function OfficialPlayer({ youtubeId }: { youtubeId: string }) {
   const frame = useRef<HTMLIFrameElement>(null);
   const src = `https://www.youtube.com/embed/${encodeURIComponent(youtubeId)}`;
   useEffect(() => {
     const node = frame.current;
     if (node) node.src = src;
+    /** Отключаем источник сохранённого iframe без попытки управлять внутренним YouTube API. */
     const hide = () => node?.removeAttribute("src");
     window.addEventListener("pagehide", hide);
     return () => {

@@ -19,6 +19,7 @@ import { sdk } from "../apps/backend/src/_core/sdk";
 import type { AddressInfo } from "node:net";
 import type { RowDataPacket } from "mysql2/promise";
 
+/** Проверяет восстановление публичных avatar/cover операций после потери ответа без дублирования объекта или повторной привязки. */
 describe.skipIf(!testDatabaseUrl)(
   "public photo recovery over native HTTP/SQL/loopback S3",
   () => {
@@ -26,6 +27,7 @@ describe.skipIf(!testDatabaseUrl)(
     let fixture: Awaited<ReturnType<typeof openListPageFixture>>,
       wire: Awaited<ReturnType<typeof openPrivateUploadWire>>,
       base64: string;
+    /** Удаляет receipts только собственного диапазона участников при наличии таблицы. */
     async function clearReceipts() {
       const [tables] = await fixture.conn.query(
         "SHOW TABLES LIKE 'public_photo_uploads'",
@@ -36,6 +38,7 @@ describe.skipIf(!testDatabaseUrl)(
           [baseId, baseId + 3],
         );
     }
+    /** Вызывает upload/status нужного purpose с новым JWT выбранного actor и переданным operation-key. */
     async function call(
       purpose: "avatar" | "publicCover",
       mode: "upload" | "status",
@@ -91,6 +94,7 @@ describe.skipIf(!testDatabaseUrl)(
       const data = await response.json();
       return { status: response.status, data: data.result?.data?.json };
     }
+    /** Создаёт loopback public-photo storage и изолированный API-fixture с маленьким synthetic PNG. */
     beforeAll(async () => {
       wire = await openPrivateUploadWire({ publicPhotos: true });
       for (const [key, value] of Object.entries({
@@ -109,12 +113,14 @@ describe.skipIf(!testDatabaseUrl)(
           .toBuffer()
       ).toString("base64");
     });
+    /** Очищает свои receipts, fixture, объекты wire и счётчик внешних эффектов. */
     beforeEach(async () => {
       await clearReceipts();
       await fixture.reset();
       wire.objects.clear();
       wire.effects.length = 0;
     });
+    /** Удаляет свои receipts, закрывает API и wire и возвращает окружение. */
     afterAll(async () => {
       if (fixture) {
         await clearReceipts();
@@ -123,6 +129,7 @@ describe.skipIf(!testDatabaseUrl)(
       await wire?.close();
       vi.unstubAllEnvs();
     });
+    /** Потеря PUT-ACK оставляет pending; повтор того же owner/purpose/key подтверждает единственный объект, изменённый payload конфликтует. */
     it.each(["avatar", "publicCover"] as const)(
       "recovers %s after lost PUT ACK without duplicate object or a new operation",
       async (purpose) => {
@@ -168,6 +175,7 @@ describe.skipIf(!testDatabaseUrl)(
         ).toBe(false);
       },
     );
+    /** Позднее окончание прежней загрузки не затирает более новый аватар и явно возвращает avatarApplied=false. */
     it("does not rebind an old recovered/replayed avatar over a newer selection", async () => {
       const oldKey = randomUUID(),
         newKey = randomUUID(),
@@ -190,6 +198,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(rows).toEqual([{ avatarUrl: newer.data.url, profileRevision: 1 }]);
     });
+    /** Принятый avatar увеличивает profileRevision единожды, блокируя старую форму профиля. */
     it("increments the profile revision once and rejects a stale avatar edit", async () => {
       const key = randomUUID();
       const uploaded = await call("avatar", "upload", key);
@@ -223,6 +232,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(rows).toEqual([{ avatarUrl: uploaded.data.url, profileRevision: 1 }]);
       expect(wire.effects.filter(effect => effect.startsWith("PUT "))).toHaveLength(1);
     });
+    /** Права и формат проверяются до PUT, текущая роль повторно проверяется после storage перед ready-commit. */
     it("keeps authorisation and input checks before storage; current role is rechecked after PUT", async () => {
       const key = randomUUID();
       expect((await call("avatar", "upload", key, null)).status).toBe(401);
@@ -252,6 +262,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await pending).status).toBe(403);
       expect((await call("publicCover", "status", key, 2)).status).toBe(403);
     });
+    /** Конкурентный повтор создаёт один объект, но одинаковый UUID другого owner или purpose имеет независимый namespace. */
     it("serializes simultaneous retries and scopes the same operation key to its owner/purpose", async () => {
       const key = randomUUID();
       const [a, b] = await Promise.all([
@@ -278,6 +289,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       expect(wire.objects.size).toBe(3);
     });
+    /** Новый Node-процесс восстанавливает durable receipt, а replay старого avatar не меняет позднейший выбор и не удаляет объект. */
     it("replays a stored result after a lost application reply without rebinding or deleting anything", async () => {
       const key = randomUUID();
       await call("avatar", "upload", key); // Deliberately discard the committed reply.
@@ -315,6 +327,7 @@ describe.skipIf(!testDatabaseUrl)(
         false,
       );
     });
+    /** Отказ ready-commit сохраняет pending и прежний профиль; retry после снятия trigger привязывает тот же объект. */
     it("recovers a failed SQL bind after PUT using the same object", async () => {
       const key = randomUUID();
       await fixture.conn.query(
@@ -347,6 +360,7 @@ describe.skipIf(!testDatabaseUrl)(
         wire.effects.filter((effect) => effect.startsWith("PUT ")),
       ).toHaveLength(1);
     });
+    /** Retirement удаляет owner-связь receipt и запрещает старый ключ без удаления уже сохранённого объекта. */
     it("anonymizes receipt ownership on account retirement without touching stored objects", async () => {
       const key = randomUUID();
       await call("avatar", "upload", key);

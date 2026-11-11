@@ -1,3 +1,4 @@
+// Архив Expo. Исходные light/dark значения токенов, общие для Tailwind и runtime-палитры.
 /** @type {const} */
 const themeColors = {
   primary: { light: '#8B7355', dark: '#C4A882' },

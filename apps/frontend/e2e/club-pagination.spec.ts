@@ -7,6 +7,7 @@ import {
 import { postFilterTagAliases } from "../../../packages/shared/src/post-tag-aliases";
 
 test.setTimeout(60_000);
+/** Упаковываем synthetic tRPC данные без изменения порядка страниц. */
 const ok = (data: unknown) => ({ result: { data: { json: data } } });
 const failure = {
   error: {
@@ -17,6 +18,7 @@ const failure = {
     },
   },
 };
+/** Создаём различимые длинные строки клуба с независимыми тегами и стабильными датами. */
 const post = (id: number, tags = ["life"]) => ({
   id,
   text: `CLUB_POST_${id} ${"Проверка публикации и прокрутки. ".repeat(8)}`,
@@ -38,6 +40,7 @@ type Input = {
   category?: ClubTabId;
 };
 
+/** Заменяем только HTTP-данные и декорации; caller управляет paged-ответами, а доступ остаётся подтверждённым. */
 async function clubApi(
   page: Page,
   answer: (input: Input) => unknown | Promise<unknown>,
@@ -81,6 +84,7 @@ async function clubApi(
   });
 }
 
+/** Сначала применяем category/tag aliases, затем offset/limit внутри отфильтрованной выборки; fixture не имитирует клиентское сканирование архива. */
 function paged(posts: Post[], input: Input) {
   const matches = posts.filter(
     (row) =>
@@ -97,13 +101,16 @@ function paged(posts: Post[], input: Input) {
     nextCursor: end < matches.length ? end : null,
   });
 }
+/** Адресуем основной vertical-scroll клуба отдельно от вложенных каруселей. */
 const list = (page: Page) =>
   page.locator("main .ui-scroll:not(.ui-scroll-horizontal)").first();
+/** Настоящий конец scroll запускает следующий page-read. */
 async function scrollToEnd(page: Page) {
   await list(page).evaluate((node) => {
     node.scrollTop = node.scrollHeight;
   });
 }
+/** Эмулируем pull-refresh стадиями touch у вершины списка, позволяя проверить отмену старой cursor-цепочки. */
 async function refreshList(page: Page) {
   await list(page).evaluate((node) => {
     node.scrollTop = 0;
@@ -122,6 +129,7 @@ async function refreshList(page: Page) {
   });
 }
 
+/** Совпадение за пределами первых200 ищется серверным category-filter, а не скачиванием несвязанных страниц. */
 test("a club rubric finds a publication beyond the first 200 records without downloading the archive", async ({
   page,
 }) => {
@@ -143,6 +151,7 @@ test("a club rubric finds a publication beyond the first 200 records without dow
   expect(calls).toEqual([{ limit: 12 }, { limit: 12, category: "community" }]);
 });
 
+/** Все221 записи доступны последовательно, но retained-окно ограничено96; «Наверх» начинает head-read вместо хранения архива. */
 test("the unfiltered club list exposes all 221 posts through successive pages", async ({
   page,
 }, testInfo) => {
@@ -191,6 +200,7 @@ test("the unfiltered club list exposes all 221 posts through successive pages", 
   });
 });
 
+/** Overlap по ID не дублируется, а append удерживает scrollTop и координату уже показанной карточки. */
 test("appending a club page preserves scroll and removes overlapping IDs", async ({
   page,
 }) => {
@@ -244,6 +254,7 @@ test("appending a club page preserves scroll and removes overlapping IDs", async
   expect(messages).toEqual([]);
 });
 
+/** Ошибка next-page сохраняет подтверждённые12 строк и повторяет исходный cursor только явно. */
 test("a failed next page keeps loaded posts and retries the same cursor once", async ({
   page,
 }) => {
@@ -361,6 +372,7 @@ test("a server-filtered empty rubric stops without scanning unrelated pages", as
   ]);
 });
 
+/** Повторяющийся cursor останавливает auto-loading; смена rubric открывает независимую head-цепочку. */
 test("a repeated cursor stops automatic loading and exposes a recoverable error", async ({
   page,
 }) => {
@@ -390,6 +402,7 @@ test("a repeated cursor stops automatic loading and exposes a recoverable error"
     .toEqual({ limit: 12, category: "life" });
 });
 
+/** Русские aliases находят фильтрованное совпадение; снятие tag переиспользует свежую category-page и не сканирует исходный архив. */
 test("rubric and board filters find a Russian-tagged match on a later page", async ({
   page,
 }) => {
@@ -455,6 +468,7 @@ test("pull to refresh updates the loaded page without losing its posts", async (
   expect(calls).toBe(2);
 });
 
+/** Offset относится к category+tag выборке; выключение rubric сохраняет tag, начиная другую цепочку с головы. */
 test("pagination uses offsets within the selected category and board tag", async ({
   page,
 }) => {
@@ -494,6 +508,7 @@ test("pagination uses offsets within the selected category and board tag", async
   await expect(cards).toHaveCount(12);
 });
 
+/** Смена rubric отменяет и начальный, и next-read предыдущего фильтра; поздний ответ не примешивается к новому. */
 for (const pending of ["head", "next"] as const) {
   test(`switching rubric cancels the previous ${pending} response and resets the cursor`, async ({
     page,
@@ -561,6 +576,7 @@ for (const pending of ["head", "next"] as const) {
   });
 }
 
+/** 404 нужной процедуры является ошибкой и не включает unfiltered club.list fallback. */
 test("a missing category API is an error, never an unfiltered fallback", async ({
   page,
 }) => {
@@ -600,6 +616,7 @@ test("a missing category API is an error, never an unfiltered fallback", async (
   expect(calls).not.toContain("club.list");
 });
 
+/** 400 и503 refresh сохраняют все подтверждённые страницы; успешный retry обновляет цепочку по порядку. */
 for (const status of [400, 503]) {
   test(`refresh failure ${status} retains loaded pages and retry refreshes them in order`, async ({
     page,
@@ -674,6 +691,7 @@ for (const status of [400, 503]) {
   });
 }
 
+/** Подтверждённый отказ доступа убирает все retained club-pages, в отличие от временной refresh-ошибки. */
 test("a forbidden refresh hides all retained club pages", async ({ page }) => {
   const posts = Array.from({ length: 13 }, (_, index) => post(index + 1));
   let denied = false;
@@ -699,6 +717,7 @@ test("a forbidden refresh hides all retained club pages", async ({ page }) => {
   await expect(page.getByText(/^CLUB_POST_\d+ /)).toHaveCount(0);
 });
 
+/** Pull-refresh отменяет старый next-page прежде новой head-цепочки; поздняя прежняя страница не применяется. */
 test("refresh cancels an older page request before starting a new chain", async ({
   page,
 }) => {
@@ -750,6 +769,7 @@ test("refresh cancels an older page request before starting a new chain", async 
 });
 
 // These are API-order checks: the browser must never re-rank the received pages.
+/** Порядок дат и ID задаёт API: браузер сохраняет received-order через все страницы и при новой rubric. */
 test("club keeps publication dates and ID ties in API order across three pages", async ({
   page,
 }) => {
@@ -784,6 +804,7 @@ test("club keeps publication dates and ID ties in API order across three pages",
     });
   });
   await gotoWithSession(page, "/club");
+  /** Читаем порядок collection-shell, исключая window-hidden копии, без принудительного монтажа всего текста. */
   const ids = () =>
     list(page)
       .locator(".ui-collection-item:not([data-window-hidden])")
@@ -818,6 +839,7 @@ test("club keeps publication dates and ID ties in API order across three pages",
   expect(calls.at(-1)).toEqual({ limit: 12, category: "life" });
 });
 
+/** Специально неchronological последний fixture изолирует правило клиента: append не сортирует уже полученные страницы по дате. */
 test("club appends an API page without locally moving a newer-dated card ahead of loaded posts", async ({
   page,
 }) => {

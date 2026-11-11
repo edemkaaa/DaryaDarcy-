@@ -4,6 +4,7 @@ import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import { requireCapability } from "../launch/capabilities";
 import { ShopService } from "./shop.service";
 
+/** Связываем публичное чтение собственных покупок и авторизованное создание checkout; онлайн-оплата дополнительно требует отдельную capability. */
 export const createShopRouter = (
   shop: Pick<ShopService, "owned" | "createCheckout">,
 ) =>

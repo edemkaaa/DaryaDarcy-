@@ -24,6 +24,8 @@ import {
 
 let phase = "arguments";
 async function main() {
+  // Проверяет фиксированный план, ревизию и server UUID, затем инициализирует только пустую candidate-схему либо сверяет уже готовую историю.
+
   const mode = process.argv[2];
   assert(
     process.argv.length === 3 &&
@@ -158,6 +160,8 @@ async function main() {
 }
 
 async function checkApi(conn: Connection) {
+  // Проверяет ORM и HTTP-композицию без index/worker start, после чего закрывает Nest и созданный pool; внешние провайдеры не настраиваются.
+
   // Composition-only entrypoint: no index/load-env and no WorkerJobs.start().
   Object.assign(
     process.env,

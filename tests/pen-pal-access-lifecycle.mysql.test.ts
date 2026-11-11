@@ -22,6 +22,7 @@ import type { TrpcContext } from "../apps/backend/src/_core/context";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 
 // Real owned SQL; captured real actors and HTTP/JWT. No external services.
+/** Проверяет актуальность actor, анкет и согласий при подборе пары и раскрытии почтового адреса. */
 describe.skipIf(!testDatabaseUrl)(
   "Pen Pals match and address access lifecycle",
   () => {
@@ -35,6 +36,7 @@ describe.skipIf(!testDatabaseUrl)(
       base: string,
       token: string,
       matchId: number;
+    /** Удаляет только пары, показы, анкеты, согласия и аккаунты трёх основных участников сценария. */
     async function cleanup() {
       await conn.query(
         "DELETE FROM pen_pal_matches WHERE userLowId IN (?,?,?) OR userHighId IN (?,?,?)",
@@ -56,6 +58,7 @@ describe.skipIf(!testDatabaseUrl)(
         other,
       ]);
     }
+    /** Поднимает локальный API и подписывает сессию владельца при включённом Pen Pals. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -68,6 +71,7 @@ describe.skipIf(!testDatabaseUrl)(
         sessionVersion: 0,
       });
     });
+    /** Создаёт три активные синтетические анкеты и ожидающую взаимного подтверждения пару. */
     beforeEach(async () => {
       await conn.query("DROP TRIGGER IF EXISTS pen_access_shown_refusal");
       await cleanup();
@@ -96,10 +100,12 @@ describe.skipIf(!testDatabaseUrl)(
       );
       matchId = result.insertId;
     });
+    /** Возвращает подмены соединений и удаляет собственный отказной триггер. */
     afterEach(async () => {
       vi.restoreAllMocks();
       await conn.query("DROP TRIGGER IF EXISTS pen_access_shown_refusal");
     });
+    /** Закрывает приложение и SQL-пулы, удаляя только основные тестовые записи. */
     afterAll(async () => {
       await app?.close();
       if (conn) await cleanup();
@@ -107,6 +113,7 @@ describe.skipIf(!testDatabaseUrl)(
       await closeDb();
       vi.unstubAllEnvs();
     });
+    /** Создаёт caller с настоящим пользователем, чьи полномочия могут измениться после захвата контекста. */
     async function captured(id = "owner") {
       return appRouter.createCaller({
         user: (await getUserByOpenId("pen-access-" + id))!,
@@ -114,6 +121,7 @@ describe.skipIf(!testDatabaseUrl)(
         res: {},
       } as TrpcContext);
     }
+    /** Приводит пару к начальному состоянию, нужному для заявки или подбора. */
     async function prepare(operation: Operation) {
       if (operation === "request")
         await conn.query("DELETE FROM pen_pal_matches WHERE id=?", [matchId]);
@@ -123,6 +131,7 @@ describe.skipIf(!testDatabaseUrl)(
           [matchId],
         );
     }
+    /** Вызывает выбранную операцию Pen Pals с общими идентификаторами синтетической пары. */
     const run = (
       caller: Awaited<ReturnType<typeof captured>>,
       operation: Operation,
@@ -136,6 +145,7 @@ describe.skipIf(!testDatabaseUrl)(
         });
       return caller.penPals[operation]();
     };
+    /** Читает пары и историю показов владельца для проверки отсутствия побочных записей. */
     const snapshot = async () => {
       const [matches] = await conn.query<RowDataPacket[]>(
         "SELECT * FROM pen_pal_matches WHERE userLowId=? ORDER BY id",
@@ -147,6 +157,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       return { matches, shown };
     };
+    /** Отправляет выбранную процедуру через настоящий HTTP с JWT владельца. */
     const http = (operation: Operation) => {
       const procedure =
         operation === "request"
@@ -172,6 +183,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
     };
     for (const operation of operations) {
+      /** Проверяет каждую операцию после смены эпохи сессии, идентичности либо блокировки ранее захваченного actor. */
       it.each(["epoch", "identity", "blocked"] as const)(
         `${operation} rejects an actor after %s changes`,
         async (change) => {
@@ -189,6 +201,7 @@ describe.skipIf(!testDatabaseUrl)(
         },
       );
     }
+    /** Удерживает строку actor SQL-блокировкой, отзывает сессию до продолжения и проверяет отказ без записи. */
     it.each(operations)(
       "%s rechecks an actor revoked during SQL lock wait",
       async (operation) => {
@@ -233,6 +246,7 @@ describe.skipIf(!testDatabaseUrl)(
         }
       },
     );
+    /** Проверяет раскрытие адреса исключительно после взаимного подтверждения пары. */
     it.each([false, true])(
       "shows the peer address only for mutual=%s",
       async (mutual) => {
@@ -249,6 +263,7 @@ describe.skipIf(!testDatabaseUrl)(
         );
       },
     );
+    /** Проверяет немедленное исключение отозвавшей анкету участницы и отсутствие адресов в выдаче. */
     it("does not return the peer address after completed withdrawal", async () => {
       await prepare("find");
       await (await captured("peer")).penPals.remove();
@@ -258,6 +273,7 @@ describe.skipIf(!testDatabaseUrl)(
         true,
       );
     });
+    /** Проверяет устойчивое ранжирование большой выборки с устаревшими формами интересов и учётом уже показанных карточек. */
     it("keeps the candidate order with legacy interests and shown cards", async () => {
       const ids = Array.from({ length: 260 }, (_, index) => 993100 + index);
       const range = [ids[0], ids[259]];
@@ -320,6 +336,7 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query("DELETE FROM users WHERE id BETWEEN ? AND ?", range);
       }
     });
+    /** Проверяет заполнение выдачи доступными кандидатами вместо заблокированных с большим рейтингом. */
     it("fills discovery slots when blocked profiles have a higher score", async () => {
       const ids = [993401, 993402, 993403, 993404];
       const [blockedFirst, blockedSecond, availableFirst, availableSecond] = ids;
@@ -368,6 +385,7 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query("DELETE FROM users WHERE id IN (?,?,?,?)", ids);
       }
     });
+    /** Приостанавливает настоящий SELECT и проверяет повторную валидацию отзыва анкеты, блокировки или смены интересов перед выдачей. */
     it.each([
       { pauseOn: "match-list", change: "withdraw" },
       { pauseOn: "own-profile", change: "withdraw" },
@@ -466,6 +484,7 @@ describe.skipIf(!testDatabaseUrl)(
         }
       },
     );
+    /** Проверяет откат подбора и безопасный отказ, если нельзя записать историю показов. */
     it("does not claim discovery succeeded when shown tracking fails", async () => {
       await conn.query("DELETE FROM pen_pal_matches WHERE id=?", [matchId]);
       const before = await snapshot();

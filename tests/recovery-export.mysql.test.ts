@@ -24,6 +24,7 @@ type Page = {
   items: { requestId: string; createdAt: Date; status: string }[];
   nextCursor: string | null;
 };
+/** Проверяет персональный bounded-export operation receipts без раскрытия контента, PII и storage identity. */
 describe.skipIf(!testDatabaseUrl)(
   "own recovery export through native HTTP/JWT/SQL",
   () => {
@@ -31,7 +32,9 @@ describe.skipIf(!testDatabaseUrl)(
       app: Awaited<ReturnType<typeof createBackendApplication>>,
       base: string,
       token: string;
+    /** Строит детерминированный 64-символьный request-key фикстуры. */
     const key = (value: string) => value.repeat(64);
+    /** Удаляет только свои материалы и recovery/upload journals двух тестовых авторов. */
     async function cleanup() {
       await conn.query(
         "DELETE FROM posts WHERE id=97580 AND source='r6-export-created'",
@@ -49,6 +52,7 @@ describe.skipIf(!testDatabaseUrl)(
           `DELETE FROM ${table} WHERE actorUserId IN (97580,97581)`,
         );
     }
+    /** Создаёт нужную content-схему, двух admin-авторов и настоящий локальный API с JWT. */
     beforeAll(async () => {
       conn = await openContentTestDatabase();
       await conn.query(
@@ -66,6 +70,7 @@ describe.skipIf(!testDatabaseUrl)(
         sessionVersion: 0,
       });
     });
+    /** Включает персональный экспорт и retention, выключает автоматическую компакцию и восстанавливает права автора. */
     beforeEach(async () => {
       await cleanup();
       vi.stubEnv("CONTENT_RECOVERY_EXPORT_ENABLED", "true");
@@ -75,6 +80,7 @@ describe.skipIf(!testDatabaseUrl)(
         "UPDATE users SET sessionVersion=0,blockedAt=NULL,role='admin' WHERE id=97580",
       );
     });
+    /** Закрывает API, удаляет fixture и пользователей и закрывает пул. */
     afterAll(async () => {
       await app?.close();
       if (conn) {
@@ -87,6 +93,7 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** Запрашивает recoveryExport выбранной сессией и извлекает bounded page либо tRPC-error. */
     async function request(input: unknown, bearer: string | undefined = token) {
       const response = await fetch(
         `${base}/api/trpc/profileExtras.recoveryExport?input=${encodeURIComponent(JSON.stringify(superjson.serialize(input)))}`,
@@ -104,6 +111,7 @@ describe.skipIf(!testDatabaseUrl)(
         error: json.error?.json,
       };
     }
+    /** Создаёт подробные журналы двух владельцев и старый минимальный маркер в выбранном namespace. */
     async function fixture(kind: "post" | "article") {
       const table =
         kind === "post"
@@ -121,6 +129,7 @@ describe.skipIf(!testDatabaseUrl)(
         [kind, key("2")],
       );
     }
+    /** Экспорт постов и статей выдаёт только свои receipts с устойчивой границей ключа и согласованными тремя полями. */
     it.each(["post", "article"] as const)(
       "exports only own %s records with bounded stable pagination",
       async (kind) => {
@@ -151,6 +160,7 @@ describe.skipIf(!testDatabaseUrl)(
           ]);
       },
     );
+    /** Receipt private-upload не раскрывает filename, assetId, etag и чужие загрузки. */
     it("does not leak private filename, storage evidence or draft download identity", async () => {
       await conn.query(
         "INSERT INTO private_attachment_uploads(requestKey,actorUserId,assetId,payloadHash,namespaceHash,type,filename,mimeType,fileSize,state,etag) VALUES(?,97580,'97580000-0000-4000-8000-000000000001',REPEAT('e',64),REPEAT('f',64),'document','Personal name.pdf','application/pdf',10,'ready','private-etag'),(?,97581,'97580000-0000-4000-8000-000000000002',REPEAT('e',64),REPEAT('f',64),'document','Neighbor.pdf','application/pdf',10,'pending',NULL)",
@@ -166,6 +176,7 @@ describe.skipIf(!testDatabaseUrl)(
         "status",
       ]);
     });
+    /** Статус created не раскрывает draft-текст, название или material ID. */
     it.each(["post", "article"] as const)(
       "reports a live %s without exporting its draft content or ID",
       async (kind) => {
@@ -190,6 +201,7 @@ describe.skipIf(!testDatabaseUrl)(
         );
       },
     );
+    /** Pending выдаётся явно, а ready без достаточного storage-evidence закрывается с 503. */
     it("reports pending uploads and refuses invalid ready storage evidence", async () => {
       await conn.query(
         "INSERT INTO private_attachment_uploads(requestKey,actorUserId,assetId,payloadHash,namespaceHash,type,filename,mimeType,fileSize,state) VALUES(?,97580,'97580000-0000-4000-8000-000000000003',REPEAT('e',64),REPEAT('f',64),'document','Pending.pdf','application/pdf',10,'pending')",
@@ -203,6 +215,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect((await request({ kind: "private_attachment" })).status).toBe(503);
     });
+    /** Компакция между страницами сохраняет key-обход, а marker остаётся expired даже после выключения retention. */
     it("preserves cursor continuity across compaction and never revives an expired result", async () => {
       await fixture("post");
       await conn.query(
@@ -221,6 +234,7 @@ describe.skipIf(!testDatabaseUrl)(
         next.data?.items.map((row) => [row.requestId, row.status]),
       ).toEqual([[key("3"), "expired"]]);
     });
+    /** Пользователь не может выбрать чужой userId, слишком широкую партию или неизвестный namespace. */
     it.each([
       { kind: "post", userId: 97581 },
       { kind: "post", limit: 101 },
@@ -232,11 +246,13 @@ describe.skipIf(!testDatabaseUrl)(
         expect((await request(input)).status).toBe(400);
       },
     );
+    /** Экспорт требует сессию и явный флаг доступности. */
     it("denies guests and disabled exports", async () => {
       expect((await request({ kind: "post" }, "")).status).toBe(401);
       vi.stubEnv("CONTENT_RECOVERY_EXPORT_ENABLED", "false");
       expect((await request({ kind: "post" })).status).toBe(404);
     });
+    /** Отзыв epoch и блокировка запрещают HTTP-чтение receipts. */
     it("denies revoked and blocked users without revealing records", async () => {
       await fixture("post");
       await conn.query("UPDATE users SET sessionVersion=1 WHERE id=97580");
@@ -247,6 +263,7 @@ describe.skipIf(!testDatabaseUrl)(
       // Existing SDK rejects blocked authentication; the HTTP context is guest.
       expect((await request({ kind: "post" })).status).toBe(401);
     });
+    /** Уже захваченный tRPC-контекст не сохраняет доступ после изменения epoch или блокировки. */
     it("rechecks the epoch and block for an already authenticated RPC context", async () => {
       const user = await getUserByOpenId("r6-export-owner");
       const caller = appRouter.createCaller({
@@ -265,6 +282,7 @@ describe.skipIf(!testDatabaseUrl)(
         caller.profileExtras.recoveryExport({ kind: "post" }),
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
     });
+    /** Read-only export использует point-in-time чтение и не ждёт посторонний owner write-lock. */
     it("returns a point-in-time export without waiting for an in-flight owner lock", async () => {
       await fixture("post");
       await conn.beginTransaction();
@@ -285,6 +303,7 @@ describe.skipIf(!testDatabaseUrl)(
         await pending;
       }
     });
+    /** Обычная роль user имеет доступ к своим receipts без admin-права, чужие записи исключаются. */
     it("allows personal export to a member and does not return other owners", async () => {
       await fixture("article");
       await conn.query("UPDATE users SET role='user' WHERE id=97580");
@@ -296,6 +315,7 @@ describe.skipIf(!testDatabaseUrl)(
         key("3"),
       ]);
     });
+    /** Долговечный terminal-marker имеет приоритет над случайно оставшейся подробной записью. */
     it("gives terminal markers precedence over duplicate detailed rows", async () => {
       await fixture("post");
       await conn.query(
@@ -312,6 +332,7 @@ describe.skipIf(!testDatabaseUrl)(
         [key("3"), "deleted"],
       ]);
     });
+    /** Отсутствие marker-таблицы даёт безопасный 503 без SQL, table-name или stack в ответе. */
     it("fails closed on incomplete schema with sanitized error", async () => {
       await conn.query(
         "RENAME TABLE content_recovery_markers TO backend_test_export_hold",

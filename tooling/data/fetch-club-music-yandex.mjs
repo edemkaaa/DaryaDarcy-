@@ -24,6 +24,8 @@ const env = Object.fromEntries(
 );
 
 async function publicMeta(filePath) {
+  // Получает метаданные ровно указанного музыкального файла с публичного Яндекс Диска.
+
   const url = new URL(API);
   url.searchParams.set("public_key", PUBLIC_KEY);
   url.searchParams.set("path", filePath);
@@ -33,6 +35,8 @@ async function publicMeta(filePath) {
 }
 
 async function main() {
+  // Скачивает согласованный трек, сохраняет локальную копию и публикует по фиксированному S3-ключу; повтор может заменить объект.
+
   const meta = await publicMeta(MUSIC_PATH);
   const href = meta.file;
   if (!href) throw new Error("No download href for music file");

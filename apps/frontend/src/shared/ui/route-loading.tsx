@@ -1,5 +1,6 @@
 /** Небольшая заглушка маршрута не дублирует баннер и анимацию экрана, который ещё загружается. */
 import { ScreenContainer } from "./screen-container";
+/** Показываем лёгкое состояние перехода внутри общего контейнера; path служит меткой открываемого раздела. */
 export default function RouteLoading({ path }: { path?: string } = {}) {
   return (
     <ScreenContainer>

@@ -19,6 +19,7 @@ type Destination =
       pathname: string;
       params?: Record<string, string | number | undefined>;
     };
+/** Убираем старую Expo-группу из пути и распределяем параметры между динамическим сегментом и query, кодируя значения. */
 export function publicPath(to: Destination): string {
   const path = typeof to === "string" ? to : to.pathname;
   let result = path.replace(/\/\(tabs\)/g, "").replace(/\/index$/, "") || "/";
@@ -35,6 +36,7 @@ export function publicPath(to: Destination): string {
   }
   return result;
 }
+/** Возвращаем единые команды Next с уведомлением об уходе и сохранением согласованных login/club намерений. */
 export function useRouter() {
   const next = useNextRouter();
   const path = usePathname();
@@ -54,6 +56,7 @@ export function useRouter() {
         if (replace) next.replace("/login");
         else next.push("/login");
       },
+      /** После входа намерение потребляется один раз; клубные флаги переносятся отдельно от строки публичного URL. */
       finishLogin: () => {
         const destination = consumeLoginReturn();
         if (destination.club) rememberClubNavigation(destination.club);
@@ -64,6 +67,7 @@ export function useRouter() {
         rememberClubNavigation({ checkout: true, paymentReturn: false });
         next.push("/club");
       },
+      /** Используем back только для своей истории приложения; прямой вход получает родительский раздел вместо внешней страницы. */
       back: () => {
         notifyNavigationStart();
         if (hasAppHistory()) next.back();
@@ -75,14 +79,17 @@ export function useRouter() {
   );
 }
 export type Router = ReturnType<typeof useRouter>;
+/** Запускаем эффект только для активного сохранённого экрана; изменение маршрута вызывает его штатную очистку. */
 export function useFocusEffect(effect: () => void | (() => void)) {
   const path = usePathname();
   const active = useScreenActive();
   useEffect(() => (active ? effect() : undefined), [effect, path, active]);
 }
+/** Для совместимых экранов фокус означает активность панели, а не только наличие её DOM в документе. */
 export function useIsFocused() {
   return useScreenActive();
 }
+/** Совместимую ссылку переводим в публичный путь; prefetch отключён, чтобы не запускать ненужные загрузки соседних экранов. */
 export const Link = ({
   href,
   children,
@@ -96,6 +103,7 @@ export const Link = ({
     {children}
   </NextLink>
 );
+/** Клиентский redirect выполняет replace через общий router, сохраняя уведомление уходящей странице. */
 export const Redirect = ({ href }: { href: Destination }) => {
   const r = useRouter();
   useEffect(() => r.replace(href), [r, href]);

@@ -24,10 +24,12 @@ import {
   verifyPassword,
 } from "../apps/backend/src/_core/password";
 
+/** Проверяет durable setup/reset ссылки, одноразовое потребление, отзыв сессий и lease-fencing email-outbox. */
 describe.skipIf(!testDatabaseUrl)("durable access and password links", () => {
   let conn: mysql.Connection;
   let pool: mysql.Pool;
   let database: MySql2Database;
+  /** Открывает одноразовую БД и отдельный пул, настраивает synthetic encryption-key и собственного адресата. */
   beforeAll(async () => {
     conn = await openTestDatabase();
     pool = mysql.createPool({ uri: testDatabaseUrl!, timezone: "Z" });
@@ -41,6 +43,7 @@ describe.skipIf(!testDatabaseUrl)("durable access and password links", () => {
       "INSERT IGNORE INTO users (id,openId,email) VALUES (778,'identity-test','identity@example.test')",
     );
   });
+  /** Очищает только password tokens, outbox и платежи собственного пользователя и возвращает исходную identity. */
   beforeEach(async () => {
     await conn.query("DELETE FROM password_tokens WHERE userId=778");
     await conn.query("DELETE FROM access_email_outbox WHERE userId=778");
@@ -49,11 +52,13 @@ describe.skipIf(!testDatabaseUrl)("durable access and password links", () => {
       "UPDATE users SET passwordHash=NULL,sessionVersion=0,blockedAt=NULL,email='identity@example.test' WHERE id=778",
     );
   });
+  /** Закрывает контрольное и прикладное соединения и возвращает окружение. */
   afterAll(async () => {
     await pool?.end();
     await conn?.end();
     vi.unstubAllEnvs();
   });
+  /** Повторяет delivery tick до получения локально перехваченного текста письма и извлекает fragment-token. */
   async function link() {
     let body = "";
     // SKIP LOCKED may legitimately defer a row while another worker scans the
@@ -77,6 +82,7 @@ describe.skipIf(!testDatabaseUrl)("durable access and password links", () => {
       "#token=".length,
     );
   }
+  /** Заявка восстановления не ждёт FOR UPDATE строки другого email-пользователя. */
   it("password requests do not lock a different account while searching by email", async () => {
     const guardId = -20261002;
     await conn.query(
@@ -109,6 +115,7 @@ describe.skipIf(!testDatabaseUrl)("durable access and password links", () => {
       await conn.query("DELETE FROM users WHERE id=?", [guardId]);
     }
   });
+  /** Setup сохраняет только hash, меняет пароль один раз и увеличивает sessionVersion без автоматического входа. */
   it("queues a private setup link, consumed once without logging in", async () => {
     await requestPasswordEmail(database, "identity@example.test");
     const token = await link();
@@ -130,6 +137,7 @@ describe.skipIf(!testDatabaseUrl)("durable access and password links", () => {
     );
     expect(user[0].sessionVersion).toBe(1);
   });
+  /** Два одновременных потребления одного proof имеют одного победителя. */
   it("concurrent use of a link has exactly one winner", async () => {
     await requestPasswordEmail(database, "identity@example.test");
     const token = await link();
@@ -142,6 +150,7 @@ describe.skipIf(!testDatabaseUrl)("durable access and password links", () => {
       ).filter(Boolean),
     ).toHaveLength(1);
   });
+  /** Expired proof и заблокированный получатель не меняют пароль. */
   it("expired and blocked links cannot change the password", async () => {
     await requestPasswordEmail(database, "identity@example.test");
     const token = await link();
@@ -158,6 +167,7 @@ describe.skipIf(!testDatabaseUrl)("durable access and password links", () => {
       false,
     );
   });
+  /** Неизвестный адрес не создаёт аккаунт или email-outbox. */
   it("unknown emails create neither users nor mail", async () => {
     await requestPasswordEmail(database, "unknown@example.test");
     const [rows] = await conn.query<mysql.RowDataPacket[]>(
@@ -165,6 +175,7 @@ describe.skipIf(!testDatabaseUrl)("durable access and password links", () => {
     );
     expect(rows[0].n).toBe(0);
   });
+  /** Запрос reset сохраняет прежний пароль и делает старую ссылку недействительной только после успешной подготовки новой. */
   it("a reset does not overwrite the password before proof, and supersedes older links", async () => {
     const oldHash = await hashPassword("old-password-123");
     await conn.query("UPDATE users SET passwordHash=? WHERE id=778", [oldHash]);
@@ -183,6 +194,7 @@ describe.skipIf(!testDatabaseUrl)("durable access and password links", () => {
       true,
     );
   });
+  /** Ссылка прежнего адреса не подходит после изменения email аккаунта. */
   it("a link sent to the old email cannot change the account after an email change", async () => {
     await requestPasswordEmail(database, "identity@example.test");
     const token = await link();
@@ -193,6 +205,7 @@ describe.skipIf(!testDatabaseUrl)("durable access and password links", () => {
       false,
     );
   });
+  /** Сбой шифрования новой ссылки откатывает подготовку, сохраняя прежний proof и credentials. */
   it("a failed reset preparation preserves the previous link and credentials", async () => {
     const oldHash = await hashPassword("old-password-123");
     await conn.query("UPDATE users SET passwordHash=? WHERE id=778", [oldHash]);
@@ -232,12 +245,14 @@ describe.skipIf(!testDatabaseUrl)("durable access and password links", () => {
       );
     }
   });
+  /** Активный email lease не забирается; после expiry повтор отправляет один раз и очищает cipher. */
   it("recovers an expired mail lease but never takes an active lease", async () => {
     await requestPasswordEmail(database, "identity@example.test");
     await conn.query(
       "UPDATE access_email_outbox SET leaseId='lost-worker',leaseUntil=DATE_ADD(NOW(),INTERVAL 5 MINUTE),attempts=1 WHERE userId=778",
     );
     const delivered: string[] = [];
+    /** Фиксирует Message-ID локально перехваченного письма вместо SMTP. */
     const send = async (mail: { messageId: string }) => {
       delivered.push(mail.messageId);
       return true;
@@ -262,6 +277,7 @@ describe.skipIf(!testDatabaseUrl)("durable access and password links", () => {
     expect(rows[0].sentAt).not.toBeNull();
     expect(rows[0].payload.tokenCipher).toBeUndefined();
   });
+  /** Поздний failure старого sender не стирает успешный sentAt и очищенный cipher новой lease-попытки. */
   it("a late failure from an expired lease cannot erase replacement delivery", async () => {
     await requestPasswordEmail(database, "identity@example.test");
     let release!: () => void;
@@ -330,6 +346,7 @@ describe.skipIf(!testDatabaseUrl)("durable access and password links", () => {
     );
     expect(sends).toBe(0);
   });
+  /** Просроченное письмо получает discardedAt и причину, а не ложный sentAt. */
   it("expired mail is explicitly discarded, never recorded as delivered", async () => {
     await requestPasswordEmail(database, "identity@example.test");
     await conn.query(
@@ -352,6 +369,7 @@ describe.skipIf(!testDatabaseUrl)("durable access and password links", () => {
     expect(rows[0].discardedAt).not.toBeNull();
     expect(rows[0].lastError).toBe("link_expired_or_consumed");
   });
+  /** Resend требует staff, использует сохранённый email оплаченного адресата и пишет audit. */
   it("only explicit staff can resend access to the stored paid recipient, with an audit trail", async () => {
     await conn.query(
       "INSERT IGNORE INTO users (id,openId,email,role) VALUES (781,'resend-admin','admin@example.test','admin')",
@@ -372,6 +390,7 @@ describe.skipIf(!testDatabaseUrl)("durable access and password links", () => {
     );
     expect(audit[0].action).toBe("resend_club_access");
   });
+  /** Отказ sender остаётся retryable, а четыре worker после backoff получают одну delivery-попытку. */
   it("SMTP failure remains queued; parallel workers send one message", async () => {
     await database.transaction(async (tx) => {
       await queueAccessEmail(

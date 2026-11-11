@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { editorApi, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
+/** Одни и те же пропорции альбома проверяем в Клубе и Ленте на двух ширинах; порядок открытия фото должен совпасть с исходным. */
 for (const path of ["/club", "/feed"]) {
   for (const width of [390, 1440]) {
     test.describe(`${path} album at ${width}px`, () => {
@@ -84,6 +85,7 @@ for (const path of ["/club", "/feed"]) {
               ),
             )
             .toBe(true);
+          /** Читаем фактические координаты каждой картинки после декодирования, чтобы проверить полные ряды и отсутствие пустого пространства. */
           const geometry = () =>
             images.evaluateAll((nodes) =>
               nodes.map((node) => {

@@ -10,6 +10,7 @@ const article = {
   published: true,
   sections: [{ type: "text", text: "Текст" }],
 };
+/** Сравниваем настоящее исчезновение записи и ложный ACK удаления: последующее неуспешное чтение не должно снять блокировку. */
 for (const confirmed of [false, true]) {
   test(`article deletion ${confirmed ? "confirms absence" : "rejects a false success and keeps blocked after a failed inspection"}`, async ({
     page,
@@ -72,6 +73,7 @@ for (const confirmed of [false, true]) {
   });
 }
 
+/** Проверяем оба перехода блокировки по подтверждённому ответу и свежим данным участницы, включая причину и точный payload. */
 test("blocking and unblocking members use confirmed replies and refresh the visible state", async ({
   page,
 }) => {
@@ -122,6 +124,7 @@ test("blocking and unblocking members use confirmed replies and refresh the visi
   ]);
 });
 
+/** Некорректный тип id в проверочном списке не доказывает отсутствие статьи; только валидный пустой список завершает неизвестный исход. */
 test("a malformed deletion verification list cannot unlock article actions", async ({
   page,
 }) => {

@@ -24,14 +24,18 @@ export function HighlightedTextInput({
   links: LinkRange[];
   onBeforeTextChange: (hint: TextEditHint) => void;
 }) {
+  // Сохраняет native ввод и выделение; подсветка ссылок рисуется отдельным недоступным для скринридера слоем.
+
   const input = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
   const viewport = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
+    // Подписывается на beforeinput textarea и передаёт точную подсказку изменения; при закрытии снимает обработчик.
+
     const node = input.current;
     if (!(node instanceof HTMLTextAreaElement)) return;
     const capture = (event: Event) =>
-      onBeforeTextChange({
+      /* Снимает выделение до native изменения, чтобы сдвиг диапазонов учитывал точное место ввода. */ onBeforeTextChange({
         start: node.selectionStart,
         end: node.selectionEnd,
         inputType: (event as InputEvent).inputType ?? "",
@@ -40,6 +44,8 @@ export function HighlightedTextInput({
     return () => node.removeEventListener("beforeinput", capture);
   }, [onBeforeTextChange]);
   const syncScroll = useCallback(() => {
+    // Сдвигает слой подсветки вместе с прокруткой textarea без перестройки React-дерева на каждый scroll.
+
     const node = input.current;
     if (!node || !viewport.current || !content.current) return;
     const transform = `translate(${-node.scrollLeft}px, ${-node.scrollTop}px)`;
@@ -47,9 +53,13 @@ export function HighlightedTextInput({
       content.current.style.transform = transform;
   }, []);
   useLayoutEffect(() => {
+    // Согласует геометрию подсветки с textarea через ResizeObserver и освобождает наблюдатель.
+
     const node = input.current;
     if (!node) return;
     const syncSize = () => {
+      // Учитывает ширину без полосы прокрутки только при изменении размеров, затем выравнивает положение подсветки.
+
       if (!viewport.current) return;
       // clientWidth excludes the native scrollbar; measure only on resize.
       const width = `${node.clientWidth}px`;
@@ -65,6 +75,8 @@ export function HighlightedTextInput({
   useLayoutEffect(syncScroll, [syncScroll, value]);
 
   const fragments = useMemo(() => {
+    // Делит исходный текст по упорядоченным диапазонам ссылок без добавления HTML в пользовательский ввод.
+
     if (!links.length) return null;
     const result = [];
     let position = 0;

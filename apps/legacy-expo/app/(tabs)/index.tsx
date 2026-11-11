@@ -1,3 +1,4 @@
+// Архив Expo. Выбирает календарное название сезона; исторически все четыре ветки содержат один набор hero URI.
 import { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import {
   Text,
@@ -59,6 +60,8 @@ type SeasonData = {
 };
 
 function getCurrentSeason(): SeasonData {
+  // Выбирает календарное название сезона; исторически все четыре ветки содержат один набор hero URI.
+
   const month = new Date().getMonth();
   if (month >= 2 && month <= 4)
     return {
@@ -193,6 +196,8 @@ const SECTION_BANNERS = [
 
 // ── Helper: check if section has new content (within 2 days) ──
 function isSectionNew(banner: typeof SECTION_BANNERS[number]): boolean {
+  // Сравнивает статическую дату раздела с двухсуточным окном; это не серверный счётчик новых публикаций.
+
   if (!banner.hasNew || !banner.lastUpdated) return false;
   const updated = new Date(banner.lastUpdated).getTime();
   const now = Date.now();
@@ -218,6 +223,8 @@ function ZoomCard({
   style?: any;
   children: React.ReactNode;
 }) {
+  // Проигрывает короткий press-zoom и передаёт переход в JS после завершения UI-анимации.
+
   const router = useRouter();
   const scale = useSharedValue(1);
 
@@ -226,6 +233,8 @@ function ZoomCard({
   }));
 
   const handlePress = useCallback(() => {
+    // Даёт native haptic и запускает анимацию перехода выбранной карточки.
+
     // Haptic feedback on press
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -239,6 +248,8 @@ function ZoomCard({
   }, [route]);
 
   function navigateToRoute(r: string) {
+    // Открывает внутренний route карточки из JS-потока.
+
     router.push(r as any);
   }
 
@@ -258,6 +269,8 @@ function ZoomCard({
 }
 
 export default function HomeScreen() {
+  // Архивная главная компонует публичные промо, декоративный параллакс и переходы; данные свежести здесь статичны.
+
   const colors = useColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -265,6 +278,8 @@ export default function HomeScreen() {
   // ── Pull-to-refresh state ──
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = useCallback(() => {
+    // Имитирует обновление только spinner/haptic на 1,2 секунды, не выполняя серверного запроса.
+
     setRefreshing(true);
     // Simulate refresh (re-check content counts / dates)
     // In a real app this would fetch from API
@@ -284,6 +299,8 @@ export default function HomeScreen() {
   const slideCount = season.heroImages.length;
 
   useEffect(() => {
+    // Циклически crossfade-переключает индексы hero; cleanup снимает interval, но вложенный timeout отдельно не сохраняется.
+
     const interval = setInterval(() => {
       setNextSlide(() => (currentSlide + 1) % slideCount);
       fadeAnim.value = withTiming(0, {
@@ -305,7 +322,8 @@ export default function HomeScreen() {
     return () => clearInterval(interval);
   }, [currentSlide, slideCount]);
 
-  const currentSlideStyle = useAnimatedStyle(() => ({
+  // Два opacity-слоя реализуют crossfade; в архивном JSX оба используют один локальный hero-header ресурс.
+const currentSlideStyle = useAnimatedStyle(() => ({
     opacity: fadeAnim.value,
   }));
   const nextSlideStyle = useAnimatedStyle(() => ({
@@ -321,6 +339,8 @@ export default function HomeScreen() {
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
+      // Скрывает header при движении вниз, возвращает при движении вверх и обновляет shared scroll для декора.
+
       const currentY = event.contentOffset.y;
       const diff = currentY - prevScrollY.value;
 
@@ -340,13 +360,16 @@ export default function HomeScreen() {
     },
   });
 
-  const headerAnimatedStyle = useAnimatedStyle(() => ({
+  // Смещение header независимо от scroll-контента позволяет прятать шапку вниз по ленте и возвращать при движении вверх.
+const headerAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: headerTranslateY.value }],
   }));
 
   // ── Fix: reset scroll position when tab gains focus to prevent header sliding ──
   const isFocused = useIsFocused();
   useEffect(() => {
+    // При возвращении фокуса сбрасывает scroll и header, чтобы прошлый параллакс не сдвигал шапку.
+
     if (isFocused) {
       // Reset the shared value to 0 so parallax header snaps back
       scrollY.value = 0;
@@ -362,6 +385,8 @@ export default function HomeScreen() {
   const heroTranslateY = useSharedValue(20);
 
   useEffect(() => {
+    // Запускает отложенное появление названия hero с opacity/translate на UI-потоке.
+
     heroOpacity.value = withDelay(
       300,
       withTiming(1, { duration: 800, easing: Easing.out(Easing.cubic) })
@@ -380,6 +405,8 @@ export default function HomeScreen() {
   // ── Badge pulse glow animation ──
   const badgePulse = useSharedValue(1);
   useEffect(() => {
+    // Запускает бесконечную пульсацию меток нового; отдельного cancelAnimation cleanup в архиве нет.
+
     badgePulse.value = withRepeat(
       withSequence(
         withTiming(0.6, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
@@ -394,7 +421,8 @@ export default function HomeScreen() {
   }));
 
   // ── Parallax animated styles ──
-  const heroParallaxStyle = useAnimatedStyle(() => ({
+  // Hero и welcome двигаются с разной скоростью, а CLAMP удерживает масштаб и смещение в рассчитанных пределах.
+const heroParallaxStyle = useAnimatedStyle(() => ({
     transform: [
       {
         translateY: interpolate(
@@ -431,7 +459,8 @@ export default function HomeScreen() {
   // ── Medallion glint effect (oval-clipped sweeping gradient) ──
   const MEDALLION_SIZE = SCREEN_WIDTH * 0.55;
   const GLINT_STRIPE_W = MEDALLION_SIZE * 0.35;
-  const medallionGlintStyle = useAnimatedStyle(() => {
+  // Блик скользит через две овальные маски медальона и исчезает вне заданного диапазона прокрутки.
+const medallionGlintStyle = useAnimatedStyle(() => {
     // Sweeping gradient stripe moves across the medallion as user scrolls
     const glintTranslate = interpolate(
       scrollY.value,
@@ -451,7 +480,8 @@ export default function HomeScreen() {
     };
   });
 
-  const aboutParallaxStyle = useAnimatedStyle(() => ({
+  // Последующие секции получают отдельные короткие диапазоны параллакса, не меняя реальную высоту потока.
+const aboutParallaxStyle = useAnimatedStyle(() => ({
     transform: [
       {
         translateY: interpolate(
@@ -512,7 +542,8 @@ export default function HomeScreen() {
   }));
 
   // ── Fade-in animation for ИССЛЕДУЙТЕ title on scroll (smooth, bigger rise) ──
-  const exploreTitleFadeStyle = useAnimatedStyle(() => ({
+  // Заголовок разделов появляется от scroll-порога через opacity/translate, без изменения занимаемого места.
+const exploreTitleFadeStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
       scrollY.value,
       [HERO_HEIGHT + 450, HERO_HEIGHT + 800],
@@ -906,6 +937,7 @@ export default function HomeScreen() {
 const HERO_ASPECT = 1152 / 2048; // hero_header.jpg aspect (16:9)
 const HERO_HEIGHT = SCREEN_WIDTH * 0.6;
 
+// Слои главной используют фиксированную геометрию иллюстраций: overlay-header выше hero, овальные маски ограничивают блик медальона.
 const styles = StyleSheet.create({
   container: {
     flex: 1,

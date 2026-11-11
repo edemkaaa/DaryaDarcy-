@@ -1,3 +1,4 @@
+/** Журнал video/poster проверяется над in-memory IndexedDB двойником, включая File aliases, owner и ревизии. */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { PostRecoveryJournal } from "../apps/frontend/src/domain/post/recovery-store";
 import { PostSaveCoordinator } from "../apps/frontend/src/domain/post/save-post";
@@ -5,15 +6,18 @@ import { setPersonalDataOwner } from "../apps/frontend/src/shared/browser/storag
 import { journalObjectStore } from "./helpers/journal-object-store";
 
 let storage: ReturnType<typeof journalObjectStore>;
+/** Собственная object-store factory и owner101 не используют браузерные рабочие данные. */
 beforeEach(() => {
   storage = journalObjectStore();
   vi.stubGlobal("indexedDB", storage.factory);
   setPersonalDataOwner(101);
 });
+/** Снимаем owner и synthetic globals. */
 afterEach(() => {
   setPersonalDataOwner(null);
   vi.unstubAllGlobals();
 });
+/** Создаём стабильные original video/poster Files, keys, attempted и cooldown для round-trip. */
 const video = () => ({
   key: "private-video-original-key",
   file: new File(["video original bytes"], "lesson.mp4", {
@@ -31,6 +35,7 @@ const video = () => ({
     attempted: true,
   },
 });
+/** Editor snapshot содержит local-video ref и тот же объект selected video. */
 const editor = (selected = video()) => ({
   draft: {
     text: "Video",
@@ -48,12 +53,14 @@ const editor = (selected = video()) => ({
   pending: [],
   privateVideos: [selected],
 });
+/** Coordinator snapshot делит alias файла с editor, чтобы проверить восстановление общей идентичности. */
 const snapshot = (selected = video()) => ({
   ...new PostSaveCoordinator().snapshot(),
   phase: "upload" as const,
   privateVideos: [selected],
 });
 
+/** Round-trip сохраняет bytes/name/MIME/lastModified/keys/cooldown и единый video объект в двух ветвях. */
 it("stores video and poster as ArrayBuffer, restores exact Files and editor/coordinator aliases", async () => {
   const selected = video(),
     journal = new PostRecoveryJournal(101, "video");
@@ -74,6 +81,7 @@ it("stores video and poster as ArrayBuffer, restores exact Files and editor/coor
   expect(restored.poster!.key).toBe("private-poster-original-key");
   expect(loaded!.save.privateVideos![0]).toBe(restored);
 });
+/** Параллельная старая вкладка не перезаписывает новую запись; owner102 не получает101. */
 it("keeps the record owner-scoped and rejects a stale tab revision", async () => {
   const a = new PostRecoveryJournal(101, "video"),
     b = new PostRecoveryJournal(101, "video");
@@ -93,6 +101,7 @@ it("keeps the record owner-scoped and rejects a stale tab revision", async () =>
       .privateVideos![0].key,
   ).toBe(selected.key);
 });
+/** Неверный сохранённый MIME в receipt останавливает load. */
 it("rejects a corrupted video receipt after storage restore", async () => {
   const selected = video(),
     journal = new PostRecoveryJournal(101, "video");
@@ -114,6 +123,7 @@ it("rejects a corrupted video receipt after storage restore", async () => {
     "повреждён",
   );
 });
+/** Owner fence повторяется после async arrayBuffer до записи. */
 it("refuses to persist original bytes after an account switch during file preparation", async () => {
   const selected = video(),
     journal = new PostRecoveryJournal(101, "video");
@@ -127,6 +137,7 @@ it("refuses to persist original bytes after an account switch during file prepar
   ).rejects.toThrow("владельца");
   expect(storage.records.size).toBe(0);
 });
+/** Save-state не может записать attempted video, отсутствующее в editor-owned наборе. */
 it("blocks a checkpoint when the editor no longer owns the attempted video", async () => {
   const selected = video(),
     journal = new PostRecoveryJournal(101, "video");
@@ -139,6 +150,7 @@ it("blocks a checkpoint when the editor no longer owns the attempted video", asy
   ).rejects.toThrow();
   expect(storage.records.size).toBe(0);
 });
+/** Удалённый ref не теряет восстановленные bytes и общий alias до следующего решения save. */
 it("keeps a recovered video's File alias while its local reference is removed before the next save", async () => {
   const selected = video(),
     journal = new PostRecoveryJournal(101, "video");
@@ -154,6 +166,7 @@ it("keeps a recovered video's File alias while its local reference is removed be
     "video original bytes",
   );
 });
+/** Старые snapshots без privateVideos остаются совместимыми. */
 it("keeps legacy journal records without a video field readable", async () => {
   const selected = video(),
     journal = new PostRecoveryJournal(101, "video");
@@ -172,6 +185,7 @@ it("keeps legacy journal records without a video field readable", async () => {
   ).toBe("Video");
   expect(omitted).toHaveLength(1);
 });
+/** Owner проверяется и после завершения async чтения. */
 it("rejects bytes returned after the owner changed during storage read", async () => {
   const selected = video(),
     journal = new PostRecoveryJournal(101, "video");

@@ -1,3 +1,4 @@
+// Архив Expo. Показывает плавающий переход наверх с коротким fade и native haptic, не управляя самим scroll.
 import { Pressable, StyleSheet, Platform } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
@@ -14,6 +15,8 @@ interface ScrollToTopButtonProps {
 }
 
 export function ScrollToTopButton({ visible, onPress, bottom = 90 }: ScrollToTopButtonProps) {
+  // Показывает плавающий переход наверх с коротким fade и native haptic, не управляя самим scroll.
+
   if (!visible) return null;
 
   return (
@@ -34,6 +37,7 @@ export function ScrollToTopButton({ visible, onPress, bottom = 90 }: ScrollToTop
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   wrap: {
     position: "absolute",

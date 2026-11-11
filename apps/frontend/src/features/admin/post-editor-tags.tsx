@@ -53,6 +53,8 @@ export const PostEditorTags = memo(function PostEditorTags({
   selectedTags: readonly string[];
   onToggle: (slug: string) => void;
 }) {
+  // Мемоизированная группа тегов сохраняет серверные slug и русские подписи; ввод текста не должен заново строить все кнопки.
+
   const styles = variants[variant];
   return (
     <div className={`ui-stack ${styles.section}`}>

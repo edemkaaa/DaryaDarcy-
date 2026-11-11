@@ -1,11 +1,14 @@
+/** Named-lock orchestration проверяется управляемым MySQL connection, не настоящими server locks. */
 import { afterEach, expect, it, vi } from "vitest";
 import * as database from "../apps/backend/src/database/connection";
 import { withDatabaseLock } from "../apps/backend/src/database/coordination";
 
+/** Снимаем DB spies и fake timers. */
 afterEach(() => {
   vi.restoreAllMocks();
   vi.useRealTimers();
 });
+/** Двойник воспроизводит DATABASE/GET_LOCK/RELEASE_LOCK и раздельно считает release/destroy. */
 function fixture(acquired: number | null = 1) {
   const connection = {
     query: vi
@@ -22,6 +25,7 @@ function fixture(acquired: number | null = 1) {
   } as never);
   return { connection, getConnection };
 }
+/** Занятый lock возвращает acquired:false без запуска callback; чистая сессия возвращается в пул. */
 it("skips an occupied job without calling it and releases its unlocked connection", async () => {
   const { connection } = fixture(0);
   const run = vi.fn();
@@ -32,6 +36,7 @@ it("skips an occupied job without calling it and releases its unlocked connectio
   expect(connection.release).toHaveBeenCalledOnce();
   expect(connection.destroy).not.toHaveBeenCalled();
 });
+/** Неопределённый результат GET_LOCK делает сессию непригодной и не допускает работу. */
 it("does not begin domain work when lock acquisition returns an error", async () => {
   const { connection } = fixture(null);
   const run = vi.fn();
@@ -42,6 +47,7 @@ it("does not begin domain work when lock acquisition returns an error", async ()
   expect(connection.destroy).toHaveBeenCalledOnce();
   expect(connection.release).not.toHaveBeenCalled();
 });
+/** Ошибка callback не мешает RELEASE_LOCK и обычному release подтверждённо чистого соединения. */
 it("releases its named lock even when domain work throws", async () => {
   const { connection } = fixture();
   await expect(
@@ -53,6 +59,7 @@ it("releases its named lock even when domain work throws", async () => {
   expect(connection.release).toHaveBeenCalledOnce();
   expect(connection.destroy).not.toHaveBeenCalled();
 });
+/** Неподтверждённый unlock требует destroy, чтобы lock не утёк следующему заёмщику. */
 it.each(["refused", "query-failure"])(
   "destroys rather than reuses a session when unlock is %s",
   async (failure) => {
@@ -72,6 +79,7 @@ it.each(["refused", "query-failure"])(
     expect(connection.release).not.toHaveBeenCalled();
   },
 );
+/** Просроченное ожидание не запускает callback; поздно выданное соединение освобождается без SQL. */
 it("times out pool admission and releases a connection that arrives too late", async () => {
   vi.useFakeTimers();
   const { connection, getConnection } = fixture();

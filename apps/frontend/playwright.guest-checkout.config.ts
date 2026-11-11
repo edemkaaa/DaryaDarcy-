@@ -1,3 +1,4 @@
+/** Выбираем только guest/NORMAL recovery и отключаем TEST-ожидания; нужны соответствующие флаги уже собранного клиента. */
 import { defineConfig } from "@playwright/test";
 import base from "./playwright.config";
 

@@ -29,6 +29,7 @@ import {
   STICKER_SAVE,
 } from "./club-subscribed.content";
 import type { ClubPost } from "./club-subscribed.content";
+/** Собираем клубную карточку из проверенных данных: текст и статья имеют разные переходы, видео отделены от аудио и документов. */
 export function ClubPostCard({
   item,
   isSaved,
@@ -55,6 +56,7 @@ export function ClubPostCard({
   const saveScale = useSharedValue(1);
   const postId = Number(item.id);
   const canOpen = Number.isFinite(postId) && postId > 0;
+  /** Переходим по публичному UUID, если он есть; числовой id остаётся совместимым запасным маршрутом. */
   const openPost = () => {
     if (!canOpen) return;
     router.push(postHref({ id: postId, publicId: item.publicId }));
@@ -65,6 +67,7 @@ export function ClubPostCard({
   const saveAnimStyle = useAnimatedStyle(() => ({
     transform: cssTransform([{ scale: saveScale.value }]),
   }));
+  /** Декоративная анимация сопровождает действие родителя; подтверждение и блокировку повтора контролирует его модель. */
   const handleLike = () => {
     likeScale.value = withTiming(
       1.3,
@@ -75,6 +78,7 @@ export function ClubPostCard({
     );
     onLike();
   };
+  /** Анимируем значок отдельно от серверного результата; pending родителя блокирует повторное нажатие. */
   const handleSave = () => {
     saveScale.value = withTiming(
       1.3,

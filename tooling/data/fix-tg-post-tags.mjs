@@ -23,6 +23,8 @@ const env = Object.fromEntries(
 const RESULT_JSON = process.env.TG_RESULT_JSON || "C:/Users/Иван/Downloads/result 2.json";
 
 async function main() {
+  // Пересобирает текст, richText и теги существующих tg-постов по экспорту, записывая только различающиеся строки.
+
   const data = JSON.parse(fs.readFileSync(RESULT_JSON, "utf8"));
   const byId = new Map(data.messages.filter((m) => m.type === "message").map((m) => [m.id, m]));
   const conn = await mysql.createConnection(env.DATABASE_URL);

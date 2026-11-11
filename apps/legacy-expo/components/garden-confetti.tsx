@@ -1,3 +1,4 @@
+// Архив Expo. Анимирует один заранее рассчитанный лепесток на UI-потоке без перехвата жестов.
 import { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
@@ -35,9 +36,13 @@ const PETALS: Petal[] = Array.from({ length: 18 }, (_, id) => ({
 }));
 
 function ConfettiPetal({ petal, active }: { petal: Petal; active: boolean }) {
+  // Анимирует один заранее рассчитанный лепесток на UI-потоке без перехвата жестов.
+
   const progress = useSharedValue(0);
 
   useEffect(() => {
+    // При включении повторно запускает delayed easing лепестка с нулевого прогресса.
+
     if (!active) return;
     progress.value = 0;
     progress.value = withDelay(
@@ -78,6 +83,8 @@ function ConfettiPetal({ petal, active }: { petal: Petal; active: boolean }) {
 }
 
 export function GardenConfetti({ active }: { active: boolean }) {
+  // Показывает фиксированный декоративный набор только во время active.
+
   if (!active) return null;
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
@@ -88,6 +95,7 @@ export function GardenConfetti({ active }: { active: boolean }) {
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   petal: {
     position: "absolute",

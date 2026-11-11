@@ -1,3 +1,4 @@
+/** Автоматические VK-обложки проверяются настоящим sharp и mock AWS send: immutable key и evidence важнее повторного PUT. */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import sharp from "sharp";
 import {
@@ -9,14 +10,17 @@ import { createHash } from "node:crypto";
 import { saveVkPoster } from "../apps/backend/src/media/vk-poster-object";
 
 const source = "a".repeat(64);
+/** Создаём синтетический S3 HTTP-status, не настоящий provider error. */
 const status = (code: number) =>
   Object.assign(new Error("fixture"), { $metadata: { httpStatusCode: code } });
+/** Mock хранит bytes/metadata в памяти и требует conditional PUT, public ACL только для обложки и immutable cache. */
 describe("immutable automatic VK covers", () => {
   let send: ReturnType<typeof vi.spyOn>;
   let stored:
     | { key: string; bytes: Buffer; metadata: Record<string, string> }
     | undefined;
   let image: Buffer;
+  /** Создаём PNG и пустое in-memory хранилище, подменяя все AWS-команды. */
   beforeEach(async () => {
     vi.stubEnv("S3_ENDPOINT", "https://s3.example.test");
     vi.stubEnv("S3_BUCKET", "test-covers");
@@ -54,10 +58,12 @@ describe("immutable automatic VK covers", () => {
       return {};
     }) as never);
   });
+  /** Убираем send spy и фиктивные S3 env. */
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllEnvs();
   });
+  /** Ключ связывает source digest и hash готовых WebP-байтов; повтор подтверждает объект без нового PUT. */
   it("creates a bounded WebP and reuses the same immutable object on retry", async () => {
     const url = await saveVkPoster(source, image, AbortSignal.timeout(1000));
     const first = stored!;
@@ -77,6 +83,7 @@ describe("immutable automatic VK covers", () => {
       send.mock.calls.filter(([c]: [unknown]) => c instanceof PutObjectCommand),
     ).toHaveLength(1);
   });
+  /** Сохранённые байты с потерянным ACK находятся по HEAD следующего вызова. */
   it("recovers a lost PUT acknowledgement by HEAD on the next call without another PUT", async () => {
     const original = send.getMockImplementation()!;
     send.mockImplementation((async (command: unknown) => {
@@ -95,6 +102,7 @@ describe("immutable automatic VK covers", () => {
       send.mock.calls.filter(([c]: [unknown]) => c instanceof PutObjectCommand),
     ).toHaveLength(1);
   });
+  /** Несовпадающий metadata hash — integrity error, не разрешение перезаписать чужой объект. */
   it("refuses a pre-existing object with mismatched evidence without overwriting it", async () => {
     await saveVkPoster(source, image, AbortSignal.timeout(1000));
     stored!.metadata = { ...stored!.metadata, sha256: "b".repeat(64) };
@@ -105,6 +113,7 @@ describe("immutable automatic VK covers", () => {
       send.mock.calls.filter(([c]: [unknown]) => c instanceof PutObjectCommand),
     ).toHaveLength(1);
   });
+  /** SVG и неканонический source key отклоняются до AWS send. */
   it("rejects invalid image bytes and source identity before any object request", async () => {
     await expect(
       saveVkPoster(source, Buffer.from("<svg/>"), AbortSignal.timeout(1000)),

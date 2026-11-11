@@ -1,6 +1,8 @@
+/** Прокрутка гида проверяется на синтетической геометрии контейнера и секций. */
 import { expect, it } from "vitest";
 import { scrollToGuideSection } from "../apps/frontend/src/features/library/guide-navigation";
 
+/** После изменения высоты предыдущих картинок координата пересчитывается из текущих rect/scrollTop, а не берётся из кэша. */
 it("recomputes the section position after earlier images expand and after scrolling", () => {
   let sectionTop = 500;
   let top: number | undefined;
@@ -23,6 +25,7 @@ it("recomputes the section position after earlier images expand and after scroll
   expect(top).toBe(2038);
 });
 
+/** Отступ заголовка не должен увести прокрутку выше нуля. */
 it("keeps the first section within the scroll container", () => {
   let top: number | undefined;
   const container = {

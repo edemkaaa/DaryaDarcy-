@@ -11,6 +11,7 @@ const readsToRefresh = [
   "admin.stats",
 ];
 
+/** Связываем статью, её клубную карточку, счётчики, календарь и статистику одним синтетическим состоянием; отдельно моделируем отказ и потерю ACK. */
 async function fixture(page: Page, existing: boolean) {
   await page.clock.setFixedTime(new Date("2026-10-10T12:00:00Z"));
   await page.route("**/*", (route) =>
@@ -30,6 +31,7 @@ async function fixture(page: Page, existing: boolean) {
     if (readsToRefresh.includes(name))
       state.reads.set(name, (state.reads.get(name) ?? 0) + 1);
     const count = state.title ? 2 : 1;
+    /** Строим минимальную карточку того же опубликованного материала для всех административных проекций. */
     const card = (id: number, text: string) => ({
       id,
       text,
@@ -117,11 +119,14 @@ async function fixture(page: Page, existing: boolean) {
   return state;
 }
 
+/** Находим именованное действие или раздел админки без зависимости от CSS-хешей. */
 const tab = (page: Page, name: string) =>
   page.getByRole("button", { name, exact: true });
+/** Выбираем контейнер общего счётчика, чтобы проверить одновременно число и подпись. */
 const total = (page: Page) =>
   page.getByText("Всего", { exact: true }).locator("..");
 
+/** Сначала заполняем все проверяемые QueryClient-проекции; после mutation их нельзя принять за новый результат без чтения. */
 async function primeCache(page: Page, count: number) {
   await gotoWithSession(page, "/admin");
   await expect(page.getByTestId("admin-post-1")).toBeVisible();
@@ -140,6 +145,7 @@ async function primeCache(page: Page, count: number) {
   await expect(tab(page, "Написать статью")).toBeVisible();
 }
 
+/** Создание, правка, удаление и восстановление потерянного ACK должны обновить все зависимые проекции после подтверждения. */
 for (const action of ["create", "edit", "delete", "recover"] as const) {
   test(`confirmed article ${action} refreshes fresh admin pages, counts, calendar and statistics`, async ({
     page,
@@ -206,6 +212,7 @@ for (const action of ["create", "edit", "delete", "recover"] as const) {
   });
 }
 
+/** Определённый отказ сохраняет ввод и подтверждённый кэш, не вызывая успешную инвалидацию. */
 test("a rejected article edit does not invalidate confirmed admin data", async ({
   page,
 }) => {

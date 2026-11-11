@@ -4,6 +4,7 @@ import { ok } from "./editor-fixtures";
 
 const svg =
   '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="800"><rect width="640" height="800" fill="#d8c7ac"/></svg>';
+/** Различаем картинки постов точными URL для проверки retained-узлов и повторных запросов. */
 const post = (id: number) => ({
   id,
   text: `Публикация ${id}`,
@@ -18,6 +19,7 @@ const post = (id: number) => ({
   publishedAt: "2026-10-01T12:00:00Z",
 });
 
+/** Публичные фото и приватные metadata моделируются отдельно; revision, отказ и счётчик metadata дают управляемую проверку повторного входа. */
 async function api(page: Page) {
   const state = { revision: 1, denied: false, metadataReads: 0 };
   await layoutApi(page, true, (name) => {
@@ -94,6 +96,7 @@ async function api(page: Page) {
   return state;
 }
 
+/** На двух ширинах возвращение сохраняет декодированные узлы страниц автора/выкроек и видимых карточек, не препятствуя виртуализации далёких строк. */
 for (const width of [390, 1440]) {
   test(`about page retains its photos on back/reopen at ${width}px`, async ({
     page,
@@ -101,6 +104,7 @@ for (const width of [390, 1440]) {
     await page.setViewportSize({ width, height: 844 });
     await api(page);
     await gotoWithSession(page, "/library");
+    /** Открываем страницу автора через карточку библиотеки, чтобы Back проверял retained-return, а не новую прямую загрузку. */
     const open = () =>
       page
         .getByRole("button", { name: "Открыть материал: Обо мне", exact: true })
@@ -132,6 +136,7 @@ for (const width of [390, 1440]) {
         images++;
     });
     await gotoWithSession(page, "/library");
+    /** Повторяем тот же переход к выкройкам после Back и сверяем уже декодированные узлы и число файловых запросов. */
     const open = () =>
       page
         .getByRole("button", {
@@ -202,6 +207,7 @@ for (const width of [390, 1440]) {
   }
 }
 
+/** Неизменная ревизия сохраняет image-node; новая пересоздаёт его, а подтверждённый отказ убирает закрытые картинки, сохраняя отдельно бесплатный PDF. */
 test("pattern revalidation retains unchanged images, replaces a new revision, and hides denied files", async ({
   page,
 }) => {
@@ -238,6 +244,7 @@ test("pattern revalidation retains unchanged images, replaces a new revision, an
   ).toBeEnabled(); // The horse PDF is explicitly free, unlike the four patterns.
 });
 
+/** Завершение сессии очищает приватные изображения и в скрытых retained-панелях. */
 test("retained pattern images are removed across all panels when the session ends", async ({
   page,
 }) => {
@@ -263,6 +270,7 @@ test("retained pattern images are removed across all panels when the session end
   ).toHaveCount(0);
 });
 
+/** Вытеснение далёкой строки освобождает DOM; ранее показанное фото возвращается без повторного fade. */
 test("long feeds still release distant rows and never replay a displayed photo's fade", async ({
   page,
 }) => {
@@ -287,6 +295,7 @@ test("long feeds still release distant rows and never replay a displayed photo's
   ).toBe("0s");
 });
 
+/** Скрытие страницы отменяет незавершённый metadata-read; поздняя пустая выдача не применяется при новом входе. */
 test("a hidden pattern page cancels a late initial read and starts cleanly on return", async ({
   page,
 }) => {
@@ -331,6 +340,7 @@ test("a hidden pattern page cancels a late initial read and starts cleanly on re
   }
 });
 
+/** Подтверждённый текст гида сохраняется между входами, hidden-панель не опрашивает API, а свежий отказ удаляет содержимое. */
 test("the aesthetic guide keeps its confirmed body on return, stops hidden reads and removes denied content", async ({
   page,
 }) => {
@@ -338,6 +348,7 @@ test("the aesthetic guide keeps its confirmed body on return, stops hidden reads
   await api(page);
   let reads = 0;
   let denied = false;
+  /** Заполняем обязательные текстовые поля пустыми значениями, оставляя различимый приватный intro нужной эстетики. */
   const fields = (keys: string[]) =>
     Object.fromEntries(keys.map((key) => [key, ""]));
   await page.route("**/api/library/guides/aesthetics/*", async (route) => {
@@ -397,6 +408,7 @@ test("the aesthetic guide keeps its confirmed body on return, stops hidden reads
     });
   });
   await gotoWithSession(page, "/library");
+  /** Возвращаемся к гиду через библиотеку и проверяем переиспользование прежнего DOM с фоновой revalidation. */
   const open = () =>
     page
       .getByRole("button", {

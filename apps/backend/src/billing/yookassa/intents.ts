@@ -22,7 +22,9 @@ export type IntentInput = {
   request: YookassaCreateRequest;
 };
 export class YookassaIntentRepository {
+  /** Сохраняет явно переданный SQL-клиент, чтобы все операции журнала использовали одно хранилище. */
   constructor(private readonly database: MySql2Database) {}
+  /** Читает intent по хешу клиентского ключа и shopId вместе с matching order/user, не создавая заказ. */
   async findIntent(intentKey: string, shopId: string) {
     const [bound] = await this.database
       .select({
@@ -52,6 +54,7 @@ export class YookassaIntentRepository {
     return bound;
   }
 
+  /** Ищет только уже привязанный provider payment данного shopId с согласованным order/user. */
   async findPayment(id: string, shopId: string) {
     const [bound] = await this.database
       .select({ intent: billingCheckoutIntents, order: clubPayments })
@@ -73,6 +76,7 @@ export class YookassaIntentRepository {
     return bound;
   }
 
+  /** Под блокировкой intent пишет проверенный outcome; canceled переводит лишь pending-order в failed, не отменяя paid. */
   async recordOutcome(
     hash: string,
     state: "succeeded" | "canceled",
@@ -100,6 +104,7 @@ export class YookassaIntentRepository {
         .where(eq(billingCheckoutIntents.intentKeyHash, hash));
     });
   }
+  /** Под user/intent блокировками сверяет immutable request, создаёт один pending-order и выдаёт конечную lease; после 23 часов неизвестный create автоматически не повторяет. */
   async claim(
     input: IntentInput,
   ): Promise<{ intent: BillingCheckoutIntent; leaseId: string | null }> {
@@ -213,6 +218,7 @@ export class YookassaIntentRepository {
       return { intent: claimed, leaseId };
     });
   }
+  /** Освобождает только принадлежащую вызывающему worker lease и сохраняет unknown для восстановления тем же ключом. */
   async markUnknown(hash: string, lease: string): Promise<void> {
     await this.database
       .update(billingCheckoutIntents)
@@ -224,6 +230,7 @@ export class YookassaIntentRepository {
         ),
       );
   }
+  /** Под блокировкой intent сверяет firstSentAt/shop/order/сумму и прежний paymentId, затем атомарно связывает provider UUID без замены другого платежа. */
   async bindPayment(
     hash: string,
     payment: YookassaPayment,

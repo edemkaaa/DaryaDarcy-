@@ -13,6 +13,7 @@ import { deletePostCommentInTransaction } from "../content/comments";
 import { lockUserModerationTarget } from "./user-target";
 import { writeAdminAction } from "../admin/audit-log";
 
+/** Под текущей staff-сессией удаляем жалобу и сохраняем аудит в той же транзакции. */
 export async function dismissCommentReport(
   actor: ContentWriteActor,
   reportId: number,
@@ -32,6 +33,7 @@ export async function dismissCommentReport(
   });
 }
 
+/** Заново проверяем служебную роль и удаляем комментарий общим транзакционным путём с зависимостями и аудитом. */
 export async function deleteReportedComment(
   actor: ContentWriteActor,
   commentId: number,
@@ -51,6 +53,7 @@ export async function deleteReportedComment(
   });
 }
 
+/** После стабильной блокировки исполнителя и цели атомарно блокируем аккаунт, увеличиваем epoch, ставим отмену подписки и сохраняем причину в аудит. */
 export async function blockUser(
   actor: ContentWriteActor,
   targetUserId: number,
@@ -79,6 +82,7 @@ export async function blockUser(
   });
 }
 
+/** Повторно проверяем право на цель, снимаем признаки блокировки и записываем аудит; прежние отозванные сессии этим не восстанавливаются. */
 export async function unblockUser(
   actor: ContentWriteActor,
   targetUserId: number,

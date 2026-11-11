@@ -1,10 +1,13 @@
+/** Схема сезонного оформления различает прямой источник картинки и страницу общего доступа. */
 import { describe, expect, it } from "vitest";
 import {
   defaultLaunchConfiguration,
   launchConfigurationSchema,
 } from "../apps/backend/src/launch/settings";
 
+/** Проверяем оба поля оформления на копиях default-конфигурации, не меняя сохранённые настройки. */
 describe("season artwork URLs are image sources, not file-sharing pages", () => {
+  /** Невалидные URL дают неуспешный safeParse вместо исключения из URL-конструктора. */
   it.each(["not a URL", "https://", ""])(
     "rejects malformed input without throwing: %s",
     (url) => {
@@ -13,6 +16,7 @@ describe("season artwork URLs are image sources, not file-sharing pages", () => 
       expect(launchConfigurationSchema.safeParse(config).success).toBe(false);
     },
   );
+  /** Яндекс sharing-страницы, включая нормализацию host, отклоняются с подсказкой о прямой ссылке. */
   it.each([
     "https://disk.yandex.ru/i/iXiEA9lCjqzCkA",
     "https://disk.yandex.ru/d/example",
@@ -30,6 +34,7 @@ describe("season artwork URLs are image sources, not file-sharing pages", () => 
     }
   });
 
+  /** Null сохраняет встроенное оформление; прямые HTTPS-источники не требуют файлового расширения. */
   it.each([
     null,
     "https://s3.twcstorage.ru/daryadarcy-s3/covers/banner.webp",

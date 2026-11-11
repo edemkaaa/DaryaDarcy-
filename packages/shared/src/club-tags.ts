@@ -18,6 +18,7 @@ export const CLUB_TAB_TAGS: Record<ClubTabId, string[]> = {
 export const SECTION_ORDER = ["podborki", "community", "exclusive", "life"] as const;
 
 /** Выбираем основную клубную рубрику по согласованным тегам публикации. */
+/** Сначала выбираем явный тег раздела по фиксированному приоритету, затем дополнительные рубрики; нормализация не меняет сохранённые теги. */
 export function primaryClubTab(tags: string[] | null | undefined): ClubTabId | null {
   const set = new Set((tags || []).map(normalizeClubTag));
   for (const tab of SECTION_ORDER) {
@@ -62,6 +63,7 @@ export function isClubRubricTag(tag: string): boolean {
 }
 
 /** Проверяем окно обсуждения в момент запроса, а не только при первом показе карточки. */
+/** Разрешаем обсуждение только основной рубрике community и лишь пока её 48-часовая граница строго позже текущего времени; неверная дата закрывает комментарии. */
 export function areCommentsOpen(
   tags: string[] | null | undefined,
   createdAt: Date | string | null | undefined,

@@ -25,14 +25,17 @@ export type ClubCheckoutInput = {
 /** Запускает и согласует оплату без выдачи сессии; доступ требует доказательства провайдера. */
 @Injectable()
 export class ClubCheckoutService {
+  /** Связывает два независимых TEST-провайдера с оркестратором без автоматического переключения при отказе. */
   constructor(
     private readonly yookassa = new YookassaClubService(),
     private readonly prodamusTest = new ProdamusTestClubService(),
   ) {}
+  /** Только проверяет существующий TEST-intent YooKassa; не создаёт оплату и не подменяет неизвестный результат новым заказом. */
   reconcileCheckout(actor: User | null, intentKey: unknown) {
     // Проверка return относится только к TEST и не может незаметно создать новую оплату.
     return this.yookassa.reconcileCheckout(actor, intentKey);
   }
+  /** Валидирует email/контакт/actor и выбирает точный TEST или обычный режим; создаёт pending-заказ и ссылку без выдачи сессии или доступа. */
   async createCheckout(
     actor: User | null,
     input?: ClubCheckoutInput,

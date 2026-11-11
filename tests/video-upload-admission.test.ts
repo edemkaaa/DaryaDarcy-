@@ -1,3 +1,4 @@
+/** Private binary admission проверяется настоящим локальным HTTP и управляемым storage promise, не настоящим S3. */
 import express from "express";
 import { createServer, request, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -16,11 +17,13 @@ import { SessionService } from "../apps/backend/src/identity/session.service";
 let server: Server, base: string;
 const path = "/api/admin/private-video-uploads?filename=clip.mp4";
 const headers = { "content-type": "video/mp4", "idempotency-key": "video-admission-intent-0001" };
+/** Ручной barrier удерживает upload после admission, чтобы второй запрос проверял порядок до body. */
 const deferred = () => {
   let resolve!: () => void;
   const promise = new Promise<void>(done => { resolve = done; });
   return { promise, resolve };
 };
+/** Явно включаем synthetic video flags и поднимаем собственный Express controller/health. */
 beforeAll(async () => {
   vi.stubEnv("PRIVATE_POST_MEDIA_UPLOAD_ENABLED", "true");
   vi.stubEnv("PRIVATE_POST_VIDEO_UPLOAD_ENABLED", "true");
@@ -32,8 +35,10 @@ beforeAll(async () => {
   await new Promise<void>(done => server.listen(0, "127.0.0.1", done));
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 });
+/** Разрываем owned sockets, закрываем server и снимаем flags. */
 afterAll(async () => { server.closeAllConnections(); await new Promise<void>(done => server.close(() => done())); vi.unstubAllEnvs(); });
 
+/** Второй запрос посылает только headers с80МиБ Content-Length: должен сразу429, health остаётся200; после release новая загрузка допускается. */
 it("refuses another video before reading its body while storage is busy, without blocking ordinary reads", async () => {
   const entered = deferred(), release = deferred();
   storage.write.mockImplementation(async () => { entered.resolve(); await release.promise; return { state: "ready" }; });
@@ -54,6 +59,7 @@ it("refuses another video before reading its body while storage is busy, without
   expect((await fetch(base + path, { method: "POST", headers, body: new Uint8Array(mp4Fixture) })).status).toBe(200);
 });
 
+/** Disconnect caller не освобождает ещё выполняющийся storage operation. */
 it("keeps admission occupied after the client disconnects until its in-flight upload settles", async () => {
   const entered = deferred(), release = deferred();
   storage.write.mockImplementation(async () => { entered.resolve(); await release.promise; return { state: "ready" }; });
@@ -69,6 +75,7 @@ it("keeps admission occupied after the client disconnects until its in-flight up
   });
 });
 
+/** Незавершённый body,415,400 и storage503 не навечно занимают slot; последующий корректный upload проходит. */
 it("releases admission after an aborted body, parser rejection and controller rejection", async () => {
   const aborted = request(base + path, { method: "POST", headers: { ...headers, "content-length": 1000 } });
   aborted.on("error", () => {});

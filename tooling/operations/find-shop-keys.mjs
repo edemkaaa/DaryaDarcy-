@@ -24,6 +24,7 @@ const client = new S3Client({
   forcePathStyle: true,
 });
 
+// Читаются страницы app-assets и ищутся только заранее указанные фрагменты имён; никаких ACL или файлов не меняется.
 let token;
 let scanned = 0;
 const hits = [];

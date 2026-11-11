@@ -7,13 +7,16 @@ export const MeasuredBox = forwardRef<
   BoxProps & {
     onResize?: (rect: LayoutRect) => void;
   }
+/** Сообщаем текущему обработчику размеры элемента при первом layout и ResizeObserver; ref доступен также внешнему владельцу. */
 >(function MeasuredBox({ onResize, className = "", ...props }, ref) {
   const node = useRef<HTMLDivElement | null>(null),
     callback = useRef(onResize);
   callback.current = onResize;
   useLayoutEffect(() => {
+    // Наблюдение создаётся на DOM-узел один раз; актуальный onResize читается через callback ref.
     const el = node.current;
     if (!el) return;
+    /** Передаём положение относительно offsetParent и видимые размеры из DOM, не смешивая их с координатами окна. */
     const measure = () =>
       callback.current?.({
         x: el.offsetLeft,
@@ -31,6 +34,7 @@ export const MeasuredBox = forwardRef<
       {...props}
       className={`ui-stack ${className}`}
       ref={(el) => {
+        // Один узел сохраняем для внутренних измерений и одновременно передаём внешнему ref.
         node.current = el;
         if (typeof ref === "function") ref(el);
         else if (ref) ref.current = el;

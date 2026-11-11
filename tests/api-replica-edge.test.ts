@@ -1,3 +1,4 @@
+/** Opt-in проверка настоящего Nginx и Docker DNS на собственных transport fixtures: рабочий API, БД, тома и внешние сервисы не используются. */
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { resolve } from "node:path";
@@ -7,6 +8,7 @@ const nginx =
   "nginx:stable-alpine@sha256:0985e772fb9f729e6fa0980da05fca5d9c468e870eed43071545afa9d2e27d94";
 const python =
   "python@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258";
+/** Встроенный Python wire отвечает именем реплики, а на POST принимает запись и обрывает ответ для проверки запрета proxy retry. */
 const wire = `import http.server,json,socket,socketserver,threading,time
 writes=0
 class Handler(http.server.BaseHTTPRequestHandler):
@@ -25,17 +27,21 @@ threading.Event().wait()`;
 
 // Real Nginx/Docker DNS and disposable transport wires only. No working network,
 // application secrets, volumes, DB, S3, payments or messages are used.
+/** Без отдельного API_EDGE_DOCKER_ACCEPTANCE этот набор не создаёт контейнеры и не доказывает серверную готовность. */
 describe.skipIf(process.env.API_EDGE_DOCKER_ACCEPTANCE !== "true")(
   "API replica edge routing",
   () => {
     let owner: string, network: string;
     let ids: string[];
+    /** Все Docker-команды имеют конечный timeout; образы не скачиваются автоматически. */
     const docker = (...args: string[]) =>
       execFileSync("docker", args, {
         encoding: "utf8",
         timeout: 20_000,
       }).trim();
+    /** Метаданные нужны для проверки владельца ресурса и наблюдения смены IP, а не поиска рабочих контейнеров. */
     const inspect = (id: string) => JSON.parse(docker("inspect", id))[0];
+    /** Создаёт ограниченный read-only transport-контейнер только в изолированной сети этого прогона. */
     const backend = (name: string, aliases: string[]) => {
       const id = docker(
         "run",
@@ -62,6 +68,7 @@ describe.skipIf(process.env.API_EDGE_DOCKER_ACCEPTANCE !== "true")(
       ids.push(id);
       return id;
     };
+    /** Удаление допускается лишь при точном совпадении owner label; ID убирается из локального реестра после удаления. */
     function remove(id: string) {
       if (inspect(id).Config.Labels["codex.owner"] !== owner)
         throw new Error("Refusing unowned fixture cleanup");
@@ -69,6 +76,7 @@ describe.skipIf(process.env.API_EDGE_DOCKER_ACCEPTANCE !== "true")(
       const index = ids.indexOf(id);
     if (index >= 0) ids.splice(index, 1);
     }
+    /** Каждый сценарий получает уникальную внутреннюю сеть и метку владения, не разделяемую с другими прогонами. */
     beforeEach(() => {
       owner = `darcy-edge-${randomUUID()}`;
       network = owner;
@@ -82,6 +90,7 @@ describe.skipIf(process.env.API_EDGE_DOCKER_ACCEPTANCE !== "true")(
         network,
       );
     });
+    /** Находим только ресурсы текущего owner, включая не вернувшие ID создания; чужие контейнеры и сети не очищаем. */
     afterEach(() => {
       // A daemon failure can happen after create but before returning the ID.
     // Discover only this run's exact owner label, never prune shared resources.
@@ -104,6 +113,7 @@ describe.skipIf(process.env.API_EDGE_DOCKER_ACCEPTANCE !== "true")(
         throw new Error("Refusing unowned network cleanup");
       docker("network", "rm", network);
     });
+    /** Для обоих edge-шаблонов проверяем две реплики, одну запись при потере ответа и возвращение peer после смены IP. */
     it.each(["edge.conf", "edge.video.conf"])(
       "balances, preserves writes and recovers API routing with %s",
       async (filename) => {
@@ -146,6 +156,7 @@ describe.skipIf(process.env.API_EDGE_DOCKER_ACCEPTANCE !== "true")(
           `${edge}:/etc/nginx/nginx.conf`,
         );
         docker("start", edge);
+        /** Клиент внутри test-сети проверяет настоящий proxy, сохраняя метод и query; наружу возвращает только статус и текст. */
         const request = (method: string, path: string) =>
           JSON.parse(
             docker(
@@ -156,6 +167,7 @@ describe.skipIf(process.env.API_EDGE_DOCKER_ACCEPTANCE !== "true")(
               `import http.client,json;c=http.client.HTTPConnection('edge',8080,timeout=2);c.request(${JSON.stringify(method)},${JSON.stringify(path)},body='synthetic' if ${JSON.stringify(method)}=='POST' else None);r=c.getresponse();print(json.dumps(dict(status=r.status,body=r.read().decode())))`,
             ),
           );
+        /** Успешное чтение должно вернуть 200 и имя реплики; ошибки DNS/маршрутизации не превращаются в фиктивный успех. */
         const read = async () => {
           const response = request("GET", "/api/probe?preserve=query");
           expect(response.status).toBe(200);

@@ -17,10 +17,12 @@ type ThemeContextValue = {
   setColorScheme: (scheme: ColorScheme) => void;
 };
 const ThemeContext = createContext<ThemeContextValue | null>(null);
+/** Контекст хранит выбранную схему и синхронизирует её с CSS-переменными; изменение оформления клуба к этому состоянию не относится. */
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemScheme = useSystemColorScheme() ?? "light";
   const [colorScheme, setColorSchemeState] =
     useState<ColorScheme>(systemScheme);
+  /** Набор токенов, data-theme и dark-класс применяются вместе к корню документа, чтобы CSS и React читали одну выбранную схему. */
   const applyScheme = useCallback((scheme: ColorScheme) => {
     if (typeof document !== "undefined") {
       const root = document.documentElement;
@@ -32,6 +34,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       });
     }
   }, []);
+  /** Явный выбор сначала обновляет React-состояние и сразу применяет соответствующие DOM-токены. */
   const setColorScheme = useCallback(
     (scheme: ColorScheme) => {
       setColorSchemeState(scheme);
@@ -57,6 +60,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     </ThemeContext.Provider>
   );
 }
+/** Вне провайдера выдаём явную ошибку конфигурации дерева вместо выдуманной темы. */
 export function useThemeContext(): ThemeContextValue {
   const ctx = useContext(ThemeContext);
   if (!ctx) {

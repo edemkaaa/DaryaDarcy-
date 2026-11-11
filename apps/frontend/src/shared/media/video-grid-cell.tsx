@@ -20,6 +20,7 @@ interface VideoGridCellProps {
   standalone?: boolean;
   fillCell?: boolean;
 }
+/** До действия отображаем постер, затем монтируем плеер; отдельный VK-плеер сохраняет 16:9 независимо от портретной обложки. */
 export function VideoGridCell({
   url,
   thumbnailUrl,
@@ -87,6 +88,7 @@ export function VideoGridCell({
       </div>
     );
   }
+  /** Внешний переход имеет приоритет; без него открываем встроенный плеер в той же ячейке. */
   const handlePress = () => {
     if (onClick) {
       onClick();

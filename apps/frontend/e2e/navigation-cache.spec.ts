@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
 
+/** На двух геометриях различаем Router Cache, сохранённый DOM и HTTP-ресурсы: повторный переход не должен создавать новый документ или RSC-запрос уже посещённого маршрута. */
 for (const width of [390, 1440]) {
   test(`visited routes reuse their client payload on tab and detail returns (${width}px)`, async ({
     page,

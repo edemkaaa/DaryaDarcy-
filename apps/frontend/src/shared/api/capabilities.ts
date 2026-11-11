@@ -24,6 +24,7 @@ const unavailable: LaunchCapabilities = {
   privatePostVideoUploads: false,
 };
 
+/** Проверяем boolean-флаги ответа; отсутствие обязательного privateContentUploads не должно случайно выбрать unkeyed запись комментария. */
 export async function getAppCapabilities(
   signal?: AbortSignal,
 ): Promise<LaunchCapabilities> {
@@ -51,6 +52,7 @@ export async function getAppCapabilities(
   };
 }
 
+/** Кешируем публичные возможности на минуту, но при ошибке UI консервативно получает выключенный набор. */
 export function useCapabilities(): LaunchCapabilities {
   const { data, isError } = useQuery({
     queryKey: APP_CAPABILITIES_QUERY_KEY,
@@ -64,6 +66,7 @@ export function useCapabilities(): LaunchCapabilities {
   return isError ? unavailable : (data ?? unavailable);
 }
 
+/** Продуктовый запрет SMS сильнее совместимого server hint; wire-ответ сохраняется, но UI получает smsLogin=false. */
 function frontendCapabilities(
   capabilities: LaunchCapabilities,
 ): LaunchCapabilities {
@@ -72,7 +75,7 @@ function frontendCapabilities(
   return { ...capabilities, smsLogin: false };
 }
 
-/** Recheck release policy at the write boundary, not a cached UI hint. */
+/** На границе новой загрузки читаем серверную политику заново; видео требует ещё и закрытых фото для генерируемого постера. */
 export async function requirePrivateUpload(
   name: PrivateUploadCapability,
   signal?: AbortSignal,

@@ -1,3 +1,4 @@
+// Ручной перенос старых platform-миграций 0015–0018 пропускает duplicate ошибки и отдельно проверяет наличие таблиц, не их эквивалентность.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -24,6 +25,8 @@ if (!url) {
 const files = ["0015_push_consent", "0016_platform_features", "0017_consent_text", "0018_push_consent_text"];
 
 function splitSql(sql) {
+  // Исторически делит SQL по breakpoint либо строке с точкой с запятой; это не универсальный SQL-парсер.
+
   if (sql.includes("--> statement-breakpoint")) {
     return sql
       .split("--> statement-breakpoint")
@@ -46,6 +49,7 @@ function splitSql(sql) {
   return parts;
 }
 
+// С этого места выбранная БД реально изменяется; текущая история и рабочее назначение автоматически не проверены.
 const conn = await mysql.createConnection(url);
 for (const tag of files) {
   const file = path.join(root, "drizzle", `${tag}.sql`);

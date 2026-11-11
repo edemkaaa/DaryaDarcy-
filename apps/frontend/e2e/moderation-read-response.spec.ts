@@ -18,6 +18,7 @@ const report = {
   canBlockAuthor: false,
 } satisfies CommentReportInboxRow;
 
+/** Для каждой роли задаём синтетическую очередь жалоб и отдельно считаем чтения и любые записи модерации. */
 async function fixture(
   page: Page,
   role: "admin" | "moderator",
@@ -52,6 +53,7 @@ async function fixture(
   return state;
 }
 
+/** Администратор и модератор должны одинаково отличать пустую очередь от несовместимого ответа, сохраняя оболочку и безопасный ручной повтор. */
 for (const role of ["admin", "moderator"] as const) {
   for (const scenario of [
     { name: "null row", response: [null] },

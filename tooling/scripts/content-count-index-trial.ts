@@ -11,6 +11,8 @@ import { inspectLoad, rows } from "./api-load-fixture";
 import { getPostsForTarget } from "../../apps/backend/src/content/post-catalog-repository";
 
 async function main() {
+  // Подтверждает синтетический набор, меняет только видимость собственных тестовых индексов и сохраняет A/B/control-метрики с проверкой одинакового результата.
+
   const uri = process.env.COUNT_INDEX_DATABASE_URL;
   const id = process.env.COUNT_INDEX_CONTAINER_ID;
   if (!uri || !id || process.argv[2] !== "--owned-index-trial")
@@ -37,7 +39,7 @@ async function main() {
     );
     const db = drizzle(conn);
     const counters = async () =>
-      Object.fromEntries(
+      /* Читает session Handler_read-счётчики того же SQL-соединения, чтобы сравнить работу движка между фазами. */ Object.fromEntries(
         (await rows(conn, "SHOW SESSION STATUS LIKE 'Handler_read%'")).map(
           (r) => [r.Variable_name, Number(r.Value)],
         ),
@@ -49,6 +51,8 @@ async function main() {
       ["post_comments", "post_comments_post_created", "postId,createdAt"],
     ] as const;
     async function measure(phase: string) {
+      // Сверяет планы и хеш ответа, измеряет 30 одинаковых выборок и считает разницу SQL-счётчиков конкретной фазы.
+
       const plans = await Promise.all(
         definitions.map(async ([table]) => ({
           table,

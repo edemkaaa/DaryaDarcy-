@@ -8,6 +8,7 @@ import type { LegalDocument } from "@/features/legal/legal-documents";
 type Props = {
   document: LegalDocument;
 };
+/** Отображаем статический документ и необязательную иллюстрацию структурированными React-элементами без исполнения HTML. */
 export function LegalDocumentScreen({ document }: Props) {
   return (
     <ScreenContainer backgroundColor="#FDF8F0">

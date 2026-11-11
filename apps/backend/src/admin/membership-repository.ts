@@ -8,6 +8,7 @@ import { boundedLegacyList, LEGACY_LIST_CAP } from "../content/legacy-list-limit
 type Database = MySql2Database | null;
 
 /** Читаем административную проекцию участников через переданный клиент БД. */
+/** Совместимый ограниченный список участников дополняет текущим paid-сроком одним групповым запросом без N+1 и внутренних identity-полей. */
 export async function listAdminMembers(db: Database) {
   if (!db) throw new Error("Database not available");
   const allUsers = boundedLegacyList(await db

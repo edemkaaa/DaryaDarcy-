@@ -1,15 +1,20 @@
+/** Документный proxy/CSP проверяется локально через NextRequest без браузера и сервера. */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { proxy } from "../apps/frontend/src/proxy";
 import { documentSecurityHeaders } from "../apps/frontend/src/shared/security/document-headers";
 
+/** Имитируем production и same-origin API для независимых policy assertions. */
 beforeEach(() => {
   vi.stubEnv("NODE_ENV", "production");
   vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", "");
 });
+/** Возвращаем env. */
 afterEach(() => vi.unstubAllEnvs());
 
+/** Входные nonce/CSP не доверены: каждый документ получает новый 128-bit nonce, совпадающий у request/response policy. */
 it("overwrites an attacker-supplied nonce and gives each document a fresh policy", () => {
+  /** Синтетический запрос содержит намеренно поддельные security headers. */
   const request = () =>
     new NextRequest("https://app.example.test/login", {
       headers: {
@@ -42,6 +47,7 @@ it("overwrites an attacker-supplied nonce and gives each document a fresh policy
   expect(first.headers.get("Cache-Control")).toContain("no-store");
 });
 
+/** API/media не получают документную CSP и nonce от frontend proxy. */
 it.each(["/api/auth/password", "/api/trpc/auth.me", "/media/video.mp4"])(
   "leaves the upstream security policy in charge of %s",
   (path) => {
@@ -51,6 +57,7 @@ it.each(["/api/auth/password", "/api/trpc/auth.me", "/media/video.mp4"])(
   },
 );
 
+/** Из API URL берётся только origin; iframe/media allowlist сохраняется отдельно от connect-src. */
 it("allows only the configured API origin while supporting existing media players", () => {
   const csp = documentSecurityHeaders(
     "synthetic-nonce",
@@ -66,6 +73,7 @@ it("allows only the configured API origin while supporting existing media player
   expect(csp).not.toContain("/v1");
 });
 
+/** WebSocket и unsafe-eval разрешены лишь dev-политикой. */
 it("enables development tooling only in development", () => {
   const csp = documentSecurityHeaders("synthetic-nonce", true)[
     "Content-Security-Policy"
@@ -74,6 +82,7 @@ it("enables development tooling only in development", () => {
   expect(csp).toContain("connect-src 'self' ws: wss:");
 });
 
+/** Password document не использует общий API origin/iframe/forms и выдаёт no-referrer/no-store. */
 it.each(["/password", "/password/"])(
   "isolates the password document policy at %s",
   (path) => {
@@ -90,6 +99,7 @@ it.each(["/password", "/password/"])(
   },
 );
 
+/** Исполняемый scheme или credentials в операторской настройке останавливают построение CSP. */
 it.each(["javascript:alert(1)", "https://user:password@api.example.test"])(
   "rejects unsafe configured API origins: %s",
   (value) =>

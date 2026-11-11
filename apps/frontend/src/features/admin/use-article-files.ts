@@ -19,9 +19,11 @@ const documentTypes: Record<string, string> = {
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 };
 export function useArticleFiles(active: boolean, slot: number | null) {
+  // Хранит File и временные URL в области владельца и статьи; durable журнал содержит байты, а не адреса Blob.
+
   const { user } = useAuth();
   const resources = useMemo(
-    () => ({
+    () => /* Смена аккаунта, активности или статьи создаёт отдельную таблицу временных адресов. */ ({
       ownerId: user?.id,
       active,
       slot,
@@ -34,10 +36,12 @@ export function useArticleFiles(active: boolean, slot: number | null) {
     files: PrivateArticleFile[];
   } | null>(null);
   const release = useCallback(() => {
+    // Освобождает только Blob URL данной области; исходные File остаются в журнале.
+
     for (const url of resources.urls.values()) URL.revokeObjectURL(url);
     resources.urls.clear();
   }, [resources]);
-  useEffect(() => release, [release]);
+  useEffect(() => /* При смене области или закрытии редактора освобождает её Blob URL. */ release, [release]);
   const files =
     active && selection?.resources === resources ? selection.files : empty;
   const add = (
@@ -45,6 +49,8 @@ export function useArticleFiles(active: boolean, slot: number | null) {
     usage: PrivateArticleFile["usage"],
     task: ScopedOperation,
   ) => {
+    // Проверяет действующую операцию и допустимый формат до добавления локальной ссылки с уникальным ключом.
+
     task.assertCurrent();
     const intent: PrivateArticleFile = {
       key: crypto.randomUUID(),
@@ -64,9 +70,11 @@ export function useArticleFiles(active: boolean, slot: number | null) {
     return reference;
   };
   const preview = (url: string) =>
-    resources.urls.get(url) ?? (url.startsWith("local-content:") ? "" : url);
+    /* Разрешает локальную ссылку только через текущую таблицу; неизвестная локальная ссылка не уходит в сетевой запрос. */ resources.urls.get(url) ?? (url.startsWith("local-content:") ? "" : url);
   const restore = useCallback(
     (files: PrivateArticleFile[]) => {
+      // Восстанавливает временные адреса из File и связывает серверные квитанции с теми же локальными превью.
+
       release();
       for (const file of files) {
         validatePrivateContentFile(file, file.usage);
@@ -82,12 +90,14 @@ export function useArticleFiles(active: boolean, slot: number | null) {
     files,
     preview,
     previewBlocks: (blocks: ArticleBlock[]) =>
-      blocks.map((block) => ({
+      /* Подменяет ссылки только для показа редактора; исходные ссылки блоков остаются пригодны для восстановления. */ blocks.map((block) => ({
         ...block,
         ...(block.url ? { url: preview(block.url) } : {}),
         ...(block.urls ? { urls: block.urls.map(preview) } : {}),
       })),
     photos: async (multiple: boolean, task: ScopedOperation) => {
+      // Проверяет capability и подготавливает фото с прозрачностью до включения в блоки статьи.
+
       await requirePrivateUpload("privateContentUploads", task.signal);
       const sources = await pickWebFiles(
         "image/jpeg,image/png,image/webp",
@@ -106,6 +116,8 @@ export function useArticleFiles(active: boolean, slot: number | null) {
       return prepared.map((file) => add(file, "articlePhoto", task));
     },
     document: async (task: ScopedOperation) => {
+      // Согласует расширение и MIME PDF/DOCX/TXT, затем сохраняет File с нормализованным типом и локальной ссылкой.
+
       await requirePrivateUpload("privateContentUploads", task.signal);
       const [source] = await pickWebFiles(".pdf,.docx,.txt", false, {
         signal: task.signal,
@@ -128,6 +140,8 @@ export function useArticleFiles(active: boolean, slot: number | null) {
     },
     restore,
     prune: (blocks: ArticleBlock[]) => {
+      // Освобождает неиспользуемые адреса, сохраняя общий Blob, пока на него ссылается хотя бы один блок.
+
       const refs = new Set(
         blocks.flatMap((block) => block.urls ?? (block.url ? [block.url] : [])),
       );
@@ -143,6 +157,8 @@ export function useArticleFiles(active: boolean, slot: number | null) {
         }
     },
     reset: () => {
+      // Освобождает превью при сбросе формы, не выполняя удаление файлов на сервере.
+
       release();
       setSelection(null);
     },

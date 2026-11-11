@@ -1,5 +1,7 @@
+/** Build checkout URL закрывается при невалидной merchant/тарифной конфигурации; реальный платёж не выполняется. */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+/** Переимпортируем модули с полным синтетическим merchant и фиксированными ценами. */
 beforeEach(() => {
   vi.resetModules();
   vi.stubEnv("PUBLIC_APP_URL", "https://club.example.test");
@@ -9,9 +11,12 @@ beforeEach(() => {
   vi.stubEnv("CLUB_PRICE", "790");
   vi.stubEnv("CLUB_SEMIANNUAL_PRICE", "4740");
 });
+/** Возвращаем окружение. */
 afterEach(() => vi.unstubAllEnvs());
 
+/** Отдельно проверяем host/secret, monthly subscription ID и денежный формат. */
 describe("club checkout configuration fails closed", () => {
+  /** Повреждённый HTTPS payform root/secret должен дать только общее unavailable для обоих планов. */
   it.each([
     ["PRODAMUS_SECRET", ""],
     ["PRODAMUS_SECRET", "  "],
@@ -44,6 +49,7 @@ describe("club checkout configuration fails closed", () => {
       }
     },
   );
+  /** Месячный recurring тариф требует положительный целый provider ID. */
   it.each(["", "0", "-1", "abc", "1.5"])(
     "refuses invalid monthly subscription ID %s",
     async (id) => {
@@ -58,6 +64,7 @@ describe("club checkout configuration fails closed", () => {
       ).toThrowError("Оплата временно недоступна. Попробуйте позже.");
     },
   );
+  /** Недопустимая цена не должна породить ссылку, которую settlement затем отвергнет. */
   it.each(["CLUB_PRICE", "CLUB_SEMIANNUAL_PRICE"])(
     "validates the configured %s with the same rules as settlement",
     async (name) => {
@@ -78,6 +85,7 @@ describe("club checkout configuration fails closed", () => {
       }
     },
   );
+  /** Одноразовый полугодовой URL допускает копейки, подписывается и не требует monthly subscription ID. */
   it("accepts an explicit HTTPS payform root and positive fractional price", async () => {
     vi.stubEnv("PRODAMUS_PAYFORM_URL", "https://fixture.payform.ru/");
     vi.stubEnv("CLUB_SEMIANNUAL_PRICE", "4740.50");

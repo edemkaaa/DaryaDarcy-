@@ -26,6 +26,7 @@ import {
   PART_SUBTITLES,
   PART_TEXTS,
 } from "./about-screen.content";
+/** Собираем публичную биографию из синхронных массивов глав; карусель и фотографии глав используют общий просмотрщик. */
 export default function AboutMeScreen() {
   const active = useScreenActive();
   const viewport = useViewport();
@@ -33,6 +34,7 @@ export default function AboutMeScreen() {
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [viewerVisible, setViewerVisible] = useState(false);
+  /** При скрытии вкладки закрываем просмотр фотографий, сохраняя положение самой биографии. */
   useEffect(() => {
     if (!active) setViewerVisible(false);
   }, [active]);
@@ -41,20 +43,24 @@ export default function AboutMeScreen() {
   const [tocExpanded, setTocExpanded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sectionPositions = useRef<Record<number, number>>({});
+  /** Запоминаем выбранную группу и индекс до открытия просмотрщика, чтобы карусель и одиночные снимки не смешивались. */
   const openViewer = (photos: string[], index: number) => {
     setViewerPhotos(photos);
     setViewerInitialIndex(index);
     setViewerVisible(true);
   };
+  /** Используем последнюю измеренную позицию главы внутри ScrollArea с небольшим отступом сверху. */
   const scrollToSection = (index: number) => {
     const y = sectionPositions.current[index];
     if (y !== undefined && scrollRef.current) {
       scrollRef.current.scrollTo({ top: y - 20, behavior: "smooth" });
     }
   };
+  /** Возвращаем внутреннюю область чтения к началу, не прокручивая оболочку вкладок. */
   const scrollToTop = () => {
     scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   };
+  /** Синхронизируем индикатор с первым видимым элементом горизонтальной карусели. */
   const onVisibleItemsChange = useCallback(
     ({ visibleItems }: { visibleItems: VisibleItem[] }) => {
       if (visibleItems.length > 0 && visibleItems[0].index != null) {
@@ -66,6 +72,7 @@ export default function AboutMeScreen() {
   const visiblePercent = useRef({
     viewAreaCoveragePercentThreshold: 50,
   }).current;
+  /** Привязываем нажатие к индексу полной фотокарусели, сохраняя одинаковый порядок в просмотрщике. */
   const renderCarouselItem = ({
     item,
     index,

@@ -51,11 +51,13 @@ export type PrivateAttachmentActor = Pick<User, "id" | "sessionVersion">;
 export type PrivateAttachmentTransaction = Parameters<
   Parameters<MySql2Database["transaction"]>[0]
 >[0];
+/** Скрываем внутреннюю причину недоступности хранилища или схемы за временной ошибкой загрузки. */
 const unavailable = () =>
   new TRPCError({
     code: "SERVICE_UNAVAILABLE",
     message: "Загрузка временно недоступна",
   });
+/** Не открываем приватный контракт загрузки, пока серверный флаг вложений постов выключен. */
 export function requirePrivateUploadEnabled() {
   if (process.env.PRIVATE_POST_MEDIA_UPLOAD_ENABLED !== "true")
     throw new TRPCError({ code: "NOT_FOUND" });
@@ -79,6 +81,7 @@ export async function lockPrivateAttachmentActor(
   )
     throw new TRPCError({ code: "FORBIDDEN" });
 }
+/** Проверяем InnoDB и отдельные полные уникальные ключи requestKey, assetId и mediaId до записи, поскольку они обеспечивают единственный результат повтора. */
 export async function requirePrivateAttachmentSchema(
   tx: PrivateAttachmentTransaction,
 ) {
@@ -103,6 +106,7 @@ export async function requirePrivateAttachmentSchema(
     )
       throw new Error("Private upload uniqueness unavailable");
 }
+/** Изолируем ключ загрузки по пользователю и версии протокола; аудио, документ и видео делят одно пространство ключей. */
 function requestKey(actor: PrivateAttachmentActor, key: string) {
   return digest(JSON.stringify(["admin.privateAttachment:v1", actor.id, key]));
 }
@@ -119,6 +123,7 @@ export function privateUploadReceipt(row: Receipt) {
     fileSize: row.fileSize,
   };
 }
+/** Сверяем владельца, отпечаток байтов, пространство хранилища и срок квитанции; тот же ключ не может сменить файл. */
 function assertIntent(
   row: Receipt | undefined,
   actor: PrivateAttachmentActor,
@@ -134,6 +139,7 @@ function assertIntent(
   assertContentRecoveryWindow(row.createdAt);
 }
 /** Проверяем загружаемые данные и направляем их в общий журнал закрытых загрузок. */
+/** Декодируем максимум 32 МиБ, сверяем заявленный и фактический MIME, исключаем legacy DOC и недоставляемые форматы, затем используем общий журнал загрузки. */
 export async function uploadPrivateAttachment(
   actor: PrivateAttachmentActor,
   input: z.output<typeof privateUploadInput>,
@@ -159,6 +165,7 @@ export async function uploadPrivateAttachment(
 }
 
 /** Validated canonical bytes only; all upload kinds share one actor/key namespace. */
+/** Сначала коммитим неизменяемое намерение, затем пишем объект вне SQL и повторно проверяем полномочия перед ready; условная запись и ETag позволяют восстановиться после потери ответа. */
 export async function storePrivateAttachment(
   actor: PrivateAttachmentActor,
   input: {
@@ -266,6 +273,7 @@ export async function storePrivateAttachment(
   }
 }
 /** Читаем результат исходного ключа операции после неизвестного исхода запроса. */
+/** Под актуальной админской сессией проверяем маркеры, срок и пространство исходного ключа; возвращаем сохранённую квитанцию либо notRecorded без повторной загрузки. */
 export async function privateAttachmentStatus(
   actor: PrivateAttachmentActor,
   key: string,

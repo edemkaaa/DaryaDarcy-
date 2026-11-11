@@ -1,3 +1,4 @@
+// Архив Expo. Проверяет browser Notification API и уже выданное разрешение.
 import { useEffect, useRef } from "react";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -7,6 +8,8 @@ const FEED_SEEN_KEY = "@darcy_last_seen_feed_id";
 const CLUB_SEEN_KEY = "@darcy_last_seen_club_id";
 
 function canNotify(): boolean {
+  // Проверяет browser Notification API и уже выданное разрешение.
+
   return (
     Platform.OS === "web" &&
     typeof Notification !== "undefined" &&
@@ -15,6 +18,8 @@ function canNotify(): boolean {
 }
 
 function showNote(title: string, body: string) {
+  // Показывает короткое web-уведомление, считая ошибку необязательной для основного интерфейса.
+
   if (!canNotify()) return;
   try {
     new Notification(title, { body, icon: "/favicon.ico" });
@@ -24,6 +29,8 @@ function showNote(title: string, body: string) {
 }
 
 export function WebPostAlerts() {
+  // Опрашивает последние id каждые 90 секунд и хранит увиденные id в общем локальном кеше устройства.
+
   const primed = useRef(false);
   const latest = trpc.notifications.latest.useQuery(undefined, {
     enabled: Platform.OS === "web",
@@ -32,11 +39,15 @@ export function WebPostAlerts() {
   });
 
   useEffect(() => {
+    // После обновления latest сравнивает id с локальным seen; исторический async не отменяется при смене аккаунта.
+
     if (Platform.OS !== "web") return;
     const feedId = latest.data?.feedId;
     const clubId = latest.data?.clubId;
 
     const run = async () => {
+      // Первый ответ только инициализирует seen, следующие сравнивает с сохранёнными id перед уведомлением.
+
       if (!primed.current) {
         if (feedId) {
           const seen = await AsyncStorage.getItem(FEED_SEEN_KEY);
@@ -74,6 +85,8 @@ export function WebPostAlerts() {
   }, [latest.data]);
 
   useEffect(() => {
+    // Через пять секунд предлагает разрешение web-уведомлений и снимает таймер при unmount.
+
     if (Platform.OS !== "web" || typeof Notification === "undefined") return;
     if (Notification.permission !== "default") return;
     const timer = setTimeout(() => {

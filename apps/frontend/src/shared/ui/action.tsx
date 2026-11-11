@@ -34,6 +34,7 @@ type ActionProps = Omit<
   hitArea?: number;
 };
 export const Action = forwardRef<HTMLButtonElement, ActionProps>(
+  /** Объединяем клик и удержание в нативной кнопке; завершённое удержание подавляет последующий мышиный клик, но не клавиатурный. */
   function Action(
     {
       style,
@@ -61,11 +62,13 @@ export const Action = forwardRef<HTMLButtonElement, ActionProps>(
       held = useRef(false);
     const baseOpacity = useRef(1);
     const touchStart = useRef<{ x: number; y: number } | null>(null);
+    /** Снимаем визуальное нажатие и таймер удержания; решение о подавлении клика принимает конкретное событие указателя. */
     const cancel = () => {
       setPressed(false);
       if (timer.current) clearTimeout(timer.current);
     };
     useEffect(
+      // Таймер принадлежит экземпляру кнопки: после размонтирования удержание вызывать нельзя.
       () => () => {
         if (timer.current) clearTimeout(timer.current);
       },
@@ -101,11 +104,13 @@ export const Action = forwardRef<HTMLButtonElement, ActionProps>(
             : {}),
         }}
         onClick={(e) => {
+          // После удержания не дублируем действие кликом; detail=0 сохраняет клавиатурную активацию.
           if (onClick) e.stopPropagation();
           if (!held.current || !e.detail) onClick?.(e);
           held.current = false;
         }}
         onPointerDown={(e) => {
+          // Запоминаем начало жеста; на touch не затемняем карточку до решения браузера о прокрутке.
           baseOpacity.current = Number(
             getComputedStyle(e.currentTarget).opacity,
           );
@@ -127,6 +132,7 @@ export const Action = forwardRef<HTMLButtonElement, ActionProps>(
           onPointerDown?.(e);
         }}
         onPointerMove={(e) => {
+          // Движение пальца дальше порога отменяет удержание и подавляет случайный клик после прокрутки.
           const start = touchStart.current;
           if (
             start &&
@@ -138,21 +144,25 @@ export const Action = forwardRef<HTMLButtonElement, ActionProps>(
           onPointerMove?.(e);
         }}
         onPointerUp={(e) => {
+          // Отпускание очищает таймер и начало касания, затем передаёт событие вызывающему коду.
           cancel();
           touchStart.current = null;
           onPointerUp?.(e);
         }}
         onPointerCancel={(e) => {
+          // Отмена браузером не должна превращаться в клик; сбрасываем жест и отмечаем его использованным.
           cancel();
           touchStart.current = null;
           held.current = true;
           onPointerCancel?.(e);
         }}
         onMouseEnter={(e) => {
+          // Поддерживаем состояние hover независимо от нажатия и вызываем внешний обработчик.
           setHovered(true);
           onMouseEnter?.(e);
         }}
         onMouseLeave={(e) => {
+          // Выход курсора отменяет удержание и снимает hover, чтобы кнопка не оставалась нажатой.
           cancel();
           setHovered(false);
           onMouseLeave?.(e);

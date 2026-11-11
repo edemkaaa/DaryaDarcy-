@@ -17,6 +17,7 @@ export type PreparedClubSettlement = {
 };
 
 /** Подготовка не аутентифицирует уведомление: подпись и долговечная проверка владельца выполняются отдельно. */
+/** Проверяет RUB proof, paymentId и целый положительный период, ограничивает FX-доказательство отдельным разовым TEST и выводит неизменяемые payment/order/payload ключи. */
 export function prepareClubSettlement(
   input: ClubSettlementInput,
 ): PreparedClubSettlement | undefined {
@@ -51,6 +52,7 @@ export function prepareClubSettlement(
   return { proof, amount, paymentKey, orderId, payloadHash };
 }
 
+/** Связывает order/сумму/email/валюту/recurring идентификаторы; TEST-FX расширение условно, чтобы старые RUB/LIVE receipt оставались совместимы. */
 export function clubSettlementPayloadHash(
   orderId: string,
   amount: number,

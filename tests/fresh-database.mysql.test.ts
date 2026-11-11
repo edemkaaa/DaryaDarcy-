@@ -12,17 +12,21 @@ import * as schema from "../packages/database/src/schema";
 const uri = process.env.FRESH_DATABASE_URL,
   container = process.env.FRESH_DATABASE_CONTAINER_ID;
 const root = fileURLToPath(new URL("../", import.meta.url));
+/** Проверяет полный fresh-install из актуальных миграций на принадлежащей контейнерной пустой БД без тестового DDL. */
 describe.skipIf(!uri || !container)(
   "isolated full fresh install without fixture DDL",
   () => {
     let conn: Connection;
+    /** Проверяет disposable URL и открывает UTC-соединение именно выделенной empty-БД. */
     beforeAll(async () => {
       assertTestDatabase(uri!);
       conn = await mysql.createConnection({ uri: uri!, timezone: "Z" });
     });
+    /** Закрывает контрольное соединение fresh-install. */
     afterAll(async () => {
       await conn?.end();
     });
+    /** Запускает отдельный CLI-процесс с минимальным fixture-окружением и собирает exit-code и stdout/stderr. */
     async function run(
       mode = "--initialize-empty-local",
       extra: NodeJS.ProcessEnv = {},
@@ -52,6 +56,7 @@ describe.skipIf(!uri || !container)(
         },
       );
     }
+    /** Sentinel-таблица делает target непустым: initializer отказывает без записи истории и изменения sentinel. */
     it("refuses a nonempty database without adding migration history", async () => {
       await conn.query("CREATE TABLE fresh_owned_sentinel(id INT PRIMARY KEY)");
       await conn.query("INSERT INTO fresh_owned_sentinel VALUES(7)");
@@ -72,6 +77,7 @@ describe.skipIf(!uri || !container)(
         await conn.query("DROP TABLE fresh_owned_sentinel");
       }
     });
+    /** Реальный initializer применяет всю ожидаемую историю 52 миграций в пустую БД без fixture-DDL. */
     it("initializes all 52 migrations from an actually empty owned database", async () => {
       expect((await conn.query<RowDataPacket[]>("SHOW TABLES"))[0]).toEqual([]);
       const result = await run();
@@ -91,6 +97,7 @@ describe.skipIf(!uri || !container)(
         )[0],
       ).toHaveLength(52);
     });
+    /** Повторный initialize не переиспользует непустую БД и сохраняет историю побайтово по выбранным полям. */
     it("refuses a repeat without changing the initialized schema/history", async () => {
       const [before] = await conn.query<RowDataPacket[]>(
         "SELECT id,hash,created_at FROM __drizzle_migrations ORDER BY id",
@@ -105,6 +112,7 @@ describe.skipIf(!uri || !container)(
         )[0],
       ).toEqual(before);
     });
+    /** Check-local подтверждает установленную историю без повторного применения и без release approval. */
     it("verifies installed fresh-profile history read-only", async () => {
       const result = await run("--check-local");
       expect(result.code, result.output).toBe(0);
@@ -116,9 +124,11 @@ describe.skipIf(!uri || !container)(
         releaseApproval: false,
       });
     });
+    /** Полная история не заменяет проверку actual feed-индекса: invisible и переименованный индекс дают preflight issue. */
     it("blocks a missing or invisible Feed index even with complete migration history", async () => {
       const owned = await run("--check-local");
       expect(owned.code, owned.output).toBe(0);
+      /** Вызывает migration-preflight в read-only режиме обязательного feed-индекса. */
       const inspect = () =>
         run(
           "--require-feed-index",
@@ -159,6 +169,7 @@ describe.skipIf(!uri || !container)(
       }
       expect((await inspect()).code).toBe(0);
     }, 10000);
+    /** Миграция publicId на копии posts заполняет уникальные UUID и сохраняет старые поля и даты; legacy INSERT получает новый UUID. */
     it("backfills distinct UUIDs and preserves publication dates on an existing posts table", async () => {
       const sql = await readFile(new URL("../packages/database/drizzle/0051_post_public_id.sql", import.meta.url), "utf8");
       await conn.query("CREATE TABLE posts_uuid_upgrade_fixture LIKE posts");
@@ -168,6 +179,7 @@ describe.skipIf(!uri || !container)(
           (id,text,photos,tags,createdAt,updatedAt,publishedAt) VALUES
           (1,'first',JSON_ARRAY(),JSON_ARRAY(),'2026-01-01','2026-02-01','2026-03-01'),
           (2,'second',JSON_ARRAY(),JSON_ARRAY(),'2026-01-02','2026-02-02','2026-03-02')`);
+        /** Снимает исходные поля UUID-upgrade fixture, исключая добавляемый publicId из сравнения сохранности. */
         const read = async () => (await conn.query<RowDataPacket[]>(
           "SELECT id,text,createdAt,updatedAt,publishedAt FROM posts_uuid_upgrade_fixture ORDER BY id",
         ))[0];
@@ -190,6 +202,7 @@ describe.skipIf(!uri || !container)(
         await conn.query("DROP TABLE posts_uuid_upgrade_fixture");
       }
     });
+    /** Каждая текущая Drizzle-таблица читается LIMIT 0 после одних миграций, проверяя совместимость колонок. */
     it("reads every current ORM table/column without fixture DDL", async () => {
       const db = drizzle(conn);
       const tables = Object.values(schema).filter((value) =>
@@ -199,6 +212,7 @@ describe.skipIf(!uri || !container)(
       for (const table of tables)
         await expect(db.select().from(table).limit(0)).resolves.toEqual([]);
     });
+    /** Настоящий API запускается на мигрированной пустой БД, отдаёт пустые публичные списки и защищает admin без seed-пользователей. */
     it("starts the native backend against migrated schema and serves HTTP without seeds", async () => {
       vi.stubEnv("DATABASE_URL", uri!);
       vi.stubEnv("JWT_SECRET", "fresh-local-only-session-secret-32");
@@ -234,6 +248,7 @@ describe.skipIf(!uri || !container)(
         vi.unstubAllEnvs();
       }
     });
+    /** Неверный owner/container, удалённый host и production-режим отклоняются без раскрытия fixture-password. */
     it.each([
       { FRESH_DATABASE_CONTAINER_ID: "0".repeat(64) },
       {

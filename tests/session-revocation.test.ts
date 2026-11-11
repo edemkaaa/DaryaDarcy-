@@ -1,3 +1,4 @@
+/** Подпись JWT проверяется вместе с текущей версией и блокировкой пользователя; SQL заменён управляемым профилем. */
 import { describe, expect, it, vi } from "vitest";
 import type { Request } from "express";
 const state = vi.hoisted(() => ({ version: 0, blocked: false }));
@@ -12,7 +13,9 @@ vi.mock("../apps/backend/src/db", () => ({
 }));
 import { sdk } from "../apps/backend/src/_core/sdk";
 vi.stubEnv("JWT_SECRET", "local-test-only-session-signing-key");
+/** Общий SDK должен отвергать ранее выданный токен после изменения состояния аккаунта. */
 describe("session revocation", () => {
+  /** Сначала подтверждаем рабочий токен, затем увеличиваем sessionVersion без перевыпуска JWT. */
   it("rejects a previously issued token after password version changes", async () => {
     state.version = 0;
     state.blocked = false;
@@ -22,6 +25,7 @@ describe("session revocation", () => {
     state.version = 1;
     await expect(sdk.authenticateRequest(req)).rejects.toThrow();
   });
+  /** Даже корректно подписанный свежий JWT не допускает заблокированный аккаунт. */
   it("rejects blocked users at the shared authentication boundary", async () => {
     state.version = 0;
     state.blocked = true;

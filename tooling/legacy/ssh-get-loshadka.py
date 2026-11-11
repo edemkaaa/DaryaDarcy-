@@ -1,3 +1,4 @@
+# Скачивает конкретный исходник «Лошадки» на VPS и обратно локально, не меняя его S3-объект.
 import pathlib
 import paramiko
 
@@ -8,6 +9,7 @@ for line in (root / ".env").read_text(encoding="utf-8").splitlines():
         k, v = line.split("=", 1)
         env[k.strip()] = v.strip()
 
+# Следующий текст — удалённая команда; её содержимое сохранено как историческое и не исполняется при чтении исходника.
 cmd = r"""
 set -e
 curl -fsSL -o /tmp/loshadka.png --max-time 20 "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/f8a919017d4c-WDRmWxjeWyXWNrto.PNG"
@@ -19,6 +21,7 @@ print('png_hdr', p[:8].hex(), 'wh', unpack('>II', p[16:24]) if p[:8]==b'\x89PNG\
 PY
 """
 
+# Подключение использует историческое автоматическое доверие неизвестному SSH host key; перед новым запуском требуется отдельная сверка хоста.
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 client.connect(

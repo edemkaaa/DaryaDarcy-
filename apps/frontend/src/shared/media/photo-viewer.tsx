@@ -37,6 +37,7 @@ interface PhotoViewerProps {
   initialIndex?: number;
   onClose: () => void;
 }
+/** Удерживаем исходную карточку пока открыт просмотр; при закрытии внутренний экземпляр со всеми жестами размонтируется. */
 export function PhotoViewer({
   visible,
   photos,
@@ -54,6 +55,7 @@ export function PhotoViewer({
     />
   );
 }
+/** Полноэкранный диалог использует размеры окна, а не 480px-полотна; индекс объединяет scroll, клавиатуру и кнопки. */
 function PhotoViewerInner({
   photos,
   initialIndex = 0,
@@ -72,23 +74,27 @@ function PhotoViewerInner({
   const currentIndexRef = useRef(safeInitialIndex);
   const translateY = useSharedValue(0);
   const opacity = useSharedValue(1);
+  /** Сначала сообщаем владельцу о закрытии, затем сбрасываем общие значения анимации для следующего открытия. */
   const handleClose = useCallback(() => {
     onClose();
     translateY.value = 0;
     opacity.value = 1;
   }, [onClose, opacity, translateY]);
   useLayoutEffect(() => {
+    // При повороте окна сохраняем выбранный кадр, пересчитывая scrollLeft до видимого обновления.
     const preservedIndex = Math.min(currentIndexRef.current, photos.length - 1);
     currentIndexRef.current = preservedIndex;
     setCurrentIndex(preservedIndex);
     const offset = preservedIndex * screenWidth;
     scrollRef.current?.scrollTo({ left: offset, top: 0, behavior: "instant" });
   }, [screenWidth, photos.length]);
+  /** Незавершённое закрытие возвращает кадр и фон в исходное положение за одну короткую анимацию. */
   const resetPan = () => {
     translateY.value = withTiming(0, { duration: 200 });
     opacity.value = withTiming(1, { duration: 200 });
   };
   const panGesture = Gesture.Pan()
+    // Только уверенный вертикальный жест вниз закрывает просмотр; горизонтальный остаётся карусели, cancel возвращает фото.
     .activeOffsetY(28)
     .failOffsetX([-24, 24])
     .onUpdate((e) => {
@@ -114,6 +120,7 @@ function PhotoViewerInner({
     opacity: opacity.value,
   }));
   const updateIndexFromOffset = useCallback(
+    /** Принимаем только индекс существующего кадра, вычисленный по ширине текущего окна. */
     (offsetX: number) => {
       const index = Math.round(offsetX / screenWidth);
       if (index >= 0 && index < photos.length) {
@@ -124,6 +131,7 @@ function PhotoViewerInner({
     [photos.length, screenWidth],
   );
   const onScroll = useCallback(
+    /** Синхронизируем счётчик с фактической горизонтальной прокруткой, включая нативное листание. */
     (event: ScrollEvent) => {
       updateIndexFromOffset(event.currentTarget.scrollLeft);
     },

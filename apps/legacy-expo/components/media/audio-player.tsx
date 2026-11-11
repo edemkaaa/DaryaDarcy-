@@ -1,3 +1,4 @@
+// Архив Expo. Строит повторяемую декоративную волну по URL; это не анализ аудиосигнала.
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { View, Text, Pressable, StyleSheet, Platform } from "react-native";
 import { useAudioPlayer } from "expo-audio";
@@ -18,6 +19,8 @@ interface AudioPlayerProps {
 
 // Generate pseudo-random waveform bars for visual effect
 function generateWaveform(count: number, seed: string): number[] {
+  // Строит повторяемую декоративную волну по URL; это не анализ аудиосигнала.
+
   let hash = 0;
   for (let i = 0; i < seed.length; i++) {
     hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0;
@@ -31,6 +34,8 @@ function generateWaveform(count: number, seed: string): number[] {
 }
 
 export function AudioPlayerCard({ url, filename, duration }: AudioPlayerProps) {
+  // Управляет Expo audio, опрашивает время 250 мс и показывает имя с декоративным прогрессом.
+
   const player = useAudioPlayer(url);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -38,9 +43,11 @@ export function AudioPlayerCard({ url, filename, duration }: AudioPlayerProps) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const WAVEFORM_BARS = 30;
-  const waveform = useMemo(() => generateWaveform(WAVEFORM_BARS, url), [url]);
+  const waveform = useMemo(() => /* Мемоизирует неизменную декоративную волну для текущего URL. */ generateWaveform(WAVEFORM_BARS, url), [url]);
 
   useEffect(() => {
+    // При unmount снимает интервал и освобождает исходный player; это cleanup жизненного цикла аудио.
+
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       player.release();
@@ -48,6 +55,8 @@ export function AudioPlayerCard({ url, filename, duration }: AudioPlayerProps) {
   }, []);
 
   const togglePlay = () => {
+    // Переключает player и таймер опроса, сбрасывая UI у конца записи.
+
     if (isPlaying) {
       player.pause();
       setIsPlaying(false);
@@ -81,6 +90,8 @@ export function AudioPlayerCard({ url, filename, duration }: AudioPlayerProps) {
   };
 
   const formatTime = (seconds: number) => {
+    // Форматирует секунды в минуты и двухзначный остаток.
+
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, "0")}`;
@@ -131,6 +142,7 @@ export function AudioPlayerCard({ url, filename, duration }: AudioPlayerProps) {
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",

@@ -1,3 +1,4 @@
+/** Уведомление публикации следует только за успешным сохранением; DB/push effects подменены, missing-post editor path настоящий. */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "../apps/backend/src/_core/context";
 import type { MySql2Database } from "drizzle-orm/mysql2";
@@ -21,6 +22,7 @@ import { ContentUploadService } from "../apps/backend/src/content/content-upload
 import { ContentReadService } from "../apps/backend/src/content/content-read.service";
 import { NotificationsService } from "../apps/backend/src/notifications/notifications.service";
 
+/** Admin router получает явные service dependencies и synthetic session actor. */
 const caller = () =>
   createAdminRouter(
     new ContentReadService(),
@@ -32,7 +34,9 @@ const caller = () =>
     req: {},
     res: {},
   } as TrpcContext);
+/** Ни ошибка post/media, ни черновик/повторная публикация не должны порождать ложное уведомление. */
 describe("publication notification follows successful persistence", () => {
+  /** Сбрасываем spies и задаём synthetic transition в опубликованное состояние. */
   beforeEach(() => {
     vi.resetAllMocks();
     state.update.mockResolvedValue({
@@ -42,6 +46,7 @@ describe("publication notification follows successful persistence", () => {
     });
     state.notify.mockResolvedValue(undefined);
   });
+  /** Отказ основного writer прекращает сценарий до push. */
   it("does not send a publication notification when the post write fails", async () => {
     state.update.mockRejectedValue(new Error("fixture write failed"));
     await expect(
@@ -49,6 +54,7 @@ describe("publication notification follows successful persistence", () => {
     ).rejects.toThrow("fixture write failed");
     expect(state.notify).not.toHaveBeenCalled();
   });
+  /** Настоящий editor над fake SQL-read обнаруживает отсутствующий post во всех формах patch и возвращает NOT_FOUND. */
   it.each<{ change: string; input: UpdatePostInput }>([
     { change: "text", input: { id: 8, text: "Unsaved correction" } },
     {
@@ -87,6 +93,7 @@ describe("publication notification follows successful persistence", () => {
       expect(state.notify).not.toHaveBeenCalled();
     },
   );
+  /** Media failure не допускает publish notification. */
   it("does not notify before associated video updates succeed", async () => {
     state.update.mockRejectedValue(new Error("fixture media failed"));
     await expect(
@@ -98,6 +105,7 @@ describe("publication notification follows successful persistence", () => {
     ).rejects.toThrow("fixture media failed");
     expect(state.notify).not.toHaveBeenCalled();
   });
+  /** Pending writer удерживает push до durable result. */
   it("waits for the pending write and notifies only after it resolves", async () => {
     let finish!: (publication: {
       id: number;
@@ -120,6 +128,7 @@ describe("publication notification follows successful persistence", () => {
     }
     expect(state.notify).toHaveBeenCalledWith("previous text", 8, "club");
   });
+  /** Отправка использует сохранённый текст/target, не устаревший input. */
   it("uses the changed text and audience after the last successful write", async () => {
     state.update.mockResolvedValue({ id: 8, text: "updated", target: "feed" });
     expect(
@@ -144,6 +153,7 @@ describe("publication notification follows successful persistence", () => {
       { expectedRevision: undefined },
     );
   });
+  /** Undefined transition результата означает отсутствие нового publish события. */
   it("does not reannounce an already published post", async () => {
     state.update.mockResolvedValue(undefined);
     expect(
@@ -155,6 +165,7 @@ describe("publication notification follows successful persistence", () => {
     ).toEqual({ success: true });
     expect(state.notify).not.toHaveBeenCalled();
   });
+  /** Draft/scheduled saves не равны опубликованной новости. */
   it("does not notify on draft edits or scheduling", async () => {
     state.update.mockResolvedValue(undefined);
     expect(await caller().updatePost({ id: 8, status: "draft" })).toEqual({

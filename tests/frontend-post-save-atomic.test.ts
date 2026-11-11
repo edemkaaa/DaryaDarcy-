@@ -1,3 +1,4 @@
+/** Проверяем координатор сохранения поста с подменённым upload API: подготовка файлов предшествует единой записи, подтверждённые результаты не повторяются. */
 import { beforeEach, expect, it, vi } from "vitest";
 vi.mock("../apps/frontend/src/shared/media/read-attachment", () => ({
   attachmentBase64: vi.fn(async () => "FILE_BASE64"),
@@ -17,12 +18,14 @@ const payload = serializePostDraft({
   publishedAt: new Date("2026-10-04T09:00:00Z"),
   sortOrder: 0,
 });
+/** Каждый вызов создаёт новый объект File: координатор различает локальные вложения по их идентичности. */
 const attachment = () => ({
   type: "audio" as const,
   file: new File(["audio"], "test.mp3", { type: "audio/mpeg" }),
   name: "test.mp3",
   mimeType: "audio/mpeg",
 });
+/** Открывает отдельную текущую операцию сохранения с действующим родительским signal. */
 const scope = () =>
   new OperationScope().begin("save", new AbortController().signal, () => true)!;
 const api = {
@@ -37,6 +40,7 @@ const api = {
   })),
   remove: vi.fn(async (_id: number, _signal: AbortSignal) => undefined),
 };
+/** Patch текстового изменения не должен заменять неизменённые видео, дату, порядок или статус публикации. */
 it("a text edit leaves videos, order, dates and publication status untouched", async () => {
   const original = {
     ...payload,
@@ -50,6 +54,7 @@ it("a text edit leaves videos, order, dates and publication status untouched", a
     richText: null,
   });
 });
+/** Даже patch одного форматирования передаёт исходный plain text для серверной нормализации richText. */
 it("a formatting-only edit supplies the plain text required by backend normalization", async () => {
   const richText = [
     {
@@ -66,6 +71,7 @@ it("a formatting-only edit supplies the plain text required by backend normaliza
   );
   expect(api.update.mock.calls[0][1]).toEqual({ text: payload.text, richText });
 });
+/** При намеренном изменении видео отправляется конечный список, включая явное очищение массива. */
 it.each([
   { videos: [] },
   {
@@ -82,6 +88,7 @@ it.each([
   );
   expect(api.update.mock.calls[0][1]).toEqual({ videos });
 });
+/** Исходная ревизия координатора независима от мутации массива редактора и позволяет распознать удаление видео. */
 it("the original snapshot survives changes to editor arrays", async () => {
   const original = { ...payload, videos: ["https://example.test/kept.webm"] };
   const coordinator = new PostSaveCoordinator(42, original);
@@ -89,6 +96,7 @@ it("the original snapshot survives changes to editor arrays", async () => {
   await coordinator.save(original, [], [], api, scope());
   expect(api.update.mock.calls[0][1]).toEqual({ videos: [] });
 });
+/** Одна финальная правка дедуплицирует removed IDs и использует MIME/размер, подтверждённые сервером upload. */
 it("a partial attachment-only edit preserves canonical metadata without replacing other media", async () => {
   const file = attachment();
   api.upload.mockResolvedValueOnce({
@@ -116,6 +124,7 @@ it("a partial attachment-only edit preserves canonical metadata without replacin
     ],
   });
 });
+/** Сбрасываем вызовы и одноразовые отказы API, сохраняя канонические upload metadata для нового сценария. */
 beforeEach(() => {
   vi.resetAllMocks();
   api.create.mockResolvedValue(42);
@@ -126,6 +135,7 @@ beforeEach(() => {
     fileSize: 5,
   });
 });
+/** Файлы загружаются без postId до create; опубликованная запись сразу содержит полный список вложений. */
 it("uploads before creating one complete published post", async () => {
   const order: string[] = [];
   api.upload.mockImplementationOnce(async () => {
@@ -163,6 +173,7 @@ it("uploads before creating one complete published post", async () => {
   expect(api.upload.mock.calls[0][0]).not.toHaveProperty("postId");
   expect(api.update).not.toHaveBeenCalled();
 });
+/** Частичный upload failure не сохраняет пост; повтор использует уже подтверждённый файл и загружает только оставшийся. */
 it.each([null, 42])(
   "rejected uploads leave post %s untouched; retry reuses confirmed files",
   async (id) => {
@@ -202,6 +213,7 @@ it.each([null, 42])(
     });
   },
 );
+/** Удаление media передаётся в едином patch без отдельной remove mutation или временного снятия публикации. */
 it("removes attachments in one final edit without unpublishing", async () => {
   await new PostSaveCoordinator(42).save(payload, [], [9], api, scope());
   expect(api.update).toHaveBeenCalledTimes(1);
@@ -212,6 +224,7 @@ it("removes attachments in one final edit without unpublishing", async () => {
   });
   expect(api.remove).not.toHaveBeenCalled();
 });
+/** Отмена между upload и commit не даёт прав запустить update или удаление вложений. */
 it("cancelling after upload cannot commit a post", async () => {
   const local = new OperationScope();
   const task = local.begin("save", new AbortController().signal, () => true)!;
@@ -229,6 +242,7 @@ it("cancelling after upload cannot commit a post", async () => {
   expect(api.update).not.toHaveBeenCalled();
   expect(api.remove).not.toHaveBeenCalled();
 });
+/** После известного отказа patch подтверждённые upload переиспользуются, а удалённый до повтора локальный файл не включается. */
 it("a rejected edit reuses uploads and omits an unsaved file removed before retry", async () => {
   const coordinator = new PostSaveCoordinator(42);
   const files = [attachment(), attachment()];
@@ -242,6 +256,7 @@ it("a rejected edit reuses uploads and omits an unsaved file removed before retr
     attachments: [expect.objectContaining({ filename: "test.mp3" })],
   });
 });
+/** После подтверждения координатор терминален: повторное нажатие не вставляет те же attachments ещё раз. */
 it("a confirmed save is never repeated through the same editor", async () => {
   const coordinator = new PostSaveCoordinator(42);
   const file = attachment();
@@ -251,6 +266,7 @@ it("a confirmed save is never repeated through the same editor", async () => {
   ).rejects.toThrow("уже сохранена");
   expect(api.update).toHaveBeenCalledTimes(1);
 });
+/** Даже если UI отменён в момент успешного ответа, подтверждённый commit запоминается и повторная вставка запрещена. */
 it("cancellation after a confirmed commit cannot replay attachment insertion", async () => {
   const coordinator = new PostSaveCoordinator(42);
   const local = new OperationScope();

@@ -1,3 +1,4 @@
+/** Проверяем сериализацию статуса, дат и форматирования локального черновика поста. */
 import { expect, it } from "vitest";
 import {
   serializePostDraft,
@@ -15,6 +16,7 @@ const draft: PostDraft = {
   publishedAt: new Date("2026-10-03T09:00:00Z"),
   sortOrder: 0,
 };
+/** Черновик не становится published от наличия даты; транспорт получает ISO-значение. */
 it("keeps a draft unpublished and serializes its date", () => {
   expect(serializePostDraft(draft)).toMatchObject({
     published: false,
@@ -23,6 +25,7 @@ it("keeps a draft unpublished and serializes its date", () => {
     scheduledAt: null,
   });
 });
+/** Отложенная публикация требует существующую корректную дату. */
 it("requires a valid date before scheduling a publication", () => {
   expect(() => serializePostDraft({ ...draft, status: "scheduled" })).toThrow(
     "Выберите дату",
@@ -35,6 +38,7 @@ it("requires a valid date before scheduling a publication", () => {
     }),
   ).toThrow("Выберите дату");
 });
+/** Scheduled сохраняет дату расписания и очищает дату немедленной публикации. */
 it("serializes a schedule without publishing immediately", () => {
   expect(
     serializePostDraft({
@@ -49,6 +53,7 @@ it("serializes a schedule without publishing immediately", () => {
   });
 });
 
+/** Два независимых URL и выделения сохраняются после повторной сериализации одного payload. */
 it("preserves two independent links and combined bold/italic formatting through serialization", () => {
   const richText = [
     {

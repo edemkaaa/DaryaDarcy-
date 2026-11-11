@@ -8,6 +8,8 @@ function resolveChange(
   newText: string,
   hint?: TextEditHint | null,
 ) {
+  // Предпочитает native beforeinput, чтобы повторяющиеся буквы не смещали форматирование; только затем ищет общий префикс и суффикс.
+
   if (hint) {
     let { start, end } = hint;
     const removed = oldText.length - newText.length;
@@ -52,6 +54,8 @@ export function adjustEditorRanges(
   ranges: Range[],
   hint?: TextEditHint | null,
 ): Range[] {
+  // Применяет один вычисленный текстовый сдвиг к диапазонам форматирования.
+
   return createEditorRangeAdjuster(oldText, newText, hint)(ranges);
 }
 
@@ -61,6 +65,8 @@ export function createEditorRangeAdjuster(
   newText: string,
   hint?: TextEditHint | null,
 ) {
+  // Лениво вычисляет изменение один раз для всех наборов диапазонов; удалённый исходный текст теряет своё форматирование.
+
   let change: ReturnType<typeof resolveChange> | undefined;
   return (ranges: Range[]): Range[] => {
     if (!ranges.length || oldText === newText) return ranges;

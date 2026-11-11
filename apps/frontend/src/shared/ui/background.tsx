@@ -12,6 +12,7 @@ type BackgroundProps = BoxProps & {
   onImageError?: ReactEventHandler<HTMLImageElement>;
 };
 export const Background = forwardRef<HTMLDivElement, BackgroundProps>(
+  /** Размещаем декоративное изображение абсолютным слоем перед children; отдельно настраиваем его fit и обработку ошибки. */
   function Background(
     {
       source,

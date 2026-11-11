@@ -2,6 +2,7 @@
 @use "../../shared/styles/layers";
 
 @layer components {
+  /* Профиль участницы привязан к visual viewport; внешняя оболочка не прокручивается вместе с клавиатурой. */
   .profileDialog {
     top: var(--visual-viewport-top, 0px);
     bottom: auto;
@@ -13,6 +14,7 @@
     background-color: var(--paper);
   }
 
+  /* Баннер обрезается контейнером, а приветствие лежит отдельным текстовым блоком на сезонном фоне. */
   .bannerContainer {
     overflow: hidden;
   }
@@ -48,6 +50,7 @@
     margin-bottom: 10px;
   }
 
+  /* Почтовый CTA отделён от списка публикаций и не определяет доступность самой функции. */
   .mailboxSection {
     flex-direction: row;
     align-items: center;
@@ -81,6 +84,7 @@
     text-align: center;
   }
 
+  /* Выбранный фильтр показывается отдельной строкой и не смешивается с содержимым карточек. */
   .activeFilterRow {
     flex-direction: row;
     align-items: center;
@@ -118,6 +122,7 @@
     flex: 1;
   }
 
+  /* Нижний запас вычисляется по меню и плавающим действиям, чтобы последний пост можно было поднять выше них. */
   .postList {
     padding-left: 0;
     padding-right: 0;
@@ -153,6 +158,7 @@
     opacity: 0.85;
   }
 
+  /* Внутренние вкладки закреплены снизу, включая safe-area; контент должен резервировать их высоту отдельно. */
   .clubTabBar {
     flex-direction: row;
     align-items: stretch;
@@ -176,6 +182,7 @@
     padding-right: 8px;
   }
 
+  /* Внутренний outline не обрезается границей панели и остаётся видимым при клавиатурной навигации. */
   .clubTabItem:focus-visible {
     outline-offset: -2px;
   }
@@ -198,6 +205,7 @@
     white-space: nowrap;
   }
 
+  /* На узком экране уменьшается высота панели, сохраняя safe-area и отдельные подписи. */
   @media (max-width: 359px) {
     .clubTabBar {
       height: calc(63px + env(safe-area-inset-bottom, 0px));
@@ -228,6 +236,7 @@
     --action-base-opacity: 0.7;
   }
 
+  /* Смещения стикеров компенсируют прозрачные края исходных PNG; это оптическое выравнивание, а не размер кнопки. */
   .appearanceState {
     width: 40px;
     height: 40px;

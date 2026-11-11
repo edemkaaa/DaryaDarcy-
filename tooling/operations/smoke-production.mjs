@@ -17,6 +17,7 @@ const checks = [
 
 let failed = 0;
 
+// Последовательно проверяются только публичные GET; успешные страницы не подтверждают операции администратора или оплату.
 for (const check of checks) {
   try {
     const res = await fetch(check.url, {

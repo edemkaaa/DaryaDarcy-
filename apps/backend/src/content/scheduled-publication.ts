@@ -5,6 +5,7 @@ import { posts } from "../../../../packages/database/src/schema";
 import type { PostPublication } from "./publication";
 
 /** Return only the rows claimed and committed by this scheduler invocation. */
+/** Захватываем наступившие отложенные посты через SKIP LOCKED, публикуем одной транзакцией и возвращаем только собственную закоммиченную пачку для уведомлений; занятые записи оставляем следующему тику. */
 export async function publishDueScheduledPosts(
   db: MySql2Database | null,
 ): Promise<PostPublication[]> {

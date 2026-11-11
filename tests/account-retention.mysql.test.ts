@@ -22,8 +22,10 @@ import { privateReceiptForMedia } from "../apps/backend/src/content/private-atta
 import { maintainPrivateRecovery } from "../apps/backend/src/content/private-recovery-maintenance";
 import { privateStorageNamespace } from "../apps/backend/src/media/private-upload-object";
 
+/** Проверяем атомарное обезличивание аккаунта и зависимых данных на настоящей одноразовой MySQL, без внешних провайдеров. */
 describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () => {
   let conn: Connection;
+  /** Открываем контентную тестовую БД и создаём совместимые таблицы фикстуры, задавая только синтетическое окружение. */
   beforeAll(async () => {
     conn = await openContentTestDatabase();
     vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -35,6 +37,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
       createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB`);
   });
+  /** Восстанавливаем пользователя на удаление, неизменяемого соседа и все персональные зависимости в выделенном диапазоне. */
   beforeEach(async () => {
     await cleanupRecoveryContent();
     await cleanupBindings();
@@ -62,7 +65,9 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     await conn.query("INSERT INTO push_tokens (token,userId,enabled) VALUES ('retention-fixture-token',92101,FALSE)");
     await conn.query("INSERT INTO comment_reports (commentId,reporterUserId,reason) VALUES (92100,92101,'Fixture report')");
   });
+  /** Снимаем подмены часов и методов после проверки, сохраняя настоящий SQL. */
   afterEach(() => vi.restoreAllMocks());
+  /** Чистим свои recovery/binding данные, снимаем запросы удаления и закрываем SQL-пул и окружение. */
   afterAll(async () => {
     if (conn) await cleanupRecoveryContent();
     if (conn) await cleanupBindings();
@@ -78,11 +83,13 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     await (database as unknown as { $client: { end(): Promise<void> } })?.$client.end();
     vi.unstubAllEnvs();
   });
+  /** Удаляем только outbox, заявки и аудит выделенного администратора привязки. */
   async function cleanupBindings() {
     await conn.query("DELETE o FROM member_email_binding_outbox o JOIN member_email_bindings b ON b.requestKey=o.requestKey WHERE b.actorUserId=92103");
     await conn.query("DELETE FROM member_email_bindings WHERE actorUserId=92103");
     await conn.query("DELETE FROM admin_audit_log WHERE actorUserId=92103");
   }
+  /** Удаляем только собственные asset-префиксы, маркеры, материалы и ключи создания, не обходя чужие записи. */
   async function cleanupRecoveryContent() {
     await conn.query("DELETE FROM private_attachment_uploads WHERE assetId LIKE '92100000-0000-4000-8000-%'");
     await conn.query("DELETE FROM content_recovery_markers WHERE actorUserId=92102 AND requestKey=REPEAT('b',64)");
@@ -93,12 +100,14 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     await conn.query("DELETE FROM article_creation_requests WHERE actorUserId=92101");
     await conn.query("DELETE FROM content_recovery_markers WHERE actorUserId=92101");
   }
+  /** Создаём свои и соседние журналы/квитанции, включая готовую привязку, чтобы отделить обезличивание от потери технического доказательства. */
   async function recoveryFixture() {
     await conn.query("INSERT INTO post_creation_requests(requestKey,actorUserId,payloadHash,postId) VALUES(REPEAT('a',64),92101,REPEAT('c',64),92150)");
     await conn.query("INSERT INTO article_creation_requests(requestKey,actorUserId,payloadHash,claimToken,articleId) VALUES(REPEAT('a',64),92101,REPEAT('c',64),'92100000-0000-4000-8000-000000000003',92150)");
     await conn.query("INSERT INTO content_recovery_markers(kind,requestKey,actorUserId,createdAt) VALUES('post',REPEAT('b',64),92101,NOW()),('article',REPEAT('b',64),92102,NOW())");
     await conn.query("INSERT INTO private_attachment_uploads(requestKey,actorUserId,assetId,payloadHash,namespaceHash,type,filename,mimeType,fileSize,state,etag,postId,mediaId) VALUES(REPEAT('a',64),92101,'92100000-0000-4000-8000-000000000001',REPEAT('c',64),REPEAT('d',64),'document','Personal name.pdf','application/pdf',10,'ready','fixture-etag',92150,92150),(REPEAT('b',64),92102,'92100000-0000-4000-8000-000000000002',REPEAT('c',64),REPEAT('d',64),'document','Neighbor.pdf','application/pdf',10,'pending',NULL,NULL,NULL)");
   }
+  /** После удаления аккаунта собственные журналы и исходный ключ исчезают, но связанный файл остаётся читаемым по технической квитанции, а сосед не меняется. */
   it("erases retired recovery ownership but preserves bound evidence and neighbor records", async () => {
     vi.stubEnv("CONTENT_RECOVERY_RETIREMENT_ENABLED", "true");
     try {
@@ -125,6 +134,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
       expect(await privateReceiptForMedia(drizzle(conn),{id:92150,postId:92150,type:'document'})).toMatchObject({key:'feed/documents/private-v1/92100000-0000-4000-8000-000000000001',etag:'fixture-etag'});
     } finally { vi.stubEnv("CONTENT_RECOVERY_RETIREMENT_ENABLED", "false"); }
   });
+  /** Выключенный отзыв сохраняет квитанции, а триггер/частичная схема/MyISAM/неуникальный ключ должны откатить весь отзыв и аккаунт. */
   it.each(["off", "rollback", "partial", "nontransactional", "nonunique"])("keeps recovery links intact on %s retirement", async scenario => {
     await recoveryFixture();
     vi.stubEnv("CONTENT_RECOVERY_RETIREMENT_ENABLED", scenario === "off" ? "false" : "true");
@@ -147,6 +157,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
       vi.stubEnv("CONTENT_RECOVERY_RETIREMENT_ENABLED","false");
     }
   });
+  /** Обезличивание 101 квитанции проходит границу пачки 100 без пропусков после изменения requestKey. */
   it('retires all private receipts across bounded batches without skipping moved keys',async()=>{
     for(let n=1000;n<1101;n++)await conn.query("INSERT INTO private_attachment_uploads(requestKey,actorUserId,assetId,payloadHash,namespaceHash,type,filename,mimeType,fileSize) VALUES(?,92101,?,REPEAT('c',64),REPEAT('d',64),'document','Personal.pdf','application/pdf',10)",[n.toString(16).padStart(64,'0'),`92100000-0000-4000-8000-${n.toString().padStart(12,'0')}`]);
     vi.stubEnv('CONTENT_RECOVERY_RETIREMENT_ENABLED','true');
@@ -156,6 +167,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
       expect(rows).toHaveLength(101);expect(rows.every(row=>row.actorUserId===null&&row.filename===''&&row.recoveryCompactedAt instanceof Date)).toBe(true);
     }finally{vi.stubEnv('CONTENT_RECOVERY_RETIREMENT_ENABLED','false');}
   });
+  /** Компактация уже обезличенной сироты сохраняет техническое доказательство и не создаёт новый персональный маркер. */
   it("keeps retired orphan evidence without recreating an owner marker during local compaction", async () => {
     await recoveryFixture();
     await conn.query("UPDATE private_attachment_uploads SET postId=NULL,mediaId=NULL,createdAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE actorUserId=92101");
@@ -175,6 +187,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
       for (const key of ['CONTENT_RECOVERY_RETIREMENT_ENABLED','CONTENT_RECOVERY_RETENTION_ENABLED','CONTENT_RECOVERY_MAINTENANCE_ENABLED']) vi.stubEnv(key,'false');
     }
   });
+  /** Снимаем содержимое материалов и журналов создания, чтобы доказать отсутствие эффектов устаревшего actor. */
   async function contentSnapshot() {
     const [posts] = await conn.query<RowDataPacket[]>("SELECT id,text,status FROM posts WHERE source='r6-content-fixture' OR source='article:92150' ORDER BY id");
     const [articles] = await conn.query<RowDataPacket[]>("SELECT id,title FROM articles WHERE id=92150 OR title='r6-content-fixture' ORDER BY id");
@@ -182,6 +195,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     const [articleIntents] = await conn.query<RowDataPacket[]>("SELECT requestKey FROM article_creation_requests WHERE actorUserId=92101");
     return {posts,articles,postIntents,articleIntents};
   }
+  /** После окончательного удаления старый RPC-контекст не может создавать, менять, публиковать или удалять посты/статьи ни по новому, ни по старому контракту. */
   it.each(["post-create-keyed","post-create-legacy","post-edit","post-delete","post-confirm","article-create-keyed","article-create-legacy","article-edit","article-delete"])("refuses stale pre-retirement RPC context for %s before any content effect", async operation => {
     await conn.query("UPDATE users SET role='admin' WHERE id=92101");
     await conn.query("INSERT INTO posts (id,text,photos,tags,source,status,published) VALUES (92150,'Keep original',JSON_ARRAY(),JSON_ARRAY(),'r6-content-fixture','draft',FALSE)");
@@ -192,6 +206,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     const before = await contentSnapshot();
     const post = {text:"r6-content-fixture",photos:[],tags:[],source:"r6-content-fixture",status:"draft" as const};
     const article = {title:"r6-content-fixture",published:false,sections:[]};
+    /** Выбираем конкретную реальную редакторскую операцию из таблицы сценариев, не подменяя доменный writer. */
     const invoke = () => {
       switch(operation) {
         case "post-create-keyed": return caller.admin.createPost({...post,idempotencyKey:"r6-content-key-00001"});
@@ -209,6 +224,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     await expect(invoke()).rejects.toMatchObject({code:"UNAUTHORIZED"});
     expect(await contentSnapshot()).toEqual(before);
   });
+  /** Создаём pending-привязку телефонного аккаунта через настоящий домен, затем переводим его запрос удаления за порог очистки. */
   async function queueBinding() {
     vi.stubEnv("AUTH_LINK_ENCRYPTION_KEY", Buffer.alloc(32, 33).toString("base64"));
     await conn.query("INSERT INTO users (id,openId,role,sessionVersion) VALUES (92103,'retention-binding-admin','admin',0)");
@@ -220,9 +236,11 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     await conn.query("UPDATE users SET accountDeletionRequestedAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE id=92101");
     return requestKey;
   }
+  /** Читаем заявку и секретные технические поля её outbox для проверки совместного отката или очистки. */
   async function bindingRows(requestKey: string) {
     return (await conn.query<RowDataPacket[]>("SELECT b.*,o.tokenCipher,o.leaseId,o.leaseUntil,o.discardedAt FROM member_email_bindings b JOIN member_email_binding_outbox o ON o.requestKey=b.requestKey WHERE b.requestKey=?", [requestKey]))[0];
   }
+  /** Удаление закрывает привязку, очищает email/proof/cipher/lease и создаёт аудит без персонального details. */
   it("cancels and scrubs pending email proofs in the account deletion transaction", async () => {
     const key = await queueBinding();
     expect(await processScheduledAccountDeletions()).toBe(1);
@@ -233,6 +251,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     const [audit] = await conn.query<RowDataPacket[]>("SELECT targetId,details FROM admin_audit_log WHERE actorUserId=92103 AND action='cancel_member_email_binding'");
     expect(audit).toEqual([{ targetId: 92101, details: null }]);
   });
+  /** Ошибка финального изменения аккаунта возвращает прежнюю заявку и её proof вместе с остальной транзакцией. */
   it("rolls back proof scrubbing together with a failed account deletion", async () => {
     const key = await queueBinding();
     const before = await bindingRows(key);
@@ -243,6 +262,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     finally { await conn.query("DROP TRIGGER backend_test_retention_failure"); }
     expect(await bindingRows(key)).toEqual(before);
   });
+  /** До установки обеих таблиц привязки старое удаление остаётся доступным; таблицы возвращаются в finally. */
   it("preserves legacy deletion before both binding tables are installed", async () => {
     await conn.query("RENAME TABLE member_email_bindings TO retention_fixture_bindings, member_email_binding_outbox TO retention_fixture_binding_outbox");
     try {
@@ -252,6 +272,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
       await conn.query("RENAME TABLE retention_fixture_bindings TO member_email_bindings, retention_fixture_binding_outbox TO member_email_binding_outbox");
     }
   });
+  /** Одна отсутствующая binding-таблица запрещает частичную очистку аккаунта. */
   it("refuses partial binding schemas without partially deleting an account", async () => {
     const before = await snapshot();
     await conn.query("RENAME TABLE member_email_binding_outbox TO retention_fixture_binding_outbox");
@@ -262,6 +283,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
       await conn.query("RENAME TABLE retention_fixture_binding_outbox TO member_email_binding_outbox");
     }
   });
+  /** Ошибка аудита отзыва proof откатывает и аккаунт, и заявку с её исходным секретом. */
   it("rolls back the account and proof when cancellation audit fails", async () => {
     const key = await queueBinding();
     const before = await snapshot();
@@ -275,6 +297,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
       expect(await snapshot()).toEqual(before);
     } finally { await conn.query("DROP TRIGGER backend_test_binding_retention_failure"); }
   });
+  /** Согласованно собираем проверяемые поля аккаунта, анкеты, обсуждений, пар и счётчики личных действий. */
   async function snapshot() {
     const [[user], [profile], [comments], [matches], [shown], [activity]] = await Promise.all([
       conn.query<RowDataPacket[]>("SELECT openId,name,email,passwordHash,accountDeletionRequestedAt FROM users WHERE id=92101"),
@@ -290,6 +313,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     ]);
     return { user, profile, comments, matches, shown, activity };
   }
+  /** SQL-триггер финального шага доказывает атомарность всех предшествующих очисток. */
   it("rolls back every scrub operation when the final account update fails", async () => {
     const before = await snapshot();
     await conn.query(`CREATE TRIGGER backend_test_retention_failure BEFORE UPDATE ON users FOR EACH ROW
@@ -300,6 +324,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
       expect(await snapshot()).toEqual(before);
     } finally { await conn.query("DROP TRIGGER backend_test_retention_failure"); }
   });
+  /** Обезличивание один раз повышает epoch, запрещая продолжение старой загрузки; повтор обслуживания не повышает его снова. */
   it("revokes the pre-deletion actor epoch so an already authenticated upload cannot resume", async () => {
     await conn.query("UPDATE users SET role='admin',sessionVersion=7 WHERE id=92101");
     expect(await processScheduledAccountDeletions()).toBe(1);
@@ -310,6 +335,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     const [again] = await conn.query<RowDataPacket[]>("SELECT sessionVersion FROM users WHERE id=92101");
     expect(again).toEqual([{sessionVersion:8}]);
   });
+  /** Удаляются только свои парольные proof, письма теряют адрес/cipher/lease, а orderId принятой оплаты и соседний outbox сохраняются. */
   it("scrubs password proofs and fences queued access mail without erasing billing evidence", async () => {
     await conn.query(`INSERT INTO password_tokens(userId,email,tokenHash,purpose,expiresAt)
       VALUES (92101,'retention@example.test',REPEAT('a',64),'reset',DATE_ADD(NOW(),INTERVAL 1 HOUR)),
@@ -330,6 +356,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
       { eventKey: "retention-reset", email: "", payload: {}, sent: 0, discarded: 1, leaseId: null, leaseUntil: null },
     ]);
   });
+  /** Даже пока удалять рано из-за оплаченного срока, действующий профиль получает запрос отмены без изменения остальных данных. */
   it("queues cancellation for an existing deletion request before the paid period ends", async () => {
     await conn.query(`INSERT INTO club_payments (userId,orderId,status,expiresAt)
       VALUES (92101,'retention-fixture-active','paid',DATE_ADD(NOW(),INTERVAL 1 DAY))`);
@@ -343,6 +370,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     expect(profile).toEqual({ cancelRequestedAt: expect.any(Date), cancelledAt: null });
     expect(await snapshot()).toEqual(before);
   });
+  /** Отказ одного аккаунта не мешает соседней корректной очистке и удалению просроченных пар; ошибка остаётся видимой вызывающему коду. */
   it("continues with a healthy deletion and expired Pen Pals after a separate account fails", async () => {
     await conn.query("UPDATE users SET accountDeletionRequestedAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE id=92102");
     await conn.query(`INSERT INTO pen_pal_matches(userLowId,userHighId,initiatedBy,confirmDeadline)
@@ -362,6 +390,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     }
     expect(await processScheduledAccountDeletions()).toBe(1);
   });
+  /** Обезличивание удаляет contactPhone и из карточки, и из истории заказов этого пользователя. */
   it("clears the unverified checkout contact when an eligible account is anonymized", async () => {
     await conn.query("UPDATE users SET contactPhone='+79991234567' WHERE id=92101");
     await conn.query("INSERT INTO club_payments(userId,orderId,status,contactPhone) VALUES(92101,'retention-fixture-contact','failed','+79991234567')");
@@ -371,6 +400,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     const [owner] = await conn.query<RowDataPacket[]>("SELECT email,contactPhone FROM users WHERE id=92101");
     expect(owner).toEqual([{ email: null, contactPhone: null }]);
   });
+  /** Полная очистка сохраняет строки обсуждения с нейтральным текстом и становится no-op при повторе. */
   it("completes eligible scrubbing once and retains the discussion structure", async () => {
     expect(await processScheduledAccountDeletions()).toBe(1);
     const state = await snapshot();
@@ -382,6 +412,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     expect(state.activity).toEqual([{ likes: 0, saves: 0, pushes: 0, reports: 0 }]);
     expect(await processScheduledAccountDeletions()).toBe(0);
   });
+  /** Активная подписка, ещё действующий grace, свежий запрос или отсутствие запроса исключают удаление. */
   it.each(["active", "expired-in-grace", "recent-request", "no-request"])("preserves %s accounts", async condition => {
     if (condition === "active" || condition === "expired-in-grace")
       await conn.query(`INSERT INTO club_payments (userId,orderId,status,expiresAt)
@@ -392,10 +423,12 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     expect(await processScheduledAccountDeletions()).toBe(0);
     expect(await snapshot()).toEqual(before);
   });
+  /** Два параллельных вызова под общей блокировкой считают удалённый аккаунт лишь один раз. */
   it("two workers count an eligible account only once", async () => {
     const result = await Promise.all([processScheduledAccountDeletions(), processScheduledAccountDeletions()]);
     expect(result.reduce((sum, count) => sum + count, 0)).toBe(1);
   });
+  /** Наблюдаем настоящий SQL lock wait, коммитим продление и проверяем, что ожидавшая очистка увидела новый срок. */
   it("rechecks a renewal committed while cleanup waits for the billing owner lock", async () => {
     const guard = await openContentTestDatabase();
     let running: Promise<number> | undefined;
@@ -424,9 +457,11 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
   });
 
   // Global maintenance is opt-in and must run alone on a fresh disposable DB.
+  /** Отдельная opt-in группа запускает настоящее обслуживание на свежей БД; посторонние платежные, почтовые и backup-эффекты подменены. */
   describe.skipIf(process.env.BACKEND_RETENTION_WORKER_ACCEPTANCE !== "1")(
     "native maintenance lifecycle and HTTP deletion requests",
     () => {
+      /** Через настоящий HTTP запрашиваем удаление, запускаем WorkerJobs и проверяем persisted данные для каждого оплаченного/просроченного условия, сохраняя соседа. */
       it.each(["recent-request", "eligible", "active-club", "club-grace"])(
         "preserves existing retention rules for %s",
         async condition => {
@@ -440,6 +475,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
             const port = (app.getHttpServer().address() as AddressInfo).port;
             const client = createTRPCProxyClient<AppRouter>({ links: [httpLink({
               url: `http://127.0.0.1:${port}/api/trpc`, transformer: superjson,
+              /** Создаём синтетический актуальный JWT для локального HTTP-клиента вместо передачи реального аккаунта. */
               headers: async () => ({ Authorization: `Bearer ${await sdk.createSessionToken("retention-fixture", { sessionVersion: 0 })}` }),
             })] });
             expect(await client.profileExtras.requestAccountDeletion.mutate()).toEqual({ ok: true });
@@ -483,6 +519,7 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
           }
         },
       );
+      /** Подменяем только интервалы: первый SQL-сбой откатывает данные, следующий тик очищает их, третий не повторяет результат и не раскрывает причину в логах. */
       it("recovers atomic account cleanup on the next maintenance tick after a SQL failure", async () => {
         const before = await snapshot();
         const [neighbors] = await conn.query<RowDataPacket[]>("SELECT * FROM users WHERE id=92102");

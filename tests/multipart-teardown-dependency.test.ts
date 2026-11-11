@@ -1,3 +1,4 @@
+/** Проверяем teardown установленного multer в отдельном процессе; multipart-обработчик приложения этим не включается. */
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import path from "node:path";
@@ -5,6 +6,7 @@ import { expect, it } from "vitest";
 
 // Multipart is not enabled by the app. Characterize Nest's installed dependency
 // without adding a production handler or allowing a late stream error to kill Vitest.
+/** Поздний callback после отказа должен закрыть parser и вызвать завершение один раз без падения процесса. */
 it("keeps a late multipart filter callback from crashing after teardown", () => {
   const backend = createRequire(path.resolve("apps/backend/package.json"));
   const entry = createRequire(

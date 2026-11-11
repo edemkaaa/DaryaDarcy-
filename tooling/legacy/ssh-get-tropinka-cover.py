@@ -1,3 +1,4 @@
+# Получает обложку через VPS, обрезает прозрачные поля локальной копии и сохраняет небольшой padding.
 import pathlib
 import socket
 import paramiko
@@ -15,6 +16,7 @@ out_dir.mkdir(exist_ok=True)
 raw = out_dir / "tropinka-cover-raw.png"
 trimmed = out_dir / "cover.png"
 
+# Подключение использует историческое автоматическое доверие неизвестному SSH host key; перед новым запуском требуется отдельная сверка хоста.
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 sock = socket.create_connection((env["DEPLOY_HOST"], 22), 20)

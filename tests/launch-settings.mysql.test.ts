@@ -23,6 +23,7 @@ import { createBackendApplication } from "../apps/backend/src/_core/application"
 import { sdk } from "../apps/backend/src/_core/sdk";
 import { SessionService } from "../apps/backend/src/identity/session.service";
 
+/** Проверяет атомарные настройки запуска, сезоны, managerEmail, ревизии и текущие admin-права. */
 describe.skipIf(!testDatabaseUrl)(
   "administrator launch settings on disposable MySQL",
   () => {
@@ -32,6 +33,7 @@ describe.skipIf(!testDatabaseUrl)(
     let token: string;
     const admin = { id: 783, openId: "settings-admin", sessionVersion: 0 };
     const member = { id: 784, openId: "settings-member", sessionVersion: 0 };
+    /** Создаёт одноразовую схему, администратора и участника и локальный API с настоящим JWT. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -47,6 +49,7 @@ describe.skipIf(!testDatabaseUrl)(
       await application.listen(0, "127.0.0.1");
       base = `http://127.0.0.1:${(application.getHttpServer().address() as AddressInfo).port}`;
     });
+    /** Очищает единственную settings-строку и свой audit и восстанавливает identity администратора. */
     beforeEach(async () => {
       await conn.query("DELETE FROM launch_settings WHERE id=1");
       await conn.query(
@@ -56,7 +59,9 @@ describe.skipIf(!testDatabaseUrl)(
         "UPDATE users SET openId='settings-admin', sessionVersion=0, blockedAt=NULL, role='admin' WHERE id=783",
       );
     });
+    /** Возвращает перехваченные SessionService методы. */
     afterEach(() => vi.restoreAllMocks());
+    /** Закрывает API и соединения и восстанавливает окружение. */
     afterAll(async () => {
       await application?.close();
       await conn?.end();
@@ -65,6 +70,7 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** Сохранение четырёх сезонов и managerEmail увеличивает revision и записывает автора в audit. */
     it("persists all four seasonal sets and manager email and audits the author", async () => {
       const config = structuredClone(defaultLaunchConfiguration);
       config.seasonMode = "calendar";
@@ -84,6 +90,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(audit).toEqual([{ action: "update_launch_settings" }]);
     });
+    /** Две конкурирующие правки revision=0 дают только один коммит. */
     it("allows one concurrent edit and rejects the stale edit instead of overwriting it", async () => {
       const results = await Promise.allSettled([
         saveLaunchConfiguration(
@@ -101,6 +108,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(results.filter((r) => r.status === "rejected")).toHaveLength(1);
       expect((await getLaunchConfiguration((await getDb())!)).revision).toBe(1);
     });
+    /** HTML sharing-page Яндекс Диска отклоняется понятной ошибкой прямого URL без settings/audit записи. */
     it("returns an actionable HTTP error for a Yandex sharing page without saving or auditing", async () => {
       const config = structuredClone(defaultLaunchConfiguration);
       config.seasons.winter.bannerUrl =
@@ -121,6 +129,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(audit).toHaveLength(0);
     });
+    /** User и недавно заблокированный admin не сохраняют настройки. */
     it("rejects ordinary users and freshly blocked administrators", async () => {
       await expect(
         saveLaunchConfiguration(
@@ -141,6 +150,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
       expect((await getLaunchConfiguration((await getDb())!)).revision).toBe(0);
     });
+    /** Email injection, неверные сезонные даты и активные URL отклоняются до записи. */
     it.each([
       { managerEmail: "bad\r\nBcc:someone@example.test" },
       {
@@ -198,6 +208,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(audit).toEqual([]);
       },
     );
+    /** Admin REST roundtrip сохраняет конфигурацию, публичный endpoint выдаёт текущий сезон с no-store, приватный требует сессию. */
     it("supports real authenticated HTTP admin roundtrip and public current-season settings", async () => {
       const config = {
         ...defaultLaunchConfiguration,
@@ -229,6 +240,7 @@ describe.skipIf(!testDatabaseUrl)(
         401,
       );
     });
+    /** Отправляет REST PUT настроек с выбранным Bearer и JSON-телом. */
     const update = (body: unknown, bearer = token) =>
       fetch(`${base}/api/admin/launch-settings`, {
         method: "PUT",
@@ -238,6 +250,7 @@ describe.skipIf(!testDatabaseUrl)(
         },
         body: JSON.stringify(body),
       });
+    /** Logout либо замена identity после session-read запрещают поздний save и сохраняют прежний settings/audit. */
     it.each(["logout", "account replacement"])(
       "preserves settings and audit history after %s during a save",
       async (change) => {
@@ -247,6 +260,7 @@ describe.skipIf(!testDatabaseUrl)(
         });
         expect(initial.status).toBe(200);
         const before = await initial.json();
+        /** Читает собственный audit настроек для сравнения до и после отозванного save. */
         const readAudit = async () => {
           const [audit] = await conn.query<RowDataPacket[]>(
             "SELECT id,action,details FROM admin_audit_log WHERE actorUserId=783 ORDER BY id",
@@ -311,6 +325,7 @@ describe.skipIf(!testDatabaseUrl)(
         }
       },
     );
+    /** REST 409 сохраняет принятую конфигурацию и не добавляет audit для stale revision. */
     it("preserves HTTP revision conflict and does not overwrite or audit a stale edit", async () => {
       const first = await update({
         expectedRevision: 0,
@@ -337,6 +352,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(audit).toHaveLength(1);
     });
+    /** Невалидный JSON не отражает injection в ответе и не создаёт settings/audit. */
     it("preserves safe validation errors without storing attacker JSON", async () => {
       const response = await update({
         expectedRevision: 0,
@@ -353,6 +369,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(audit).toEqual([]);
     });
+    /** Действующая JWT не сохраняет admin-доступ после снятия роли ни для GET, ни для PUT. */
     it.each(["GET", "PUT"])(
       "rechecks the current database role for a valid JWT on %s",
       async (method) => {
@@ -379,6 +396,7 @@ describe.skipIf(!testDatabaseUrl)(
         );
       },
     );
+    /** Новая блокировка запрещает чтение и запись по прежней JWT. */
     it.each(["GET", "PUT"])(
       "rejects a newly blocked administrator with an existing JWT on %s",
       async (method) => {
@@ -404,6 +422,7 @@ describe.skipIf(!testDatabaseUrl)(
         );
       },
     );
+    /** Неверный Content-Type отклоняется с 415 до аутентификации. */
     it("rejects non-JSON settings before attempting admin authentication", async () => {
       const response = await fetch(`${base}/api/admin/launch-settings`, {
         method: "PUT",
@@ -414,11 +433,13 @@ describe.skipIf(!testDatabaseUrl)(
     });
   },
 );
+/** Проверяет годовую границу сезонов по московскому времени независимо от timezone сервера. */
 describe("annual season selection uses Moscow time, not server locale", () => {
   const config = {
     ...defaultLaunchConfiguration,
     seasonMode: "calendar" as const,
   };
+  /** Граничные UTC-моменты выбирают согласованный сезон московского календаря. */
   it.each([
     ["2026-03-19T20:59:59Z", "winter"],
     ["2026-03-19T21:00:00Z", "spring"],

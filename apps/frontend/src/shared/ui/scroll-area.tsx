@@ -27,6 +27,7 @@ export type ScrollAreaProps = BoxProps & {
   children?: ReactNode;
 };
 export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(
+  /** Адаптируем DOM-прокрутку, горизонтальное перетаскивание мышью и pull-to-refresh; внешний обработчик может отменить начало жеста. */
   function ScrollArea(
     {
       contentStyle,
@@ -112,6 +113,7 @@ export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(
             : {}),
         }}
         onScroll={(e) => {
+          // Событие settled откладываем до паузы 100 мс; DOM-узел захватываем до выхода из обработчика.
           onScroll?.(e);
           if (onScrollSettled) {
             if (settle.current) clearTimeout(settle.current);
@@ -123,6 +125,7 @@ export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(
           }
         }}
         onTouchStart={(e) => {
+          // Pull-to-refresh начинается только сверху вертикальной области; горизонтальные карусели в нём не участвуют.
           pullStart.current =
             !horizontal && e.currentTarget.scrollTop === 0
               ? e.touches[0]?.clientY
@@ -130,6 +133,7 @@ export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(
           props.onTouchStart?.(e);
         }}
         onTouchEnd={(e) => {
+          // Обновление вызываем при достаточном движении вниз и отсутствии уже выполняющегося refresh.
           if (
             pullStart.current !== null &&
             e.changedTouches[0]?.clientY - pullStart.current > 80 &&

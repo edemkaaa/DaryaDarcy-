@@ -1,3 +1,4 @@
+/** Серверно подготовленные metadata проходят настоящий клиентский parser без БД, S3 и сети. */
 import { expect, it, vi } from "vitest";
 import { createHash } from "node:crypto";
 import sharp from "sharp";
@@ -9,6 +10,7 @@ import {
 
 // Exercise server-prepared metadata through the real frontend parser.
 // No database, network, storage credentials or production objects.
+/** Готовим migration bytes/hash, затем строим ровно ту metadata-форму, которую serializer выдаёт из сохранённых полей. */
 async function prepare(bytes: Buffer, mimeType: string, filename: string) {
   const result = await prepareLibraryMigration({
     materialKey: "recipes",
@@ -42,6 +44,7 @@ async function prepare(bytes: Buffer, mimeType: string, filename: string) {
     nextCursor: null,
   };
 }
+/** UTF-8/16 и Windows-1251 варианты MIME должны сохраняться совместимыми после серверной подготовки. */
 it.each([
   ["text/plain", "text/plain; charset=utf-8", Buffer.from("Synthetic text")],
   [
@@ -72,6 +75,7 @@ it.each([
     expect(parseLibraryFiles(response, "recipes")).toEqual(response);
   },
 );
+/** Клиент объединяет разные допустимые форматы двух страниц, сохраняя signal и encoded cursor. */
 it("reads a mixed TXT/PDF list through a subsequent page without losing metadata", async () => {
   const txt = await prepare(Buffer.from("Readme"), "text/plain", "readme.txt");
   const pdf = await prepare(
@@ -98,6 +102,7 @@ it("reads a mixed TXT/PDF list through a subsequent page without losing metadata
     ["/api/library/materials/recipes/files?cursor=0%3A1", signal],
   ]);
 });
+/** Имена до серверного предела 512 символов не делают весь список несовместимым. */
 it.each([255, 256, 512])(
   "preserves valid filename length %s alongside other files",
   async (length) => {

@@ -4,6 +4,7 @@ import { gotoWithSession } from "./layout-fixtures";
 import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
+/** Этот suite требует отдельного catalog build; API и внешние плееры подменены, поэтому проверки не подтверждают доступность или воспроизведение настоящего VK. */
 test.skip(
   process.env.VK_CATALOG_UI_ENABLED !== "true",
   "Requires the catalog build; all API/provider replies are synthetic.",
@@ -33,6 +34,7 @@ const user = {
   role: "user",
   lastSignedIn: "2026-10-01T12:00:00Z",
 };
+/** Удерживаем конкретный ответ до контролируемой стадии сценария; resolve также вызывается в cleanup, чтобы не оставлять незавершённые route-обработчики. */
 const deferred = () => {
   let resolve!: () => void;
   const promise = new Promise<void>((done) => {
@@ -40,6 +42,7 @@ const deferred = () => {
   });
   return { promise, resolve };
 };
+/** Общая фикстура раздельно учитывает каталог, разрешение playback, legacy API и загрузки провайдера; состояние позволяет воспроизводить задержки, отказ доступа и потерю ответа записи. */
 async function fixture(page: Page) {
   const state = {
     user: { ...user } as typeof user | null,
@@ -68,6 +71,7 @@ async function fixture(page: Page) {
   };
   page.on("pageerror", (error) => state.pageErrors.push(error.message));
   await editorApi(page, async (name, input, route) => {
+    /** Снимок ответа снимается до ожидания: поздняя страница действительно содержит старые данные, а не новое состояние после смены аккаунта. */
     if (name === "videos.catalog") {
       state.reads.push({ name, input });
       const catalogSnapshot = structuredClone(
@@ -99,6 +103,7 @@ async function fixture(page: Page) {
         return failure(400);
       return ok(catalogSnapshot);
     }
+    /** Авторитетный ответ также фиксируется до задержки, позволяя проверить, что устаревшее разрешение не отменяет более свежий отказ. */
     if (name === "videos.playback") {
       state.reads.push({ name, input });
       const response = state.status
@@ -125,6 +130,7 @@ async function fixture(page: Page) {
             editRevision: 0,
           });
     }
+    /** При dropSaveResponse фиксируем отправленный запрос, но рвём транспорт; успешный локальный результат не доходит до клиента. */
     if (name === "admin.upsertVkVideo") {
       state.writes.push(input);
       if (state.dropSaveResponse) {
@@ -152,12 +158,14 @@ async function fixture(page: Page) {
   return state;
 }
 
+/** Считаем авторизацию источника и одиночное чтение метаданных отдельно: каталог сам не даёт права подставить URL в плеер. */
 const authorityReads = (state: Awaited<ReturnType<typeof fixture>>) => ({
   playback: state.reads.filter((row) => row.name === "videos.playback").length,
   metadata: state.reads.filter(
     (row) => row.name === "videos.catalog" && row.input.limit === 1,
   ).length,
 });
+/** Синтетическое событие запускает обработчик возврата; короткое продвижение часов даёт завершиться его debounce, не моделируя реальный lifecycle Telegram. */
 async function dispatchResume(page: Page, event: string) {
   await page.evaluate((event) => {
     (event === "visibilitychange" ? document : window).dispatchEvent(
@@ -166,11 +174,13 @@ async function dispatchResume(page: Page, event: string) {
   }, event);
   await page.clock.runFor(100);
 }
+/** Фиксируем время и выходим за окно первоначального объединения событий, чтобы следующий возврат был самостоятельной проверкой. */
 async function prepareReturnClock(page: Page) {
   await page.clock.install({ time: new Date("2026-10-26T12:00:00Z") });
   await page.clock.fastForward(1100);
 }
 
+/** Модель iframe проверяет настоящий переход фокуса между frame и страницей: он не должен перезапускать воспроизведение; pagehide/pageshow всё ещё перепроверяет права. */
 for (const provider of ["vk", "youtube"] as const) {
   test(`player focus: ${provider} keeps playback when clicking the page outside the iframe`, async ({
     page,
@@ -237,6 +247,7 @@ for (const provider of ["vk", "youtube"] as const) {
   });
 }
 
+/** Оба порядка парных событий дают по одной проверке прав и метаданных; более поздний самостоятельный возврат не подавляется. */
 for (const first of ["focus", "visibilitychange"]) {
   test(`playback return: ${first} and its paired event share one successful authority and metadata read`, async ({
     page,
@@ -277,6 +288,7 @@ for (const first of ["focus", "visibilitychange"]) {
   });
 }
 
+/** Восстановление сети и страницы обходят обычное объединение событий, чтобы немедленно применить свежий отказ доступа. */
 for (const event of ["online", "pageshow"]) {
   test(`playback return: ${event} bypasses coalescing and a fresh denial removes the source`, async ({
     page,
@@ -302,6 +314,7 @@ for (const event of ["online", "pageshow"]) {
   });
 }
 
+/** Скрытие документа сразу убирает источник; новый видимый возврат и реальная потеря фокуса требуют свежей проверки даже внутри обычного окна debounce. */
 test("playback return: quick hide and window blur require fresh authority within the same second", async ({
   page,
 }) => {
@@ -360,6 +373,7 @@ test("playback return: quick hide and window blur require fresh authority within
   });
 });
 
+/** Старое разрешение удержано до нового 403; его позднее завершение не возвращает iframe и не отменяет отказ. */
 test("playback return: a late previous check cannot restore a source after a newer denial", async ({
   page,
 }) => {
@@ -393,6 +407,7 @@ test("playback return: a late previous check cannot restore a source after a new
   }
 });
 
+/** Открытый ролик разрешён любой из этих identities при успешном playback; старые list/getById API не используются. */
 for (const actor of ["guest", "member", "moderator"] as const) {
   test(`authorized public VK is available for ${actor}`, async ({ page }) => {
     const state = await fixture(page);
@@ -411,6 +426,7 @@ for (const actor of ["guest", "member", "moderator"] as const) {
     expect(state.legacy).toEqual([]);
   });
 }
+/** На мобильной и широкой раскладке фоновая проверка не сдвигает карточки и не включает пользовательский индикатор pull-to-refresh. */
 for (const width of [390, 1440]) {
   test(`catalog background refresh leaves cards still while pending (${width}px)`, async ({
     page,
@@ -454,6 +470,7 @@ for (const width of [390, 1440]) {
   });
 }
 
+/** Список читает только карточки, не разрешения playback и не внешние источники; пересекающиеся страницы объединяются без повторных карточек. */
 test("catalog does not prefetch any source and paginates without duplicate cards", async ({
   page,
 }) => {
@@ -503,6 +520,7 @@ test("catalog does not prefetch any source and paginates without duplicate cards
   expect(state.legacy).toEqual([]);
   await page.screenshot({ path: test.info().outputPath("catalog-mobile.png") });
 });
+/** Повторившаяся граница страницы останавливает догрузку вместо бесконечного цикла запросов. */
 test("repeated cursor stops pagination and offers a fresh read", async ({
   page,
 }) => {
@@ -521,15 +539,19 @@ test("repeated cursor stops pagination and offers a fresh read", async ({
     state.reads.filter((row) => row.name === "videos.catalog"),
   ).toHaveLength(2);
 });
+/** Выбираем пользовательские карточки без технических placeholders: их количество отражает удерживаемое окно списка. */
 const catalogCards = (page: Page) =>
   page.getByRole("button", { name: /^Открыть видео:/ });
+/** Отделяем постраничные чтения limit=20 от одиночных метаданных экрана воспроизведения. */
 const catalogReads = (state: Awaited<ReturnType<typeof fixture>>) =>
   state.reads.filter(
     (row) => row.name === "videos.catalog" && row.input.limit === 20,
   );
+/** Находим retained-контейнер вкладки Видео: скрытый экран остаётся в DOM и должен самостоятельно приостанавливать обновления. */
 const catalogScroll = (page: Page) =>
   page.locator('[data-tab-screen="/videos"] .ui-scroll').first();
 
+/** Создаём стабильную цепочку страниц по 20 карточек; сценарии затем меняют ответы и границы без настоящих записей в БД. */
 function catalogPages(state: Awaited<ReturnType<typeof fixture>>, count = 5) {
   for (let index = 0; index < count; index++)
     state.pages.set(index * 20, {
@@ -541,6 +563,7 @@ function catalogPages(state: Awaited<ReturnType<typeof fixture>>, count = 5) {
       nextCursor: index === count - 1 ? null : (index + 1) * 20,
     });
 }
+/** Догружаем страницы только штатной кнопкой и ждём подтверждённого количества карточек после каждой ступени. */
 async function loadCatalog(page: Page, count = 5) {
   await gotoWithSession(page, "/videos");
   await expect(catalogCards(page)).toHaveCount(20);
@@ -551,6 +574,7 @@ async function loadCatalog(page: Page, count = 5) {
     await expect(catalogCards(page)).toHaveCount((index + 1) * 20);
   }
 }
+/** Ждём настоящий callback IntersectionObserver: виртуальные часы сами не обновляют наблюдаемую видимость и могут исказить бюджет polling. */
 async function settleCatalogVisibility(page: Page) {
   // Clock advancement does not deliver native IntersectionObserver callbacks.
   // Wait for a browser observation before measuring the next polling cycle.
@@ -569,6 +593,7 @@ async function settleCatalogVisibility(page: Page) {
   );
   await page.clock.runFor(200);
 }
+/** Синтетически инициируем ручное обновление списка; это проверяет обработчик touch, а не физический pull-жест устройства. */
 async function pullCatalog(page: Page) {
   await catalogScroll(page).evaluate((node) => {
     node.scrollTop = 0;
@@ -587,6 +612,7 @@ async function pullCatalog(page: Page) {
   });
 }
 
+/** Минутный polling ограничен первой и видимыми страницами; возвращение к устаревшей странице перечитывает её изменения и удаления. */
 test("bounded catalog: polling reads only the head and visible page; revisiting refreshes stale edits and deletions", async ({
   page,
 }) => {
@@ -650,6 +676,7 @@ test("bounded catalog: polling reads only the head and visible page; revisiting 
   expect(state.pageErrors).toEqual([]);
 });
 
+/** И скрытая retained-вкладка, и скрытый документ прекращают polling; при возврате обновляются голова и текущая видимая страница. */
 test("bounded catalog: a hidden screen and a hidden document do not poll; return refreshes the visible page", async ({
   page,
 }) => {
@@ -702,6 +729,7 @@ test("bounded catalog: a hidden screen and a hidden document do not poll; return
   await expect.poll(() => catalogReads(state).length).toBe(background + 2);
 });
 
+/** Неудачный pull сохраняет подтверждённый список; успешное ручное обновление начинает новую цепочку, не подмешивая старый хвост. */
 test("bounded catalog: failed manual refresh retains all cards; success restarts and refetches the tail", async ({
   page,
 }) => {
@@ -731,6 +759,7 @@ test("bounded catalog: failed manual refresh retains all cards; success restarts
   ).toEqual([20]);
 });
 
+/** Ошибка ранее закешированной следующей страницы остаётся ошибкой догрузки; повтор читает её заново без восстановления старого хвоста. */
 test("bounded catalog: a cached next-page error stays a pagination error and never restores stale cards", async ({
   page,
 }) => {
@@ -763,6 +792,7 @@ test("bounded catalog: a cached next-page error stays a pagination error and nev
   ).toEqual([20]);
 });
 
+/** После превышения окна старые карточки освобождаются; предыдущая страница восстанавливается с компенсацией scroll, а поздний ответ от старого аккаунта отбрасывается. */
 test("bounded catalog: more than eight pages release old cards and return to an evicted page", async ({
   page,
 }) => {
@@ -848,6 +878,7 @@ test("bounded catalog: more than eight pages release old cards and return to an 
   expect(state.pageErrors).toEqual([]);
 });
 
+/** Если обновлённая голова возвращает иной cursor, прежние продолжения отсоединяются; следующая кнопка использует новую границу. */
 test("bounded catalog: a changed boundary discards disconnected pages and loads the new cursor", async ({
   page,
 }) => {
@@ -886,6 +917,7 @@ test("bounded catalog: a changed boundary discards disconnected pages and loads 
   expect(catalogReads(state).at(-1)!.input.cursor).toBe(21);
 });
 
+/** Фоновая ошибка видимой страницы не стирает подтверждённые карточки; явный повтор перезапускает согласованную цепочку с головы. */
 test("bounded catalog: a visible-page refresh error preserves confirmed cards and can be recovered", async ({
   page,
 }) => {
@@ -913,6 +945,7 @@ test("bounded catalog: a visible-page refresh error preserves confirmed cards an
   expect(state.pageErrors).toEqual([]);
 });
 
+/** Догрузка старого пользователя завершается после перехода к гостю; identity-граница не позволяет ей попасть в новый каталог. */
 test("bounded catalog: an old account's late page cannot enter the guest catalog", async ({
   page,
 }) => {
@@ -952,6 +985,7 @@ test("bounded catalog: an old account's late page cannot enter the guest catalog
   }
 });
 
+/** Гость и пользователь повторяют только неудавшийся cursor следующей страницы, не перечитывая весь накопленный каталог. */
 for (const guest of [false, true]) {
   test(`bounded catalog: next-page error retries only that cursor (${guest ? "guest" : "member"})`, async ({
     page,
@@ -980,6 +1014,7 @@ for (const guest of [false, true]) {
   });
 }
 
+/** Подсказка canWatch из каталога не заменяет актуальную авторизацию: разрешённый playback открывается даже при устаревшем false. */
 test("canWatch false still asks playback and accepts current authorization", async ({
   page,
 }) => {
@@ -990,6 +1025,7 @@ test("canWatch false still asks playback and accepts current authorization", asy
     .click();
   await expect(page.getByTitle("VK Видео", { exact: true })).toBeVisible();
 });
+/** Статус авторитетного playback важнее canWatch=true: отказ или ошибка никогда не оставляют источник в плеере. */
 for (const [status, message] of [
   [401, "Войдите, чтобы смотреть это видео"],
   [403, "Для просмотра нужен доступ к клубу"],
@@ -1015,6 +1051,7 @@ for (const [status, message] of [
     expect(state.legacy).toEqual([]);
   });
 }
+/** Пока разрешение воспроизведения не подтверждено, браузер не создаёт iframe/video и не запрашивает провайдера. */
 test("a source waits for a successful playback response", async ({ page }) => {
   const state = await fixture(page);
   const gate = deferred();
@@ -1031,6 +1068,7 @@ test("a source waits for a successful playback response", async ({ page }) => {
   gate.resolve();
   await expect(page.getByTitle("VK Видео", { exact: true })).toBeVisible();
 });
+/** Успешный ответ с чужим id считается некорректным контрактом; источник не попадает в DOM. */
 test("wrong playback identity never loads a provider", async ({ page }) => {
   const state = await fixture(page);
   state.playback.id = 99;
@@ -1040,6 +1078,7 @@ test("wrong playback identity never loads a provider", async ({ page }) => {
   ).toBeVisible();
   expect(state.providers).toEqual([]);
 });
+/** Legacy-клубный YouTube использует только разрешённый iframe; анонимные публичные worker/thumbnail маршруты не запрашиваются. */
 test("club YouTube does not use the anonymous public worker", async ({
   page,
 }) => {
@@ -1061,6 +1100,7 @@ test("club YouTube does not use the anonymous public worker", async ({
   ).toHaveAttribute("src", "https://www.youtube.com/embed/abc_DEF-123");
   expect(worker).toEqual([]);
 });
+/** Для открытого legacy-ролика сохраняется native video через публичный worker, без лишнего YouTube iframe. */
 test("public YouTube retains its public video worker", async ({ page }) => {
   const state = await fixture(page);
   state.card.access = "public";
@@ -1079,6 +1119,7 @@ test("public YouTube retains its public video worker", async ({ page }) => {
     0,
   );
 });
+/** Разрешённый файловый URL используется нативным плеером и снимается на pagehide до дальнейшего восстановления. */
 test("authorized file uses a native player and releases its source on pagehide", async ({
   page,
 }) => {
@@ -1098,6 +1139,7 @@ test("authorized file uses a native player and releases its source on pagehide",
   await expect(page.locator("video[src]")).toHaveCount(0);
 });
 
+/** Повтор после ошибки файла сначала проверяет права; новый 403 удаляет плеер без повторного запроса закрытого media URL. */
 test("retrying a failed club file requires fresh playback authority before another media request", async ({
   page,
 }) => {
@@ -1131,6 +1173,7 @@ test("retrying a failed club file requires fresh playback authority before anoth
   await expect(page.locator("video, iframe")).toHaveCount(0);
   expect(state.legacy).toEqual([]);
 });
+/** Кнопка перезагрузки появляется после таймаута незавершённого iframe; перед новым обращением VK требуется свежее разрешение playback. */
 test("reloading a VK player requires fresh authority before restoring its iframe", async ({
   page,
 }) => {
@@ -1175,6 +1218,7 @@ test("reloading a VK player requires fresh authority before restoring its iframe
   }
 });
 
+/** Возврат из pagehide не восстанавливает прежний iframe по памяти: свежий отказ оставляет источник снятым. */
 test("pageshow requires new authority and keeps an old iframe removed", async ({
   page,
 }) => {
@@ -1194,6 +1238,7 @@ test("pageshow requires new authority and keeps an old iframe removed", async ({
   await expect(page.getByTitle("VK Видео", { exact: true })).toHaveCount(0);
   expect(state.providers).toHaveLength(requests);
 });
+/** Разрешение старого аккаунта, пришедшее после смены identity и нового отказа, не создаёт запрос к провайдеру. */
 test("a late source cannot cross an account change", async ({ page }) => {
   const state = await fixture(page);
   const gate = deferred();
@@ -1223,6 +1268,7 @@ test("a late source cannot cross an account change", async ({ page }) => {
   await expect(page.locator("iframe, video")).toHaveCount(0);
   expect(state.providers).toEqual([]);
 });
+/** Открываем вкладку Видео с тестовой ролью admin; настоящие серверные права этой подменой не проверяются. */
 async function openAdmin(page: Page) {
   const state = await fixture(page);
   state.user!.role = "admin";
@@ -1230,6 +1276,7 @@ async function openAdmin(page: Page) {
   await page.getByRole("button", { name: "Видео", exact: true }).click();
   return state;
 }
+/** Заполняем форму через штатный диалог экспорта; один helper обслуживает новый объект и предварительно выбранную запись. */
 async function fillAdmin(page: Page, url = embed) {
   const load = page.getByRole("button", {
     name: "Загрузить видео",
@@ -1247,6 +1294,7 @@ async function fillAdmin(page: Page, url = embed) {
     .getByRole("button", { name: "Добавить видео", exact: true })
     .click();
 }
+/** Создание отправляет только новые поля и нормализованный export URL, без чужого id и без загрузки плеера для предпросмотра. */
 test("admin creates an exact VK payload without an ID or provider preview", async ({
   page,
 }) => {
@@ -1273,6 +1321,7 @@ test("admin creates an exact VK payload without an ID or provider preview", asyn
     path: test.info().outputPath("vk-admin-mobile.png"),
   });
 });
+/** 404 VK-detail для выбранного id блокирует сохранение; форма не превращает legacy YouTube в VK случайным update. */
 test("admin never converts a rejected YouTube detail into a VK update", async ({
   page,
 }) => {
@@ -1293,6 +1342,7 @@ test("admin never converts a rejected YouTube detail into a VK update", async ({
   ).toBeDisabled();
   expect(state.writes).toEqual([]);
 });
+/** После неоднозначного результата поля фиксируются; только явный повтор отправляет в точности тот же payload. */
 test("unknown admin result keeps original fields and retries the same payload", async ({
   page,
 }) => {
@@ -1320,6 +1370,7 @@ test("unknown admin result keeps original fields and retries the same payload", 
   expect(state.writes).toHaveLength(2);
   expect(state.writes[1]).toEqual(state.writes[0]);
 });
+/** Неизвестные параметры export URL отклоняются в диалоге до записи и до обращения к провайдеру. */
 test("admin rejects unknown export parameters before POST", async ({
   page,
 }) => {
@@ -1330,6 +1381,7 @@ test("admin rejects unknown export parameters before POST", async ({
   expect(state.providers).toEqual([]);
 });
 
+/** При выключенном thumbnail build флаге форма не предлагает поля, отсутствующие в прежнем контракте записи. */
 test("old API mode does not expose cover writes", async ({ page }) => {
   test.skip(thumbnailsEnabled, "Checks the current deployed API mode.");
   await openAdmin(page);
@@ -1338,12 +1390,14 @@ test("old API mode does not expose cover writes", async ({ page }) => {
   ).toHaveCount(0);
 });
 
+/** Отдельный opt-in проверяет синтетический контракт обложки: отсутствующее поле сохраняет значение, null удаляет, URL заменяет; это не доказательство включённой функции сервера. */
 test.describe("documented thumbnail save contract", () => {
   test.skip(
     !thumbnailsEnabled,
     "Requires the separately enabled, synthetic thumbnail contract.",
   );
   const cover = "/assets/responsive/public-test-cover.webp";
+  /** Проверяем create/keep/replace/remove/clear раздельно: пустое поле после изменения отличается от untouched, а update передаёт ожидаемую ревизию. */
   for (const intent of [
     "create",
     "keep",
@@ -1412,6 +1466,7 @@ test.describe("documented thumbnail save contract", () => {
       expect(state.providers).toEqual([]);
     });
   }
+  /** Адрес iframe и строка пробелов не считаются картинкой; валидация сохраняет редактируемую форму и не пишет данные. */
   test("an invalid or whitespace cover remains editable without sending a write", async ({
     page,
   }) => {
@@ -1435,6 +1490,7 @@ test.describe("documented thumbnail save contract", () => {
       expect(state.writes).toEqual([]);
     }
   });
+  /** Однозначный отказ валидации или конфликт оставляет возможность исправить поля; автоматического replay старого запроса нет. */
   for (const status of [400, 409]) {
     test(`a definite ${status} allows correction without an automatic replay`, async ({
       page,
@@ -1457,6 +1513,7 @@ test.describe("documented thumbnail save contract", () => {
       expect(state.writes).toHaveLength(1);
     });
   }
+  /** После обрыва ответа создания повтор сохраняет исходную обложку и отсутствие id; suite проверяет payload клиента, а не серверную идемпотентность. */
   test("loss of a create response preserves the exact cover payload for explicit replay", async ({
     page,
   }) => {
@@ -1489,6 +1546,7 @@ test.describe("documented thumbnail save contract", () => {
   });
 });
 
+/** Клиент не выводит подписку из названия роли: обычный пользователь и модератор принимаются по успешному серверному playback. */
 for (const role of ["user", "moderator"]) {
   test(`authorized club playback accepts ${role} without inferring access from role`, async ({
     page,
@@ -1503,6 +1561,7 @@ for (const role of ["user", "moderator"]) {
   });
 }
 
+/** Обложка, null, старый ответ без поля и 404 изображения сохраняют размеры карточки; догрузка не дублирует запись и не вызывает playback. */
 test("catalog covers support old and new pages without changing card geometry or fetching playback", async ({
   page,
 }) => {
@@ -1552,6 +1611,7 @@ test("catalog covers support old and new pages without changing card geometry or
     nextCursor: null,
   });
   await gotoWithSession(page, "/videos");
+  /** Адресуем карточку по названию, чтобы проверить одинаковую геометрию картинки и fallback без привязки к порядку соседей. */
   const tile = (title: string) =>
     page.getByRole("button", { name: `Открыть видео: ${title}`, exact: true });
   const first = tile("COVER_PRESENT");
@@ -1610,6 +1670,7 @@ test("catalog covers support old and new pages without changing card geometry or
   });
 });
 
+/** Восстановление native media проверяем на локальных WebM-байтах: один явный retry обновляет разрешение, применяет новый URL и снимает сообщение ошибки без цикла запросов. */
 for (const kind of ["file", "public-youtube"] as const) {
   test(`a failed ${kind} retries the authorized source once and clears its error after recovery`, async ({
     page,

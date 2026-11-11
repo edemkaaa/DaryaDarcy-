@@ -29,10 +29,14 @@ export function CalendarTracker({
   onPostPress,
   onDayPress,
 }: CalendarTrackerProps) {
+  // Запрашивает дневные агрегаты двух видимых месяцев и короткий список отложенных постов вместо полного каталога.
+
   const [currentDate, setCurrentDate] = useState(new Date());
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   const days = useMemo(() => {
+    // Создаёт границы календарных суток в локальной зоне, переводя их в ISO для серверного агрегирования; переходы часов учитываются календарными датами.
+
     const result: { from: string; to: string }[] = [];
     for (
       let date = new Date(year, month, 1);
@@ -53,6 +57,8 @@ export function CalendarTracker({
     { enabled: active, staleTime: 30_000 },
   );
   const postsByDay = useMemo(() => {
+    // Привязывает серверный индекс дня к исходному окну запроса, не пытаясь заново делить UTC-время в браузере.
+
     const byMonth = new Map<string, Map<number, CalendarDay>>();
     (query.data?.days ?? []).forEach((post) => {
       const window = days[post.dayIndex];
@@ -68,12 +74,18 @@ export function CalendarTracker({
   }, [query.data, days]);
   const upcoming = query.data?.upcoming ?? [];
   const goToPrevMonth = () => {
+    // Сдвигает начало двухмесячного окна на месяц назад.
+
     setCurrentDate(new Date(year, month - 1, 1));
   };
   const goToNextMonth = () => {
+    // Сдвигает окно на месяц вперёд и тем самым меняет запрос календаря.
+
     setCurrentDate(new Date(year, month + 1, 1));
   };
   const getStatusColor = (status: string) => {
+    // Единообразно кодирует статус в календаре и миниатюрах дня.
+
     switch (status) {
       case "published":
         return OLIVE;
@@ -86,6 +98,8 @@ export function CalendarTracker({
     }
   };
   const monthStats = (y: number, m: number) => {
+    // Суммирует готовые дневные счётчики выбранного месяца, не загружая тела всех постов.
+
     const map = postsByDay.get(`${y}-${m}`) || new Map();
     const posts = [...map.values()].flat();
     return {
@@ -269,6 +283,8 @@ function MonthGrid({
   onPostPress?: (post: ScheduledPost) => void;
   onDayPress?: (date: Date) => void;
 }) {
+  // Выравнивает месяц по неделям с понедельника; день открывает существующую запись либо создаёт форму на 10:00.
+
   const firstDayOfMonth = new Date(year, month, 1);
   let startDay = firstDayOfMonth.getDay() - 1;
   if (startDay < 0) startDay = 6;

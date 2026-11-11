@@ -1,3 +1,4 @@
+/** Две локальные точки запуска разделяют Next и wire-прокси аудита; запрет внешнего DNS не позволяет проверке незаметно скачать настоящие медиа. */
 import { defineConfig } from "@playwright/test";
 import { resolve } from "node:path";
 import base from "./playwright.config";

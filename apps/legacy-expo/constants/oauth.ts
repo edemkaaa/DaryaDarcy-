@@ -1,3 +1,4 @@
+// Архив Expo. Предпочитает EXPO_PUBLIC URL, исключает чужой localhost в web и поддерживает исторический 8081→3000 preview-хост.
 import * as ReactNative from "react-native";
 
 const env = {
@@ -18,6 +19,8 @@ export const API_BASE_URL = env.apiBaseUrl;
  * URL pattern: https://PORT-sandboxid.region.domain
  */
 export function getApiBaseUrl(): string {
+  // Предпочитает EXPO_PUBLIC URL, исключает чужой localhost в web и поддерживает исторический 8081→3000 preview-хост.
+
   if (API_BASE_URL) {
     const trimmed = API_BASE_URL.replace(/\/$/, "");
     const isLocalApi = /localhost|127\.0\.0\.1/.test(trimmed);
@@ -52,6 +55,8 @@ export const SESSION_TOKEN_KEY = "app_session_token";
 export const USER_INFO_KEY = "daryadarcy-user-info";
 
 export function isOwnerUser(user: { role?: string | null; openId?: string | null; email?: string | null } | null | undefined): boolean {
+  // Для UI владельца учитывает только серверную роль admin, не публичные owner env-поля.
+
   return user?.role === "admin";
 }
 
@@ -59,5 +64,7 @@ export function isOwnerUser(user: { role?: string | null; openId?: string | null
  * Login lives in the app now (email + password), not Manus OAuth.
  */
 export function getLoginPath() {
+  // Возвращает внутреннюю форму email-входа вместо старого Manus OAuth.
+
   return "/login";
 }

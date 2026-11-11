@@ -1,7 +1,7 @@
 import { expect, it, vi } from "vitest";
 vi.mock("../apps/frontend/src/shared/media/read-attachment", () => ({
   attachmentBase64: async (file: File) =>
-    Buffer.from(await file.arrayBuffer()).toString("base64"),
+    /* Читает байты вложения и кодирует их в Base64 без настоящего браузерного FileReader. */ Buffer.from(await file.arrayBuffer()).toString("base64"),
 }));
 import {
   PostSaveCoordinator,
@@ -16,12 +16,12 @@ const assetId = "3af23d8c-140f-454b-a123-123456789abc";
 const url = `/api/media/content-files/${assetId}`;
 const reference = `local-photo:${key}`;
 const oldUrl = "https://existing.example.test/photo.webp";
-const photo = () => ({
+const photo = () => /* Создаёт исходный File и постоянный ключ частной фотографии. */ ({
   key,
   file: new File(["original"], "photo.png", { type: "image/png" }),
 });
 const payload = (photos = [oldUrl, reference]) =>
-  serializePostDraft({
+  /* Сериализует пост с прежним URL и локальным маркером, сохраняя проверяемый порядок карусели. */ serializePostDraft({
     text: "Private photos",
     photos,
     videos: [],
@@ -32,6 +32,7 @@ const payload = (photos = [oldUrl, reference]) =>
     publishedAt: new Date("2026-10-16T09:00:00Z"),
     sortOrder: 0,
   });
+// Квитанция относится к серверной WebP-копии: её размер намеренно отличается от исходного File, а URL должен оставаться защищённым API-путём.
 const receipt = {
   state: "ready",
   assetId,
@@ -42,8 +43,10 @@ const receipt = {
   url,
 };
 const task = () =>
-  new OperationScope().begin("save", new AbortController().signal, () => true)!;
+  /* Выдаёт живую область операции, изолированную от последующих сохранений. */ new OperationScope().begin("save", new AbortController().signal, () => true)!;
 function boundary() {
+  // Подменяет API и запрещает публичный fallback, считая частные загрузки и записи поста.
+
   return {
     create: vi.fn(async (_input: object) => 42),
     update: vi.fn(async (_id: number, _input: object) => ({ success: true })),
@@ -59,11 +62,15 @@ function boundary() {
   };
 }
 function coordinatorFor(id: number | null = null, original?: PostPayload) {
+  // Устанавливает unit-контрольную точку; сохранность настоящего IndexedDB проверяется отдельным браузерным тестом.
+
   const coordinator = new PostSaveCoordinator(id, original);
   coordinator.setCheckpoint(async () => {}); // Unit boundary, NOT IndexedDB acceptance.
   return coordinator;
 }
 function recoverySnapshot(coordinator: PostSaveCoordinator) {
+  // Клонирует состояние восстановления, сохраняя File: Node превращает его в Blob при обычном structuredClone.
+
   const { privatePhotos, ...state } = coordinator.snapshot();
   return {
     ...structuredClone(state),
@@ -78,6 +85,8 @@ function recoverySnapshot(coordinator: PostSaveCoordinator) {
 it.each([null, 42])(
   "uploads new photos before binding, preserving old URL order (%s)",
   async (id) => {
+    // Сценарий: Новые фото загружаются до привязки, прежние ссылки сохраняют порядок при create и update.
+
     const api = boundary();
     const coordinator = coordinatorFor(id, id ? payload([oldUrl]) : undefined);
     const selected = photo();
@@ -115,6 +124,8 @@ it.each([null, 42])(
 );
 
 it("lost upload ACK restores the same intent, status first, without uploading twice", async () => {
+  // Сценарий: Потерянная квитанция восстанавливается прежним ключом через статус без второй загрузки.
+
   const api = boundary();
   api.uploadPrivatePhoto.mockRejectedValueOnce(new Error("Lost ACK"));
   const coordinator = coordinatorFor();
@@ -136,6 +147,8 @@ it("lost upload ACK restores the same intent, status first, without uploading tw
 it.each(["pending", "notRecorded"])(
   "explicit %s recovery replays identical bytes and key",
   async (state) => {
+    // Сценарий: Явный повтор после pending/notRecorded сохраняет исходные байты и ключ.
+
     const api = boundary();
     api.uploadPrivatePhoto.mockRejectedValueOnce(new Error("Timeout"));
     api.privatePhotoStatus.mockResolvedValueOnce(
@@ -154,6 +167,8 @@ it.each(["pending", "notRecorded"])(
 );
 
 it("unknown create replays the frozen payload/key without uploading or creating a new intent", async () => {
+  // Сценарий: Неизвестный исход создания повторяет замороженный payload и ключ без новой загрузки.
+
   const api = boundary();
   api.create.mockRejectedValueOnce(new Error("Lost create ACK"));
   const coordinator = coordinatorFor();
@@ -170,6 +185,8 @@ it("unknown create replays the frozen payload/key without uploading or creating 
 });
 
 it("does not send any write when the durable checkpoint fails", async () => {
+  // Сценарий: Отказ durable-контрольной точки запрещает любую запись.
+
   const api = boundary();
   const coordinator = coordinatorFor();
   coordinator.setCheckpoint(async () => {
@@ -193,6 +210,8 @@ it.each([
   { ...receipt, fileSize: 4 * 1024 * 1024 + 1 },
   { ...receipt, objectKey: "content/private-v1/raw" },
 ])("rejects untrusted private receipt without binding: %j", async (invalid) => {
+  // Сценарий: Недоверенная квитанция не позволяет привязать внешний URL, иной файл или неверное назначение.
+
   const api = boundary();
   api.uploadPrivatePhoto.mockResolvedValueOnce(invalid);
   await expect(
@@ -202,6 +221,8 @@ it.each([
 });
 
 it("never dispatches a local marker without its original File", async () => {
+  // Сценарий: Локальный маркер без исходного File не отправляется серверу.
+
   const api = boundary();
   await expect(
     coordinatorFor().save(payload(), [], [], api, task()),
@@ -210,6 +231,8 @@ it("never dispatches a local marker without its original File", async () => {
 });
 
 it("no public fallback when closed-photo transport is unavailable", async () => {
+  // Сценарий: Недоступный приватный транспорт не разрешает публичную загрузку.
+
   const api = boundary();
   const unavailable = { ...api, uploadPrivatePhoto: undefined };
   await expect(
@@ -222,6 +245,8 @@ it("no public fallback when closed-photo transport is unavailable", async () => 
 it.each(["upload", "status"])(
   "account switch during %s cannot accept a late receipt or bind",
   async (phase) => {
+    // Сценарий: Смена аккаунта во время upload/status запрещает принять позднюю квитанцию и сохранить пост.
+
     const api = boundary();
     const coordinator = coordinatorFor();
     if (phase === "status") {
@@ -260,6 +285,8 @@ it.each(["upload", "status"])(
 );
 
 it("requires an installed durable checkpoint before any private photo write", async () => {
+  // Сценарий: Без установленной durable-контрольной точки частная запись не начинается.
+
   const api = boundary();
   await expect(
     new PostSaveCoordinator().save(payload(), [], [], api, task(), [photo()]),
@@ -269,6 +296,8 @@ it("requires an installed durable checkpoint before any private photo write", as
 });
 
 it("recovery cannot replay a photo before durable storage is installed", async () => {
+  // Сценарий: Восстановление не повторяет фото до установки durable-хранилища.
+
   const api = boundary();
   const original = coordinatorFor();
   api.uploadPrivatePhoto.mockRejectedValueOnce(new Error("Lost ACK"));
@@ -283,6 +312,8 @@ it("recovery cannot replay a photo before durable storage is installed", async (
 });
 
 it("malformed notRecorded cannot authorize another upload attempt", async () => {
+  // Сценарий: Повреждённый notRecorded не разрешает ещё одну попытку загрузки.
+
   const api = boundary();
   const coordinator = coordinatorFor();
   api.uploadPrivatePhoto.mockRejectedValueOnce(new Error("Lost ACK"));
@@ -301,6 +332,8 @@ it("malformed notRecorded cannot authorize another upload attempt", async () => 
 it.each([401, 403, 409, 503])(
   "status failure %s preserves the unresolved photo without another write",
   async (status) => {
+    // Сценарий: Отказ чтения статуса сохраняет неопределённое намерение без новой записи.
+
     const api = boundary();
     const coordinator = coordinatorFor();
     api.uploadPrivatePhoto.mockRejectedValueOnce(new Error("Lost ACK"));
@@ -319,6 +352,8 @@ it.each([401, 403, 409, 503])(
 );
 
 it("a pending upload is not permission to publish", async () => {
+  // Сценарий: Pending не считается разрешением публикации поста.
+
   const api = boundary();
   api.uploadPrivatePhoto.mockResolvedValueOnce({
     ...receipt,
@@ -341,6 +376,8 @@ it.each([
 ])(
   "invalid source photo never reaches an upload or post write",
   async (file) => {
+    // Сценарий: Пустой файл, запрещённый MIME, управляющее имя и превышенный размер отклоняются до загрузки.
+
     const api = boundary();
     await expect(
       coordinatorFor().save(payload(), [], [], api, task(), [{ key, file }]),
@@ -351,6 +388,8 @@ it.each([
 );
 
 it("recovers only the second unresolved photo and preserves the user's reordered carousel", async () => {
+  // Сценарий: Восстанавливается только второе неопределённое фото; изменённый пользователем порядок карусели сохраняется.
+
   const second = {
     key: "private-photo-intent-0002",
     file: new File(["second"], "second.png", { type: "image/png" }),
@@ -394,6 +433,8 @@ it("recovers only the second unresolved photo and preserves the user's reordered
 });
 
 it("an explicitly removed recovered photo is not resurrected or bound", async () => {
+  // Сценарий: Удалённое пользователем восстановленное фото не возвращается в пост автоматически.
+
   const api = boundary();
   const coordinator = coordinatorFor();
   api.uploadPrivatePhoto.mockRejectedValueOnce(new Error("Lost ACK"));

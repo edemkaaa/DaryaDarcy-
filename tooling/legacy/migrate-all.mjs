@@ -1,3 +1,4 @@
+// Старый ручной мигратор использует несовпадающие journal/drizzle-пути и пропускает duplicate ошибки; не запускать вместо актуального миграционного журнала.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,6 +15,7 @@ if (!url) {
   process.exit(1);
 }
 
+// С этого места выбранная БД реально изменяется; текущая история и рабочее назначение автоматически не проверены.
 const conn = await mysql.createConnection(url);
 for (const entry of journal.entries) {
   const file = path.join(root, "drizzle", `${entry.tag}.sql`);

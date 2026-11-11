@@ -1,9 +1,12 @@
+/** Подсказка блокировки автора жалобы вычисляется для текущего actor; внутренние role-поля не уходят в DTO. */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as db from "../apps/backend/src/db";
 import { listCommentReports } from "../apps/backend/src/content/comments";
 import type { User } from "../packages/database/src/schema";
 
+/** Снимаем SQL-spy после каждого варианта матрицы прав. */
 afterEach(() => vi.restoreAllMocks());
+/** Создаём минимальный административный actor с явно изменяемыми blocked/deletion признаками. */
 const actor = (role: User["role"], extra: Partial<User> = {}) => ({
   id: 10,
   role,
@@ -11,6 +14,7 @@ const actor = (role: User["role"], extra: Partial<User> = {}) => ({
   accountDeletionRequestedAt: null,
   ...extra,
 });
+/** Синтетическая joined-строка содержит внутреннюю роль автора для настоящей политики проекции. */
 function databaseRow(role: User["role"] | null, extra = {}) {
   return {
     id: 1,
@@ -29,6 +33,7 @@ function databaseRow(role: User["role"] | null, extra = {}) {
     ...extra,
   };
 }
+/** Заменяем только SQL-chain результат; listCommentReports и вычисление canBlockAuthor остаются настоящими. */
 function stubRead(row: ReturnType<typeof databaseRow>) {
   // Only the external SQL result is replaced; projection and policy remain real.
   const query = {
@@ -40,7 +45,9 @@ function stubRead(row: ReturnType<typeof databaseRow>) {
   };
   vi.spyOn(db, "getDb").mockResolvedValue({ select: () => query } as never);
 }
+/** Матрица проверяет подсказку интерфейсу, не подменяя авторизацию самой операции блокировки. */
 describe("report author actions are actor-scoped UI hints", () => {
+  /** Разрешение зависит от обеих ролей; служебные поля автора исключаются из результата. */
   it.each([
     ["admin", "user", true],
     ["admin", "moderator", true],
@@ -60,6 +67,7 @@ describe("report author actions are actor-scoped UI hints", () => {
       expect(report).not.toHaveProperty("authorBlockedAt");
     },
   );
+  /** Самоблокировка, недействующий actor и уже заблокированный автор не предлагают действие. */
   it.each([
     { who: actor("admin"), extra: { authorUserId: 10 } },
     { who: actor("moderator", { blockedAt: new Date(0) }), extra: {} },
@@ -77,6 +85,7 @@ describe("report author actions are actor-scoped UI hints", () => {
       );
     },
   );
+  /** Вызов без контекста пользователя не получает административную подсказку по умолчанию. */
   it("defaults to no action when a non-HTTP consumer has no actor", async () => {
     stubRead(databaseRow("user"));
     expect((await listCommentReports(100))[0].canBlockAuthor).toBe(false);

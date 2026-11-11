@@ -1,8 +1,5 @@
-/** Политика HTML задаёт nonce для скриптов и список разрешённых источников; заголовки API формируются отдельно. */
-/** Scripts require a per-response nonce; existing React style attributes remain
- * supported. Media may come from HTTPS storage, but executable frames have an
- * explicit provider allowlist. API responses keep their own security policies.
- */
+/** Политика HTML задаёт nonce для скриптов и список разрешённых источников; заголовки API формируются отдельно. Существующие React style-атрибуты поддерживаются; HTTPS-медиа разрешены, iframe ограничены провайдерами. */
+/** Формируем политику только документа с переданным nonce; страница установки пароля получает более узкие источники и no-referrer. */
 export function documentSecurityHeaders(
   nonce: string,
   development: boolean,

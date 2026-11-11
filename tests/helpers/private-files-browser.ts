@@ -12,10 +12,14 @@ export async function privateFilesBrowser(
   api: string,
   options: { beforeStart?: (origin: string) => Promise<string> } = {},
 ) {
+  // Запускает неизменённый Next в отдельной временной копии с настоящим rewrite; .env и доступы провайдеров не наследуются.
+
   const root = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
   const temp = await mkdtemp(join(tmpdir(), "daryadarcy-ag2-browser-"));
   let child: ChildProcess | undefined, browser: Browser | undefined;
   async function close() {
+    // Закрывает браузер и свою группу Next-процесса, затем удаляет только проверенный временный каталог.
+
     await browser?.close();
     if (child?.pid && child.exitCode === null && child.signalCode === null) {
       const exited = once(child, "exit");
@@ -35,6 +39,7 @@ export async function privateFilesBrowser(
     await rm(temp, { recursive: true, force: true });
   }
   try {
+    // Копия исходников живёт вне checkout; статические ресурсы подключены read-only по смыслу использования, env исключён из копирования.
     const directory = join(temp, "apps", "frontend");
     await mkdir(directory, { recursive: true });
     for (const name of [
@@ -46,7 +51,7 @@ export async function privateFilesBrowser(
     ])
       await cp(join(root, "apps", "frontend", name), join(directory, name), {
         recursive: true,
-        filter: (source) => !basename(source).startsWith(".env"),
+        filter: (source) => /* Не копирует env-файлы в браузерную фикстуру даже при рекурсивном обходе исходников. */ !basename(source).startsWith(".env"),
       });
     // App pages import the generated static image catalog at compile time.
     // A privacy-only public copy can test rewrites, but cannot render editors.
@@ -95,6 +100,8 @@ export async function privateFilesBrowser(
         30000,
       );
       const data = (chunk: Buffer) => {
+        // Ограничивает накопленный вывод Next и распознаёт готовность без бесконечного ожидания.
+
         output = (output + chunk.toString()).slice(-4000);
         if (/Ready in/.test(output)) {
           clearTimeout(timeout);
@@ -112,6 +119,7 @@ export async function privateFilesBrowser(
         reject(new Error(`Next exited ${code}: ${output}`));
       });
     });
+    // Граница сети браузера разрешает лишь собственный origin, чтобы синтетические адреса не отправлялись внешним провайдерам.
     browser = await chromium.launch({
       headless: true,
       ...(process.env.PLAYWRIGHT_EXECUTABLE_PATH
@@ -131,7 +139,7 @@ export async function privateFilesBrowser(
       origin,
       close,
       read: (id: number, range?: string) =>
-        page.evaluate(
+        /* Читает приватный attachment через same-origin браузер с cookie и необязательным Range, возвращая заголовки для матрицы доступа. */ page.evaluate(
           async ({ id, range }) => {
             const response = await fetch(`/api/media/post-attachments/${id}`, {
               credentials: "same-origin",

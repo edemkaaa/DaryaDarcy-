@@ -16,9 +16,11 @@ const write = process.argv.includes("--write");
 const reuse = process.argv.includes("--reuse");
 const cacheDir = process.argv.find((arg) => arg.startsWith("--cache-dir="))?.slice(12)
   ?? "/tmp/darcy-public-images-2026-10-06";
-const sha = (bytes) => createHash("sha256").update(bytes).digest("hex");
+const sha = (bytes) => /* Делает имя варианта зависимым от его содержимого и позволяет проверить результат прерванного прежнего прогона. */ createHash("sha256").update(bytes).digest("hex");
 const imagePattern = /(?:https:\/\/s3\.twcstorage\.ru\/daryadarcy-s3\/app-assets\/|\/assets\/)[^\s"'`<>)]*\.(?:jpe?g|png|webp|avif)/gi;
 async function walk(dir) {
+  // Находит локальные потребители изображений и производные, не перечисляя или изменяя объекты S3.
+
   const entries = await fs.readdir(dir, { withFileTypes: true });
   return (await Promise.all(entries.map((entry) => {
     const file = path.join(dir, entry.name);
@@ -97,7 +99,7 @@ for (const ref of [...refs].sort()) {
     }
   } else for (const width of [...new Set([...widths.filter((w) => w < maxWidth), maxWidth])]) {
     // Lossless WebP encoding after resizing: no additional JPEG/WebP artifacts.
-    const pipeline = () => sharp(original).autoOrient().resize({ width, withoutEnlargement: true }).toColourspace("srgb");
+    const pipeline = () => /* Строит один заданный размер с общей ориентацией и цветовым пространством для кодирования и проверки возобновлённого варианта. */ sharp(original).autoOrient().resize({ width, withoutEnlargement: true }).toColourspace("srgb");
     let bytes;
     // Recover verified partial output after an interrupted offline run.
     const names = existingNames.filter((name) => name.startsWith(`${stem}.w${width}.`) && name.endsWith(".webp"));

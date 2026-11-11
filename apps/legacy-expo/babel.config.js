@@ -1,3 +1,4 @@
+// Архив Expo. Трансформация старого Expo runtime с NativeWind JSX и worklets-плагином для UI-анимаций.
 module.exports = function (api) {
   api.cache(true);
   let plugins = [];

@@ -2,6 +2,7 @@
 const root = "https://s3.twcstorage.ru/daryadarcy-s3/";
 
 /** Exact old bucket only. Retain the DB string; decode each key segment exactly once. */
+/** Принимаем только исходный точный бакет и разрешённые старые каталоги, декодируем каждый сегмент один раз и исключаем traversal, приватные пути и параметры; строка БД остаётся исходной. */
 export function legacySource(
   raw: string,
 ): { key: string; requestUrl: string } | undefined {

@@ -19,9 +19,13 @@ export function usePostEditComparison(
   operation: ReturnType<typeof useSessionOperation>,
   editor: PostEditorSnapshot,
 ) {
+  // Показывает сравнение лишь для неопределённого update и оставляет повторное сохранение отдельным явным действием.
+
   const [server, setServer] = useState<unknown>();
   const [error, setError] = useState<string | null>(null);
   const read = async () => {
+    // Читает серверную версию через координатор; результат чужой или отменённой области не попадает в сравнение.
+
     const task = operation.begin("compare-post");
     if (!task) return;
     try {
@@ -42,6 +46,8 @@ export function usePostEditComparison(
     }
   };
   const accept = async () => {
+    // После согласия сохраняет новую базовую ревизию локально, не отправляя сам update.
+
     if (
       !server ||
       !window.confirm(

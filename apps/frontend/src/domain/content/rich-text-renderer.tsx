@@ -22,6 +22,7 @@ interface RichTextRendererProps {
   selectable?: boolean;
 }
 
+/** Санитизируем сохранённые блоки перед React-рендером; при их отсутствии используем plain text, сохраняя переносы и ограничение строк. */
 export const RichTextRenderer = memo(function RichTextRenderer({
   richText,
   plainText,
@@ -115,6 +116,7 @@ export const RichTextRenderer = memo(function RichTextRenderer({
   );
 });
 
+/** Собираем форматированные фрагменты React-элементами; адрес ссылки проверяется независимо от безопасно экранированной подписи. */
 function renderInlines(
   children: RichTextInline[] | undefined,
   linkColor: string,
@@ -152,6 +154,7 @@ function renderInlines(
   });
 }
 
+/** Выделяем emoji для системного шрифта, сохраняя текст без HTML-интерпретации и лишних обёрток для обычной строки. */
 function renderPlainText(text: string | undefined | null) {
   const safe = typeof text === "string" ? text : "";
   const segments = splitForEmojiRendering(safe);

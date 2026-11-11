@@ -2,6 +2,7 @@
 @use "../../shared/styles/layers";
 
 @layer components {
+  /* Затемнение центрирует отдельную панель добавления ссылки, не меняя раскладку родительского редактора. */
   .overlay {
     align-items: center;
     justify-content: center;
@@ -20,6 +21,7 @@
     font-weight: 600;
     margin-top: 8px;
   }
+  /* Панель ограничена шириной и динамической высотой viewport; длинная форма прокручивается внутри. */
   .panel {
     width: min(560px, calc(100vw - 32px));
     max-height: calc(100dvh - 32px);
@@ -36,6 +38,7 @@
     font-size: 18px;
     font-weight: 600;
   }
+  /* Размер 16px предотвращает типичное автоприближение поля в мобильном Safari; min-width:0 не даёт URL расширить панель. */
   .input {
     width: 100%;
     min-width: 0;
@@ -52,6 +55,7 @@
     font-size: 13px;
     color: #963c3c;
   }
+  /* Пустая ошибка убирается из раскладки, не оставляя лишний зазор. */
   .error:empty {
     display: none;
   }
@@ -67,6 +71,7 @@
     padding: 4px;
     text-decoration: underline;
   }
+  /* Область плеера заранее резервирует 16:9; iframe растягивается внутри, не меняя высоту при загрузке. */
   .frame {
     position: relative;
     aspect-ratio: 16 / 9;

@@ -1,3 +1,4 @@
+# Передаёт старый backfill подписей на VPS и запускает его с LIMIT/DRY_RUN; пути и режим записи проверяются до запуска.
 import pathlib
 import socket
 import paramiko
@@ -17,6 +18,7 @@ if limit:
 if dry:
     extra += f" DRY_RUN={dry}"
 
+# Подключение использует историческое автоматическое доверие неизвестному SSH host key; перед новым запуском требуется отдельная сверка хоста.
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 sock = socket.create_connection((env["DEPLOY_HOST"], 22), 45)
@@ -37,6 +39,7 @@ sftp.put(
 )
 sftp.close()
 
+# Следующий текст — удалённая команда; её содержимое сохранено как историческое и не исполняется при чтении исходника.
 cmd = f"""
 set -e
 cd /var/www/daryadarcy

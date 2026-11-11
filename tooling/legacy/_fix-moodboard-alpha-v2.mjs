@@ -1,3 +1,4 @@
+// Историческая обработка alpha вырезает тёмные пиксели во всём изображении; исходную геометрию и детали нужно сверять визуально.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,6 +8,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const outDir = path.join(root, "apps", "frontend", "assets", "images", "moodboard");
 
 function knockOutBackground(data, width, height, threshold = 72) {
+  // Обнуляет alpha всех тёмных нейтральных пикселей, включая внутренние; это историческая эвристика с риском потери деталей.
+
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const i = (y * width + x) * 4;
@@ -24,6 +27,8 @@ function knockOutBackground(data, width, height, threshold = 72) {
 }
 
 async function toTransparentPng(inputName, outputName, threshold) {
+  // Читает конкретный локальный исходник, меняет alpha и записывает новую PNG-копию без проверки визуального результата.
+
   const input = path.join(outDir, inputName);
   const { data, info } = await sharp(input).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   knockOutBackground(data, info.width, info.height, threshold);

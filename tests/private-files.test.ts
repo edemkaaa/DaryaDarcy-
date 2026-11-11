@@ -1,3 +1,4 @@
+/** Реальный AWS SDK обращается только к созданному loopback HTTP-серверу; SQL, ACL и авторизация здесь не проверяются. */
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -7,6 +8,7 @@ import { privateObjectReader } from "../apps/backend/src/media/private-object";
 let wire: Server,
   requests = 0,
   closed = false;
+/** Сервер намеренно не присылает заголовки, чтобы измерить собственный таймаут клиента хранилища. */
 beforeAll(async () => {
   wire = createServer((req) => {
     requests++;
@@ -24,11 +26,13 @@ beforeAll(async () => {
   vi.stubEnv("S3_ACCESS_KEY", "timeout-fixture-access");
   vi.stubEnv("S3_SECRET_KEY", "timeout-fixture-secret");
 });
+/** Закрываем зависшие локальные сокеты и снимаем S3-подстановки окружения. */
 afterAll(async () => {
   wire?.closeAllConnections();
   if (wire) await new Promise<void>((done) => wire.close(() => done()));
   vi.unstubAllEnvs();
 });
+/** HEAD должен завершиться TimeoutError одним запросом раньше внешнего дедлайна, освободив соединение. */
 it("times out withheld provider headers before the outer safety cutoff, with no retries", async () => {
   const reader = privateObjectReader(
     "feed/documents/fixture.txt",

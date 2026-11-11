@@ -3,6 +3,7 @@ import type { ViewportSize } from "@/shared/browser/viewport";
 import { GRID_PADDING } from "./quiz-question.content";
 import { getQuizQuestionContent } from "./quiz-question.content";
 
+/** Согласуем размеры слайдов, полей картинки и карточек на один, два или три ответа в строке. */
 export function getQuizQuestionLayout(viewport: ViewportSize) {
   const { width, CARD_WIDTH_2, CARD_WIDTH_3, CAROUSEL_HEIGHT } =
     getQuizQuestionContent(viewport);

@@ -6,6 +6,7 @@ import type { ContentWriteService } from "./content-write.service";
 import { savedPostsPageInput } from "./saved-posts-page";
 import { postInteractionsInput } from "./post-interactions-batch";
 
+/** Разделяет public feed/card reads и protected реакции/сохранённое; id/publicId используют общую body-policy, numeric cursor сохраняет прежний offset-контракт. */
 export const createFeedRouter = (
   content: ContentReadService,
   posts: ContentWriteService,

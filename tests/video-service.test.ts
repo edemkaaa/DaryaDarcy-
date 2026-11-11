@@ -1,3 +1,4 @@
+/** Vitest-обёртка запускает нативный Node-набор отдельного video-worker. */
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { readdir, readFile } from "node:fs/promises";
@@ -10,6 +11,7 @@ import {
 
 // Exercise the same dependency-free Node runtime that is deployed, not a
 // transpiled version. A failed native behavior test propagates a nonzero exit.
+/** Собираем только локальные test.mjs; сбой дочернего процесса показываем через разрешённые имена сценариев, без произвольного вывода. */
 test("isolated public-video worker passes its native HTTP/cache/process suite", async () => {
   const directory = resolve("apps/video-service/test");
   const files = (await readdir(directory))

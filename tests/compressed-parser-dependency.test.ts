@@ -1,3 +1,4 @@
+/** Проверяем обработку поздней ошибки декомпрессии в настоящих парсерах Express/Nest; приложение само закрывает encoded-запросы раньше. */
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import path from "node:path";
@@ -21,6 +22,7 @@ const parsers = [
 // The application already refuses encoded requests before parsing. This narrow
 // upstream regression also verifies the installed decoder remains safe itself.
 // Run the tiny fixture in an isolated child: a vulnerable parser must not crash Vitest.
+/** Синтетическая ошибка обрабатывается в ограниченном дочернем процессе. После неё loopback health должен отвечать, а Vitest не должен падать. */
 it.each(parsers)(
   "$name survives a late error after a compressed frame",
   ({ entry }) => {

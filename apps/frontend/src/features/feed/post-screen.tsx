@@ -41,6 +41,7 @@ import {
   BROWN_LIGHT,
   GREEN_ACCENT,
 } from "./post-screen.content";
+/** SSR использует UTC для стабильного текста, после готовности браузера отображаем локальную календарную дату. */
 function formatDate(date: Date | string, browserCalendar: boolean): string {
   const d = new Date(date);
   const months = [
@@ -59,6 +60,7 @@ function formatDate(date: Date | string, browserCalendar: boolean): string {
   ];
   return `${browserCalendar ? d.getDate() : d.getUTCDate()} ${months[browserCalendar ? d.getMonth() : d.getUTCMonth()]} ${browserCalendar ? d.getFullYear() : d.getUTCFullYear()}`;
 }
+/** Читаем пост по числовому ID или UUID; подтверждённое отсутствие/отказ скрывает прежние данные и закрывает просмотр фотографий. */
 function PostDetailScreenInner({ id }: { id: string }) {
   const active = useScreenActive();
   const browserCalendar = useBrowserReady();
@@ -102,6 +104,7 @@ function PostDetailScreenInner({ id }: { id: string }) {
   useClubContentProtection(
     Boolean(post && (post.target === "club" || post.target === "both")),
   );
+  /** Гостю предлагаем вход с вычисленным адресом поста; после входа отметкой управляет общий scoped hook. */
   const handleLike = () => {
     if (!user) {
       router.login(postHref({ id: postId, publicId: post?.publicId }));
@@ -109,6 +112,7 @@ function PostDetailScreenInner({ id }: { id: string }) {
     }
     interactions.like(postId);
   };
+  /** Для гостя начинаем вход, для владельца отправляем bookmark через общий механизм неизвестного результата. */
   const handleSave = () => {
     if (!user) {
       router.login(postHref({ id: postId, publicId: post?.publicId }));
@@ -342,6 +346,7 @@ function PostDetailScreenInner({ id }: { id: string }) {
     </ScreenContainer>
   );
 }
+/** Изолируем ошибку рендера детали, сохраняя понятный повтор открытия вместо падения всего приложения. */
 export default function PostDetailScreen({ id }: { id: string }) {
   return (
     <ScreenErrorBoundary message="Не удалось открыть пост">

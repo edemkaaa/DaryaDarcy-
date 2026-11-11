@@ -1,3 +1,4 @@
+# Передаёт конкретную обложку и helper на VPS и публикует её по фиксированному S3-ключу.
 import pathlib
 import socket
 import paramiko
@@ -9,6 +10,7 @@ for line in (root / ".env").read_text(encoding="utf-8").splitlines():
         k, v = line.split("=", 1)
         env[k.strip()] = v.strip()
 
+# Подключение использует историческое автоматическое доверие неизвестному SSH host key; перед новым запуском требуется отдельная сверка хоста.
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 sock = socket.create_connection((env["DEPLOY_HOST"], 22), 20)

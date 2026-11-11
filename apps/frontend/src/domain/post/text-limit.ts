@@ -1,6 +1,7 @@
 /** Ограничение текста применяется к содержимому редактора, чтобы счётчик и проверка перед сохранением считали одинаково. */
 export const POST_TEXT_MAX_BYTES = 65_535;
 
+/** Проверяем именно байты UTF-8 перед сохранением: число символов не соответствует ёмкости SQL TEXT. */
 export function assertPostTextSize(text: string): void {
   if (new TextEncoder().encode(text).byteLength > POST_TEXT_MAX_BYTES)
     throw new Error(

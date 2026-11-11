@@ -32,6 +32,7 @@ const manifest = z
     files: z.array(entry).min(1).max(100),
   })
   .strict();
+/** Отклоняем неполный, повторяющийся или недостоверный операторский список до записи файлов. */
 const invalid = () =>
   new TRPCError({
     code: "BAD_REQUEST",
@@ -39,6 +40,7 @@ const invalid = () =>
   });
 
 /** Own operator-provided bytes only: no path, URL, env file or network reading. */
+/** Принимаем только переданные оператором байты; ограничиваем размер, проверяем SHA-256 и фактический формат, затем фиксируем упорядоченный отпечаток плана без сетевого чтения. */
 export async function prepareLibraryMigration(raw: unknown) {
   const parsed = manifest.safeParse(raw);
   if (!parsed.success) throw invalid();
@@ -127,6 +129,7 @@ export async function prepareLibraryMigration(raw: unknown) {
 }
 
 /** Проверяем состояние переноса без подмены его новым применением. */
+/** Проводим ту же проверку байтов и возвращаем состав, объём и отпечаток без применения переноса. */
 export async function inspectLibraryMigration(input: unknown) {
   const plan = await prepareLibraryMigration(input);
   return {

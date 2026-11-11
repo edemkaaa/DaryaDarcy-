@@ -7,6 +7,7 @@ const embed =
 const videoUrl = "https://media.example.test/broken.mp4";
 const catalogEnabled = process.env.VK_CATALOG_UI_ENABLED === "true";
 
+/** Повреждённый MP4 проверяет явный retry и освобождение src/paused при смене вида ленты или уходе с detail. */
 for (const path of ["/feed", "/post/42", "/video/42"]) {
   test(`broken video has an explicit retry and releases its source on ${path}`, async ({
     page,
@@ -127,6 +128,7 @@ for (const path of ["/feed", "/post/42", "/video/42"]) {
   });
 }
 
+/** Скрытая retained-панель удаляет VK iframe; повторный показ сохраняет autoplay=0, а пересозданная windowed-карточка требует нового действия. */
 test("VK unloads in a hidden retained tab and never autoplays on return", async ({
   page,
 }) => {
@@ -224,6 +226,7 @@ test("VK unloads in a hidden retained tab and never autoplays on return", async 
   await expect(player).toHaveAttribute("src", embed + "&autoplay=0");
 });
 
+/** Отсутствующий detail не должен создавать iframe или обращаться к VK даже при наличии других кешей страницы. */
 test("a denied club post response never requests a VK player", async ({
   page,
 }) => {
@@ -241,6 +244,7 @@ test("a denied club post response never requests a VK player", async ({
   expect(requests).toBe(0);
 });
 
+/** Повторный выбор недекодируемых JPG/PNG/WebP/HEIC не отправляет upload и освобождает все временные object URL. */
 for (const format of ["jpg", "png", "webp", "heic"]) {
   test(`corrupt ${format} refuses upload and releases every temporary URL over repeated attempts`, async ({
     page,
@@ -251,16 +255,19 @@ for (const format of ["jpg", "png", "webp", "heic"]) {
       const active = new Set<string>();
       const create = URL.createObjectURL.bind(URL),
         revoke = URL.revokeObjectURL.bind(URL);
+      /** Наблюдаем создание object URL, сохраняя нативный результат для реального decode-пути. */
       URL.createObjectURL = (blob) => {
         const url = create(blob);
         active.add(url);
         return url;
       };
+      /** Снимаем URL с учёта перед нативным revoke, чтобы дождаться полного освобождения временных ресурсов. */
       URL.revokeObjectURL = (url) => {
         active.delete(url);
         revoke(url);
       };
       Object.defineProperty(window, "pendingMediaUrls", {
+        /** Отдаём только количество ещё активных object URL, не вмешиваясь в их использование. */
         get: () => active.size,
       });
     });
@@ -314,6 +321,7 @@ for (const format of ["jpg", "png", "webp", "heic"]) {
   });
 }
 
+/** Свежий FORBIDDEN playback скрывает прежний плеер и предлагает клуб; этот случай требует сборку с новым catalog API. */
 test("a failed access refetch hides a previously loaded video instead of retaining stale playback", async ({
   page,
 }) => {
@@ -384,6 +392,7 @@ test("a failed access refetch hides a previously loaded video instead of retaini
   expect(playbackReads).toBeGreaterThanOrEqual(2);
 });
 
+/** Успешно загруженный iframe не получает поверх provider-controls лишнюю кнопку восстановления. */
 test("loaded VK keeps recovery controls away from the provider's interactive frame", async ({
   page,
 }) => {

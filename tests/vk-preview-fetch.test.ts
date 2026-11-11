@@ -1,7 +1,11 @@
+/** Адреса VK-превью проходят через фиксированный private egress; transport заменён spy. */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fetchVkPreview } from "../apps/backend/src/media/vk-preview-fetch";
+/** Возвращаем proxy-настройки после каждого сценария. */
 afterEach(() => vi.unstubAllEnvs());
+/** Проверяем параметры и allowlist до сети, без реального обращения к VK. */
 describe("private VK preview egress", () => {
+  /** Плеерные oid/id/hash передаются на /player с запретом redirects и без cookies. */
   it("preserves the player parameters and uses the private gateway without credentials", async () => {
     vi.stubEnv("VK_PREVIEW_PROXY_URL", "http://s3-egress:8081");
     const transport = vi.fn<typeof fetch>().mockResolvedValue(new Response());
@@ -19,6 +23,7 @@ describe("private VK preview egress", () => {
       }),
     );
   });
+  /** Подписанная query картинки сохраняется, а upstream host передаётся отдельным разрешённым заголовком. */
   it("preserves signed image query parameters and pins the upstream host", async () => {
     vi.stubEnv("VK_PREVIEW_PROXY_URL", "http://s3-egress:8081");
     const transport = vi.fn<typeof fetch>().mockResolvedValue(new Response());
@@ -34,6 +39,7 @@ describe("private VK preview egress", () => {
       }),
     );
   });
+  /** Произвольный host, порт, wall и другой okcdn path не достигают transport. */
   it.each([
     "http://127.0.0.1/a.jpg",
     "https://iv.okcdn.ru/other",
@@ -47,6 +53,7 @@ describe("private VK preview egress", () => {
     ).toThrow();
     expect(transport).not.toHaveBeenCalled();
   });
+  /** Даже операторская настройка не может заменить разрешённый внутренний gateway на произвольный loopback. */
   it("does not accept an arbitrary configured proxy", () => {
     vi.stubEnv("VK_PREVIEW_PROXY_URL", "http://127.0.0.1:8081");
     const transport = vi.fn<typeof fetch>();

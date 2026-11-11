@@ -25,7 +25,7 @@ const paths = {
   ],
 } as const;
 
-/** Menu geometry must not depend on the icon font loading or swapping. */
+/** Рисуем геометрию меню напрямую через SVG, чтобы его размеры не зависели от момента загрузки шрифта значков. */
 export function BottomTabIcon({
   name,
   className,

@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { editorApi, failure, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
+/** Готовим одну опубликованную fixture для быстрых тегов и удаления с обеих пользовательских лент. */
 const post = () => ({
   id: 77,
   text: "QUICK_ACTION_POST",
@@ -19,6 +20,7 @@ const post = () => ({
   commentCount: 0,
 });
 
+/** Разбираем tRPC-batch в журнал точных процедур и входов, чтобы проверить отсутствие полной admin-выборки и повторных write. */
 function requests(page: Page) {
   const calls: { name: string; input: Record<string, unknown> }[] = [];
   page.on("request", (request) => {
@@ -37,6 +39,7 @@ function requests(page: Page) {
   return calls;
 }
 
+/** Проходим настоящее меню карточки и выбираем действие по accessible-name. */
 async function menu(page: Page, action: string) {
   await page
     .getByRole("button", { name: "Действия с постом", exact: true })
@@ -44,6 +47,7 @@ async function menu(page: Page, action: string) {
   await page.getByRole("button", { name: action, exact: true }).click();
 }
 
+/** Нормальное подтверждение и потерянный ответ проверяем в ленте и клубе, предварительно прогрев admin-карточки и счётчики. */
 for (const screen of ["feed", "club"] as const) {
   for (const lost of [false, true]) {
     test(`${screen}: quick tags and deletion ${lost ? "recover lost write responses" : "confirm normally"} without the archive`, async ({
@@ -212,6 +216,7 @@ for (const screen of ["feed", "club"] as const) {
   }
 }
 
+/** После удаления только валидный detail либо явный null подтверждает состояние; пустой, чужой или неверно типизированный объект не считается успехом. */
 for (const detail of [{}, { id: 78, tags: [] }, { id: 77, tags: [2] }]) {
   test(`deletion rejects malformed detail ${JSON.stringify(detail)} and waits for null`, async ({
     page,
@@ -259,6 +264,7 @@ for (const detail of [{}, { id: 78, tags: [] }, { id: 77, tags: [2] }]) {
   });
 }
 
+/** При смене личности незавершённая проверка quick-action отменяется; поздний null не меняет новый список и не открывает прежний result-dialog. */
 test("an account change cancels a late quick-action inspection", async ({
   page,
 }) => {

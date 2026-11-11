@@ -81,6 +81,8 @@ interface CreatePostModalProps {
   } | null;
 }
 export function CreatePostModal(props: CreatePostModalProps) {
+  // Ключ владельца, поста и целевого раздела изолирует быстрый редактор от предыдущего аккаунта и формы.
+
   const { user } = useAuth();
   return (
     <CreatePostModalBody
@@ -95,6 +97,8 @@ function CreatePostModalBody({
   defaultTarget,
   editingPost,
 }: CreatePostModalProps) {
+  // Использует тот же координатор и контракты файлов, что полный редактор, но отдельный quick-слот локального журнала.
+
   const capabilities = useCapabilities();
   const [text, setText] = useState(editingPost?.text || "");
   const [photos, setPhotos] = useState<string[]>(editingPost?.photos || []);
@@ -114,7 +118,7 @@ function CreatePostModalBody({
   const uploading = operation.kind === "photos";
   const mediaUploading = operation.kind === "video";
   const [videos, setVideos] = useState<string[]>([]);
-  const notifyError = (message: string) => window.alert(message);
+  const notifyError = (message: string) => /* Оставляет форму на месте при ошибке, показывая сообщение вместо сброса ввода. */ window.alert(message);
   const {
     attachments: mediaAttachments,
     removedIds: removedMediaIds,
@@ -132,6 +136,8 @@ function CreatePostModalBody({
   const richTextFieldRef = useRef<RichTextFieldHandle>(null);
   const utils = trpc.useUtils();
   const invalidateAdminReads = () => {
+    // Обновляет короткие страницы, календарь и счётчики после записи, не перечитывая полный каталог синхронно.
+
     void utils.admin.posts.invalidate();
     void utils.admin.postsPage.invalidate();
     void utils.admin.postCalendar.invalidate();
@@ -153,6 +159,8 @@ function CreatePostModalBody({
   const resetUploads = uploadSelection.reset;
   const seeded = useRef<string | null>(null);
   useEffect(() => {
+    // Начальное заполнение выполняется один раз для слота: повторный refetch исходного поста не должен затирать введённый текст.
+
     if (!visible) {
       seeded.current = null;
       return;
@@ -213,7 +221,7 @@ function CreatePostModalBody({
     resetUploads,
   ]);
   const editorSnapshot = useMemo(
-    () => ({
+    () => /* Собирает неизменяемый снимок всех полей и выбранных File для восстановления одной фазы. */ ({
       draft: {
         text,
         photos,
@@ -249,12 +257,15 @@ function CreatePostModalBody({
       privateVideos.videos,
     ],
   );
+  // Быстрый редактор использует собственный слот, поэтому его ввод не затирает черновик полного редактора того же поста.
   const recovery = usePostRecovery({
     active: visible,
     slot: `quick:${editingPost?.id ?? `new:${defaultTarget}`}`,
     editor: editorSnapshot,
     coordinator: saveCoordinator,
     onRestore: (snapshot) => {
+      // Восстанавливает текст, даты, форматирование, удаления и ожидания из той же контрольной точки, что File.
+
       privatePhotos.restore(
         snapshot.privatePhotos ?? [],
         snapshot.draft.photos,
@@ -288,6 +299,8 @@ function CreatePostModalBody({
     editorSnapshot,
   );
   const closeEditor = () => {
+    // Очищает ресурсы и видимое состояние, но не удаляет серверные файлы; журнал очищает вызывающий подтверждённый путь.
+
     privatePhotos.reset();
     privateVideos.reset();
     operation.cancel();
@@ -306,6 +319,8 @@ function CreatePostModalBody({
     onClose();
   };
   const discardRecovery = async () => {
+    // Явный отказ от локальной копии не означает отмену уже отправленного запроса.
+
     if (
       !window.confirm(
         "Удалить локальную копию? Если сохранение или загрузка не подтверждены, сначала проверьте список публикаций в другой вкладке. Файлы на сервере не удаляются.",
@@ -320,6 +335,8 @@ function CreatePostModalBody({
     }
   };
   const finishRecovery = async () => {
+    // После подтверждённого сохранения очищает журнал и инвалидирует административные и пользовательские списки.
+
     try {
       await recovery.clear();
       invalidateAdminReads();
@@ -331,6 +348,8 @@ function CreatePostModalBody({
     }
   };
   const recoverCreation = async () => {
+    // Продолжает uploads либо создание исходного координатора, не создавая новый ключ для потерянного ответа.
+
     const task = operation.begin("save");
     if (!task) return;
     try {
@@ -354,6 +373,8 @@ function CreatePostModalBody({
     }
   };
   const handleClose = async () => {
+    // Проверяет безопасную фазу координатора и наличие изменений перед очисткой журнала и закрытием.
+
     if (recovery.status === "loading" || recovery.status === "offered") {
       closeEditor();
       return;
@@ -395,10 +416,14 @@ function CreatePostModalBody({
     }
   };
   const addVideoUrl = (url: string) => {
+    // Согласованно добавляет уникальную видеоссылку и тег video в локальную форму.
+
     setVideos((prev) => (prev.includes(url) ? prev : [...prev, url]));
     setTags((prev) => (prev.includes("video") ? prev : [...prev, "video"]));
   };
   const pickVideo = async () => {
+    // Проверяет серверную возможность и размер, затем сохраняет локальный File для будущей общей записи поста.
+
     if (recovery.blocked) return;
     const task = operation.begin("video");
     if (!task) return;
@@ -425,6 +450,8 @@ function CreatePostModalBody({
     }
   };
   const removeVideo = (index: number) => {
+    // Снимает ссылку из формы и помечает удаление только настоящего приватного серверного вложения.
+
     if (operation.busy || recovery.blocked) return;
     const reference = videos[index];
     if (!reference) return;
@@ -439,6 +466,8 @@ function CreatePostModalBody({
     setVideos((previous) => previous.filter((_, i) => i !== index));
   };
   const replacePhoto = async (index: number) => {
+    // Захватывает исходную ссылку, сохраняет намерение и заменяет только тот слот, который не изменился во время выбора.
+
     const task = operation.begin("photos");
     if (!task) return;
     const previous = photos[index];
@@ -476,6 +505,8 @@ function CreatePostModalBody({
     }
   };
   const handleSubmit = async () => {
+    // Валидирует содержимое и даты, фиксирует черновик до сети и закрывает форму лишь после подтверждения координатора.
+
     if (recovery.blocked) return;
     if (editingPost && !Array.isArray(editingPost.media)) {
       notifyError(
@@ -525,6 +556,7 @@ function CreatePostModalBody({
           richText ??
           null,
       });
+      // Координатор связывает подтверждённые загрузки и запись поста; UI не должен повторять ни одну фазу самостоятельно.
       await saveCoordinator.current.save(
         payload,
         mediaAttachments,
@@ -558,6 +590,8 @@ function CreatePostModalBody({
     }
   };
   const pickPhotos = async () => {
+    // Последовательно подготавливает выбранные фото, сохраняя фазы каждого выбора и уже добавленные файлы при частичном отказе.
+
     const task = operation.begin("photos");
     if (!task) return;
     let uploaded = 0;
@@ -595,11 +629,15 @@ function CreatePostModalBody({
     }
   };
   const removePhoto = (index: number) => {
+    // Удаляет ссылку и локальный адрес фото только вне работающей операции.
+
     if (operation.busy) return;
     privatePhotos.removePreview(photos[index]);
     setPhotos((prev) => prev.filter((_, i) => i !== index));
   };
   const movePhoto = (fromIndex: number, direction: "left" | "right") => {
+    // Кнопочная перестановка изменяет ссылки в массиве без повторной отправки файлов.
+
     if (operation.busy) return;
     setPhotos((prev) => {
       const arr = [...prev];
@@ -610,6 +648,8 @@ function CreatePostModalBody({
     });
   };
   const reorderPhotos = (fromIndex: number, toIndex: number) => {
+    // Drag переносит один элемент между проверенными индексами; сохранение поста остаётся отдельным действием.
+
     if (operation.busy) return;
     setPhotos((prev) => {
       if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0) return prev;
@@ -621,6 +661,8 @@ function CreatePostModalBody({
     });
   };
   const toggleTag = useCallback((slug: string) => {
+    // Обновляет набор slug функционально, не теряя быстрые нажатия между рендерами.
+
     setTags((prev) =>
       prev.includes(slug) ? prev.filter((t) => t !== slug) : [...prev, slug],
     );

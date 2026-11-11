@@ -90,8 +90,12 @@ export function createArticleRevisionActions({
   setServerComparison,
   setRecoveryMessage,
 }: ArticleRevisionDependencies) {
+  // Объединяет чтение серверной версии и выбор базы следующей записи; ни одно из этих действий само не отправляет изменение.
+
   const { title, coverUrl, access, published, sections: blocks } = form;
   const compareArticle = async () => {
+    // Сопоставляет реально прочитанную статью с отправленным снимком; совпадение подтверждает сохранение, различие оставляет локальный ввод.
+
     const id = creation?.media?.editingId ?? editingId;
     if (!id) return;
     const task = operation.begin("compare-article");
@@ -137,6 +141,8 @@ export function createArticleRevisionActions({
     }
   };
   const acceptArticleRevision = async () => {
+    // Требует новую серверную ревизию и согласие; сначала сохраняет редактируемый черновик с файлами, затем освобождает прежний журнал.
+
     if (!serverComparison || !editingId) return;
     const task = operation.begin("accept-article-revision");
     if (!task) return;

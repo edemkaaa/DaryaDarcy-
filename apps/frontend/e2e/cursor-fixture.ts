@@ -1,10 +1,12 @@
 /** Adapt existing synthetic catalogs to the new wire contract, not production requests. */
+/** Карта совместимости относится только к синтетическим ответам старых UI-сценариев; реальные запросы приложения она не переписывает. */
 export const legacyCursorFixture = {
   "feed.savedPostsPage": "feed.savedPosts",
   "admin.membersPage": "admin.members",
   "admin.paymentsPage": "admin.payments",
   "club.commentsPage": "club.comments",
 } as Record<string, string | undefined>;
+/** Разбиваем готовый fixture-каталог на страницы с тестовым курсором; фильтры сохранённого, участников и веток применяем до среза. */
 export function cursorFixture(
   reply: unknown,
   name: string,

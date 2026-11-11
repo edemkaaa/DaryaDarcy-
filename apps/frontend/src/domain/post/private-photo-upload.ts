@@ -19,15 +19,19 @@ export type PrivatePostPhotoApi = {
     signal: AbortSignal,
   ) => Promise<unknown>;
 };
+/** Создаём локальную ссылку по ключу намерения, пока серверный URL ещё не подтверждён. */
 export function privatePostPhotoReference(photo: PrivatePostPhoto): string {
   return `${prefix}${photo.key}`;
 }
+/** Проверяем исходник именно по назначению postPhoto, а не по более широкому документному контракту. */
 export function validatePrivatePostPhoto(photo: PrivatePostPhoto): void {
   validatePrivateContentFile(photo, "postPhoto");
 }
+/** Сверяем квитанцию с конкретным исходным файлом и назначением фото поста. */
 export function requirePrivatePostPhotoReceipt(value: unknown, file: File) {
   return requirePrivateContentReceipt(value, file, "postPhoto");
 }
+/** Разрешаем локальные ссылки в порядке поста, отвергая повторные ключи, повтор использования и потерянный исходник. */
 export function selectPrivatePostPhotos(
   references: string[],
   selected: PrivatePostPhoto[],
@@ -49,6 +53,7 @@ export function selectPrivatePostPhotos(
   }
   return result;
 }
+/** Заменяем local-photo только готовой канонической квитанцией; уже существующие серверные ссылки сохраняем. */
 export function resolvePrivatePostPhotos(
   references: string[],
   photos: PrivatePostPhoto[],
@@ -66,7 +71,7 @@ export function resolvePrivatePostPhotos(
     return receipt.url;
   });
 }
-/** Post references remain unchanged; the CF upload/status protocol is shared with articles. */
+/** Вызываем общий восстановимый private-content протокол; отсутствие API не переводит фото в публичную загрузку. Ссылки постов сохраняют прежний формат; upload/status общий со статьями. */
 export async function uploadPrivatePostPhoto(
   photo: PrivatePostPhoto,
   api: PrivatePostPhotoApi,

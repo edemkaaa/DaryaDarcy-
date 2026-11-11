@@ -11,6 +11,7 @@ import { completeMemberEmailBinding } from "./email-binding-lifecycle";
 type Transaction = Parameters<Parameters<MySql2Database["transaction"]>[0]>[0];
 
 /** Вызывающий код удерживает блокировку пользователя до завершения всей транзакции удаления. */
+/** В транзакции удаления владельца закрываем все его pending-привязки и их proof с аудитом; отсутствие обеих старых таблиц допустимо, частичная схема откатывает весь отзыв независимо от UI-флага. */
 export async function cancelDeletedUserEmailBindings(
   tx: Transaction,
   userId: number,

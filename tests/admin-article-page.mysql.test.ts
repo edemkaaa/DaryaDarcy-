@@ -12,19 +12,23 @@ import { openListPageFixture } from "./helpers/list-page-fixture";
 import { getDb } from "../apps/backend/src/db";
 import type { Pool } from "mysql2/promise";
 
+/** Проверяем короткие административные карточки и отдельное полное тело статьи через реальный HTTP с JWT. */
 describe.skipIf(!testDatabaseUrl)(
   "admin article cards/detail over HTTP/JWT/MySQL",
   () => {
     let fixture: Awaited<ReturnType<typeof openListPageFixture>>;
     const base = 944000;
+    /** Читаем страницу статей заданной ролью, используя общий loopback fixture. */
     const read = (input: object = {}, actor: number | null = 2) =>
       fixture.read("admin.articlesPage", input, actor);
+    /** Удаляем только собственные статьи из выделенного диапазона с тестовым префиксом. */
     const clear = async () => {
       await fixture.conn.query(
         "DELETE FROM articles WHERE id BETWEEN ? AND ? AND title LIKE 'ARTICLE_PAGE_%'",
         [base + 300, base + 399],
       );
     };
+    /** Создаём клубный черновик с большим секретным телом, одинаковой датой и заданным порядком для проверки проекции. */
     const article = async (i: number, sortOrder = 0) => {
       await fixture.conn.query(
         "INSERT INTO articles(id,title,access,published,sortOrder,sections,createdAt) VALUES(?,?,'club',FALSE,?,?,'2026-01-01')",
@@ -37,6 +41,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       return base + 300 + i;
     };
+    /** Поднимаем изолированную HTTP/SQL-фикстуру и совместимую таблицу статей при её отсутствии. */
     beforeAll(async () => {
       fixture = await openListPageFixture("article-page", base);
       await fixture.conn.query(`CREATE TABLE IF NOT EXISTS articles (
@@ -46,16 +51,19 @@ describe.skipIf(!testDatabaseUrl)(
       createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP) ENGINE=InnoDB`);
     });
+    /** Очищаем собственные статьи и сбрасываем акторов и данные общей фикстуры. */
     beforeEach(async () => {
       await clear();
       await fixture.reset();
     });
+    /** Удаляем свои статьи и закрываем fixture, включая HTTP и SQL-подключения. */
     afterAll(async () => {
       if (fixture) {
         await clear();
         await fixture.close();
       }
     });
+    /** Обходим 51 черновик страницами и проверяем не только ответ без sections, но и отсутствие чтения тяжёлого столбца в SQL. */
     it("pages 51 equal-date draft cards without reading sections into Node", async () => {
       const ids = [];
       for (let i = 0; i < 51; i++) ids.push(await article(i));
@@ -90,6 +98,7 @@ describe.skipIf(!testDatabaseUrl)(
         queries.mockRestore();
       }
     });
+    /** Удаление якоря и вставка более ранней карточки не меняют продолжение keyset по sortOrder/дате/id. */
     it("keeps sort-order traversal after anchor deletion and a new earlier card", async () => {
       const a = await article(0, 0),
         b = await article(1, 0),
@@ -104,6 +113,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(next.data.items.map((row) => row.id)).toEqual([a, c]);
       expect(next.data.nextCursor).toBe(null);
     });
+    /** Администратор получает выбранное полное тело, прочие роли и повреждённые курсоры отклоняются; отсутствующая статья остаётся null. */
     it("reads only a selected full draft for admin and rejects other roles/cursors", async () => {
       const id = await article(0);
       const detail = await fixture.read("admin.articleDetail", { id }, 2);

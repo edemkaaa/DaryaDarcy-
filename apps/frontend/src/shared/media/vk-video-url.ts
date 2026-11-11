@@ -1,7 +1,7 @@
 /** Экспортируемый адрес VK приводится к разрешённому формату плеера; ссылка на публикацию не равна адресу самого iframe. */
 const VK_PLAYER_HOSTS = new Set(["vk.com", "vk.ru", "vkvideo.ru"]);
 
-/** Accept the exported player URL, never arbitrary iframe HTML or a guessed hash. */
+/** Разбираем только экспортированный HTTPS-плеер VK с уникальными oid/id и необязательным валидным hash; лишние параметры отбрасываем, autoplay выключаем. */
 export function getVkVideoEmbedUrl(value: string): string | null {
   if (!value || value.length > 2048) return null;
   try {

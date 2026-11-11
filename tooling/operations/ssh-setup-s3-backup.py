@@ -32,6 +32,7 @@ client.connect(
 )
 
 # Upload scripts and config
+# Старые удалённые scripts-пути не совпадают с нынешним расположением; сверка путей нужна до загрузки.
 files = [
     (root / "tooling" / "operations" / "s3-media-backup.mjs", f"{REMOTE_ROOT}/scripts/s3-media-backup.mjs"),
     (
@@ -52,6 +53,7 @@ check_cmd = f"test -f {REMOTE_ENV} && echo EXISTS || echo MISSING"
 stdin, stdout, stderr = client.exec_command(check_cmd, timeout=30)
 exists = "EXISTS" in stdout.read().decode()
 
+# Исторический bootstrap переиспользует основной S3-ключ; отдельные минимальные права резервирования автоматически не создаются.
 if not exists:
     bootstrap = f"""mkdir -p /etc/daryadarcy
 cat > {REMOTE_ENV} << 'EOF'
@@ -92,6 +94,7 @@ cat /etc/cron.d/daryadarcy-s3-backup
 echo DONE
 """
 
+# Запускаются реальные настройка политики, первичная копия и cron; это не проверка только чтением.
 stdin, stdout, stderr = client.exec_command(setup_and_backup, timeout=3600)
 out = stdout.read().decode("utf-8", errors="replace")
 err = stderr.read().decode("utf-8", errors="replace")

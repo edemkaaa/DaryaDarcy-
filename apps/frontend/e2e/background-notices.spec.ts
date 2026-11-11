@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
 import { editorApi, failure, ok } from "./editor-fixtures";
 
+/** Длинные fixture-посты дают стабильное содержимое и scroll-anchor при фоновых ошибках. */
 const post = (id: number, target = "feed") => ({
   id,
   text: `NOTICE_POST_${id}. ${"Публикация для проверки прокрутки. ".repeat(12)}`,
@@ -17,13 +18,16 @@ const post = (id: number, target = "feed") => ({
   createdAt: "2026-10-01T12:00:00Z",
   publishedAt: "2026-10-01T12:00:00Z",
 });
+/** Все фоновые причины читаем из общего status-слота, не смешивая их с начальной блокирующей ошибкой. */
 const notice = (page: Page) =>
   page.locator("[data-background-notice] [role=status]");
+/** Продвигаем период обновления и ожидаемые автоматические retries через управляемые часы. */
 async function tick(page: Page) {
   await page.clock.fastForward(61_000);
   await page.clock.runFor(3_000);
 }
 
+/** Приоритет сессии заменяет content-warning в том же DOM-слоте; содержимое и scroll остаются, кнопки не перекрываются, общий retry объединяет запросы. */
 for (const width of [320, 390, 1440, 1920]) {
   test(`background failures share a stable slot above navigation and controls (${width}px)`, async ({
     page,
@@ -125,6 +129,7 @@ for (const width of [320, 390, 1440, 1920]) {
   });
 }
 
+/** Retained-профиль сохраняет подтверждённые закладки при обновлении с ошибкой; предупреждение скрыто вне своего экрана и возвращается вместе с ним. */
 test("profile keeps cached bookmarks and hides its warning after leaving", async ({
   page,
 }) => {
@@ -170,6 +175,7 @@ test("profile keeps cached bookmarks and hides its warning after leaving", async
   await expect(notice(page)).toHaveCount(0);
 });
 
+/** Проверяем один recovery-action для сессии, подписки и кеша, считая ровно по одному новому read после снятия отказов. */
 test("session, subscription and cached content failures have one recovery action", async ({
   page,
 }) => {
@@ -233,6 +239,7 @@ test("session, subscription and cached content failures have one recovery action
   await expect(bookmark).toBeVisible();
 });
 
+/** Клубный warning следует фактической высоте внутреннего меню; открытый редактор делает его inert. */
 for (const width of [320, 390, 1440]) {
   test(`club warning follows the actual club navigation height and stays behind dialogs (${width}px)`, async ({
     page,

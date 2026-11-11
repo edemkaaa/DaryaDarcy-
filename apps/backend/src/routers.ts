@@ -29,6 +29,7 @@ import { ClubSubscriptionService } from "./billing/club-subscription.service";
 import type { BillingServices } from "./billing/billing.module";
 
 /** Composition only: input validation, authorization and behavior live in domains. */
+/** Объединяет доменные фабрики с конкретными сервисами приложения; валидация, доступ и SQL-поведение остаются у доменов. */
 export const createAppRouter = (
   content: ContentReadService,
   posts: ContentWriteService,

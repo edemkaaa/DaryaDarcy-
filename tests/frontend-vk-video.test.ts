@@ -1,8 +1,11 @@
+/** Клиент принимает только однозначный экспорт VK-плеера и запрещает autoplay при открытии карточки. */
 import { describe, expect, it } from "vitest";
 import { getVkVideoEmbedUrl } from "../apps/frontend/src/shared/media/vk-video-url";
 
 const query = "oid=-227034863&id=456239527&hash=99fae216cf20dcdc";
+/** Матрица host/query проверяет нормализацию URL, не доступность самого VK. */
 describe("exported VK player sources", () => {
+  /** Публичному export hash не обязателен; autoplay всегда нормализуется в 0. */
   it.each(["vk.com", "vk.ru", "vkvideo.ru"])(
     "accepts an export without an access hash on %s",
     (host) => {
@@ -13,6 +16,7 @@ describe("exported VK player sources", () => {
       ).toBe(`https://${host}/video_ext.php?oid=-1&id=2&autoplay=0`);
     },
   );
+  /** Сохраняем oid/id/hash и допустимое hd, удаляя чужие параметры и fragment. */
   it.each(["vk.com", "vk.ru", "vkvideo.ru"])(
     "keeps the exported identity and hash on %s without autoplay or foreign parameters",
     (host) => {
@@ -24,6 +28,7 @@ describe("exported VK player sources", () => {
       );
     },
   );
+  /** Неподходящий transport/origin, credentials, повторные ключи, iframe HTML и повреждённые идентификаторы не допускаются. */
   it.each([
     `http://vk.com/video_ext.php?${query}`,
     `https://vk.com.foreign.test/video_ext.php?${query}`,

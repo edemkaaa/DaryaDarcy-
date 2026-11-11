@@ -31,6 +31,7 @@ import {
   normalCheckoutStatusResult,
 } from "../billing/normal-checkout";
 
+/** Разделяет публичный checkout, защищённые действия подписки/комментариев и member-only списки; входные proof/ключи не заменяют сессию actor. */
 export const createClubRouter = (
   comments: ContentCommentService,
   billing: ClubBillingServices,

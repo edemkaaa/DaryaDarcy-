@@ -23,6 +23,7 @@ type Props = {
   onDenied: (error: unknown) => void;
   onMissing: (parentId: number) => void;
 };
+/** Не загружаем ответы до явного раскрытия; отдельный keyed родитель владеет своей цепочкой страниц. */
 export function CommentReplies(props: Props) {
   const [open, setOpen] = useState(false);
   if (!props.count) return null;
@@ -36,6 +37,7 @@ export function CommentReplies(props: Props) {
     </Action>
   );
 }
+/** Читаем ответы одного родителя в account-scope; 404 ветки не трактуем как потерю доступа ко всему посту. */
 function ReplyGroup({
   postId,
   parentId,
@@ -57,6 +59,7 @@ function ReplyGroup({
     fetchPage: (cursor, signal) =>
       utils.client.club.commentsPage.query({ ...input, cursor }, { signal }),
   });
+  /** Передаём наверх только отказ доступа; исчезнувший родитель остаётся локальным состоянием этой ветки. */
   useEffect(() => {
     if (page.denied && getHttpStatus(page.error) !== 404) onDenied(page.error);
   }, [page.denied, page.error, onDenied]);

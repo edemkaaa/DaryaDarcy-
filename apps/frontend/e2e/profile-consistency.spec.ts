@@ -1,3 +1,4 @@
+/** Браузерные сценарии профиля на полностью подменённых API: ревизии имени/анкеты, crop и durable receipt аватара, потеря ответа, ошибки storage и смена владельца. Настоящие аккаунты и S3 не используются. */
 import { test, expect, type Page } from "@playwright/test";
 import sharp from "sharp";
 import { writeFile, rm } from "node:fs/promises";
@@ -6,11 +7,13 @@ import { editorApi, ok, failure } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
 // Large padded JPEGs belong only to this test, never retain them as artifacts.
+/** Удаляем лишь два больших JPEG, созданных сценарием в его outputDir: padded fixtures не должны оставаться артефактами. */
 test.afterEach(async ({}, info) => {
   for (const filename of ["large-avatar.jpg", "oversized-avatar.jpg"])
     await rm(join(info.outputDir, filename), { force: true });
 });
 
+/** Позволяет задержать ответ чтения или записи до выбранной точки гонки и обязательно освободить его в finally. */
 function barrier() {
   let release!: () => void;
   const promise = new Promise<void>((resolve) => {
@@ -18,6 +21,7 @@ function barrier() {
   });
   return { promise, release };
 }
+/** Создаёт управляемую модель пользователя, ревизий и upload receipts; внешние origin блокируются, реальный сервер и SMTP не затрагиваются. */
 async function profileApi(page: Page) {
   const state = {
     user: {
@@ -65,6 +69,7 @@ async function profileApi(page: Page) {
         isOwner: false,
         monthlyPrice: "790",
       });
+/** Модель различает отказ до commit и потерю ответа после него, сохраняя optimistic revision semantics. */
     if (name === "profile.update") {
       state.writes.push(input);
       if (state.mode === "reject") return failure(400);
@@ -80,6 +85,7 @@ async function profileApi(page: Page) {
         ? failure(503)
         : ok({ success: true, profileRevision: state.user.profileRevision });
     }
+/** Upload удерживает ссылку на исходного пользователя, чтобы поздний результат не переписал новую личность в тестовой модели. */
     if (name === "profile.uploadAvatarWithReceipt") {
       state.avatarWrites.push(input);
       const uploadingUser = state.user;
@@ -99,6 +105,7 @@ async function profileApi(page: Page) {
         },
       );
     }
+/** Status возвращает только результат того же ключа; missing, pending, ready и инфраструктурный отказ моделируются независимо. */
     if (name === "profile.avatarUploadStatus") {
       state.avatarStatuses.push(input);
       if (state.avatarStatusFails) return failure(503);
@@ -117,6 +124,7 @@ async function profileApi(page: Page) {
     }
     if (name === "feed.savedPosts") return ok([]);
   });
+/** Снимок личности берётся до барьера: можно вернуть старый pre-write ответ уже после успешной записи. */
   await page.route("**/api/auth/me", async (route) => {
     const user = { ...state.user };
     if (state.holdNextRead) {
@@ -141,6 +149,7 @@ async function profileApi(page: Page) {
 }
 
 for (const ime of ["composition", "keyCode 229"] as const) {
+  /** Enter во время composition или legacy keyCode229 не сохраняет промежуточный текст; запись разрешена после compositionend. */
   test(`profile name waits for IME ${ime} to finish before saving`, async ({
     page,
   }) => {
@@ -176,6 +185,7 @@ for (const ime of ["composition", "keyCode 229"] as const) {
 }
 
 for (const width of [390, 1280]) {
+  /** Локальные устаревшие name/gender/avatar не синхронизируются на сервер от самого входа в Клуб/профиль. */
   test(`opening Club and profile never uploads stale local name, gender or avatar (${width}px)`, async ({
     page,
   }) => {
@@ -214,6 +224,7 @@ for (const width of [390, 1280]) {
   });
 }
 
+/** Blur не сохраняет имя; поздний ответ прежнего refresh не отменяет подтверждённое явное сохранение. */
 test("name changes require an explicit save and supersede a delayed pre-write session read", async ({
   page,
 }) => {
@@ -253,6 +264,7 @@ test("name changes require an explicit save and supersede a delayed pre-write se
 });
 
 for (const committed of [false, true]) {
+  /** Потерянный ответ анкеты блокирует повтор до чтения профиля; commit и отсутствие commit различаются без потери ввода. */
   test(`unknown club setup result is checked before retry, committed=${committed}`, async ({
     page,
   }) => {
@@ -314,6 +326,7 @@ for (const committed of [false, true]) {
   });
 }
 
+/** Известный 400 сохраняет редактируемый черновик, а старый completed flag не скрывает незаполненный серверный профиль. */
 test("a rejected setup keeps an editable draft across reload and never trusts the old completed flag", async ({
   page,
 }) => {
@@ -343,6 +356,7 @@ test("a rejected setup keeps an editable draft across reload and never trusts th
 });
 
 for (const committed of [false, true]) {
+  /** Имя после неопределённой записи не отправляется снова до сверки; reload сохраняет ввод и неопределённое состояние. */
   test(`unknown name write requires a read before another write, committed=${committed}`, async ({
     page,
   }) => {
@@ -391,6 +405,7 @@ for (const committed of [false, true]) {
 }
 
 for (const sourceMiB of [30, 50]) {
+  /** JPEG с padding30/50MiB проверяет лимит исходных bytes отдельно от пикселей; upload содержит только cropped PNG до4MiB. */
   test(`a ${sourceMiB} MiB avatar source is cropped and uploaded within the server limit`, async ({
     page,
   }) => {
@@ -434,6 +449,7 @@ for (const sourceMiB of [30, 50]) {
   });
 }
 
+/** Превышение исходного лимита вызывает понятный отказ до crop и сетевой записи. */
 test("an avatar above 50 MiB is rejected before cropping or uploading", async ({
   page,
 }) => {
@@ -458,6 +474,7 @@ test("an avatar above 50 MiB is rejected before cropping or uploading", async ({
   expect(state.avatarWrites).toEqual([]);
 });
 
+/** При отказе upload остаются старый подтверждённый avatar и отдельный черновик; повтор не меняет имя. */
 test("failed photo upload retains a labeled draft and never changes name or the confirmed avatar", async ({
   page,
 }) => {
@@ -505,6 +522,7 @@ test("failed photo upload retains a labeled draft and never changes name or the 
   expect(state.user.name).toBe("Server name");
 });
 
+/** Портретная геометрия не оставляет пустых боковых полей в квадратном crop; проверяются decoded RGB пиксели. */
 test("portrait avatar crop contains photo pixels across the full square", async ({
   page,
 }) => {
@@ -535,6 +553,7 @@ test("portrait avatar crop contains photo pixels across the full square", async 
     .removeAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
+  /** Проверяем реальные пиксели результата crop по краям и центру, а не только размеры PNG. */
   const pixelAt = (x: number) => {
     const offset = (Math.floor(info.height / 2) * info.width + x) * 3;
     return {
@@ -551,6 +570,7 @@ test("portrait avatar crop contains photo pixels across the full square", async 
   }
 });
 
+/** После session-change поздний ACK первого владельца не меняет имя или draft второго. */
 test("a late name ACK cannot replace a different account", async ({ page }) => {
   const { state } = await profileApi(page);
   const gate = barrier();
@@ -599,6 +619,7 @@ test("a late name ACK cannot replace a different account", async ({ page }) => {
   }
 });
 
+/** Искусственный canvas failure сохраняет выбор файла и допускает новый crop, не обходя его отправкой original. */
 test("failed avatar cropping retains the selection and retries without uploading the original", async ({
   page,
 }) => {
@@ -648,6 +669,7 @@ test("failed avatar cropping retains the selection and retries without uploading
 });
 
 for (const outcome of ["cancel", "timeout"] as const) {
+  /** Зависшее декодирование поддерживает cancel и deadline; ни один исход не запускает upload. */
   test(`a stalled avatar crop supports ${outcome} without uploading`, async ({
     page,
   }) => {
@@ -695,6 +717,7 @@ for (const outcome of ["cancel", "timeout"] as const) {
   });
 }
 
+/** После crop error кнопки доступны даже при320×400 и не перекрыты слоем диалога. */
 test("avatar crop error keeps retry and cancel reachable in a short viewport", async ({
   page,
 }) => {
@@ -741,6 +764,7 @@ test("avatar crop error keeps retry and cancel reachable in a short viewport", a
   ).toBeVisible();
 });
 
+/** Проходит настоящий UI выбора файла и подтверждения crop; сеть остаётся под fixtures. */
 async function chooseAvatar(page: Page, raster: Buffer) {
   const chooser = page.waitForEvent("filechooser");
   await page
@@ -751,25 +775,32 @@ async function chooseAvatar(page: Page, raster: Buffer) {
   ).setFiles({ name: "photo.png", mimeType: "image/png", buffer: raster });
   await page.getByRole("button", { name: "Готово", exact: true }).click();
 }
+/** Находит отдельное действие проверки результата, не повтор самой загрузки. */
 const checkAvatar = (page: Page) =>
   page.getByRole("button", { name: "Повторить", exact: true });
+/** Находит явный повтор исходного durable upload после проверки статуса. */
 const retryAvatar = (page: Page) =>
   page.getByRole("button", { name: "Повторить загрузку фото", exact: true });
+/** Читает точную owner-scoped запись браузерного журнала для проверки сохранения ключа и исходных bytes. */
 const avatarJournal = (page: Page) =>
   page.evaluate(() => {
     const raw = localStorage.getItem("darcy:user:101:avatar-upload");
     return raw ? JSON.parse(raw) : null;
   });
 
+/** Повреждённые доказательства нельзя удалить или заменить новым upload без явного подтверждения и проверки текущего профиля/receipt. */
 test.describe("damaged avatar journal", () => {
   const key = "darcy:user:101:avatar-upload";
+  /** Выбирает явное действие сброса повреждённого журнала, требующее пользовательского подтверждения. */
   const reset = (page: Page) =>
     page.getByRole("button", {
       name: "Сбросить черновик",
       exact: true,
     });
+  /** Состояние picker показывает, удерживается ли защитная блокировка незавершённой/повреждённой операции. */
   const choose = (page: Page) =>
     page.getByRole("button", { name: "Выбрать фото профиля", exact: true });
+  /** Устанавливает повреждённый durable record после загрузки профиля и проверяет, что reload не разрешает новый upload молча. */
   async function damaged(page: Page, raw = "{damaged") {
     const fixture = await profileApi(page);
     await gotoWithSession(page, "/profile");
@@ -782,6 +813,7 @@ test.describe("damaged avatar journal", () => {
     await expect(choose(page)).toBeDisabled();
     return fixture;
   }
+  /** Экспорт сохраняет исходную повреждённую строку; cancel ничего не меняет, разрешённый reset сначала обновляет подтверждённый профиль. */
   test("downloads the exact copy, respects cancel and enables an explicit new upload after checking the profile", async ({
     page,
   }) => {
@@ -818,6 +850,7 @@ test.describe("damaged avatar journal", () => {
     await expect.poll(() => state.avatarWrites.length).toBe(1);
     await expect(choose(page)).toBeEnabled();
   });
+  /** Даже повреждённый payload с читаемым ключом нельзя сбросить, пока сервер подтверждает pending. */
   test("keeps a recoverable receipt key locked while its upload is pending", async ({
     page,
   }) => {
@@ -850,6 +883,7 @@ test.describe("damaged avatar journal", () => {
     );
     expect(state.avatarWrites).toEqual([]);
   });
+  /** При замене durable record проверяется новый сохранённый ключ, а не устаревший intent из памяти. */
   test("checks the damaged replacement's receipt even when an older intent remains in memory", async ({
     page,
   }) => {
@@ -890,6 +924,7 @@ test.describe("damaged avatar journal", () => {
     await expect(choose(page)).toBeDisabled();
     expect(state.avatarWrites).toHaveLength(1);
   });
+  /** 503 чтения профиля не разрешает сброс доказательств и новую загрузку. */
   test("a failed profile check does not remove the damaged record", async ({
     page,
   }) => {
@@ -907,6 +942,7 @@ test.describe("damaged avatar journal", () => {
     expect(state.avatarWrites).toEqual([]);
   });
   for (const outcome of ["status unavailable", "invalid receipt"] as const) {
+    /** Недоступный status или невалидная ready-квитанция останавливают reset до чтения профиля и сохраняют исходную запись. */
     test(`reset preserves the damaged record when ${outcome}`, async ({
       page,
     }) => {
@@ -956,6 +992,7 @@ test.describe("damaged avatar journal", () => {
       ).toBeNull();
     });
   }
+  /** CAS-проверка после ожидания не удаляет новую операцию, записанную соседней вкладкой. */
   test("does not remove a valid replacement installed during the profile check", async ({
     page,
     context,
@@ -996,6 +1033,7 @@ test.describe("damaged avatar journal", () => {
       state.readGate.release();
     }
   });
+  /** Смена личности отменяет reset и сохраняет owner-scoped запись первого аккаунта. */
   test("an account switch cancels reset without clearing the previous owner's record", async ({
     page,
   }) => {
@@ -1033,6 +1071,7 @@ test.describe("damaged avatar journal", () => {
       state.readGate.release();
     }
   });
+  /** Неуспешный removeItem нельзя принять за очистку: picker остаётся закрыт, повтор reset доступен. */
   test("a failed local removal keeps reset available and the picker locked", async ({
     page,
   }) => {
@@ -1057,7 +1096,9 @@ test.describe("damaged avatar journal", () => {
   });
 });
 
+/** Восстановление проверяет именно сохранённую операцию, различает ready/current и требует явного повтора неизменённых bytes. */
 test.describe("avatar receipt recovery", () => {
+  /** Ready после reload завершает исходный intent одним status чтением без повторной записи фото. */
   test("a lost committed response survives reload and is checked without uploading again", async ({
     page,
   }) => {
@@ -1085,6 +1126,7 @@ test.describe("avatar receipt recovery", () => {
   });
 
   for (const pending of [false, true]) {
+    /** Pending/missing после проверки разрешают только явный повтор тех же bytes и key, не новую операцию. */
     test(`${pending ? "pending" : "missing"} receipt retries exactly the saved bytes and key after reload`, async ({
       page,
     }) => {
@@ -1109,6 +1151,7 @@ test.describe("avatar receipt recovery", () => {
     });
   }
 
+  /** Повтор сначала перечитывает status: готовая другая вкладка завершает операцию без второго upload. */
   test("a ready receipt discovered on retry avoids a second upload", async ({
     page,
   }) => {
@@ -1129,6 +1172,7 @@ test.describe("avatar receipt recovery", () => {
     expect(state.avatarWrites).toHaveLength(1);
   });
 
+  /** Устаревшая ready-квитанция не накладывает прежний аватар поверх более нового server profile. */
   test("an old ready receipt reads the current profile without reapplying the old avatar", async ({
     page,
   }) => {
@@ -1151,6 +1195,7 @@ test.describe("avatar receipt recovery", () => {
     expect(state.avatarWrites).toHaveLength(1);
   });
 
+  /** Инфраструктурный отказ status сохраняет неопределённость и не показывает кнопку слепого повтора. */
   test("status 503 preserves the intent and prevents a blind retry", async ({
     page,
   }) => {
@@ -1169,6 +1214,7 @@ test.describe("avatar receipt recovery", () => {
     expect(state.avatarWrites).toHaveLength(1);
   });
 
+  /** 409 закрывает конфликтный intent; новый выбранный файл получает другой ключ. */
   test("a conflict stops retries and allows only an explicit new photo", async ({
     page,
   }) => {
@@ -1195,6 +1241,7 @@ test.describe("avatar receipt recovery", () => {
     );
   });
 
+  /** Небезопасный URL/тип флага в ready не принимается за успешную загрузку и не стирает доказательства. */
   test("an invalid ready receipt keeps recovery available", async ({
     page,
   }) => {
@@ -1213,6 +1260,7 @@ test.describe("avatar receipt recovery", () => {
     expect(state.avatarWrites).toHaveLength(1);
   });
 
+  /** До успешного durable checkpoint upload не отправляется, даже если File и crop уже готовы. */
   test("storage failure blocks upload until the exact draft can be saved", async ({
     page,
   }) => {
@@ -1251,6 +1299,7 @@ test.describe("avatar receipt recovery", () => {
     expect(state.avatarWrites).toHaveLength(1);
   });
 
+  /** После входа другого пользователя его UI не показывает и не проверяет журнал первого. */
   test("another account never sees or sends the previous owner's pending photo", async ({
     page,
   }) => {
@@ -1275,6 +1324,7 @@ test.describe("avatar receipt recovery", () => {
   });
 });
 
+/** Поздний upload ACK не меняет вторую личность и не инициирует status от её имени. */
 test("a delayed avatar response cannot update the next account", async ({
   page,
 }) => {
@@ -1320,6 +1370,7 @@ test("a delayed avatar response cannot update the next account", async ({
   }
 });
 
+/** Один внешний click закрывает форму без записи; повторное открытие возвращает несохранённый ввод. */
 test("name editor closes on the first click beside the input and retains an unsaved draft", async ({
   page,
 }) => {
@@ -1348,6 +1399,7 @@ test("name editor closes on the first click beside the input and retains an unsa
   expect(state.writes).toHaveLength(1);
 });
 
+/** Конфликт ревизий сохраняет ввод; после чтения нужна явная команда использовать свой черновик. */
 test("a stale name revision preserves the draft and needs an explicit reviewed retry", async ({
   page,
 }) => {
@@ -1388,6 +1440,7 @@ test("a stale name revision preserves the draft and needs an explicit reviewed r
 });
 
 for (const form of ["name", "setup"] as const) {
+  /** Имя и анкета удерживают исходную ревизию через reload и отдельный review; свежая сессия не обновляет её молча. */
   test(`${form} draft retains its original revision through reload and reviewed recovery`, async ({
     page,
   }) => {
@@ -1396,6 +1449,7 @@ for (const form of ["name", "setup"] as const) {
       state.user.name = null;
       state.user.gender = null;
     }
+    /** Повторно открывает имя или club setup с актуальным server profile, не сбрасывая сохранённую ревизию черновика. */
     const open = async () => {
       await gotoWithSession(page, form === "name" ? "/profile" : "/club");
       if (form === "name")
@@ -1457,6 +1511,7 @@ for (const form of ["name", "setup"] as const) {
     expect(state.writes.map((w) => w.expectedRevision)).toEqual([0, 1]);
   });
 
+  /** Старый draft без ревизии нельзя отправлять до свежего чтения и осознанного подтверждения сравнения. */
   test(`${form} legacy draft requires a fresh read and explicit review`, async ({
     page,
   }) => {
@@ -1511,6 +1566,7 @@ for (const form of ["name", "setup"] as const) {
   });
 }
 
+/** Escape и последующее обновление профиля не дают старому draft новую server revision без review. */
 test("closing and reopening a name draft never upgrades its original revision", async ({
   page,
 }) => {
@@ -1540,6 +1596,7 @@ test("closing and reopening a name draft never upgrades its original revision", 
 });
 
 for (const form of ["name", "setup"] as const) {
+  /** Ошибка записи результата review сохраняет исходный pending/input и блокировку после reload, не разрешая повтор mutation. */
   test(`${form} recovery keeps pending input when persisting the review fails`, async ({
     page,
   }) => {
@@ -1619,6 +1676,7 @@ for (const form of ["name", "setup"] as const) {
   });
 }
 
+/** Без серверной ревизии запись запрещена отдельным понятным сообщением, не маскируется проблемой storage. */
 test("missing profile revision blocks a write independently of storage errors", async ({
   page,
 }) => {
@@ -1641,6 +1699,7 @@ test("missing profile revision blocks a write independently of storage errors", 
   expect(state.writes).toHaveLength(0);
 });
 
+/** Если принятие сравнения не сохранилось, старый comparison остаётся в storage и save продолжает блокироваться. */
 test("a failed review confirmation keeps saving blocked and the persisted comparison intact", async ({
   page,
 }) => {

@@ -32,6 +32,7 @@ export type ProfileDraftValues = z.infer<typeof values>;
 export type ProfileDraft = z.infer<typeof draft>;
 export type ProfileInput = { name?: string; gender?: "female" | "male" };
 
+/** Фиксируем базовые редактируемые поля и ревизию; отсутствие revision сохраняем явно, не подставляя новую серверную базу. */
 export function profileSnapshot(user: {
   profileRevision?: number;
   name?: string | null;
@@ -44,7 +45,7 @@ export function profileSnapshot(user: {
   };
 }
 
-/** A legacy draft keeps its input, but never inherits the current server revision. */
+/** Восстанавливаем только своего владельца; legacy-ввод сохраняем для явной сверки с revision=null, а неизвестную версию не затираем. */
 export function restoreProfileDraft(
   raw: string | null,
   ownerId: number,

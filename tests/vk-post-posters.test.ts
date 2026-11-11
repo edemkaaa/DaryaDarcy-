@@ -1,5 +1,7 @@
+/** Подменёнными VK HTML/CDN и storage проверяем безопасное автоматическое получение устойчивой обложки поста; настоящий VK и S3 не используются. */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const stored = "https://s3.twcstorage.ru/daryadarcy-s3/covers/vk-v1/cover.webp";
+/** Модуль сохранения подменяется до импорта resolver, чтобы никакой preview не записывался в S3. */
 const storage = vi.hoisted(() => ({ save: vi.fn() }));
 vi.mock("../apps/backend/src/media/vk-poster-object", () => ({
   saveVkPoster: storage.save,
@@ -10,6 +12,7 @@ const link =
   "https://vkvideo.ru/video_ext.php?oid=-211171256&id=456239243&hash=a1b2c3d4e5f60708&autoplay=0";
 const small = "https://sun9-8.userapi.com/cover.jpg?size=320x180&sign=small";
 const large = "https://sun9-8.userapi.com/cover.jpg?size=1280x720&sign=large";
+/** Строит inert HTML fixture с video.get metadata; overrides моделируют чужое видео, unsafe image и first-frame fallback. */
 function page(overrides: Record<string, unknown> = {}) {
   const value = {
     apiPrefetchCache: [
@@ -35,6 +38,7 @@ function page(overrides: Record<string, unknown> = {}) {
   };
   return `<script>;window.cur = Object.assign(window.cur || {}, ${JSON.stringify(value)}, {screen:"embed"}); otherCode();</script>`;
 }
+/** Отделяет фиксированный VK metadata-host от CDN-ответа с минимальной JPEG-сигнатурой. */
 const transport = (html = page()) =>
   vi.fn<typeof fetch>().mockImplementation(async (destination) =>
     new URL(String(destination)).hostname === "vk.com"
@@ -44,10 +48,13 @@ const transport = (html = page()) =>
         }),
   );
 
+/** Обложка выдаётся только после безопасного разбора metadata, проверки изображения и сохранения собственной копии. */
 describe("VK post covers", () => {
+  /** Сбрасываем storage mock и возвращаем подтверждённый устойчивый URL для нового сценария. */
   beforeEach(() => {
     storage.save.mockReset().mockResolvedValue(stored);
   });
+  /** Дубликаты ссылок объединяются, export hash сохраняется, а signed image URL не переписывается произвольными параметрами. */
   it("uses the exact hash at a fixed VK host and keeps the largest signed image intact", async () => {
     const fetchImpl = transport();
     const result = await resolveVkPostPosters([link, link], { fetchImpl });
@@ -62,6 +69,7 @@ describe("VK post covers", () => {
     expect(String(fetchImpl.mock.calls[1][0])).toBe(large);
     expect(storage.save).toHaveBeenCalledTimes(1);
   });
+  /** После отказа основной обложки допускается согласованный first-frame из безопасного CDN. */
   it("falls back to a matching VK first frame when the cover CDN refuses it", async () => {
     const frame =
       "https://iv.okcdn.ru/getVideoPreview?id=own-video&tkn=synthetic";
@@ -82,12 +90,14 @@ describe("VK post covers", () => {
     );
     expect(fetchImpl).toHaveBeenCalledTimes(3);
   });
+  /** Ошибка storage не приводит к выдаче временной signed VK-ссылки вместо устойчивой копии. */
   it("does not return a transient VK URL if storing its stable copy fails", async () => {
     storage.save.mockRejectedValue(new Error("storage unavailable"));
     expect(
       (await resolveVkPostPosters([link], { fetchImpl: transport() })).size,
     ).toBe(0);
   });
+  /** Невалидный host, share wall, приватный API и повтор ID отвергаются до любого fetch. */
   it("never requests arbitrary hosts, share pages, private uploads or duplicate parameters", async () => {
     const fetchImpl = transport();
     expect(
@@ -106,6 +116,7 @@ describe("VK post covers", () => {
     ).toBe(0);
     expect(fetchImpl).not.toHaveBeenCalled();
   });
+  /** Metadata обязана соответствовать owner/video и содержать HTTPS URL допустимого CDN с корректными размерами. */
   it.each([
     { id: 456239244 },
     { owner_id: 1 },
@@ -136,6 +147,7 @@ describe("VK post covers", () => {
       ).size,
     ).toBe(0);
   });
+  /** Padding учитывается отдельно от геометрического размера, чтобы большая картинка с полями не выигрывала автоматически. */
   it("prefers a real unpadded image over a larger padded thumbnail", async () => {
     const html = page({
       image: [
@@ -149,6 +161,7 @@ describe("VK post covers", () => {
       ),
     ).toBe(stored);
   });
+  /** Отказ VK и повреждённый JSON не ломают сохранение поста; содержимое script никогда не исполняется. */
   it.each([
     "<html>Access denied</html>",
     "window.cur = Object.assign(window.cur || {}, {malformed});",
@@ -157,6 +170,7 @@ describe("VK post covers", () => {
       (await resolveVkPostPosters([link], { fetchImpl: transport(html) })).size,
     ).toBe(0);
   });
+  /** Разделители внутри JSON-строк не должны оборвать extraction или превратиться в исполняемый код. */
   it("handles JSON strings containing braces and script-like text as data", async () => {
     expect(
       (
@@ -166,6 +180,7 @@ describe("VK post covers", () => {
       ).get(link),
     ).toBe(stored);
   });
+  /** 403, network exception и превышение HTML-лимита дают отсутствие обложки, а не отказ основной операции. */
   it("does not turn refusal, network errors or oversized bodies into a save failure", async () => {
     for (const fetchImpl of [
       vi
@@ -176,6 +191,7 @@ describe("VK post covers", () => {
     ])
       expect((await resolveVkPostPosters([link], { fetchImpl })).size).toBe(0);
   });
+  /** HTTP успех без картинки и 403/404/429 одинаково запрещают сохранение невалидного preview. */
   it.each([403, 404, 429, 200])(
     "does not persist metadata for a missing/non-image cover (%s)",
     async (status) => {
@@ -189,6 +205,7 @@ describe("VK post covers", () => {
       expect((await resolveVkPostPosters([link], { fetchImpl })).size).toBe(0);
     },
   );
+  /** MIME не заменяет проверку сигнатуры и лимита тела изображения. */
   it("checks image bytes and rejects an oversized preview", async () => {
     for (const response of [
       new Response("fake JPEG", { headers: { "Content-Type": "image/jpeg" } }),
@@ -209,6 +226,7 @@ describe("VK post covers", () => {
       expect((await resolveVkPostPosters([link], { fetchImpl })).size).toBe(0);
     }
   });
+  /** Общий deadline охватывает зависшее тело CDN и вызывает отмену stream. */
   it("cancels a stalled image body under the same save deadline", async () => {
     let cancelled = false;
     const fetchImpl = vi.fn<typeof fetch>().mockImplementation(async (url) =>
@@ -230,6 +248,7 @@ describe("VK post covers", () => {
     ).toBe(0);
     expect(cancelled).toBe(true);
   });
+  /** Та же отмена действует на metadata stream после заголовков, не только на ожидание fetch. */
   it("cancels a body stalled after headers when the shared deadline expires", async () => {
     let cancelled = false;
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
@@ -246,6 +265,7 @@ describe("VK post covers", () => {
     ).toBe(0);
     expect(cancelled).toBe(true);
   });
+  /** Одна операция сохранения не превращается в неограниченное число VK metadata запросов. */
   it("bounds lookups per save", async () => {
     const fetchImpl = transport();
     await resolveVkPostPosters(

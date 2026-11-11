@@ -1,3 +1,5 @@
+/* Архивные стили Vite: шрифты, общая оболочка, карточки и композиция прежней главной. Действующий Next-клиент использует собственные SCSS-модули. */
+/* Архивные локальные начертания; font-display swap сохраняет видимый текст до загрузки шрифта. */
 @font-face {
   font-family: "EBGaramond";
   src: url("/fonts/EBGaramond-Regular.ttf") format("truetype");
@@ -57,6 +59,7 @@
   font-display: swap;
 }
 
+/* Токены прежней палитры и бумажного фона; значения не связаны с темой текущего Next-клиента. */
 :root {
   --cream: #fdf8f0;
   --cream-soft: #f5ede0;
@@ -80,6 +83,7 @@ img { max-width: 100%; display: block; }
 button, input { font-family: inherit; }
 .italic { font-style: italic; }
 
+/* Статическая заставка соответствует Suspense fallback старого App. */
 .boot {
   min-height: 100vh;
   display: flex;
@@ -97,6 +101,7 @@ button, input { font-family: inherit; }
 }
 .boot-line { width: 120px; height: 1px; background: var(--border); }
 
+/* Оболочка резервирует место для фиксированной нижней навигации. */
 .app {
   min-height: 100vh;
   background-color: var(--cream);
@@ -106,6 +111,7 @@ button, input { font-family: inherit; }
   padding-bottom: 88px;
 }
 
+/* Шапка имеет два режима: overlay на главной и sticky на внутренних страницах. */
 .topbar {
   display: flex;
   justify-content: space-between;
@@ -131,6 +137,7 @@ button, input { font-family: inherit; }
   display: flex;
 }
 
+/* Шесть вкладок закреплены снизу; отступ оболочки предотвращает перекрытие содержимого. */
 .tabs {
   position: fixed;
   left: 0; right: 0; bottom: 0;
@@ -155,6 +162,7 @@ button, input { font-family: inherit; }
 }
 .tabs a.active { color: var(--brown); font-weight: 600; }
 
+/* Общие ограничения колонки, карточки, поля и состояния внутренних экранов. */
 .page { padding: 8px 16px 24px; max-width: 720px; margin: 0 auto; }
 .kicker { letter-spacing: 0.28em; font-size: 12px; opacity: .9; }
 h1, h2 { font-family: "PlayfairDisplay", Georgia, serif; font-weight: 400; }
@@ -244,6 +252,7 @@ h2 { font-size: 22px; margin: 0 0 10px; }
 .login-page form { text-align: left; margin: 16px 0; }
 .about-gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; }
 .about-gallery img { margin: 0; border-radius: 10px; }
+/* Прежний hero обрезает изображение через object-fit cover; это ожидаемая геометрия архива. */
 .hero {
   position: relative;
   height: 42vh;
@@ -254,6 +263,7 @@ h2 { font-size: 22px; margin: 0 0 10px; }
 }
 .hero img { width: 100%; height: 100%; object-fit: cover; }
 
+/* Секции старой главной завязаны на абсолютные слои и размеры исходных декоративных изображений. */
 /* Home — original layout */
 .home { overflow-x: hidden; }
 .home-hero {
@@ -324,6 +334,7 @@ h2 { font-size: 22px; margin: 0 0 10px; }
   object-fit: cover;
 }
 .home-about-dim { background: rgba(0,0,0,.3); }
+/* Медальон намеренно заходит выше своего блока; соседние размеры удерживают композицию. */
 .home-medallion {
   position: absolute;
   top: -35vw;
@@ -371,6 +382,7 @@ h2 { font-size: 22px; margin: 0 0 10px; }
   letter-spacing: 1px;
   font-size: 14px;
 }
+/* Разворот книги смещён за границу контейнера; текст привязан к его иллюстрации. */
 .home-book { display: block; overflow: hidden; margin-top: -8px; }
 .home-book-frame {
   position: relative;
@@ -416,6 +428,7 @@ h2 { font-size: 22px; margin: 0 0 10px; }
 .home-stamps img { width: 100%; aspect-ratio: 1000 / 732; object-fit: contain; }
 .home-explore { padding: 16px 20px 12px; }
 .home-banners { padding: 4px 20px; }
+/* Навигационные открытки используют единый размер фотографии и отдельную область подписи. */
 .postcard {
   display: block;
   background: var(--cream);
@@ -446,6 +459,7 @@ h2 { font-size: 22px; margin: 0 0 10px; }
   font-size: 22px;
   color: var(--muted);
 }
+/* Завершающее письмо и футер являются статическими декоративными секциями. */
 .home-letter {
   margin: 10px 20px 6px;
   border-radius: 16px;
@@ -474,6 +488,7 @@ h2 { font-size: 22px; margin: 0 0 10px; }
   margin: 0;
 }
 
+/* Подпись hero располагается поверх нижнего края изображения с контрастной тенью. */
 .hero-copy {
   position: absolute;
   inset: auto 16px 20px;

@@ -1,3 +1,4 @@
+# Упаковывает и заменяет старую Expo-статику через SFTP с удалением web-dist; не подходит для серверного Next runtime.
 """Deploy web-dist.tgz via SFTP when S3 upload from local network fails."""
 import pathlib
 import subprocess
@@ -36,6 +37,7 @@ print("entry bundle", entry_js)
 
 nginx = (root / "infrastructure" / "deploy" / "nginx-daryadarcy.conf").read_text(encoding="utf-8")
 
+# Подключение использует историческое автоматическое доверие неизвестному SSH host key; перед новым запуском требуется отдельная сверка хоста.
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 client.connect(
@@ -53,6 +55,7 @@ print(f"uploading {tgz.stat().st_size} bytes via SFTP")
 with client.open_sftp() as sftp:
     sftp.put(str(tgz), "/tmp/web-dist.tgz")
 
+# Следующий текст — удалённая команда; её содержимое сохранено как историческое и не исполняется при чтении исходника.
 cmd = (
     "set -e\n"
     "cat > /etc/nginx/sites-available/daryadarcy << 'NGINX'\n"

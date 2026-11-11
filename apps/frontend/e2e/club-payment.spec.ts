@@ -16,10 +16,13 @@ test.skip(
 test.use({ hasTouch: true });
 const destination = "https://payments.example.test/checkout/legacy-one";
 const expiration = "2040-11-01T10:00:00Z";
+/** Выбираем обе синхронизированные кнопки legacy-landing: одна pending-operation должна блокировать обе. */
 const pay = (page: Page) =>
   page.getByRole("button", { name: /Оплатить 790 ₽$/ });
+/** «Я уже оплатила» сверяет claim/subscription и не создаёт checkout. */
 const check = (page: Page) =>
   page.getByRole("button", { name: "Я уже оплатила", exact: true });
+/** Различимые fixture-аккаунты позволяют проверить поздний redirect после смены сессии. */
 const member = (id = 101) => ({
   id,
   openId: `pay-member-${id}`,
@@ -28,6 +31,7 @@ const member = (id = 101) => ({
   role: "user",
   lastSignedIn: "2026-10-01T10:00:00Z",
 });
+/** Gate отделяет отправленный create/claim от получения ACK и действий навигации. */
 const deferred = () => {
   let resolve!: () => void;
   const promise = new Promise<void>((done) => {
@@ -35,6 +39,7 @@ const deferred = () => {
   });
   return { promise, resolve };
 };
+/** Legacy create, claim и свежая подписка задаются независимо; URL-переход заканчивается на synthetic provider без денег и писем. */
 async function fixture(page: Page, authenticated = false, subscribed = false) {
   await layoutApi(page, authenticated);
   const state = {
@@ -108,6 +113,7 @@ async function fixture(page: Page, authenticated = false, subscribed = false) {
   });
   return state;
 }
+/** Открываем выбранный legacy-route и при необходимости подготавливаем непроверенный контакт для оплаты. */
 async function open(page: Page, path = "/club?checkout=1", withPhone = true) {
   await gotoWithSession(page, path);
   await expect(pay(page).first()).toBeEnabled();
@@ -118,6 +124,7 @@ async function open(page: Page, path = "/club?checkout=1", withPhone = true) {
     await phone.fill("+79991234567");
 }
 
+/** Query/fragment и чужие journals не переключают режим сборки на TEST/NORMAL. */
 test("legacy build ignores TEST return parameters and recovery journals without switching modes", async ({
   page,
 }) => {
@@ -150,6 +157,7 @@ test("legacy build ignores TEST return parameters and recovery journals without 
   expect(state.creates).toEqual([]);
 });
 
+/** Проверяем email/contactPhone до запроса и единый pending между двумя копиями формы на трёх размерах. */
 for (const width of [320, 390, 1440]) {
   test(`guest validates email and sends one checkout at ${width}px`, async ({
     page,
@@ -230,6 +238,7 @@ for (const width of [320, 390, 1440]) {
   });
 }
 
+/** Продление использует существующий email и отдельный contactPhone, никогда не передавая пароль. */
 test("profile renewal uses the existing email and never submits a password", async ({
   page,
 }) => {
@@ -252,6 +261,7 @@ test("profile renewal uses the existing email and never submits a password", asy
   ]);
 });
 
+/** Некорректный checkout-result не создаёт сессию и не открывает javascript/http или неполный ответ. */
 for (const result of [
   { url: "javascript:window.__unsafePayment=1", user: null },
   { url: "http://payments.example.test", user: null },
@@ -299,6 +309,7 @@ test("a known checkout refusal permits an explicit retry", async ({ page }) => {
   expect(state.creates).toHaveLength(2);
 });
 
+/** Legacy неизвестность требует предупреждения перед новой заявкой; автоматического retry нет. */
 test("unknown checkout asks before preparing another order and never retries automatically", async ({
   page,
 }) => {
@@ -331,6 +342,7 @@ test("unknown checkout asks before preparing another order and never retries aut
   expect(state.creates).toHaveLength(2);
 });
 
+/** Deadline сохраняет unknown, а поздний успешный URL не запускает отменённый redirect. */
 test("a timed-out checkout remains uncertain and enables a controlled manual retry", async ({
   page,
 }) => {
@@ -358,6 +370,7 @@ test("a timed-out checkout remains uncertain and enables a controlled manual ret
   expect(state.creates).toHaveLength(1);
 });
 
+/** Навигация отменяет redirect-continuation, но сохраняет unknown-guard между retained-панелями. */
 test("leaving the club fences a late payment URL and retains the uncertainty", async ({
   page,
 }) => {
@@ -387,6 +400,7 @@ test("leaving the club fences a late payment URL and retains the uncertainty", a
   await expect(page).toHaveURL(/\/club$/);
 });
 
+/** URL платежа предыдущего owner не открывается после подтверждения другой личности. */
 test("an account change cannot follow the previous person's payment URL", async ({
   page,
 }) => {
@@ -469,6 +483,7 @@ test("a guest return opens the email login path without granting access", async 
   expect(page.url()).not.toContain("Existing-password-123");
 });
 
+/** Claim granted недостаточно без свежего подтверждения subscription-access. */
 test("claim granted does not open access without a fresh subscription", async ({
   page,
 }) => {
@@ -486,6 +501,7 @@ test("claim granted does not open access without a fresh subscription", async ({
   expect(state.creates).toHaveLength(0);
 });
 
+/** Кампания return-check ограничена по числу и идёт последовательно, не создавая платежи. */
 test("automatic return checking is finite, sequential and does not create payments", async ({
   page,
 }) => {
@@ -511,6 +527,7 @@ test("automatic return checking is finite, sequential and does not create paymen
   expect(state.creates).toHaveLength(0);
 });
 
+/** Свежий оплаченный период отображается как состояние доступа без заявления успеха новой оплаты. */
 test("a confirmed later access period updates renewal without claiming payment success", async ({
   page,
 }) => {
@@ -550,6 +567,7 @@ test("a confirmed later access period updates renewal without claiming payment s
   ).toBeVisible();
 });
 
+/** Ошибочный или некорректный subscription-read не выдаёт доступ; после восстановления выполняется отдельная ручная проверка. */
 for (const result of [
   failure(500),
   ok({
@@ -604,6 +622,7 @@ for (const result of [
   });
 }
 
+/** Ожидающая проверка исключает дубли claim и создание checkout одновременно. */
 test("one pending manual verification disables both check and payment actions", async ({
   page,
 }) => {
@@ -629,6 +648,7 @@ test("one pending manual verification disables both check and payment actions", 
   expect(state.creates).toHaveLength(0);
 });
 
+/** Уход останавливает текущую return-кампанию; возврат к вкладке не запускает её сам заново. */
 test("leaving a return check stops the campaign and does not restart it on tab return", async ({
   page,
 }) => {
@@ -650,6 +670,7 @@ test("leaving a return check stops the campaign and does not restart it on tab r
   expect(state.creates).toHaveLength(0);
 });
 
+/** Восстановление пароля различает ложное202, Retry-After и принятое письмо; ни один ответ сам не создаёт login. */
 test("recovery handles malformed replies, rate limits and a valid queued instruction", async ({
   page,
 }) => {

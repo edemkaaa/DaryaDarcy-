@@ -24,6 +24,7 @@ import {
   GREEN_ACCENT,
 } from "./feed-screen.content";
 import type { FeedPost } from "./feed-screen.content";
+/** Карточка разделяет переход, раскрытие текста и вложенные действия; раскрытый текст удерживает её в окне коллекции. */
 export function PostCard({
   post,
   isLiked,
@@ -60,6 +61,7 @@ export function PostCard({
   const needsExpand =
     post.text.length > 0 &&
     (post.text.split("\n").length > MAX_TEXT_LINES || post.text.length > 150);
+  /** Анимация даёт локальный отклик, а реальное изменение отметки и счётчика выполняет переданный координатор. */
   const handleLike = () => {
     likeScale.value = withTiming(
       1.3,
@@ -70,6 +72,7 @@ export function PostCard({
     );
     onLike(post.id);
   };
+  /** Визуальное нажатие не подтверждает bookmark; запись и восстановление остаются у владельца взаимодействий. */
   const handleSave = () => {
     saveScale.value = withTiming(
       1.3,

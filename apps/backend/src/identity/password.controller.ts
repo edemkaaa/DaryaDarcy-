@@ -29,10 +29,12 @@ import { publicAccessUrl } from "./urls";
 
 @Controller("api")
 export class PasswordController {
+  /** Подключаем доменный сервис доказательств и очереди вместо SQL и SMTP в HTTP-контроллере. */
   constructor(
     @Inject(PasswordService) private readonly passwords: PasswordService,
   ) {}
 
+  /** После staff-guard ограничиваем повторы по исполнителю, принимаем строгий target/key и возвращаем 202 лишь для принятой постановки; известные конфликты сохраняют статус. */
   @Post("admin/access-email/resend")
   @HttpCode(200)
   @Header("Cache-Control", "no-store")
@@ -66,6 +68,7 @@ export class PasswordController {
     }
   }
 
+  /** Ограничиваем запрос по IP и хешу почты, ставим письмо только допустимому аккаунту и возвращаем одинаковый 202 для неизвестного, заблокированного и ограниченного получателя. */
   @Post("auth/password/request")
   @HttpCode(200)
   @Header("Cache-Control", "no-store")
@@ -105,6 +108,7 @@ export class PasswordController {
     }
   }
 
+  /** Ограничиваем попытки по IP и передаём токен только из JSON-тела в одноразовую смену пароля; неверное доказательство даёт 400, инфраструктурный сбой 503. */
   @Post("auth/password/complete")
   @HttpCode(200)
   @Header("Cache-Control", "no-store")
@@ -134,6 +138,7 @@ export class PasswordController {
     }
   }
 
+  /** Перенаправляем старую ссылку письма на доверенный экран пароля, сохраняя fragment браузером и запрещая кеш, referrer и активное содержимое промежуточной страницы. */
   @Get("auth/password")
   @Header("Cache-Control", "no-store")
   page(@Res() res: Response) {

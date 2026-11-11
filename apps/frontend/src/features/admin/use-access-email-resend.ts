@@ -10,6 +10,8 @@ export type AccessEmailResult = {
 };
 
 export function canResendAccessEmail(member: AccessEmailMember) {
+  // Клиент разрешает письмо только активной незаблокированной участнице с почтой; решение сервера остаётся окончательным.
+
   return Boolean(
     member.email?.trim() &&
     !member.blockedAt &&
@@ -20,6 +22,8 @@ export function canResendAccessEmail(member: AccessEmailMember) {
 
 /** Kept above the members tab: a fresh list cannot verify email enqueueing. */
 export function useAccessEmailResend(recovery: AdminActionRecovery) {
+  // Квитанция очереди не равна доставке письма; неподтверждённая команда отображается отдельно от результатов других участниц.
+
   const results: Record<number, AccessEmailResult> = {};
   for (const receipt of Object.values(recovery.receipts)) {
     if (receipt.kind !== "resendAccessEmail") continue;
@@ -52,6 +56,8 @@ export function useAccessEmailResend(recovery: AdminActionRecovery) {
         ? `access-email-${intent.userId}`
         : null,
     send: async (member: AccessEmailMember) => {
+      // Начинает письмо через общий журнал только при действующем доступе, отсутствии другой команды и завершённой задержке.
+
       if (
         !canResendAccessEmail(member) ||
         recovery.blocked ||

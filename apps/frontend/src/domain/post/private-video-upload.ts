@@ -30,8 +30,10 @@ export type PrivatePostVideoApi = {
     signal: AbortSignal,
   ) => Promise<unknown>;
 };
+/** Локальное видео адресуется ключом intent, а не временным object URL. */
 export const privatePostVideoReference = (video: PrivatePostVideo) =>
   `local-video:${video.key}`;
+/** Проверяем исходный File, предельный размер и формат сохранённой задержки; отдельный постер валидируем как закрытое фото. */
 export function validatePrivatePostVideo(video: PrivatePostVideo) {
   const file = video.file;
   if (
@@ -53,6 +55,7 @@ export function validatePrivatePostVideo(video: PrivatePostVideo) {
     throw new Error("Не удалось проверить исходное видео в черновике");
   if (video.poster) validatePrivatePostPhoto(video.poster);
 }
+/** Квитанция должна описывать выбранный файл без изменения размера и имени и один из поддерживаемых MIME видео. */
 export function requirePrivateVideoReceipt(
   value: unknown,
   file: File,
@@ -81,6 +84,7 @@ export function requirePrivateVideoReceipt(
     throw new Error("Подтверждение не соответствует выбранному видео");
   return { ...receipt, type: "video" };
 }
+/** Разрешаем ссылки local-video в исходные файлы без дублей и отсутствующих ключей. */
 export function selectPrivatePostVideos(
   references: string[],
   videos: PrivatePostVideo[],
@@ -102,7 +106,7 @@ export function selectPrivatePostVideos(
   }
   return selected;
 }
-/** Explicit owner-scoped recovery: status first, then original raw File/key only. */
+/** После attempted сначала читаем статус прежнего ключа; raw File отправляем повторно только этим ключом и с сохранённым cooldown 429. */
 export async function uploadPrivatePostVideo(
   video: PrivatePostVideo,
   api: PrivatePostVideoApi,
@@ -128,6 +132,7 @@ export async function uploadPrivatePostVideo(
       429,
       remaining,
     );
+  /** Закрепляем квитанцию текущей операции за прежним assetId и надёжно сохраняем её перед продолжением. */
   const accept = async (value: unknown) => {
     operation.assertCurrent();
     const receipt = requirePrivateVideoReceipt(value, video.file);

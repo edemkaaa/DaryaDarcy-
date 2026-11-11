@@ -35,6 +35,7 @@ import {
 } from "../apps/backend/src/db";
 
 // No mocks: native composition, schemas, sessions, article/teaser SQL are real.
+/** Проверяет административный CRUD статей и клубных тизеров через настоящий HTTP, JWT и SQL без доменных подмен. */
 describe.skipIf(!testDatabaseUrl)(
   "native admin article CRUD over HTTP/JWT/MySQL",
   () => {
@@ -43,6 +44,7 @@ describe.skipIf(!testDatabaseUrl)(
       base: string,
       bearer: string;
     const created = new Set<number>();
+    /** Создаёт HTTP tRPC-клиент выбранной сессии либо гостя. */
     const client = (token?: string) =>
       createTRPCProxyClient<AppRouter>({
         links: [
@@ -53,10 +55,12 @@ describe.skipIf(!testDatabaseUrl)(
           }),
         ],
       });
+    /** Отбирает ID основного диапазона фикстуры из общей выдачи. */
     const ownIds = (rows: { id: number }[]) =>
       rows
         .filter((row) => row.id >= 9060 && row.id <= 9062)
         .map((row) => row.id);
+    /** Удаляет только свои article requests, тизеры, дочерние обсуждения и созданные статьи, сохраняя посторонние строки. */
     async function clearOwnedRows() {
       const [ledgerTables] = await conn.query<RowDataPacket[]>(
         "SHOW TABLES LIKE 'article_creation_requests'",
@@ -81,6 +85,7 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query("DELETE FROM articles WHERE id IN (?)", [ids]);
       created.clear();
     }
+    /** Создаёт отдельную content-базу, администратора и локальное приложение. */
     beforeAll(async () => {
       conn = await openContentTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -106,6 +111,7 @@ describe.skipIf(!testDatabaseUrl)(
         sessionVersion: 0,
       });
     });
+    /** Возвращает полномочия и создаёт набор открытой, скрытой и закрытой статей с legacy-блоками. */
     beforeEach(async () => {
       await conn.query(
         "UPDATE users SET role='admin',blockedAt=NULL,sessionVersion=0 WHERE id=9060",
@@ -116,6 +122,7 @@ describe.skipIf(!testDatabaseUrl)(
       (9061,'native hidden article','club',FALSE,0,JSON_ARRAY(JSON_OBJECT('heading','Legacy heading','body','Draft body','photos',JSON_ARRAY('https://assets.example.test/a.png'))),'2025-01-04'),
       (9062,'native private article','club',TRUE,1,JSON_ARRAY(JSON_OBJECT('type','text','text','private body')),'2025-01-02')`);
     });
+    /** Закрывает приложение, удаляет свои строки и администратора и освобождает SQL-пул. */
     afterAll(async () => {
       await application?.close();
       if (conn) {
@@ -128,6 +135,7 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** Создаёт статью через настоящий API и записывает ID для адресной очистки. */
     async function create(
       input: Parameters<
         ReturnType<typeof client>["admin"]["createArticle"]["mutate"]
@@ -137,6 +145,7 @@ describe.skipIf(!testDatabaseUrl)(
       created.add(id);
       return id;
     }
+    /** Читает полную SQL-строку выбранной статьи для сверки сохранения. */
     async function article(id: number) {
       const [rows] = await conn.query<RowDataPacket[]>(
         "SELECT * FROM articles WHERE id=?",
@@ -144,6 +153,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       return rows[0];
     }
+    /** Читает автоматические тизеры только по точному source статьи. */
     async function teaser(id: number) {
       const [rows] = await conn.query<RowDataPacket[]>(
         "SELECT * FROM posts WHERE source=?",
@@ -157,6 +167,7 @@ describe.skipIf(!testDatabaseUrl)(
       sections: [{ type: "text" as const, text: "recoverable body" }],
       idempotencyKey: "fb080a17-63f3-4e49-9eba-0cc4ee14c801",
     };
+    /** Проверяет replay committed-создания с единственной статьёй и тизером. */
     it("replays a committed article creation without duplicating its teaser", async () => {
       const id = await create(keyedInput);
       const repeated = await create(keyedInput);
@@ -168,6 +179,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(rows.map((row) => row.id)).toEqual([id]);
     });
+    /** Проверяет конфликт изменённого содержимого под прежним ключом создания. */
     it("rejects a changed article payload for the same creation key", async () => {
       const id = await create(keyedInput);
       await expect(
@@ -175,6 +187,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).rejects.toMatchObject({ data: { code: "CONFLICT" } });
       expect((await article(id)).title).toBe(keyedInput.title);
     });
+    /** Проверяет отсутствие воскрешения удалённой статьи при повторе её исходного создания. */
     it("does not recreate an article deleted after its creation reply", async () => {
       const id = await create(keyedInput);
       await client(bearer).admin.deleteArticle.mutate({ id });
@@ -183,6 +196,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await teaser(id)).toEqual([]);
     });
 
+    /** Проверяет полные закрытые и скрытые административные тела, нормализацию legacy-блоков и порядок каталога. */
     it("keeps hidden/private bodies, legacy block normalization and admin ordering", async () => {
       const rows = await client(bearer).admin.articles.query();
       expect(ownIds(rows)).toEqual([9061, 9060, 9062]);
@@ -199,6 +213,7 @@ describe.skipIf(!testDatabaseUrl)(
         { type: "text", text: "private body" },
       ]);
     });
+    /** Проверяет опубликованные public/club карточки в repository order без передачи sections. */
     it("keeps published public and club cards in repository order without article bodies", async () => {
       expect(ownIds(await listPublishedArticles())).toEqual([9060, 9062]);
       const rows = await client().articles.list.query();
@@ -216,6 +231,7 @@ describe.skipIf(!testDatabaseUrl)(
         access: "club",
       });
     });
+    /** Проверяет внутренний lookup hidden-статьи без публикации её тела пользовательским detail даже администратору. */
     it("keeps unpublished internal lookup available without publishing it to guests or admins", async () => {
       expect(await getArticleById(9061)).toMatchObject({
         id: 9061,
@@ -235,6 +251,7 @@ describe.skipIf(!testDatabaseUrl)(
         ).toBeUndefined();
       }
     });
+    /** Проверяет закрытые sections для гостя и полный body авторизованному администратору. */
     it("locks club article bodies for guests while authorized admins receive the body", async () => {
       expect(await client().articles.getById.query({ id: 9062 })).toEqual({
         id: 9062,
@@ -255,6 +272,7 @@ describe.skipIf(!testDatabaseUrl)(
         },
       );
     });
+    /** Проверяет классификацию общего объекта по всем привязкам публичной обложки, закрытого блока, тизера и комментария без GET и утверждений ACL. */
     it("M1 identifies an object shared by a public cover, a restricted section and an auto-created club teaser", async () => {
       // Migration must classify every reference, not the URL prefix or the
       // club target of the generated teaser. No object GET or ACL claim here.
@@ -351,6 +369,7 @@ describe.skipIf(!testDatabaseUrl)(
         { role: "admin", sessionVersion: 0, blockedAt: null },
       ]);
     });
+    /** Проверяет чтение raw SQL article-снимка с неизвестными блоками без потери связей, раскрытия query-секрета и изменения данных. */
     it("M1 collects selected raw SQL article rows without dropping unknown blocks or rewriting data", async () => {
       const url = "https://storage.example.test/synthetic/shared.webp";
       await conn.query("UPDATE articles SET coverUrl=? WHERE id=9060", [url]);
@@ -363,6 +382,7 @@ describe.skipIf(!testDatabaseUrl)(
           { type: "future-block", url: url + "?signature=SYNTHETIC_ONLY" },
         ]),
       ]);
+      /** Читает исходные raw SQL поля выбранных статей без DTO-нормализации. */
       const select = () =>
         conn.query<RowDataPacket[]>(
           "SELECT id,access,published,coverUrl,sections FROM articles WHERE id IN (9060,9061,9062) ORDER BY id",
@@ -412,6 +432,7 @@ describe.skipIf(!testDatabaseUrl)(
         },
       );
     });
+    /** Проверяет unknown-классификацию media/comment при отсутствии реального родителя в выбранном снимке без переписывания связей. */
     it("M1 retains raw SQL associations when a real parent is omitted from the selected snapshot", async () => {
       const url = "https://storage.example.test/synthetic/partial-parent.webp";
       const id = await create({
@@ -431,6 +452,7 @@ describe.skipIf(!testDatabaseUrl)(
         "INSERT INTO post_comments (id,postId,userId,text,photos) VALUES (9060,?,9060,'Synthetic snapshot association',?)",
         [parent[0].id, JSON.stringify([url])],
       );
+      /** Читает частичный снимок articles/media/comments с намеренно отсутствующим posts-родителем. */
       const select = async () => {
         const [articles] = await conn.query<RowDataPacket[]>(
           "SELECT id,access,published,coverUrl,sections FROM articles WHERE id=?",
@@ -484,6 +506,7 @@ describe.skipIf(!testDatabaseUrl)(
         sections: [],
       });
     });
+    /** Проверяет одинаковую нормализацию legacy опубликованных sections в repository и публичном detail. */
     it("normalizes legacy published sections in both repository lists and public detail", async () => {
       await conn.query("UPDATE articles SET sections=? WHERE id=9060", [
         JSON.stringify([
@@ -507,6 +530,7 @@ describe.skipIf(!testDatabaseUrl)(
         sections: expected,
       });
     });
+    /** Создаёт синтетический paid, pending либо failed период и возвращает API обычного пользователя без staff-права. */
     async function ordinaryReader(status: "paid" | "pending" | "failed") {
       await conn.query("UPDATE users SET role='user' WHERE id=9060");
       await conn.query(
@@ -523,6 +547,7 @@ describe.skipIf(!testDatabaseUrl)(
       locked: true,
       sections: [],
     };
+    /** Проверяет повторную оценку expiry платного обычного читателя с той же сессией. */
     it("rechecks a paid ordinary reader's expiry on the next request with the same session", async () => {
       const reader = await ordinaryReader("paid");
       expect(await reader.getById.query({ id: 9062 })).toEqual({
@@ -541,6 +566,7 @@ describe.skipIf(!testDatabaseUrl)(
         sections: [{ type: "text", text: "public body" }],
       });
     });
+    /** Проверяет, что будущая дата pending или failed платежа не открывает sections. */
     it.each(["pending", "failed"] as const)(
       "does not unlock an ordinary reader's article from a future %s payment",
       async (status) => {
@@ -550,6 +576,7 @@ describe.skipIf(!testDatabaseUrl)(
         );
       },
     );
+    /** Проверяет немедленное закрытие sections после блокировки ранее оплаченного пользователя. */
     it("locks a paid reader's article immediately after blocking the account with an existing session", async () => {
       const reader = await ordinaryReader("paid");
       expect(await reader.getById.query({ id: 9062 })).toMatchObject({
@@ -562,6 +589,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(await reader.getById.query({ id: 9061 })).toBeUndefined();
     });
+    /** Проверяет trim заголовка, прежние defaults клубной статьи и единственный опубликованный тизер. */
     it("creates a trimmed club article with existing defaults and one teaser", async () => {
       const id = await create({
         title: "  native created article  ",
@@ -588,6 +616,7 @@ describe.skipIf(!testDatabaseUrl)(
       ]);
       expect(await teaser(id)).toHaveLength(1);
     });
+    /** Проверяет нормализацию всех поддержанных блоков без пустых media и дублей карусели. */
     it("normalizes all supported blocks without storing empty media or duplicate carousel URLs", async () => {
       const id = await create({
         title: "native blocks",
@@ -628,6 +657,7 @@ describe.skipIf(!testDatabaseUrl)(
       ]);
       expect(await teaser(id)).toEqual([]);
     });
+    /** Проверяет частичный patch, различие отсутствующей и NULL-обложки, обновление тизера и очистку при снятии публикации. */
     it("retains partial edits, explicit null cover, teaser refresh and unpublication cleanup", async () => {
       const id = await create({
         title: "native lifecycle",
@@ -682,6 +712,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await article(id)).published).toBe(0);
       expect(await teaser(id)).toEqual([]);
     });
+    /** Проверяет явную замену sections пустым списком без удержания прежнего содержимого. */
     it("replaces sections with an empty list without retaining old content", async () => {
       expect(
         await client(bearer).admin.updateArticle.mutate({
@@ -696,6 +727,7 @@ describe.skipIf(!testDatabaseUrl)(
         )?.sections,
       ).toEqual([{ type: "text", text: "" }]);
     });
+    /** Проверяет удаление статьи, тизера и всех его обсуждений, реакций и вложений. */
     it("deletes the article and its teaser discussion/reaction/attachment rows", async () => {
       const id = await create({ title: "native delete article", sections: [] });
       const postId = (await teaser(id))[0].id;
@@ -744,6 +776,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(rows).toEqual([]);
       }
     });
+    /** Проверяет NOT_FOUND обновления отсутствующей статьи без создания orphan-тизера. */
     it("refuses update of a missing article without creating a teaser", async () => {
       const admin = client(bearer).admin;
       await expect(
@@ -754,6 +787,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       expect(await teaser(-1)).toEqual([]);
     });
+    /** Фиксирует повторяемое удаление отсутствующей статьи без побочных записей. */
     it("keeps deletion of a missing article idempotent", async () => {
       const admin = client(bearer).admin;
       expect(await admin.deleteArticle.mutate({ id: -1 })).toEqual({
@@ -761,6 +795,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       expect(await teaser(-1)).toEqual([]);
     });
+    /** Проверяет отказ устаревшей формы после удаления статьи без воскрешения статьи или тизера. */
     it("refuses a stale editor save after the article was deleted", async () => {
       const id = await create({ title: "native stale editor", sections: [] });
       const admin = client(bearer).admin;
@@ -779,6 +814,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await article(id)).toBeUndefined();
       expect(await teaser(id)).toEqual([]);
     });
+    /** Проверяет сохранность orphan-тизера при запрещённом edit до отдельного явного удаления. */
     it("leaves an orphan teaser unchanged on a refused edit until explicit deletion", async () => {
       const id = await create({ title: "native orphan article", sections: [] });
       const before = await teaser(id);
@@ -795,6 +831,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await admin.deleteArticle.mutate({ id })).toEqual({ ok: true });
       expect(await teaser(id)).toEqual([]);
     });
+    /** Фиксирует прежний серверный отказ пустого patch существующей статьи без изменения её содержимого. */
     it("preserves refusal of an empty patch for an existing article", async () => {
       const before = await article(9061);
       await expect(
@@ -805,6 +842,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await article(9061)).toEqual(before);
       expect(await teaser(9061)).toEqual([]);
     });
+    /** Проверяет schema-валидацию malformed create до любых SQL-записей. */
     it.each([
       { title: " ", sections: [] },
       { title: "x".repeat(256), sections: [] },
@@ -829,6 +867,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(rows).toEqual([]);
       },
     );
+    /** Проверяет отказ malformed update с сохранением скрытого черновика. */
     it.each([
       { id: 9061, title: " " },
       { id: 9061, published: "true" },
@@ -848,6 +887,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await teaser(9061)).toEqual([]);
       },
     );
+    /** Проверяет актуальную роль, блокировку и эпоху сессии перед каждой article-операцией. */
     it.each([
       [null, "UNAUTHORIZED", 401],
       ["role='user'", "FORBIDDEN", 403],
@@ -887,6 +927,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(forbidden).toEqual([]);
       },
     );
+    /** Собирает production ESM и проверяет закрытый каталог и настоящий CRUD статьи с адресной очисткой в дочернем процессе. */
     it("retains native article CRUD and private catalog in compiled ESM", async () => {
       const directory = mkdtempSync(resolve(".tmp-nest-admin-articles-"));
       const entry = join(directory, "application.mjs");

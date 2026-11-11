@@ -99,6 +99,7 @@ export interface ClubPost {
 }
 export const PROFILE_COMPLETED_KEY = "@darcy_club_profile_completed";
 
+/** Передаём ширину viewport в расчёт баннера активного клуба. */
 export function getClubSubscribedContent(viewport: ViewportSize) {
   const { width: SCREEN_WIDTH } = viewport;
   return { SCREEN_WIDTH };

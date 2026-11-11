@@ -7,6 +7,7 @@ type Journals =
   typeof import("../apps/frontend/src/domain/content/article-draft-journal") &
     typeof import("../apps/frontend/src/shared/browser/storage");
 
+/** На настоящем IndexedDB проверяет изоляцию повреждённых слотов, атомарный архив и сохранение исходных File при гонках и отказах storage. */
 it.skipIf(!process.env.PLAYWRIGHT_EXECUTABLE_PATH)(
   "isolates damaged article slots and atomically preserves original File bytes, including on races and storage failures",
   async () => {
@@ -73,6 +74,7 @@ it.skipIf(!process.env.PLAYWRIGHT_EXECUTABLE_PATH)(
           request.onsuccess = () => resolve(request.result);
           request.onerror = () => reject(request.error);
         });
+        /** Записывает сырое значение в выбранный слот через завершённую транзакцию IndexedDB для инъекции повреждений. */
         const put = (key: string, value: unknown) =>
           new Promise<void>((resolve, reject) => {
             const tx = database.transaction("drafts", "readwrite");
@@ -80,6 +82,7 @@ it.skipIf(!process.env.PLAYWRIGHT_EXECUTABLE_PATH)(
             tx.oncomplete = () => resolve();
             tx.onabort = () => reject(tx.error);
           });
+        /** Читает все слоты только после завершения транзакции, чтобы проверить откат удаления и сохранность архивной копии. */
         const all = () =>
           new Promise<{ key: string; value: unknown }[]>((resolve, reject) => {
             const tx = database.transaction("drafts");
@@ -95,6 +98,7 @@ it.skipIf(!process.env.PLAYWRIGHT_EXECUTABLE_PATH)(
             tx.oncomplete = () => resolve(entries);
             tx.onabort = () => reject(tx.error);
           });
+        /** Преобразует отказ операции в проверяемый флаг, не скрывая её успешного выполнения. */
         const rejected = async (work: () => Promise<unknown>) => {
           try {
             await work();

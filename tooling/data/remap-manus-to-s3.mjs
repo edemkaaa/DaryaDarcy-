@@ -29,6 +29,8 @@ const MANUS_PREFIX =
   "https://files.manuscdn.com/user_upload_by_module/session_file/310519663475213159/";
 
 async function listKeys(prefix) {
+  // Читает ключи S3 постранично только для сопоставления локальных ссылок, без записи в бакет.
+
   const keys = [];
   let token;
   do {
@@ -49,11 +51,15 @@ async function listKeys(prefix) {
 }
 
 function originalName(key) {
+  // Убирает исторический префикс хеша для сопоставления ключа с исходным именем.
+
   const base = key.split("/").pop() || "";
   return base.replace(/^[0-9a-f]{8,}-/i, "");
 }
 
 function walk(dir, acc = []) {
+  // Обходит только выбранные текстовые расширения, исключая служебные каталоги; замена ссылок затрагивает локальные исходники.
+
   for (const name of fs.readdirSync(dir)) {
     if (name === "node_modules" || name === ".git" || name === ".expo") continue;
     const full = path.join(dir, name);
@@ -74,6 +80,8 @@ for (const key of keys) {
 }
 
 function resolveFile(filename) {
+  // Подбирает единственный известный ключ по имени с учётом регистра; неоднозначности требуют ручной проверки.
+
   return byName.get(filename) || byName.get(filename.toLowerCase()) || null;
 }
 

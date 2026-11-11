@@ -27,6 +27,7 @@ const unknown: ProdamusTestResult = {
   emailStatus: null,
 };
 
+/** Подписывает orderId и 24-часовой expiry отдельным purpose HMAC; capability разрешает только чтение результата, не вход. */
 export function createProdamusTestReturnProof(
   orderId: string,
   key: string,

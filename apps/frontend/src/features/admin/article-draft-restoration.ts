@@ -51,6 +51,8 @@ export function createArticleDraftRestoration({
   cover,
   form,
 }: ArticleDraftRestorationDependencies) {
+  // Собирает три пути восстановления; поля формы и квитанции файлов возвращаются согласованно, без повторной серверной записи.
+
   const {
     uncertainSave,
     restoreFiles,
@@ -69,6 +71,8 @@ export function createArticleDraftRestoration({
     setRecoveryMessage,
   } = form;
   const restoreCreation = (record: ArticleCreationRecord) => {
+    // Отменяет ожидание старой операции и восстанавливает неизменяемый снимок создания; файлы подключит эффект после смены области редактирования.
+
     operation.cancel();
     cover.detach();
     uncertainSave.current = false;
@@ -92,6 +96,8 @@ export function createArticleDraftRestoration({
     setShowForm(true);
   };
   const restoreDraft = (saved: ArticleDraftRecord) => {
+    // Не перекрывает незавершённое создание: загружает черновик с исходной ревизией и сохраняет предупреждение о неизвестном исходе записи.
+
     if (
       creation &&
       (creation.media?.editingId ?? null) === saved.snapshot.editingId
@@ -126,6 +132,8 @@ export function createArticleDraftRestoration({
     setShowForm(true);
   };
   const restoreCover = () => {
+    // Восстанавливает операцию обложки только после чтения журнала; перед заменой другого локального текста требуется согласие.
+
     if (!cover.record || creation || storageStatus !== "ready") return;
     const saved = draft.records.find(
       (record) =>

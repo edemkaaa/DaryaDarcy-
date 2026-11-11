@@ -1,3 +1,4 @@
+// Архив Expo. Переключает локальные этапы теста и вычисляет результат только при завершении вопросов.
 /**
  * Quiz State Management
  * Uses React Context + useReducer for quiz flow state.
@@ -34,6 +35,8 @@ type QuizAction =
   | { type: "RESTART" };
 
 function quizReducer(state: QuizState, action: QuizAction): QuizState {
+  // Переключает локальные этапы теста и вычисляет результат только при завершении вопросов.
+
   switch (action.type) {
     case "START_QUIZ":
       return { ...initialState, phase: "question" };
@@ -73,6 +76,8 @@ interface QuizContextValue {
 export const QuizContext = createContext<QuizContextValue | null>(null);
 
 export function useQuiz() {
+  // Требует провайдер теста и возвращает состояние с dispatch без собственного хранилища.
+
   const ctx = useContext(QuizContext);
   if (!ctx) throw new Error("useQuiz must be used within QuizProvider");
   return ctx;

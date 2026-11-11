@@ -23,10 +23,11 @@ export type PostVideoSlide = {
   filename?: string;
   posterUrl?: string;
 };
+/** Распознаём старые прямые файлы видео по расширению пути без query. */
 export function isVideoMediaUrl(url: string): boolean {
   return VIDEO_URL_RE.test(url.split("?")[0] || "");
 }
-/** Preserve every saved video in media order, followed by unrepresented legacy URLs. */
+/** Сначала сохраняем порядок video-вложений, затем добавляем отсутствующие legacy URL; приватное видео использует только собственный постер. */
 export function resolvePostVideos(
   photos: string[] | undefined,
   media: PostMediaLike[] | undefined,
@@ -70,7 +71,7 @@ export function resolvePostVideos(
   return { videos, stackPhotos };
 }
 
-/** Compatibility view for callers that need the first video and its photo split. */
+/** Совместимым вызывающим возвращаем первое видео и тот же очищенный набор фотографий, не меняя правила общей обработки. */
 export function resolvePostVideo(
   photos: string[] | undefined,
   media: PostMediaLike[] | undefined,

@@ -19,6 +19,8 @@ const routerSymbol = checker
   .find((s) => s.name === "AppRouter");
 const router = checker.getDeclaredTypeOfSymbol(routerSymbol);
 const prop = (t, n) => {
+  // Читает требуемое поле выведенного TypeScript-типа и останавливает генерацию при изменении структуры tRPC.
+
   const s = t.getProperty(n);
   if (!s) throw Error("Missing " + n);
   return checker.getTypeOfSymbolAtLocation(s, file);
@@ -30,6 +32,8 @@ const flags =
   ts.TypeFormatFlags.WriteArrayAsGenericType;
 let count = 0;
 function render(record, indent = "  ") {
+  // Рекурсивно печатает router/procedure дерево с фактическими input/output, не выполняя серверный runtime.
+
   return (
     "{\n" +
     record
@@ -89,6 +93,8 @@ for (const n of file.statements) {
   }
 }
 function localize(text) {
+  // Превращает ссылки на backend-типы в локальные aliases контракта и разрешает их зависимости через TypeScript symbols.
+
   return text.replace(
     /(?:import\("([^\"]+)"\)|\b(db|platformDb))\.([A-Za-z0-9_]+)/g,
     (_, importedPath, namespace, name) => {
@@ -166,6 +172,8 @@ const dest = outputPath
   ? path.resolve(outputPath)
   : path.resolve(source, "apps/frontend/src/shared/api/contract.ts");
 async function writeContract() {
+  // Форматирует полученный контракт и либо сравнивает его байты, либо записывает в явно выбранное место.
+
   const formatted = await require("prettier").format(result, {
     parser: "typescript",
   });

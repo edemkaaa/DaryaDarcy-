@@ -48,6 +48,7 @@ type SeasonData = {
   emoji: string;
   heroImages: string[];
 };
+/** Выбираем клиентский сезон главной по номеру месяца; это отдельная модель от серверного календаря оформления Клуба. */
 function getCurrentSeason(month: number): SeasonData {
   if (month >= 2 && month <= 4)
     return {
@@ -97,6 +98,7 @@ function getCurrentSeason(month: number): SeasonData {
     ],
   };
 }
+/** Проверяем статическую редакционную дату для значка «Новое»; это не серверный счётчик непрочитанных публикаций. */
 function isSectionNew(
   banner: (typeof SECTION_BANNERS)[number],
   now: number,
@@ -106,6 +108,7 @@ function isSectionNew(
   const twoDaysMs = 2 * 24 * 60 * 60 * 1000;
   return now - updated <= twoDaysMs;
 }
+/** Инициализируем дату от сервера для SSR, затем обновляем локальный сезон при активации; фоновые анимации сохранённой вкладки приостанавливаются. */
 export default function HomeScreen({ initialDate }: { initialDate: string }) {
   const active = useScreenActive();
   const [season, setSeason] = useState(() =>
@@ -410,7 +413,7 @@ with DARYADARCY logo overlay
                 className={classes.div3}
               />
             </Animated.div>
-            {/* Next slide (crossfade — seasonal images) */}
+            {/* Второй слой существующего crossfade использует тот же heroImage; массив сезонных фото сюда сейчас не подставляется. */}
             <Animated.div style={nextSlideStyle} className={classes.div3}>
               <Picture
                 source={{

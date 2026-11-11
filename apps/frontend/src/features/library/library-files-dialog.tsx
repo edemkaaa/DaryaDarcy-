@@ -9,6 +9,7 @@ import type { LibraryMaterialKey } from "./library-files-api";
 import classes from "./article-screen.module.scss";
 import dialogClasses from "./library-files-dialog.module.scss";
 
+/** Показываем только подтверждённые серверные привязки и открываем скачивание в отдельном окне с текущей cookie-сессией. */
 export function LibraryFilesDialog({
   material,
   title,

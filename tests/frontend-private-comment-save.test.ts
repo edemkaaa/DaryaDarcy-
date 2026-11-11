@@ -7,14 +7,17 @@ import {
 } from "../apps/frontend/src/domain/post/private-comment-save";
 import { OperationScope } from "../apps/frontend/src/shared/browser/operation-scope";
 vi.mock("../apps/frontend/src/shared/media/read-attachment", () => ({
+  /** Изолированно кодирует байты File в Base64, не используя browser FileReader в этом unit-наборе. */
   attachmentBase64: async (file: File) =>
     Buffer.from(await file.arrayBuffer()).toString("base64"),
 }));
 const url = "/api/media/content-files/3af23d8c-140f-454b-a123-123456789abc";
+/** Создаёт фото комментария с постоянным ключом операции для проверки восстановления. */
 const file = () => ({
   key: "comment-photo-intent-0001",
   file: new File(["png bytes"], "photo.png", { type: "image/png" }),
 });
+/** Формирует каноническую квитанцию приватного фото и допускает адресную инъекцию повреждения. */
 const ready = (
   input: { filename: string },
   patch: Record<string, unknown> = {},
@@ -28,18 +31,21 @@ const ready = (
   url,
   ...patch,
 });
+/** Фиксирует владельца, родительский пост, ответ и исходный текст до первой загрузки. */
 const prepare = () =>
   preparePrivateComment(
     101,
     { postId: 42, text: " original text ", parentId: 7 },
     [file()],
   );
+/** Создаёт действующую операцию комментария с отдельным сигналом отмены. */
 const task = () =>
   new OperationScope().begin(
     "comment",
     new AbortController().signal,
     () => true,
   )!;
+/** Создаёт API-double загрузки, чтения статуса и добавления комментария. */
 const api = () => ({
   upload: vi.fn<PrivateCommentApi["upload"]>(async (input) => ready(input)),
   status: vi.fn<PrivateCommentApi["status"]>(async () => ({
@@ -47,6 +53,7 @@ const api = () => ({
   })),
   add: vi.fn<PrivateCommentApi["add"]>(async () => ({ id: 99 })),
 });
+/** Собирает checkpoints журнала с именами File, сохраняя порядок durable-стадий для утверждений. */
 const saved = () => {
   const checkpoints: string[] = [];
   return {
@@ -61,6 +68,7 @@ const saved = () => {
     }),
   };
 };
+/** Сохраняет исходную цель и intent до загрузки, а точный payload с привязками замораживает до addComment. */
 it("persists original post/reply/text and file intent before upload; freezes binding before addComment", async () => {
   const record = prepare(),
     port = api(),
@@ -94,6 +102,7 @@ it("persists original post/reply/text and file intent before upload; freezes bin
   ).toBe(99);
   expect(record.savedId).toBe(99);
 });
+/** После потери ответа загрузки сначала читает её статус по прежнему ключу без повторной отправки файла. */
 it("lost upload reply recovers status first with the original post/key and no duplicate upload", async () => {
   const record = prepare(),
     port = api(),
@@ -113,6 +122,7 @@ it("lost upload reply recovers status first with the original post/key and no du
     expect.any(AbortSignal),
   );
 });
+/** При notRecorded повторяет исходные байты и ключ; после потери addComment повторяет только замороженный payload. */
 it("notRecorded replays identical bytes/key and lost addComment reply replays the exact frozen payload", async () => {
   const record = prepare(),
     port = api(),
@@ -133,6 +143,7 @@ it("notRecorded replays identical bytes/key and lost addComment reply replays th
   expect(port.upload).toHaveBeenCalledTimes(2);
   expect(port.add.mock.calls[1][0]).toEqual(first);
 });
+/** Отказ durable checkpoint блокирует следующий сетевой этап: загрузку либо финальный addComment. */
 it("storage refusal prevents upload and failed write checkpoint prevents addComment", async () => {
   const record = prepare(),
     port = api();
@@ -150,6 +161,7 @@ it("storage refusal prevents upload and failed write checkpoint prevents addComm
   ).rejects.toThrow("write checkpoint denied");
   expect(port.add).not.toHaveBeenCalled();
 });
+/** Не создаёт комментарий по недоверенной или ещё ожидающей квитанции. */
 it.each([
   { usage: "postPhoto" },
   { url: "https://storage.example.test/private" },
@@ -167,6 +179,7 @@ it.each([
     expect(port.add).not.toHaveBeenCalled();
   },
 );
+/** Не применяет позднюю квитанцию загрузки после смены владельца операции. */
 it("account change while awaiting upload ignores late receipt and never writes a comment", async () => {
   const record = prepare(),
     port = api(),
@@ -186,6 +199,7 @@ it("account change while awaiting upload ignores late receipt and never writes a
   expect(record.files[0].receipt).toBeUndefined();
   expect(port.add).not.toHaveBeenCalled();
 });
+/** После потери ответа записи запрещает менять цель, текст, фото и ключ вместо создания другого комментария. */
 it("rejects post/text/photo changes after a lost write instead of silently creating another comment", async () => {
   for (const mutate of [
     (r: PrivateCommentRecord) => {
@@ -214,6 +228,7 @@ it("rejects post/text/photo changes after a lost write instead of silently creat
     expect(port.add).toHaveBeenCalledTimes(1);
   }
 });
+/** Не публикует по pending, но после ready status использует прежнюю квитанцию без нового PUT. */
 it("pending upload cannot publish; ready status preserves the receipt without another PUT", async () => {
   const record = prepare(),
     port = api();
@@ -230,6 +245,7 @@ it("pending upload cannot publish; ready status preserves the receipt without an
   ).toBe(99);
   expect(port.upload).toHaveBeenCalledTimes(1);
 });
+/** Игнорирует поздний успех status/addComment после отмены владельцем операции. */
 it("account change during status or addComment rejects late success", async () => {
   for (const stage of ["status", "add"] as const) {
     const record = prepare(),
@@ -262,9 +278,11 @@ it("account change during status or addComment rejects late success", async () =
     }
   }
 });
+/** Не позволяет повтором обойти отказ сохранения замороженного payload. */
 it("a failed frozen-payload checkpoint cannot be bypassed on retry", async () => {
   const record = prepare(),
     port = api();
+  /** Имитирует отказ durable storage именно на стадии финальной записи комментария. */
   const denied = async (value: PrivateCommentRecord) => {
     if (value.phase === "write") throw new Error("storage denied");
   };
@@ -275,6 +293,7 @@ it("a failed frozen-payload checkpoint cannot be bypassed on retry", async () =>
   expect(port.upload).toHaveBeenCalledTimes(1);
   expect(port.add).not.toHaveBeenCalled();
 });
+/** Проверяет порядок двух фото и запрещает подмену второй квитанции повторным assetId первого. */
 it("two photos preserve order and a repeated asset cannot substitute for the second receipt", async () => {
   const second = {
     key: "comment-photo-intent-0002",
@@ -312,6 +331,7 @@ it("two photos preserve order and a repeated asset cannot substitute for the sec
     "/api/media/content-files/3af23d8c-140f-454b-a123-123456789abd",
   ]);
 });
+/** Отклоняет некорректную цель, пустую или избыточную подборку и дубли intent до сетевых действий. */
 it("refuses invalid targets, oversized selections and duplicate file intents before network", () => {
   for (const id of [0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1])
     expect(() =>

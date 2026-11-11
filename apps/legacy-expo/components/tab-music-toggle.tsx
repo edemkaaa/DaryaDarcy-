@@ -1,3 +1,4 @@
+// Архив Expo. Управляет фоновым loop-плеером по жесту пользователя с заданной тихой громкостью.
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Platform } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -11,10 +12,14 @@ interface TabMusicToggleProps {
 }
 
 export function TabMusicToggle({ url, iconColor = "#FFFFFF", volume = 0.3 }: TabMusicToggleProps) {
+  // Управляет фоновым loop-плеером по жесту пользователя с заданной тихой громкостью.
+
   const [isPlaying, setIsPlaying] = useState(false);
   const player = useAudioPlayer(url);
 
   useEffect(() => {
+    // Настраивает silent-mode native, loop и громкость; при смене зависимости освобождает player.
+
     if (Platform.OS !== "web") {
       setAudioModeAsync({ playsInSilentMode: true });
     }
@@ -28,6 +33,8 @@ export function TabMusicToggle({ url, iconColor = "#FFFFFF", volume = 0.3 }: Tab
   }, [player, volume]);
 
   const toggle = () => {
+    // Переключает play/pause и локальный значок без обещания успешной сетевой загрузки.
+
     if (!player) return;
     if (isPlaying) {
       player.pause();
@@ -59,6 +66,7 @@ export function TabMusicToggle({ url, iconColor = "#FFFFFF", volume = 0.3 }: Tab
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   button: {
     width: 34,

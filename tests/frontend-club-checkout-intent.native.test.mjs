@@ -8,6 +8,7 @@ const storageKey = "daryadarcy:club-checkout:yookassa-test:v1";
 const selection = { email: "buyer@example.test" };
 let browser, server, origin;
 
+/** Собирает настоящий browser helper, поднимает локальный origin и запускает Chromium для проверки реальных Web Locks. */
 before(async () => {
   // Serve the real production helper, not a test implementation or app route.
   const bundle = await build({
@@ -43,11 +44,13 @@ before(async () => {
       : {}),
   });
 });
+/** Закрывает только собственный браузер и локальный HTTP-сервер набора. */
 after(async () => {
   await browser?.close();
   if (server) await new Promise((resolve) => server.close(resolve));
 });
 
+/** Открывает две вкладки одного браузерного контекста, чтобы они разделяли localStorage и блокировки origin. */
 async function pages() {
   const context = await browser.newContext();
   const first = await context.newPage();
@@ -55,14 +58,17 @@ async function pages() {
   await Promise.all([first.goto(origin), second.goto(origin)]);
   return { context, first, second };
 }
+/** Вызывает реальное создание checkout intent внутри вкладки без подмены Web Locks. */
 const intent = (page, input = selection) =>
   page.evaluate(async (input) => {
     const { getClubCheckoutIntent } = await import("/intent.js");
     return getClubCheckoutIntent(input);
   }, input);
 
+/** Проверяет восстановление сохранённого intent после reload и отказ от перезаписи повреждённого свидетельства. */
 test("read-only return recovers a reloaded tab without creating or replacing evidence", async () => {
   const { context, first, second } = await pages();
+  /** Читает сохранённый intent из реального браузерного storage без создания нового ключа. */
   const read = (page) =>
     page.evaluate(async () => {
       const { readSavedClubCheckoutIntent } = await import("/intent.js");
@@ -97,6 +103,7 @@ test("read-only return recovers a reloaded tab without creating or replacing evi
   }
 });
 
+/** Удерживает настоящую Web Lock, дожидается двух претендентов и проверяет единственный UUID после reload. */
 test(
   "two tabs queue behind a real Web Lock and recover one durable UUID after reload",
   { timeout: 15_000 },
@@ -170,6 +177,7 @@ test(
   },
 );
 
+/** Проверяет запрет второй вкладке менять незавершённый выбор или исправлять повреждённый журнал вслепую. */
 test(
   "another tab cannot replace an unresolved selection or corrupt evidence",
   { timeout: 15_000 },
@@ -197,6 +205,7 @@ test(
   },
 );
 
+/** Проверяет настоящий таймаут ожидающей блокировки и возможность последующего повтора с прежним intent. */
 test(
   "a genuine lock timeout refuses an intent and leaves retry possible with the same record",
   { timeout: 15_000 },

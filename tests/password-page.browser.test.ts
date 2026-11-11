@@ -1,3 +1,4 @@
+/** Опциональный Chromium проверяет настоящий Nest redirect и сохранение URL fragment; frontend-документ перехватывается локально. */
 import {
   afterAll,
   afterEach,
@@ -14,6 +15,7 @@ import { createBackendApplication } from "../apps/backend/src/_core/application"
 
 // Actual Nest redirect and browser fragment inheritance. The destination is a
 // harmless intercepted document; the real frontend is covered by password-setup E2E.
+/** Это проверка перехода из старого письма, не работы формы восстановления и не отправки email. */
 describe.skipIf(!process.env.PLAYWRIGHT_EXECUTABLE_PATH)(
   "legacy password email navigation",
   () => {
@@ -22,6 +24,7 @@ describe.skipIf(!process.env.PLAYWRIGHT_EXECUTABLE_PATH)(
       context: BrowserContext,
       base: string,
       frontend: string;
+    /** Открываем локальный Nest и явно заданный Chromium, подставляя локальный frontend destination. */
     beforeAll(async () => {
       app = await createBackendApplication();
       await app.listen(0, "127.0.0.1");
@@ -34,15 +37,18 @@ describe.skipIf(!process.env.PLAYWRIGHT_EXECUTABLE_PATH)(
         executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH,
       });
     });
+    /** Закрываем браузерный контекст отдельного варианта fragment. */
     afterEach(async () => {
       await context?.close();
     });
+    /** Освобождаем browser/app и env. */
     afterAll(async () => {
       await browser?.close();
       await app?.close();
       vi.unstubAllEnvs();
     });
 
+    /** HTTP303 сохраняет fragment в адресной строке, но token не попадает в запросы и referrer. */
     it.each(["#token=" + "A".repeat(43), "#token=invalid", ""])(
       "preserves the old fragment through the actual redirect (%s)",
       async (fragment) => {

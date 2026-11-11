@@ -1,9 +1,11 @@
+/** Характеризуем реальную зависимость AJV линтера: повреждённый runtime pattern должен стать отказом валидации. */
 import { createRequire } from "node:module";
 import { expect, it } from "vitest";
 
 const lintRequire = createRequire(require.resolve("eslint/package.json"));
 const Ajv = lintRequire("ajv") as typeof import("ajv");
 
+/** Малые неверные шаблоны должны давать false и ошибку pattern, не исключение из валидатора. */
 it.each(["[", "("])(
   "reports invalid runtime pattern %s as validation failure",
   (pattern) => {
@@ -18,6 +20,7 @@ it.each(["[", "("])(
   },
 );
 
+/** Проверяем defaults, required, запрет лишних полей и рабочие динамические шаблоны после исправления зависимости. */
 it("preserves ordinary lint-style schemas and valid dynamic patterns", () => {
   const validate = new Ajv({ useDefaults: true }).compile({
     type: "object",

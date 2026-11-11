@@ -2,7 +2,9 @@ import { expect, test, type Page } from "@playwright/test";
 import { editorApi, failure, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
+/** Свежая дата оставляет discussion-window открытым независимо от дня запуска. */
 const now = () => new Date().toISOString();
+/** Клубный пост с хвостом комментариев позволяет проверять локальный отказ ветки, не теряя всё обсуждение. */
 const post = () => ({
   id: 1,
   text: "RECOVERY_POST",
@@ -16,6 +18,7 @@ const post = () => ({
   likeCount: 0,
   commentCount: 23,
 });
+/** Стабильный comment-id и owner отделяют родительскую строку, перенесённый ответ и новые idempotent записи. */
 const comment = (id: number, text = `ROOT_${id}`) => ({
   id,
   postId: 1,
@@ -31,6 +34,7 @@ const comment = (id: number, text = `ROOT_${id}`) => ({
   replyCount: 0,
 });
 
+/** Удалённый родитель показывает локальную ошибку ветки; composer сохраняет ответ, а refresh переносит его в корневой ввод после обновления обсуждения. */
 for (const width of [320, 390, 1440]) {
   test(`a deleted reply parent preserves the discussion and composed reply at ${width}px`, async ({
     page,
@@ -105,6 +109,7 @@ for (const width of [320, 390, 1440]) {
   });
 }
 
+/** Синтетический keyed-ledger принимает один комментарий на ключ и умеет потерять первый ACK; capabilities переключаются отдельно от уже сохранённой операции. */
 async function textFixture(page: Page, lost: "network" | "503" = "503") {
   const state = {
     enabled: true,
@@ -158,6 +163,7 @@ async function textFixture(page: Page, lost: "network" | "503" = "503") {
   return state;
 }
 
+/** Явный discard неизвестного ответа очищает только локальный intent даже при недоступном обсуждении, не повторяя прежний write. */
 for (const readFailure of ["missing-parent", "unavailable"] as const) {
   test(`discarding an uncertain reply survives ${readFailure} and allows a new comment`, async ({
     page,
@@ -230,6 +236,7 @@ for (const readFailure of ["missing-parent", "unavailable"] as const) {
   });
 }
 
+/** Сетевая потеря и 503 переживают reload: replay отправляет исходные текст/parent/key и не создаёт вторую запись ledger. */
 for (const lost of ["network", "503"] as const) {
   test(`lost text comment ACK (${lost}) survives reload and replays the original key and payload`, async ({
     page,
@@ -277,6 +284,7 @@ for (const lost of ["network", "503"] as const) {
   });
 }
 
+/** Уже keyed-operation не понижается до legacy unkeyed при выключении capability; после восстановления повтор остаётся тем же intent. */
 test("a stored keyed text operation cannot downgrade when the server capability switches off", async ({
   page,
 }) => {
@@ -311,6 +319,7 @@ test("a stored keyed text operation cannot downgrade when the server capability 
   expect(state.saved.size).toBe(1);
 });
 
+/** Только явное валидное false сохраняет старый unkeyed-text контракт для нового комментария. */
 test("an explicitly disabled server gate keeps the existing unkeyed text contract", async ({
   page,
 }) => {
@@ -329,6 +338,7 @@ test("an explicitly disabled server gate keeps the existing unkeyed text contrac
   expect(state.calls[0].idempotencyKey).toBeUndefined();
 });
 
+/** Ошибка capability-read сохраняет ввод и не отправляет unkeyed fallback. */
 test("a failed capability read never silently dispatches an unkeyed text comment", async ({
   page,
 }) => {
@@ -346,6 +356,7 @@ test("a failed capability read never silently dispatches an unkeyed text comment
   expect(state.calls).toHaveLength(0);
 });
 
+/** Некорректный capability-payload не равен выключенной функции; до исправленного ручного preflight write отсутствует. */
 for (const [label, payload] of [
   ["null", null],
   ["array", []],
@@ -408,6 +419,7 @@ test("the payments screen explains automatic history loading", async ({
   ).toBeVisible();
 });
 
+/** Вторая вкладка со старым пустым journal не создаёт новый intent поверх outstanding-operation первой. */
 test("another tab with a stale empty journal cannot create a second text operation", async ({
   page,
   context,
@@ -446,6 +458,7 @@ test("another tab with a stale empty journal cannot create a second text operati
   await other.close();
 });
 
+/** Уход с экрана отменяет continuation перед dispatch comment; поздний capability-response не отправляет оставленный текст. */
 test("a late capability response cannot dispatch a text comment after leaving the screen", async ({
   page,
 }) => {

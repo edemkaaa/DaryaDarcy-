@@ -6,6 +6,7 @@ export const PAPER_TEXTURE_URI =
 export const BROWN = "#5C4033";
 export const BROWN_MUTED = "#8B7355";
 
+/** Передаём ширину viewport в расчёт приветственного коллажа. */
 export function getQuizWelcomeContent(viewport: ViewportSize) {
   const { width } = viewport;
   return { width };

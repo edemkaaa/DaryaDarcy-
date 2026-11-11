@@ -1,3 +1,4 @@
+// Архив Expo. На iOS передаёт имя, вес и оттенок настоящему SF Symbol с фиксированным квадратом.
 import { SymbolView, SymbolViewProps, SymbolWeight } from "expo-symbols";
 import { StyleProp, ViewStyle } from "react-native";
 
@@ -14,6 +15,8 @@ export function IconSymbol({
   style?: StyleProp<ViewStyle>;
   weight?: SymbolWeight;
 }) {
+  // На iOS передаёт имя, вес и оттенок настоящему SF Symbol с фиксированным квадратом.
+
   return (
     <SymbolView
       weight={weight}

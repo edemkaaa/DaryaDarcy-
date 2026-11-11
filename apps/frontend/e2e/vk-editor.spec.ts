@@ -6,6 +6,7 @@ const link =
   "https://vkvideo.ru/video_ext.php?oid=-227034863&id=456239527&hash=99fae216cf20dcdc";
 const savedLink = link + "&autoplay=0";
 test.setTimeout(60_000);
+/** В двух редакторах и трёх ширинах проверяем весь путь ссылки VK: валидацию, durable-draft, preview, запись и удаление без файлового upload. */
 for (const mode of ["full", "quick"] as const) {
   for (const width of [320, 390, 1440]) {
     test(`${mode} VK add, validation, draft, preview, save and remove at ${width}px`, async ({
@@ -54,6 +55,7 @@ for (const mode of ["full", "quick"] as const) {
         }),
       );
       const path = mode === "full" ? "/admin" : "/feed";
+      /** Открываем новый editor и ждём подтверждения локального черновика; после reload тот же путь восстанавливает добавленную ссылку. */
       const openNew = async () => {
         await page
           .getByRole("button", {
@@ -94,6 +96,7 @@ for (const mode of ["full", "quick"] as const) {
       });
       const contrast = await action.evaluate((node) => {
         const style = getComputedStyle(node);
+        /** Вычисляем относительную яркость RGB через sRGB-линеаризацию для проверки контраста кнопки. */
         const luminance = (color: string) =>
           color
             .match(/[\d.]+/g)!
@@ -142,6 +145,7 @@ for (const mode of ["full", "quick"] as const) {
         "Это видео уже добавлено.",
       );
       await page.keyboard.press("Escape");
+      /** Повторно открываем и закрываем preview: iframe должен удаляться, а focus возвращаться к исходной кнопке. */
       for (let cycle = 0; cycle < 3; cycle++) {
         await form
           .getByRole("button", { name: "Посмотреть видео VK 1" })

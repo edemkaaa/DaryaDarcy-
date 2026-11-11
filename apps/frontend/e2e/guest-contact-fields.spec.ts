@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
 
+/** Проверяем клавиатурный ввод, вставку и удаление внутри маски, а также синхронность двух полей одного черновика. */
 test("club phone masks digits, accepts Russian pastes and supports editing", async ({
   page,
 }) => {

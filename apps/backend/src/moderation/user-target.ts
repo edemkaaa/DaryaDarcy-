@@ -12,6 +12,7 @@ export type ModerationActor = Pick<
   "id" | "role" | "blockedAt" | "accountDeletionRequestedAt"
 >;
 
+/** Запрещаем самомодерацию и действия заблокированного/удаляемого исполнителя; администратор может менять чужие роли, модератор только обычного пользователя. */
 export function canModerateUserTarget(
   actor: ModerationActor | undefined,
   target: Pick<User, "id" | "role"> | undefined,

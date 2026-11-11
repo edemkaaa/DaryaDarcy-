@@ -7,6 +7,7 @@ import { editorApi, ok, failure } from "../apps/frontend/e2e/editor-fixtures";
 import { gotoWithSession } from "../apps/frontend/e2e/layout-fixtures";
 const native = process.env.DARYADARCY_LOCAL_BROWSER === "1" ? it : it.skip;
 let app: Awaited<ReturnType<typeof privateFilesBrowser>>, png: Buffer;
+// Прогон использует собственный браузерный стенд и синтетический прозрачный PNG; внешний API отключён, реальные пользовательские материалы не затрагиваются.
 beforeAll(async () => {
   if (process.env.DARYADARCY_LOCAL_BROWSER !== "1") return;
   const disk = await statfs(process.cwd());
@@ -28,6 +29,8 @@ afterAll(async () => {
   await app?.close();
 });
 async function ownPage() {
+  // Создаёт чистый браузерный контекст с запретом внешних запросов и принятием тестовых диалогов.
+
   const context = await app.context.browser()!.newContext();
   await context.route("**/*", (route) =>
     new URL(route.request().url()).origin === app.origin
@@ -39,8 +42,10 @@ async function ownPage() {
   page.on("dialog", (dialog) => dialog.accept());
   return page;
 }
-const title = (page: Page) => page.getByPlaceholder("Что посмотреть осенью...");
+const title = (page: Page) => /* Находит поле заголовка настоящего редактора статей. */ page.getByPlaceholder("Что посмотреть осенью...");
 async function open(page: Page) {
+  // Открывает локальную админку и раздел статей после синтетической сессии.
+
   await gotoWithSession(page, `${app.origin}/admin`);
   await page.getByRole("button", { name: "Статьи", exact: true }).click();
 }
@@ -51,13 +56,15 @@ async function choose(
   buffer = png,
   mimeType = "image/png",
 ) {
+  // Выбирает синтетический файл через настоящий filechooser нужного блока статьи.
+
   const [chooser] = await Promise.all([
     page.waitForEvent("filechooser"),
     page.getByRole("button", { name: button, exact: true }).click(),
   ]);
   await chooser.setFiles({ name, mimeType, buffer });
 }
-const asset = (input: Record<string, unknown>, index: number) => ({
+const asset = (input: Record<string, unknown>, index: number) => /* Строит согласованную квитанцию фото либо документа с отдельным assetId и размером декодированного документа. */ ({
   state: "ready",
   assetId: `3af23d8c-140f-454b-a123-${String(index).padStart(12, "0")}`,
   usage: input.usage,
@@ -75,6 +82,8 @@ const asset = (input: Record<string, unknown>, index: number) => ({
 native(
   "article photo/PNG/carousel/document stay private through lost upload/create responses and reload",
   async () => {
+    // Сценарий: Фото, прозрачный PNG, карусель и документ восстанавливаются после потери квитанции/ответа создания без публичной загрузки.
+
     const page = await ownPage();
     try {
       const uploads: Record<string, unknown>[] = [],
@@ -221,6 +230,8 @@ native(
 native(
   "article edit preserves existing URLs and refuses to replay an unknown update after reload",
   async () => {
+    // Сценарий: Правка сохраняет существующие URL и не повторяет неизвестный update после reload без сверки результата.
+
     const page = await ownPage();
     try {
       const old = `${app.origin}/own-old.png`;
@@ -321,6 +332,8 @@ for (const stage of ["upload", "status"] as const) {
   native(
     `article account switch during ${stage} revokes previews, ignores late receipts and restores the owner's bytes`,
     async () => {
+      // Сценарий: Смена аккаунта во время загрузки/статуса отзывает превью и оставляет исходные байты только владельцу.
+
       const page = await ownPage();
       let release!: () => void;
       const held = new Promise<void>((resolve) => {
@@ -453,6 +466,8 @@ for (const stage of ["upload", "status"] as const) {
 native(
   "removing an article photo block revokes its blob and never uploads the removed file",
   async () => {
+    // Сценарий: Удалённый фотоблок отзывает blob и не отправляет удалённый файл.
+
     const page = await ownPage();
     try {
       let uploads = 0;

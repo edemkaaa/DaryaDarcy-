@@ -8,6 +8,8 @@ import type { Connection, RowDataPacket } from "mysql2/promise";
 import { assertTestDatabase } from "../../tooling/scripts/test-database-policy";
 
 const docker = (args: string[]) => {
+  // Ограничивает время Docker-команды и скрывает argv из ошибки, поскольку там есть тестовая строка подключения.
+
   try {
     return execFileSync("docker", args, {
       encoding: "utf8",
@@ -21,6 +23,8 @@ const docker = (args: string[]) => {
 };
 
 function cleanupAfterFailure(error: unknown, cleanup: () => void): never {
+  // Сохраняет первоначальный сбой и добавляет отказ уборки, чтобы утечка временных ресурсов не скрыла причину.
+
   try {
     cleanup();
   } catch (cleanupError) {
@@ -34,6 +38,8 @@ function cleanupAfterFailure(error: unknown, cleanup: () => void): never {
 
 // Проверяем контейнер и URL до открытия SQL-соединения в тесте.
 export function dockerRestartFixture(databaseUrl: string) {
+  // До SQL проверяет Unix Docker endpoint, digest образа и принадлежность tmpfs-контейнера БД; рабочие volumes не допускаются.
+
   const database = process.env.WORKER_RESTART_MYSQL_CONTAINER!;
   const image = process.env.WORKER_RESTART_DOCKER_IMAGE!;
   const nativeModules = process.env.WORKER_RESTART_LINUX_MODULES!;
@@ -58,6 +64,7 @@ export function dockerRestartFixture(databaseUrl: string) {
   if (!endpoint.startsWith("unix://"))
     throw new Error("Docker fixture requires a local Unix socket");
 
+  // Tmpfs, отсутствие mounts, owner label и опубликованный loopback порт совместно доказывают принадлежность одноразовой БД.
   const [meta] = JSON.parse(docker(["inspect", database]));
   const databaseOwner = meta.Config.Labels?.["codex.owner"];
   const bindings = meta.NetworkSettings.Ports?.["3306/tcp"];
@@ -80,6 +87,8 @@ export function dockerRestartFixture(databaseUrl: string) {
   let networkCreated = false;
   let databaseConnected = false;
   function removeContainer(name: string) {
+    // Перед адресным удалением повторно сверяет owner label контейнера; глобального prune нет.
+
     const [state] = JSON.parse(docker(["inspect", name]));
     if (state.Config.Labels?.["codex.owner"] !== owner)
       throw new Error("Container ownership changed");
@@ -87,8 +96,12 @@ export function dockerRestartFixture(databaseUrl: string) {
     containers.delete(name);
   }
   function cleanup() {
+    // Независимо пытается убрать свои контейнеры, сеть и каталог, собирая ошибки вместо прекращения уборки на первой.
+
     const errors: unknown[] = [];
     function attempt(step: () => void) {
+      // Позволяет всем этапам уборки выполниться, сохранив каждый отказ для итогового AggregateError.
+
       try {
         step();
       } catch (error) {
@@ -113,6 +126,7 @@ export function dockerRestartFixture(databaseUrl: string) {
     if (errors.length)
       throw new AggregateError(errors, "Docker fixture cleanup failed");
   }
+  // Сборка probe и отдельная сеть создаются лишь после guards; любая ошибка запускает адресную уборку собственных ресурсов.
   try {
     buildSync({
       entryPoints: [resolve("tests/helpers/worker-restart-process.ts")],
@@ -134,6 +148,8 @@ export function dockerRestartFixture(databaseUrl: string) {
   return {
     cleanup,
     async launch(actor: string, restart: boolean, control: Connection) {
+      // Создаёт ограниченную read-only реплику с явной restart policy и монтирует только probe и необходимые зависимости.
+
       const name = `${owner}-${actor}-${randomUUID().slice(0, 8)}`;
       // create/start отдельно: даже ошибка запуска оставляет известный объект
       // для адресной уборки; никакого глобального prune.
@@ -192,6 +208,8 @@ export function dockerRestartFixture(databaseUrl: string) {
         let restarts = 0;
         const since = new Date(Date.now() - 1000).toISOString();
         async function refresh() {
+          // После рестарта заново читает случайный host port и поколение запуска; OOM не считается корректной реакцией на потерю lease.
+
           // Docker может назначить новый случайный host port после рестарта.
           // Внутренний 3000 постоянен; edge routing этот локальный тест не заменяет.
           const port = docker(["port", name, "3000/tcp"]).split(":").at(-1)!;
@@ -235,12 +253,18 @@ export function dockerRestartFixture(databaseUrl: string) {
         return {
           refresh,
           get current() {
+            // Возвращает последнее проверенное поколение API, а не адрес первого запуска контейнера.
+
             return current;
           },
           get restarts() {
+            // Счётчик берётся из Docker inspect после проверки нового поколения.
+
             return restarts;
           },
           get exits() {
+            // Читает только события завершения собственного контейнера за время сценария.
+
             const lines = docker([
               "events",
               "--since",
@@ -261,7 +285,7 @@ export function dockerRestartFixture(databaseUrl: string) {
                 }))
               : [];
           },
-          stop: async () => removeContainer(name),
+          stop: async () => /* Адресно удаляет проверенный собственный контейнер через общий ownership guard. */ removeContainer(name),
         };
       } catch (error) {
         cleanupAfterFailure(error, () => removeContainer(name));

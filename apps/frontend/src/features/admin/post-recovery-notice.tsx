@@ -21,6 +21,8 @@ export function PostRecoveryNotice({
   onFinish: () => void;
   onDiscard: () => void;
 }) {
+  // Показывает точную фазу durable операции: восстановление загрузки не объявляется сохранением поста, а неизвестный update не повторяется.
+
   const retryNotBefore = Math.max(
     0,
     ...(recovery.saveState?.privateVideos ?? []).map(
@@ -29,6 +31,8 @@ export function PostRecoveryNotice({
   );
   const [now, setNow] = useState(Date.now);
   useEffect(() => {
+    // Обновляет обратный отсчёт по максимальному retryNotBefore видео; по завершении задержки и закрытии формы интервал очищается.
+
     setNow(Date.now());
     if (retryNotBefore <= Date.now()) return;
     const timer = window.setInterval(() => {

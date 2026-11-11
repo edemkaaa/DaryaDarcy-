@@ -19,6 +19,7 @@ const transport = vi.hoisted(() => ({
   announcements: [] as { text: string; id: number; target: string }[],
 }));
 vi.mock("../apps/backend/src/push", () => ({
+  /** Захватывает анонс перехода публикации вместо отправки внешнего push. */
   sendMarketingPostNotification: async (
     text: string,
     id: number,
@@ -33,6 +34,7 @@ import { sdk } from "../apps/backend/src/_core/sdk";
 import { getDb, publishDueScheduledPosts } from "../apps/backend/src/db";
 import type { UpdatePostInput } from "../apps/backend/src/content/post-write-input";
 
+/** Проверяет единственного владельца перехода публикации и атомарность ручных записей поста и вложений через HTTP и SQL. */
 describe.skipIf(!testDatabaseUrl)(
   "manual publication ownership over HTTP and MySQL",
   () => {
@@ -46,6 +48,7 @@ describe.skipIf(!testDatabaseUrl)(
       source: creationSource,
       target: "club" as const,
     };
+    /** Создаёт HTTP tRPC-клиент выбранной сессии либо гостя. */
     const client = (token?: string) =>
       createTRPCProxyClient<AppRouter>({
         links: [
@@ -56,6 +59,7 @@ describe.skipIf(!testDatabaseUrl)(
           }),
         ],
       });
+    /** Удаляет только созданные своим source посты и выделенный диапазон публикационных фикстур с их вложениями. */
     async function cleanup() {
       const [created] = await conn.query<RowDataPacket[]>(
         "SELECT id FROM posts WHERE source=?",
@@ -78,6 +82,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       await conn.query("DELETE FROM posts WHERE id BETWEEN 11401 AND 11405");
     }
+    /** Захватывает общий publication-lock, создаёт свои роли и поднимает локальный API. */
     beforeAll(async () => {
       conn = await openContentTestDatabase();
       // Global scheduler tests must not consume another suite's due fixtures.
@@ -102,6 +107,7 @@ describe.skipIf(!testDatabaseUrl)(
         }),
       );
     }, 35_000);
+    /** Возвращает роль, сессию и набор черновых, опубликованных и отложенных постов с исходными вложениями. */
     beforeEach(async () => {
       transport.announcements = [];
       await cleanup();
@@ -117,6 +123,7 @@ describe.skipIf(!testDatabaseUrl)(
         (11411,11402,'video','https://assets.example.test/old.mp4','old.mp4','video/mp4',0),
         (11412,11402,'document','https://assets.example.test/guide.pdf','guide.pdf','application/pdf',0)`);
     });
+    /** Закрывает API, удаляет свои данные и пользователей и освобождает SQL-пул. */
     afterAll(async () => {
       await application?.close();
       await cleanup();
@@ -128,6 +135,7 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** Читает статус, видимость и секундную дату публикации выбранного тестового поста. */
     async function state(id: number) {
       const [rows] = await conn.query<RowDataPacket[]>(
         `SELECT status,published,
@@ -136,6 +144,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       return rows[0];
     }
+    /** Проверяет отсутствие повторного анонса уже опубликованного поста. */
     it("does not reannounce an already-published post", async () => {
       expect(await admin.admin.confirmPost.mutate({ id: 11403 })).toEqual({
         success: true,
@@ -147,6 +156,7 @@ describe.skipIf(!testDatabaseUrl)(
         publishedAt: "2025-01-01 00:00:00",
       });
     });
+    /** Проверяет успешные повторы confirm отложенного поста с единственным анонсом. */
     it("retries return success but announce a scheduled post only once", async () => {
       expect(await admin.admin.confirmPost.mutate({ id: 11401 })).toEqual({
         success: true,
@@ -162,6 +172,7 @@ describe.skipIf(!testDatabaseUrl)(
         published: 1,
       });
     });
+    /** Проверяет один публикационный переход при восьми конкурентных ручных confirm. */
     it("concurrent manual requests publish and announce a draft only once", async () => {
       expect(
         await Promise.all(
@@ -179,6 +190,7 @@ describe.skipIf(!testDatabaseUrl)(
         publishedAt: "2025-01-01 00:00:00",
       });
     });
+    /** Проверяет явную досрочную ручную публикацию с текущей датой вместо будущего scheduledAt. */
     it("keeps explicit early manual confirmation and uses now, not the future schedule", async () => {
       await admin.admin.confirmPost.mutate({ id: 11404 });
       const [rows] = await conn.query<RowDataPacket[]>(
@@ -189,6 +201,7 @@ describe.skipIf(!testDatabaseUrl)(
         { text: "Early manual", id: 11404, target: "feed" },
       ]);
     });
+    /** Проверяет честный NOT_FOUND отсутствующего ID без анонса и ложного успеха интерфейсу. */
     it("a missing ID cannot confirm publication to the admin UI", async () => {
       await expect(
         admin.admin.confirmPost.mutate({ id: 11405 }),
@@ -199,6 +212,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(transport.announcements).toEqual([]);
       expect(await state(11405)).toBeUndefined();
     });
+    /** Проверяет откат публикации при SQL-отказе и допустимый повтор после снятия своего триггера. */
     it("a database failure neither publishes nor announces, and a retry can succeed", async () => {
       const before = await state(11401);
       await conn.query(`CREATE TRIGGER backend_test_manual_publication_failure BEFORE UPDATE ON posts FOR EACH ROW
@@ -218,6 +232,7 @@ describe.skipIf(!testDatabaseUrl)(
       await admin.admin.confirmPost.mutate({ id: 11401 });
       expect(transport.announcements).toHaveLength(1);
     });
+    /** Проверяет запрет публикации гостем, участником и заблокированным администратором без записи и анонса. */
     it("anonymous, member and blocked administrator requests cannot publish", async () => {
       const before = await state(11401);
       await expect(
@@ -238,6 +253,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await state(11401)).toEqual(before);
       expect(transport.announcements).toEqual([]);
     });
+    /** Проверяет текущую роль и эпоху сессии перед любым созданием, редактированием либо confirm. */
     it.each([
       { change: "role='moderator'", code: "FORBIDDEN", httpStatus: 403 },
       { change: "sessionVersion=1", code: "UNAUTHORIZED", httpStatus: 401 },
@@ -269,6 +285,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(transport.announcements).toEqual([]);
       },
     );
+    /** Удерживает строку поста и проверяет единственного владельца анонса при гонке ручного confirm и scheduler SKIP LOCKED. */
     it("manual and scheduled confirmation have only one announcement owner", async () => {
       const guard = await openTestDatabase();
       let manual: Promise<unknown> | undefined;
@@ -304,6 +321,7 @@ describe.skipIf(!testDatabaseUrl)(
         await guard.end();
       }
     });
+    /** Проверяет отсутствие второго анонса после перехода, уже закоммиченного scheduler. */
     it("does not reannounce a transition already committed by the scheduler", async () => {
       const scheduled = await publishDueScheduledPosts();
       await admin.admin.confirmPost.mutate({ id: 11401 });
@@ -313,6 +331,7 @@ describe.skipIf(!testDatabaseUrl)(
         ...transport.announcements.map((row) => row.id),
       ]).toEqual([11401]);
     });
+    /** Фиксирует восстановление legacy published-статуса с выключенной видимостью как отдельный публикационный переход. */
     it("still repairs a legacy published status with a false visibility flag", async () => {
       await conn.query("UPDATE posts SET published=FALSE WHERE id=11403");
       await admin.admin.confirmPost.mutate({ id: 11403 });
@@ -325,6 +344,7 @@ describe.skipIf(!testDatabaseUrl)(
         { text: "Already public", id: 11403, target: "both" },
       ]);
     });
+    /** Читает согласованный контрольный набор полей поста и упорядоченных вложений для проверки атомарного редактирования. */
     async function editSnapshot() {
       const [[post], [media]] = await Promise.all([
         conn.query<RowDataPacket[]>(
@@ -336,6 +356,7 @@ describe.skipIf(!testDatabaseUrl)(
       ]);
       return { post: post[0], media };
     }
+    /** Проверяет общий откат поста и прежних видео, если вторая вставка заменяющего списка падает. */
     it("rolls back post and old videos when the second replacement insert fails", async () => {
       const before = await editSnapshot();
       await conn.query(`CREATE TRIGGER backend_test_edit_media_failure BEFORE INSERT ON post_media FOR EACH ROW
@@ -360,6 +381,7 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query("DROP TRIGGER backend_test_edit_media_failure");
       }
     });
+    /** Проверяет отсутствие частично сохранённой записи после ошибки декодирования video filename. */
     it("a malformed encoded video filename cannot leave a partial save", async () => {
       const before = await editSnapshot();
       await expect(
@@ -376,6 +398,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await editSnapshot()).toEqual(before);
       expect(transport.announcements).toEqual([]);
     });
+    /** Проверяет анонс сохранённого нормализованного текста вместо сырого запроса. */
     it("announces the saved sanitized text rather than the raw request", async () => {
       await admin.admin.updatePost.mutate({
         id: 11402,
@@ -388,6 +411,7 @@ describe.skipIf(!testDatabaseUrl)(
         { text: "Saved title", id: 11402, target: "club" },
       ]);
     });
+    /** Проверяет NOT_FOUND редактирования отсутствующего поста без orphan-видео. */
     it("a missing post edit cannot create orphan videos", async () => {
       await expect(
         admin.admin.updatePost.mutate({
@@ -405,6 +429,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(media).toEqual([]);
       expect(transport.announcements).toEqual([]);
     });
+    /** Проверяет отказ всех вариантов редактирования удалённого поста без изменения оставшихся media-строк. */
     it.each<{ change: string; input: Omit<UpdatePostInput, "id"> }>([
       { change: "text", input: { text: "Deleted post correction" } },
       { change: "publication", input: { status: "published" } },
@@ -432,6 +457,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(transport.announcements).toEqual([]);
       },
     );
+    /** Проверяет отсутствие ложного успеха добавления вложения отсутствующему посту. */
     it("does not report attachment save success when the post no longer exists", async () => {
       await expect(
         admin.admin.updatePost.mutate({
@@ -453,6 +479,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(media).toEqual([]);
       expect(transport.announcements).toEqual([]);
     });
+    /** Ожидает реальных SQL writers по performance_schema, учитывая блокировку поста либо сериализующего actor. */
     async function waitForPostWriters(count: number) {
       await vi.waitFor(
         async () => {
@@ -469,6 +496,7 @@ describe.skipIf(!testDatabaseUrl)(
         { timeout: 3000, interval: 20 },
       );
     }
+    /** Проверяет замену только видео с сохранением документа, декодированного имени и исходных позиций массива. */
     it("replaces only videos and preserves documents, decoded names and explicit order", async () => {
       await admin.admin.updatePost.mutate({
         id: 11402,
@@ -505,6 +533,7 @@ describe.skipIf(!testDatabaseUrl)(
         { text: "Edited", id: 11402, target: "club" },
       ]);
     });
+    /** Проверяет сохранение всех вложений, если поле videos отсутствует в patch. */
     it("omitting videos preserves every attachment on a draft edit", async () => {
       const before = (await editSnapshot()).media;
       await admin.admin.updatePost.mutate({
@@ -515,6 +544,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await editSnapshot()).media).toEqual(before);
       expect(transport.announcements).toEqual([]);
     });
+    /** Проверяет удаление только видео явным пустым videos без удаления документов. */
     it("an explicit empty video list removes videos but not documents", async () => {
       await admin.admin.updatePost.mutate({
         id: 11402,
@@ -532,6 +562,7 @@ describe.skipIf(!testDatabaseUrl)(
       ]);
       expect(transport.announcements).toEqual([]);
     });
+    /** Проверяет различие явного NULL и заданной задним числом даты публикации. */
     it("preserves explicit null and backdated publication dates", async () => {
       await admin.admin.updatePost.mutate({
         id: 11402,
@@ -547,6 +578,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await state(11402)).publishedAt).toBe("2024-01-01 00:00:00");
       expect(transport.announcements).toHaveLength(1);
     });
+    /** Проверяет заполнение отсутствующей даты только после блокировки поста и корректность секундной SQL-точности. */
     it("an omitted publication date is filled only after locking an undated post", async () => {
       await admin.admin.updatePost.mutate({ id: 11401, status: "published" });
       const [rows] = await conn.query<RowDataPacket[]>(
@@ -555,6 +587,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(rows).toEqual([{ current: 1 }]);
     });
+    /** Проверяет согласованную итоговую ревизию текста и полного списка видео при конкурентных edits без перемешивания. */
     it("concurrent edits keep one complete matching post and video revision", async () => {
       const revisions = [
         {
@@ -589,6 +622,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).toHaveLength(1);
       expect(transport.announcements).toEqual([]);
     });
+    /** Проверяет сохранение пустого нового текста в анонсе вместо подстановки прежнего текста. */
     it("an empty saved text is not replaced by the previous text in its announcement", async () => {
       await admin.admin.updatePost.mutate({
         id: 11402,
@@ -600,6 +634,7 @@ describe.skipIf(!testDatabaseUrl)(
         { text: "", id: 11402, target: "feed" },
       ]);
     });
+    /** Проверяет media-only patch без пустого SQL SET и без изменения полей поста. */
     it("a media-only edit succeeds without an empty SQL SET and keeps the post unchanged", async () => {
       const before = (await editSnapshot()).post;
       expect(
@@ -611,6 +646,7 @@ describe.skipIf(!testDatabaseUrl)(
       ]);
       expect(transport.announcements).toEqual([]);
     });
+    /** Удерживает строку поста и проверяет единственного владельца публикации для восьми ожидающих edit-запросов. */
     it("eight waiting edit requests have only one publication owner", async () => {
       const guard = await openTestDatabase();
       let requests: Promise<unknown>[] = [];
@@ -633,6 +669,7 @@ describe.skipIf(!testDatabaseUrl)(
         await guard.end();
       }
     });
+    /** Проверяет отсутствие второго анонса у edit, вставшего за ручным confirm той же публикации. */
     it("an edit behind manual confirmation cannot announce the same transition", async () => {
       const guard = await openTestDatabase();
       const requests: Promise<unknown>[] = [];
@@ -656,6 +693,7 @@ describe.skipIf(!testDatabaseUrl)(
         await guard.end();
       }
     });
+    /** Читает созданные своим source посты и video-метаданные для проверки отката создания. */
     async function creationSnapshot() {
       const [[created], [media]] = await Promise.all([
         conn.query<RowDataPacket[]>(
@@ -675,6 +713,7 @@ describe.skipIf(!testDatabaseUrl)(
       mimeType: "audio/mpeg",
       fileSize: 5,
     };
+    /** Проверяет сохранение audio и document до публикационного анонса. */
     it("creates a post with audio and documents committed before announcing", async () => {
       const id = await admin.admin.createPost.mutate({
         ...creationInput,
@@ -711,6 +750,7 @@ describe.skipIf(!testDatabaseUrl)(
         { id, text: "Created post", target: "club" },
       ]);
     });
+    /** Проверяет общий откат нового поста и ранее вставленных media при отказе последующего вложения. */
     it("rolls back new posts and earlier media when an attachment insert fails", async () => {
       await conn.query(`CREATE TRIGGER backend_test_attachment_create_failure BEFORE INSERT ON post_media FOR EACH ROW
         BEGIN IF NEW.url='https://assets.example.test/create-broken.pdf' THEN
@@ -736,6 +776,7 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query("DROP TRIGGER backend_test_attachment_create_failure");
       }
     });
+    /** Проверяет правку опубликованного поста и удаление документа без повторного анонса. */
     it("edits a published post and removes its document without a second announcement", async () => {
       await conn.query(
         "UPDATE posts SET status='published',published=TRUE WHERE id=11402",
@@ -756,6 +797,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(snapshot.media.map((row) => row.type)).toEqual(["video", "audio"]);
       expect(transport.announcements).toEqual([]);
     });
+    /** Проверяет общий откат текста, видимости, videos и removals при отказе вставки attachment. */
     it("rolls back text, visibility, videos and removals when attachment persistence fails", async () => {
       await conn.query(
         "UPDATE posts SET status='published',published=TRUE WHERE id=11402",
@@ -781,6 +823,7 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query("DROP TRIGGER backend_test_attachment_edit_failure");
       }
     });
+    /** Проверяет запрет удаления чужого вложения и использования attachment-removal для видео. */
     it("cannot remove another post's attachment or use attachment removal to delete a video", async () => {
       const before = await editSnapshot();
       for (const id of [11412, 11411]) {
@@ -796,6 +839,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await state(11403)).status).toBe("published");
       expect(transport.announcements).toEqual([]);
     });
+    /** Проверяет безопасную URL-схему и отсутствие credentials на HTTP-границе до создания поста. */
     it.each([
       "not-a-url",
       "javascript:alert(1)",
@@ -812,6 +856,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await creationSnapshot()).toEqual({ created: [], media: [] });
       },
     );
+    /** Проверяет отсутствие нового опубликованного поста после отказа второй video-вставки. */
     it("does not retain a new published post when its second video insert fails", async () => {
       await conn.query(`CREATE TRIGGER backend_test_create_media_failure BEFORE INSERT ON post_media FOR EACH ROW
         BEGIN IF NEW.url='https://assets.example.test/create-broken.mp4' THEN
@@ -832,6 +877,7 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query("DROP TRIGGER backend_test_create_media_failure");
       }
     });
+    /** Проверяет откат нового черновика и первого видео после malformed encoded filename. */
     it("rolls back a new draft and its first video after a filename decoding failure", async () => {
       await expect(
         admin.admin.createPost.mutate({
@@ -846,6 +892,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await creationSnapshot()).toEqual({ created: [], media: [] });
       expect(transport.announcements).toEqual([]);
     });
+    /** Проверяет ID созданного поста, нормализацию текста и video-метаданных и анонс только после сохранения. */
     it("returns the created numeric ID and announces normalized text after saving videos", async () => {
       const id = await admin.admin.createPost.mutate({
         ...creationInput,
@@ -888,6 +935,7 @@ describe.skipIf(!testDatabaseUrl)(
         { text: "Created title", id, target: "club" },
       ]);
     });
+    /** Проверяет прежние draft, hidden и scheduled-семантики создания без немедленного анонса. */
     it.each([
       {
         input: {
@@ -919,6 +967,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(transport.announcements).toEqual([]);
       },
     );
+    /** Удерживает незавершённую media-транзакцию и проверяет невидимость нового поста читателям и scheduler до коммита. */
     it.each(["scheduled", "published"] as const)(
       "an unfinished %s creation is invisible to readers and the scheduler",
       async (status) => {
@@ -973,6 +1022,7 @@ describe.skipIf(!testDatabaseUrl)(
         }
       },
     );
+    /** Проверяет запрет создания поста обычным участником и гостем без SQL-эффектов. */
     it.each(["member", "anonymous"])(
       "%s cannot create a post",
       async (role) => {
@@ -991,6 +1041,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(transport.announcements).toEqual([]);
       },
     );
+    /** Проверяет запрет создания заблокированным администратором без анонса и частичной записи. */
     it("a blocked administrator cannot create a post", async () => {
       await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=92601");
       await expect(

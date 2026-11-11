@@ -9,6 +9,7 @@ let browser, server, origin;
 let mode, calls;
 let firstCall, releaseProof, proofGate;
 
+// Собираются настоящие браузерные caller/controller/transport; локальный HTTP-провайдер задаёт pending, отмену, квоту и управляемую задержку доказательства.
 before(async () => {
   const frontend = new URL("../apps/frontend/", import.meta.url).pathname;
   // One bundle shares the real caller, transport and session lifecycle. Only
@@ -131,6 +132,8 @@ for (const responseMode of ["canceled", "quota"]) {
     `real browser polling stops on ${responseMode}, ignoring forged return flags`,
     { timeout: 20_000 },
     async () => {
+      // Сценарий: Настоящий браузер прекращает polling после отмены или квоты, игнорируя поддельные флаги возврата.
+
       mode = responseMode;
       calls = [];
       const context = await browser.newContext();
@@ -147,7 +150,7 @@ for (const responseMode of ["canceled", "quota"]) {
           window.polling = api
             .pollClubTestCheckout(api.createTRPCClient(), {
               signal: window.controller.signal,
-              onResult: (result) => window.states.push(result.state),
+              onResult: (result) => /* Фиксирует последовательность результатов polling внутри страницы для проверки остановки. */ window.states.push(result.state),
             })
             .then(
               (result) => ({ result }),
@@ -201,6 +204,8 @@ test(
   "two real tabs reserve at most one next intent after locked terminal proof",
   { timeout: 10_000 },
   async () => {
+    // Сценарий: Две вкладки под Web Lock резервируют не более одного следующего платежа после терминального доказательства.
+
     mode = "next-terminal";
     calls = [];
     const requestReceived = new Promise((resolve) => {
@@ -222,7 +227,7 @@ test(
         ).idempotencyKey;
       });
       const start = (page) =>
-        page.evaluate(async (previousIdempotencyKey) => {
+        /* Запускает проверку следующего намерения в одной из настоящих вкладок общего браузерного контекста. */ page.evaluate(async (previousIdempotencyKey) => {
           const api = await import("/checkout.js");
           window.next = api
             .reserveNextClubCheckoutIntent(api.createTRPCClient(), {
@@ -269,6 +274,8 @@ test(
 );
 
 test("real next-purchase caller checks the old key and dispatches only the new durable key", async () => {
+  // Сценарий: Клиент новой покупки сначала проверяет прежний ключ, затем отправляет только новый сохранённый ключ.
+
   mode = "next-dispatch";
   calls = [];
   const context = await browser.newContext();
@@ -314,6 +321,8 @@ test("real next-purchase caller checks the old key and dispatches only the new d
 });
 
 test("real result controller honors quota cooldown without automatic or duplicate checks", async () => {
+  // Сценарий: Контроллер результата соблюдает cooldown после 429 без фоновых или двойных проверок.
+
   mode = "controller-quota";
   calls = [];
   const context = await browser.newContext();

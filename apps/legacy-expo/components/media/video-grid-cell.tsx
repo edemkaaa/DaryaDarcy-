@@ -1,3 +1,4 @@
+// Архив Expo. Переключает poster на web/native плеер и выбирает contain для портретного превью.
 import React, { createElement, useEffect, useState } from "react";
 import { View, Pressable, StyleSheet, Platform, Image as RNImage } from "react-native";
 import { Image } from "expo-image";
@@ -24,6 +25,8 @@ interface VideoGridCellProps {
 }
 
 export function VideoGridCell({ url, thumbnailUrl, onPress, standalone }: VideoGridCellProps) {
+  // Переключает poster на web/native плеер и выбирает contain для портретного превью.
+
   const [isPlaying, setIsPlaying] = useState(false);
   const aspectRatio = useMediaAspectRatio(thumbnailUrl, FALLBACK_PHOTO_RATIO);
   const isPortrait = aspectRatio < 0.95;
@@ -50,6 +53,8 @@ export function VideoGridCell({ url, thumbnailUrl, onPress, standalone }: VideoG
   }
 
   const handlePress = () => {
+    // Делегирует внешний переход либо включает локальный player.
+
     if (onPress) {
       onPress();
       return;
@@ -109,11 +114,15 @@ function NativePlayingCell({
   standalone?: boolean;
   aspectRatio: number;
 }) {
+  // Создаёт native player только в играющей ветке, чтобы poster не загружал видеопоток заранее.
+
   const player = useVideoPlayer(url, (p: any) => {
     p.loop = false;
   });
 
   useEffect(() => {
+    // После создания native player запускает воспроизведение текущего источника.
+
     player.play();
   }, [player]);
 
@@ -131,6 +140,7 @@ function NativePlayingCell({
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   cell: {
     flex: 1,

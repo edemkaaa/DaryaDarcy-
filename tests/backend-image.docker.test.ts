@@ -1,3 +1,4 @@
+/** Опциональная офлайн-приёмка уже имеющегося backend-образа; Docker не скачивает image и не подключает рабочие ресурсы. */
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -7,6 +8,7 @@ import { describe, expect, it } from "vitest";
 
 // Explicit local image only: never pull, start workers, load .env or connect to SQL/S3.
 const image = process.env.BACKEND_IMAGE_ACCEPTANCE;
+/** Ограничиваем время и объём вывода CLI Docker; аргументы не проходят через shell. */
 const docker = (args: string[]) =>
   execFileSync("docker", args, {
     encoding: "utf8",
@@ -14,9 +16,11 @@ const docker = (args: string[]) =>
     maxBuffer: 2 * 1024 * 1024,
   });
 
+/** Набор включается только явным BACKEND_IMAGE_ACCEPTANCE и проверяет метаданные плюс собственный probe. */
 describe.skipIf(!image)(
   "backend release image (native Docker, offline)",
   () => {
+    /** Проверяем revision label, архитектуру, non-root command и отсутствие секретных env в образе. */
     it("is pinned to the expected source, amd64 and non-root backend command", () => {
       const revision = process.env.BACKEND_IMAGE_REVISION;
       expect(revision).toMatch(/^[a-f0-9]{40}$/);
@@ -40,6 +44,7 @@ describe.skipIf(!image)(
       ).toBe(false);
     });
 
+    /** Собранный probe монтируется read-only в network=none контейнер с лимитами; приложение проверяется без workers/БД. */
     it("loads native dependencies and serves the real composition with no egress", () => {
       const scratch = mkdtempSync(join(tmpdir(), "darcy-image-probe-"));
       try {

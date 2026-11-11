@@ -1,6 +1,8 @@
+/** Архивная карточка товара из встроенного каталога. */
 import { Link, useParams } from "react-router-dom";
 import { PRODUCTS } from "../data";
 
+/** Ищет товар по строковому ID и показывает внешние ссылки; подтверждение заказа менеджером этот экран не выполняет. */
 export default function Product() {
   const { id } = useParams();
   const product = PRODUCTS.find((item) => item.id === id);

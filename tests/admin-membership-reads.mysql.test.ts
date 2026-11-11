@@ -23,6 +23,7 @@ import {
 } from "../apps/backend/src/db";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 
+/** Сверяем безопасные административные проекции участников и платежей на одноразовой БД и настоящем tRPC-транспорте. */
 describe.skipIf(!testDatabaseUrl)(
   "admin membership read projections on disposable MySQL",
   () => {
@@ -30,6 +31,7 @@ describe.skipIf(!testDatabaseUrl)(
     let application: INestApplication;
     let client: ReturnType<typeof createTRPCProxyClient<AppRouter>>;
 
+    /** Создаём синтетические роли, запускаем loopback Nest и авторизованный tRPC-клиент администратора. */
     beforeAll(async () => {
       connection = await openTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -54,6 +56,7 @@ describe.skipIf(!testDatabaseUrl)(
         ],
       });
     });
+    /** Сбрасываем только платежи выделенных пользователей и блокировку участника. */
     beforeEach(async () => {
       await connection.query(
         "DELETE FROM club_payments WHERE userId IN (92520,92521,92522)",
@@ -62,7 +65,9 @@ describe.skipIf(!testDatabaseUrl)(
         "UPDATE users SET blockedAt=NULL,blockedReason=NULL WHERE id=92521",
       );
     });
+    /** Снимаем подмены часов и методов после каждого сценария. */
     afterEach(() => vi.restoreAllMocks());
+    /** Закрываем приложение, удаляем свои платежи/аккаунты и освобождаем оба SQL-контекста и окружение. */
     afterAll(async () => {
       await application?.close();
       if (connection) {
@@ -81,6 +86,7 @@ describe.skipIf(!testDatabaseUrl)(
       vi.unstubAllEnvs();
     });
 
+    /** Проверяем точный набор полей и порядок новых аккаунтов, включая null и блокировку, без passwordHash/openId. */
     it("returns the same safe member fields and newest-account order over native HTTP", async () => {
       await connection.query(
         "UPDATE users SET blockedAt='2025-04-01',blockedReason='synthetic reason' WHERE id=92521",
@@ -120,6 +126,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).toBe(true);
     });
 
+    /** Фиксируем лишь часы чтения и убеждаемся, что срок берётся из последней будущей paid-записи, а не pending/failed. */
     it("uses only the latest future paid expiry rather than later pending or failed rows", async () => {
       await connection.query(`INSERT INTO club_payments (userId,orderId,status,expiresAt) VALUES
       (92521,'admin-read-paid-late','paid','2028-02-01'),
@@ -139,6 +146,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(members.find((row) => row.id === 92522)?.clubExpiresAt).toBeNull();
     });
 
+    /** Ровно наступившее окончание и paid без даты не считаются действующим членством. */
     it("does not report an expiry exactly at now or a paid row without expiry as current access", async () => {
       await connection.query(`INSERT INTO club_payments (userId,orderId,status,expiresAt) VALUES
       (92521,'admin-read-boundary','paid','2027-01-01'),
@@ -152,6 +160,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).toBeNull();
     });
 
+    /** Для 52 записей разных статусов сверяем последние 50, полный согласованный набор полей и явные пределы два/ноль. */
     it("preserves payment history statuses, newest-first ordering and the default 50-row limit", async () => {
       for (let index = 0; index < 52; index++) {
         await connection.query(

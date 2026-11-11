@@ -20,7 +20,7 @@ const privateUploadProcedures = new Set([
   "club.privateCommentPhotoStatus",
 ]);
 
-/** Preserve machine-readable status while keeping server internals out of every screen's message. */
+/** Нормализуем ошибки до экранов, сохраняя только безопасный статус и проверенную задержку повторного действия. */
 export const userFacingErrorsLink: TRPCLink<AppRouter> =
   () =>
   ({ next, op }) =>
@@ -28,6 +28,7 @@ export const userFacingErrorsLink: TRPCLink<AppRouter> =
       next(op).subscribe({
         next: (result) => observer.next(result),
         complete: () => observer.complete(),
+        /** Отказ обычного body parser может прийти до tRPC shape: берём HTTP-метаданные, не предполагая, что отсутствие shape означает сетевой сбой. */
         error: (error) => {
           const response = error.meta?.response;
           // Body-size limits and disabled routes can reply before tRPC runs.

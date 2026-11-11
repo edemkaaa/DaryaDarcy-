@@ -38,6 +38,8 @@ const ROUTE_CHECKS = {
 };
 
 function chunkFor(prefix) {
+  // Находит конкретный локальный legacy-chunk раздела; отсутствие файла не подменяется маркером другой сборки.
+
   return fs.readdirSync(dir).find((f) => f.startsWith(prefix) && f.endsWith(".js"));
 }
 

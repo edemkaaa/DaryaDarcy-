@@ -1,3 +1,4 @@
+// Архив Expo. Циклически меняет промо-слайды и открывает внутренний route текущей карточки.
 import { useEffect, useRef, useState } from "react";
 
 import { ImageBackground, Pressable, StyleSheet, View, Dimensions } from "react-native";
@@ -45,6 +46,8 @@ const FADE_MS = 2400;
 
 
 export function HomePromoCarousel() {
+  // Циклически меняет промо-слайды и открывает внутренний route текущей карточки.
+
 
   const router = useRouter();
 
@@ -61,6 +64,8 @@ export function HomePromoCarousel() {
 
 
   useEffect(() => {
+    // Каждые шесть секунд запускает crossfade и отложенную смену индекса; cleanup снимает interval, но вложенный timeout исторически не сохраняется.
+
 
     timerRef.current = setInterval(() => {
 
@@ -168,6 +173,7 @@ export function HomePromoCarousel() {
 
 
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
 
   wrap: {

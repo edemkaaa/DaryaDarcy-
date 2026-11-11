@@ -1,9 +1,12 @@
+/** Проверяем SMTP envelope Nodemailer через streamTransport: письмо остаётся в памяти и никуда не отправляется. */
 import { describe, expect, it } from "vitest";
 import nodemailer from "nodemailer";
 
 // Characterize the dependency at the generated SMTP envelope boundary.
 // streamTransport never connects to SMTP or sends an external message.
+/** Почтовые комментарии и кавычки не должны менять фактический домен получателя. */
 describe("Nodemailer keeps quoted/comment text out of recipient routing", () => {
+  /** Для каждой синтетической формы адреса проверяем единственный envelope-recipient и закрываем транспорт. */
   it.each([
     {
       name: "nested comment",

@@ -31,6 +31,7 @@ type Database = NonNullable<Awaited<ReturnType<typeof getDb>>>;
 type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
 type DataWriter = Database | Transaction;
 
+/** Из старого произвольного JSON выбираем только строки, сохраняя их порядок и повторы для совместимого ранжирования. */
 function asInterestList(value: unknown): string[] {
   // Старые анкеты могут содержать произвольный JSON. Сохраняем порядок и повторы строк.
   if (!Array.isArray(value)) return [];
@@ -52,6 +53,7 @@ export type PenPalMatchCard = {
   confirmDeadline: Date | null;
 };
 
+/** В транзакции анкеты записываем предоставление или отзыв согласия с версией и точным пользовательским текстом. */
 async function recordProfileConsent(
   tx: Transaction,
   userId: number,
@@ -139,6 +141,7 @@ export async function deactivatePenPalProfileV2(userId: number): Promise<void> {
   });
 }
 
+/** В переданной транзакции выключаем анкету и удаляем все её пары, сохраняя саму анкету до отдельной очистки персональных данных. */
 export async function deactivatePenPalProfile(
   db: DataWriter,
   userId: number,
@@ -178,6 +181,7 @@ export async function readOwnPenPalProfile(actor: PenPalActor) {
   });
 }
 
+/** Преобразуем упорядоченную low/high пару в собственное и чужое согласие, ID собеседницы и общий срок для конкретного пользователя. */
 function matchInfoForUser(
   row: typeof penPalMatches.$inferSelect,
   userId: number,
@@ -194,6 +198,7 @@ function matchInfoForUser(
 }
 
 /** Подбираем ограниченный набор карточек без выдачи адреса до взаимного подтверждения. */
+/** Сериализуем подбор текущего пользователя, возвращаем сначала существующие пары, затем ограниченные совпадения интересов; каждую анкету перечитываем под READ COMMITTED, а адрес раскрываем лишь после взаимного подтверждения. */
 export async function findPenPalCards(actor: PenPalActor, limit = 2) {
   const database = await getDb();
   if (!database) throw new Error("Database not available");

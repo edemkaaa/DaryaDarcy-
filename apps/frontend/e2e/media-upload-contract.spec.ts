@@ -6,6 +6,7 @@ import { gotoWithSession } from "./layout-fixtures";
 
 const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
 const coverUrl = "https://example.test/cover.png";
+/** Раздельно считаем legacy, public-cover и private-content uploads; готовый receipt не должен сам создавать или публиковать статью. */
 async function setup(page: Page, uploads: Record<string, unknown>[]) {
   const state = { legacyUploads: 0, articleWrites: 0 };
   await editorApi(page, (name, input) => {
@@ -48,6 +49,7 @@ async function setup(page: Page, uploads: Record<string, unknown>[]) {
   });
   return state;
 }
+/** Открываем быстрый редактор настоящим пользовательским действием. */
 async function open(page: Page) {
   await gotoWithSession(page, "/feed");
   await page.getByRole("button", { name: "Новый пост", exact: true }).click();
@@ -55,6 +57,7 @@ async function open(page: Page) {
     page.getByRole("dialog", { name: "Редактор публикации" }),
   ).toBeVisible();
 }
+/** Создаём несжимаемый RGBA PNG больше 4 МиБ, чтобы подготовка проверялась по фактическим байтам, а не расширению файла. */
 const largePng = () =>
   sharp(randomFillSync(Buffer.alloc(1100 * 1100 * 4)), {
     raw: { width: 1100, height: 1100, channels: 4 },
@@ -62,6 +65,7 @@ const largePng = () =>
     .png({ compressionLevel: 0 })
     .toBuffer();
 
+/** Публичный баннер передаёт явное назначение и ключ операции; получение receipt не является публикацией статьи. */
 test("article banner accepts the public cover receipt without publishing the article", async ({
   page,
 }) => {
@@ -106,6 +110,7 @@ test("article banner accepts the public cover receipt without publishing the art
   expect(state.articleWrites).toBe(0);
 });
 
+/** Выбор сохраняет локальный blob, а upload начинается при сохранении; подготовленные байты должны укладываться в серверный предел. */
 test("an original photo above 4 MiB is prepared within the server limit", async ({
   page,
 }) => {
@@ -134,6 +139,7 @@ test("an original photo above 4 MiB is prepared within the server limit", async 
   expect(["webp", "png"]).toContain((await sharp(prepared).metadata()).format);
 });
 
+/** После подготовки PNG проверяем реальный формат и ненулевую прозрачность; WebKit может использовать PNG вместо canvas WebP. */
 test("transparent article PNG is resized/encoded within the limit with alpha preserved", async ({
   page,
 }) => {
@@ -171,6 +177,7 @@ test("transparent article PNG is resized/encoded within the limit with alpha pre
   expect((await sharp(prepared).stats()).channels[3].min).toBeLessThan(255);
 });
 
+/** Минимальные признаки GIF/APNG/WebP-анимации должны отклоняться до сетевой загрузки. */
 for (const format of ["gif", "apng", "webp"] as const) {
   test(`animated ${format} is refused before upload`, async ({ page }) => {
     const uploads: Record<string, unknown>[] = [];
@@ -224,6 +231,7 @@ for (const format of ["gif", "apng", "webp"] as const) {
   });
 }
 
+/** Отклонённый video-upload сохраняет текст редактора, не отправляет createPost и не раскрывает техническое сообщение сервера. */
 test("a rejected private video stays in the draft without publishing or exposing server details", async ({
   page,
 }) => {

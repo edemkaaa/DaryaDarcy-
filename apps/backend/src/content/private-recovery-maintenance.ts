@@ -17,6 +17,7 @@ import { deletePrivateOrphanObject } from "../media/private-orphan-object";
 import { ENV } from "../_core/env";
 
 type Receipt = typeof privateAttachmentUploads.$inferSelect;
+/** До удаления или обезличивания сохраняем маркер использованного ключа; для уже обезличенного владельца требуем ранее закреплённое доказательство компактации. */
 async function closeRecovery(tx: ContentTransaction, row: Receipt) {
   if (row.actorUserId !== null) {
     await recordSpentRecovery(tx, "private_attachment", {
@@ -27,6 +28,7 @@ async function closeRecovery(tx: ContentTransaction, row: Receipt) {
     throw new Error("Retired recovery evidence incomplete");
   }
 }
+/** Под READ COMMITTED проверяем живую связь вложения с постом без обратного захвата parent-блокировок после asset; неполная или противоречивая связь останавливает обслуживание. */
 async function isLiveBound(tx: ContentTransaction, row: Receipt) {
   if (row.postId === null && row.mediaId === null) return false;
   if (row.postId === null || row.mediaId === null)
@@ -47,6 +49,7 @@ async function isLiveBound(tx: ContentTransaction, row: Receipt) {
     throw new Error("Private binding evidence mismatch");
   return true;
 }
+/** Разрешаем опасную очистку только для локальной одноразовой backend_test без дополнительных URL-параметров и вне production. */
 function requireLocalFixture() {
   const uri = new URL(ENV.databaseUrl);
   if (
@@ -61,6 +64,7 @@ function requireLocalFixture() {
 }
 
 /** Cursor-bounded explicit local call; no scheduler, API route, working DB or bucket sweep. */
+/** Явным локальным вызовом проходим ограниченную keyset-пачку, коммитим маркеры и возраст сирот; отдельный флаг допускает удаление лишь после повторной проверки отсутствия живой привязки. */
 export async function maintainPrivateRecovery(
   database: MySql2Database,
   options: { limit?: number; afterKey?: string } = {},
@@ -89,6 +93,7 @@ export async function maintainPrivateRecovery(
   for (const candidate of candidates) {
     result.nextCursor = candidate.requestKey;
     try {
+// Первый этап сохраняет доказательство истечения ключа и дату обнаружения сироты до любых эффектов в хранилище.
       const committed = await database.transaction(
         async (tx) => {
           const progress = { eligible: false, compacted: 0, observed: 0 };
@@ -140,6 +145,7 @@ export async function maintainPrivateRecovery(
       )
         continue;
       // Marker above has committed before storage; any failure keeps durable evidence.
+// Перед удалением вновь блокируем квитанцию и проверяем привязку; отказ хранилища оставляет долговечный маркер для следующего разбора.
       const deleted = await database.transaction(
         async (tx) => {
           await requirePrivateAttachmentSchema(tx);

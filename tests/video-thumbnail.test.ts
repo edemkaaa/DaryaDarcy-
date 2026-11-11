@@ -1,3 +1,4 @@
+/** Один публичный контракт обложек применяется при записи и чтении видеокаталога. */
 import { describe, expect, it } from "vitest";
 import { publicCatalogThumbnail } from "../apps/backend/src/content/video-thumbnail";
 import { vkVideoInput } from "../apps/backend/src/content/vk-video-input";
@@ -13,7 +14,9 @@ const input = {
   published: false,
 };
 
+/** Ключи публичных namespace проверяются без загрузки изображений или изменения S3. */
 describe("VK public cover contract", () => {
+  /** Разрешённые public/VK и совместимые старые cover-пути сохраняются одинаково в обеих границах. */
   it.each([
     publicCover,
     vkCover,
@@ -27,6 +30,7 @@ describe("VK public cover contract", () => {
     ).toBe(url);
     expect(publicCatalogThumbnail(url)).toBe(url);
   });
+  /** Приватные префиксы, неверная форма UUID/hash, SVG, query/fragment и обход пути отвергаются. */
   it.each([
     "content/private-v1/cover.webp",
     "covers/private/cover.webp",
@@ -46,6 +50,7 @@ describe("VK public cover contract", () => {
       vkVideoInput.safeParse({ ...input, thumbnailUrl: bucket + key }).success,
     ).toBe(false);
   });
+  /** Совпадение public-префикса не разрешает произвольный внешний origin. */
   it("does not accept a public namespace on another origin", () => {
     expect(
       publicCatalogThumbnail(`https://outside.example.test/${publicCover}`),

@@ -24,8 +24,12 @@ type Fixture = {
 };
 /** Share the existing owned SQL/S3 fixture; faults affect completed HTTP replies only. */
 export function registerPrivateCommentS3BrowserCases(fixture: () => Fixture) {
+  // Совмещает настоящий SQL/S3 wire и потерю уже выполненных ответов, проверяя один файл и один комментарий исходного владельца.
+
   for (const stage of ["lost", "upload", "status"] as const)
     it(`comment: ${stage} response recovery preserves one private photo and one original-owner comment`, async () => {
+    // Сценарий: Для потери ACK загрузки, удержанной загрузки и удержанного status проверяются один закрытый файл, один комментарий исходного автора, смена владельца и Range после привязки.
+
       const f = fixture(),
         { page, proxy } = f;
       const text = `${f.prefix}-comment-${stage}`,
@@ -37,10 +41,12 @@ export function registerPrivateCommentS3BrowserCases(fixture: () => Fixture) {
       const postId = (
         await f.rows("SELECT id FROM posts WHERE text=?", [text])
       )[0].id;
-      const input = () => page.getByPlaceholder("Написать комментарий...");
+      const input = () => /* Находит поле комментария повторно после восстановления страницы или смены аккаунта. */ page.getByPlaceholder("Написать комментарий...");
       const button = (name: string) =>
-        page.getByRole("button", { name, exact: true });
+        /* Выбирает точную кнопку действия, чтобы общая подпись не попала в другую форму. */ page.getByRole("button", { name, exact: true });
       const open = async (restore = false) => {
+        // Открывает исходный пост и при необходимости явно принимает его durable отправку.
+
         await page.goto(`${f.origin}/post/${postId}`);
         await ui(input()).toBeVisible();
         if (restore) await button("Восстановить отправку").click();

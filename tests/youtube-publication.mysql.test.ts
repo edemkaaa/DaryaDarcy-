@@ -8,23 +8,28 @@ import { testDatabaseUrl } from "./helpers/backend-mysql";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { getDb } from "../apps/backend/src/db";
 
+/** Проверяет отдельный bounded-ответ о публичной публикации видео независимо от общего размера каталога. */
 describe.skipIf(!testDatabaseUrl)("single-video public publication authority", () => {
   let conn: Connection, app: INestApplication, base: string;
+  /** Создаёт 1001 собственную synthetic-карточку и настоящий локальный API. */
   beforeAll(async () => {
     conn = await openContentTestDatabase(); vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
     await conn.query("INSERT INTO videos(youtubeId,title,provider,access,published) VALUES ?", [Array.from({ length: 1001 }, (_, i) => [`ytbound${String(i).padStart(4, "0")}`, "Large catalog fixture", "youtube", "public", true])]);
     app = await createBackendApplication(); await app.listen(0, "127.0.0.1");
     base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
   });
+  /** Закрывает API, удаляет только префикс карточек suite и закрывает соединения. */
   afterAll(async () => {
     await app?.close(); await conn?.query("DELETE FROM videos WHERE youtubeId LIKE 'ytbound%'"); await conn?.end();
     await ((await getDb()) as unknown as { $client: Pool })?.$client.end(); vi.unstubAllEnvs();
   });
+  /** Запрашивает videos.publicYoutubeState и сохраняет HTTP-ответ, текст и JSON для проверки размера контракта. */
   async function query(youtubeId: string) {
     const response = await fetch(`${base}/api/trpc/videos.publicYoutubeState?input=${encodeURIComponent(superjson.stringify({ youtubeId }))}`);
     const text = await response.text();
     return { response, text, body: JSON.parse(text) };
   }
+  /** Даже большой каталог даёт короткий ответ одного ID; club, unpublished и другой provider немедленно лишают публичного разрешения. */
   it("uses a bounded authority response even beyond 1000 catalog records and revokes visibility immediately", async () => {
     const first = await query("ytbound0000");
     expect(first.response.status).toBe(200); expect(first.text.length).toBeLessThan(256);

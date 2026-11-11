@@ -2,14 +2,17 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { testDatabaseUrl } from "./helpers/backend-mysql";
 import { openListPageFixture } from "./helpers/list-page-fixture";
 
+/** Проверяет ограниченные admin-страницы участников, безопасную проекцию и keyset после удаления границы. */
 describe.skipIf(!testDatabaseUrl)(
   "member pages over real HTTP/JWT/disposable MySQL",
   () => {
     let fixture: Awaited<ReturnType<typeof openListPageFixture>>;
     const base = 883000;
+    /** Запрашивает admin.membersPage от выбранного актёра, по умолчанию администратора фикстуры. */
     const read = (input: object = {}, actor: number | null = 2) =>
       fixture.read("admin.membersPage", input, actor);
     const extraIds = Array.from({ length: 51 }, (_, i) => base + 10 + i);
+    /** Создаёт ограниченное число собственных новых аккаунтов с равным createdAt. */
     const seed = async (count: number) => {
       for (const id of extraIds.slice(0, count))
         await fixture.conn.query(
@@ -17,19 +20,23 @@ describe.skipIf(!testDatabaseUrl)(
           [id, `pagination-members-extra-${id}`],
         );
     };
+    /** Запускает собственную page-фикстуру админского списка. */
     beforeAll(async () => {
       fixture = await openListPageFixture("pagination-members", base);
     });
+    /** Удаляет дополнительных участников suite и восстанавливает основную фикстуру. */
     beforeEach(async () => {
       await fixture.conn.query("DELETE FROM users WHERE id IN (?)", [extraIds]);
       await fixture.reset();
     });
+    /** Удаляет собственные дополнительные аккаунты и закрывает fixture. */
     afterAll(async () => {
       await fixture?.conn.query("DELETE FROM users WHERE id IN (?)", [
         extraIds,
       ]);
       await fixture?.close();
     });
+    /** Обход участников с равными датами сохраняет ID-порядок без пропусков и дубликатов. */
     it.each([0, 20, 21, 50, 51])(
       "pages %i new members without tie-date skips or duplicated accounts",
       async (count) => {
@@ -51,6 +58,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(new Set(actual).size).toBe(actual.length);
       },
     );
+    /** Ответ содержит только согласованные поля аккаунта и максимальный действующий paid-срок без failed или expired. */
     it("projects the old safe fields and computes only future paid expiry", async () => {
       await fixture.grant(0);
       await fixture.conn.query(
@@ -85,6 +93,7 @@ describe.skipIf(!testDatabaseUrl)(
         nextCursor: null,
       });
     });
+    /** Страница 50 сохраняет cursor для последнего оставшегося участника. */
     it("honors a 50-member page while retaining its next boundary", async () => {
       await seed(51);
       const first = await read({ limit: 50 });
@@ -98,6 +107,7 @@ describe.skipIf(!testDatabaseUrl)(
           .id,
       ).toBe(extraIds[0]);
     });
+    /** Удалённый anchor и новый более свежий аккаунт не сбивают продолжение списка. */
     it("continues after the cursor account is deleted and new accounts arrive", async () => {
       await seed(3);
       const first = await read({ limit: 1 });
@@ -114,6 +124,7 @@ describe.skipIf(!testDatabaseUrl)(
         ).data.items.map((x) => x.id),
       ).toEqual([base + 11, base + 10]);
     });
+    /** Cursor нельзя перенести на новый userId-фильтр или другого администратора. */
     it("does not let a new userId filter or different account reuse a page token", async () => {
       const first = await read({ limit: 1 });
       expect(first.status).toBe(200);
@@ -127,9 +138,11 @@ describe.skipIf(!testDatabaseUrl)(
         400,
       );
     });
+    /** Гости и роли без admin-права не читают список участниц. */
     it.each([null, 0, 3])("rejects guest/non-admin actor %s", async (actor) => {
       expect((await read({}, actor)).status).toBe(actor === null ? 401 : 403);
     });
+    /** Отзыв admin-роли между страницами немедленно блокирует следующий запрос. */
     it("checks role revocation between pages", async () => {
       const first = await read({ limit: 1 });
       expect(first.status).toBe(200);
@@ -138,6 +151,7 @@ describe.skipIf(!testDatabaseUrl)(
       ]);
       expect((await read({ cursor: first.data.nextCursor })).status).toBe(403);
     });
+    /** Некорректные ID, лимиты, cursor и неподдерживаемые фильтры дают 400. */
     it.each([
       { limit: 0 },
       { limit: 51 },

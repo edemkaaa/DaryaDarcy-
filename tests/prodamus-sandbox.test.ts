@@ -25,10 +25,12 @@ const payment = {
   payment_status: "success",
   sum: "790.00",
 };
+/** Независимо подписывает синтетическое уведомление по зафиксированному wire-контракту, не вызывая production signer. */
 function signed(changes: Record<string, unknown> = {}, key = secret) {
   const data = { ...payment, ...changes };
   // Independent fixture encoding of the documented wire contract; expected
   // acknowledgements and URLs below are literals, not production-derived.
+  /** Рекурсивно сортирует ключи и приводит значения к строковому представлению для независимого fixture HMAC. */
   const wire = (value: unknown): unknown => {
     if (Array.isArray(value)) return value.map(wire);
     if (value && typeof value === "object")
@@ -47,7 +49,9 @@ function signed(changes: Record<string, unknown> = {}, key = secret) {
   return { raw, signature };
 }
 
+/** Проверяет выделенную demo-диагностику без выдачи доступа и без настоящих платежей. */
 describe("synthetic-only Prodamus diagnostics", () => {
+  /** Разрешает sandbox только по точному явному флагу true. */
   it.each([undefined, "false", "1", "TRUE", " true "])(
     "does not opt in with %j",
     (enabled) => {
@@ -62,6 +66,7 @@ describe("synthetic-only Prodamus diagnostics", () => {
       expect(service.acceptNotification(raw, signature).status).toBe(503);
     },
   );
+  /** Некорректная выделенная конфигурация не создаёт ссылку и не принимает уведомление. */
   it.each([
     { PRODAMUS_SANDBOX_PAYFORM_URL: "https://other.payform.ru" },
     { PRODAMUS_SANDBOX_PAYFORM_URL: "http://testpage1.payform.ru" },
@@ -86,6 +91,7 @@ describe("synthetic-only Prodamus diagnostics", () => {
     const { raw, signature } = signed();
     expect(service.acceptNotification(raw, signature).status).toBe(503);
   });
+  /** Формирует стабильный одноразовый demo-заказ с синтетическим контактом и без обещания доступа. */
   it("generates an explicitly demo one-off link with synthetic contact and no access-return flag", () => {
     const service = new ProdamusSandboxService(config);
     const url = new URL(service.buildLink());
@@ -125,6 +131,7 @@ describe("synthetic-only Prodamus diagnostics", () => {
     const same = service.buildLink();
     expect(same).toBe(url.href); // Retry does not silently mint a new order.
   });
+  /** Добавляет demo-суффикс к ключу подписи только при отдельной настройке sandbox. */
   it("uses the demo-suffixed key only when explicitly configured for this sandbox", () => {
     const ordinary = new URL(new ProdamusSandboxService(config).buildLink());
     const demo = new URL(
@@ -140,6 +147,7 @@ describe("synthetic-only Prodamus diagnostics", () => {
     ordinary.searchParams.delete("signature");
     expect(demo.href).toBe(ordinary.href);
   });
+  /** Фиксирует конфигурацию в экземпляре, не следуя последующему изменению исходного объекта. */
   it("snapshots dedicated configuration per instance", () => {
     const mutable = { ...config };
     const service = new ProdamusSandboxService(mutable);
@@ -148,6 +156,7 @@ describe("synthetic-only Prodamus diagnostics", () => {
       "https://testpage1.payform.ru",
     );
   });
+  /** Подтверждает валидную диагностическую подпись без предоставления клубного доступа. */
   it.each([secret, `${secret}demo`])(
     "acknowledges a signed diagnostic without claiming access",
     (key) => {
@@ -165,6 +174,7 @@ describe("synthetic-only Prodamus diagnostics", () => {
       expect(service.acceptNotification(raw, signature).status).toBe(200);
     },
   );
+  /** Принимает только проверенные поддерживаемые статусы диагностической оплаты. */
   it.each(["pending", "order_canceled", "order_denied"])(
     "accepts a verified diagnostic status %s",
     (payment_status) => {
@@ -177,6 +187,7 @@ describe("synthetic-only Prodamus diagnostics", () => {
       });
     },
   );
+  /** Разбирает PHP form callback с тем же независимым HMAC fixture. */
   it("decodes a PHP-style form callback", () => {
     const { signature } = signed();
     const raw = new URLSearchParams(payment).toString();
@@ -185,6 +196,7 @@ describe("synthetic-only Prodamus diagnostics", () => {
         .status,
     ).toBe(200);
   });
+  /** Допускает документированные числовые provider ID и целый demo flag в JSON. */
   it("accepts documented numeric provider ID and integer demo flag in JSON", () => {
     const { raw, signature } = signed({
       order_id: 300155,
@@ -196,6 +208,7 @@ describe("synthetic-only Prodamus diagnostics", () => {
         .status,
     ).toBe(200);
   });
+  /** Отклоняет чрезмерную вложенность без необработанного исключения сериализации. */
   it("rejects excessive nesting without an uncaught serialization error", () => {
     const raw = '{"n":'.repeat(8000) + '"x"' + "}".repeat(8000);
     expect(
@@ -203,6 +216,7 @@ describe("synthetic-only Prodamus diagnostics", () => {
         .status,
     ).toBe(400);
   });
+  /** Даже валидная подпись не допускает неверные привязки суммы, контакта, домена, заказа и режима. */
   it.each([
     { demo_mode: "0" },
     { demo_mode: undefined },
@@ -235,6 +249,7 @@ describe("synthetic-only Prodamus diagnostics", () => {
         .status,
     ).toBe(400);
   });
+  /** Отклоняет отсутствующую, повреждённую или несовпадающую подпись. */
   it.each(["", "not-hex", "f".repeat(64), ["f".repeat(64)], undefined])(
     "rejects invalid signature %j",
     (signature) => {
@@ -245,6 +260,7 @@ describe("synthetic-only Prodamus diagnostics", () => {
       ).toBe(400);
     },
   );
+  /** Проверяет подпись всех собственных JSON-полей, включая добавленный __proto__, до подтверждения. */
   it("verifies all own JSON fields, including __proto__, before acknowledgement", () => {
     const { raw, signature } = signed();
     const injected = raw.slice(0, -1) + ',"__proto__":{"note":"unsigned"}}';
@@ -253,6 +269,7 @@ describe("synthetic-only Prodamus diagnostics", () => {
         .status,
     ).toBe(400);
   });
+  /** Отклоняет повреждённое raw body вместо попытки подтвердить diagnostic webhook. */
   it.each([null, {}, "broken-json", "[]"])(
     "rejects malformed raw input %j",
     (raw) => {

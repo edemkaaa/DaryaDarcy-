@@ -1,3 +1,5 @@
+/** Архивные тексты, товары и адреса Vite-клиента; старые цены и прямые ссылки не являются настройками текущего приложения. */
+/** Навигационные открытки прежней главной; порядок определяет отдельно выделенную Ленту. */
 export const BANNERS = [
   {
     id: "feed",
@@ -36,6 +38,7 @@ export const BANNERS = [
   },
 ] as const;
 
+/** Резервные отображаемые рубрики, если сервер не вернул собственный список. */
 export const DEFAULT_TAGS = [
   { slug: "all", label: "Все" },
   { slug: "spring", label: "Весна" },
@@ -57,9 +60,11 @@ export const DEFAULT_TAGS = [
   { slug: "creativity", label: "Творчество" },
 ];
 
+/** Единственный встроенный баннер старого клиента; сезонные настройки API здесь не используются. */
 export const CLUB_BANNER =
   "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/9e3aec1f0a5d-PUMBhecZrXmmctyT.jpg";
 
+/** Прежние рекламные преимущества подписки без расчёта прав или оплаты. */
 export const CLUB_BENEFITS = [
   { title: "Письмо месяца", description: "Личное письмо от Дарьи с историями, размышлениями и рекомендациями" },
   { title: "Подборки", description: "Стиль, дом, подарки, кино — со ссылками на доступные магазины и маркетплейсы" },
@@ -68,6 +73,7 @@ export const CLUB_BENEFITS = [
   { title: "Розыгрыши", description: "Каждый месяц — атмосферный подарок для одной из вас" },
 ];
 
+/** Контракт встроенной карточки: внешние торговые ссылки и отдельные строки описания. */
 export type Product = {
   id: string;
   title: string;
@@ -80,6 +86,7 @@ export type Product = {
   details?: string[];
 };
 
+/** Старый каталог с внешними маркетплейсами и прежними тестовыми ссылками оплаты; не источник боевых цен. */
 export const PRODUCTS: Product[] = [
   {
     id: "book-1",
@@ -149,6 +156,7 @@ export const PRODUCTS: Product[] = [
   },
 ];
 
+/** Прежние публичные ссылки Библиотеки; флаг club не добавляет серверной защиты. */
 export const LIBRARY = [
   {
     id: "about-me",
@@ -205,6 +213,7 @@ export const LIBRARY = [
   },
 ];
 
+/** Фиксированная галерея страницы автора. */
 export const ABOUT_PHOTOS = [
   "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/1fbca647058b-LvxZFiaBWuJSsIgj.JPG",
   "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/90e0ee86a4ff-kMJdEKDrnBTzTyzP.JPG",

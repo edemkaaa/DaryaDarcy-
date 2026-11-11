@@ -8,6 +8,7 @@ export const PAPER_TEXTURE_URI =
 export const INTERVAL_MS = 6000;
 export const FADE_MS = 2400;
 
+/** Вычисляем размер промо из ширины полотна с постоянными отступами и исходной пропорцией иллюстрации. */
 export function getHomePromoCarouselContent(viewport: ViewportSize) {
   const { width: SCREEN_WIDTH } = viewport;
   const CARD_WIDTH = SCREEN_WIDTH - 48;

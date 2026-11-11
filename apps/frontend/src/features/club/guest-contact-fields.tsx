@@ -6,6 +6,7 @@ import { BROWN_MUTED } from "./club-screen.content";
 import classes from "./club-screen.module.scss";
 import { formatSupportPhone } from "./support-phone";
 
+/** Связываем контакты с состоянием покупки; маска телефона сохраняет позицию курсора, а readOnly защищает исходный контакт сохранённого заказа. */
 export function GuestContactFields({
   email,
   phone,
@@ -28,6 +29,7 @@ export function GuestContactFields({
   const phoneHintId = useId();
   const phoneRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
   const pendingCaret = useRef<number | null>(null);
+  /** Восстанавливаем курсор после применения форматированного controlled-value до отрисовки кадра. */
   useLayoutEffect(() => {
     if (pendingCaret.current === null) return;
     phoneRef.current?.setSelectionRange(
@@ -36,6 +38,7 @@ export function GuestContactFields({
     );
     pendingCaret.current = null;
   }, [phone]);
+  /** Находим прежнее место по числу цифр, чтобы вставленные скобки и пробелы не сдвигали редактирование. */
   const restoreCaret = (
     formatted: string,
     digitCount: number,
@@ -55,6 +58,7 @@ export function GuestContactFields({
     }
     pendingCaret.current = position;
   };
+  /** Применяем маску и запоминаем цифровую позицию курсора до обновления родительского состояния. */
   const changePhone = (value: string) => {
     const caret = phoneRef.current?.selectionStart ?? value.length;
     const formatted = formatSupportPhone(value);
@@ -65,6 +69,7 @@ export function GuestContactFields({
       caret === value.length,
     );
   };
+  /** Удаляем именно цифру вокруг разделителей маски; системные сочетания клавиш и выделенный диапазон оставляем браузеру. */
   const editPhone = (
     event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {

@@ -1,3 +1,4 @@
+/** Опциональный Chromium проверяет реальные session/club/cancel providers над synthetic billing HTTP, не настоящий provider cancel. */
 import { expect, it } from "vitest";
 import { chromium, expect as browserExpect } from "@playwright/test";
 import { build } from "esbuild";
@@ -7,6 +8,7 @@ import { resolve } from "node:path";
 
 // Real providers/controller/HTTP client in Chromium, controlled billing replies.
 // This is a client guard regression, not JWT/SQL/provider cancellation acceptance.
+/** Moderator с одним service access не вызывает dialog/POST; при реальном paid-флаге подтверждает ровно одну отмену. Все внешние browser requests запрещены, child UI bundle сохранён дословно. */
 it.skipIf(!process.env.PLAYWRIGHT_EXECUTABLE_PATH).each([false, true])(
   "cancellation handler requires paid access, not moderator service access (paid=%s)",
   async (paid) => {

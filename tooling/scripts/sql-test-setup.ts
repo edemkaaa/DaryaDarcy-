@@ -5,6 +5,8 @@ import { assertTestDatabase } from "./test-database-policy";
 
 /** Keep destructive SQL fixtures serial and local-only, including GitLab's service. */
 export default async function setup(project: TestProject) {
+  // Создаёт loopback-туннель только к явно разрешённому CI-сервису и закрывает все свои сокеты после проекта тестов.
+
   const uri = process.env.BACKEND_TEST_DATABASE_URL;
   if (!uri) return;
 

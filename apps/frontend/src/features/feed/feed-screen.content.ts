@@ -57,6 +57,7 @@ export const DEFAULT_TAGS: Tag[] = [
 export const FEED_BANNER_URI =
   "/assets/responsive/banner-shelf-v2.w1024.b898ab6e8d2babca.webp";
 
+/** Рассчитываем три равных слота сетки с единым межколоночным зазором и пропорцией фото 4:5. */
 export function getFeedScreenContent(viewport: ViewportSize) {
   const { width: SCREEN_WIDTH } = viewport;
   const GRID_ITEM_SIZE =

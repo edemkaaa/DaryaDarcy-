@@ -1,3 +1,4 @@
+// Архив Expo. Запрашивает разрешение только на настоящем native устройстве и отправляет Expo-токен; сбой push необязателен для входа.
 import type { Router } from "expo-router";
 import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
@@ -7,6 +8,8 @@ import { getApiBaseUrl } from "@/constants/oauth";
 import { getSessionToken } from "@/lib/_core/auth";
 
 export async function registerPushToken(): Promise<void> {
+  // Запрашивает разрешение только на настоящем native устройстве и отправляет Expo-токен; сбой push необязателен для входа.
+
   if (Platform.OS === "web" || !Device.isDevice) return;
 
   if (Platform.OS === "android") {
@@ -49,8 +52,10 @@ export async function registerPushToken(): Promise<void> {
 }
 
 export function registerNativePush(router: Pick<Router, "push">): () => void {
+  // Подключает native foreground/display и переход по типизированному postId, возвращая снятие listener.
+
   Notifications.setNotificationHandler({
-    handleNotification: async () => ({
+    handleNotification: async () => /* Разрешает banner/list/sound, сохраняя badge без изменений. */ ({
       shouldShowBanner: true,
       shouldShowList: true,
       shouldPlaySound: true,

@@ -1,3 +1,4 @@
+/** Reducer quiz сохраняет immutability ответов, навигацию и корректный новый запуск после результата. */
 import { expect, it } from "vitest";
 import {
   initialState,
@@ -5,6 +6,7 @@ import {
 } from "../apps/frontend/src/domain/quiz/quiz-state";
 import { calculateResult } from "../apps/frontend/src/domain/quiz/quiz-data";
 
+/** Frozen массив прошлого состояния и initialState не меняются при новом ANSWER. */
 it("keeps the previous answer snapshot immutable when an answer changes", () => {
   const started = quizReducer(initialState, { type: "START_QUIZ" });
   const previous = { ...started, answers: ["1a", ...Array(9).fill(null)] };
@@ -20,6 +22,7 @@ it("keeps the previous answer snapshot immutable when an answer changes", () => 
   expect(initialState.answers).toEqual(Array(10).fill(null));
 });
 
+/** Проходим десять ответов, возвращаемся, меняем девятый и сверяем итоговые баллы. */
 it("retains selections when going back and calculates from the edited journey", () => {
   let state = quizReducer(initialState, { type: "START_QUIZ" });
   // Keep mutation probes isolated from the exported initial-state singleton.
@@ -58,6 +61,7 @@ it("retains selections when going back and calculates from the edited journey", 
   });
 });
 
+/** PREV на первой позиции остаётся в нуле. */
 it("does not navigate before the first question", () => {
   const started = quizReducer(initialState, { type: "START_QUIZ" });
   expect(quizReducer(started, { type: "PREV_QUESTION" }).currentQuestion).toBe(
@@ -65,6 +69,7 @@ it("does not navigate before the first question", () => {
   );
 });
 
+/** RESTART/START снимают restored/result и не наследуют ответы завершённого прохождения. */
 it("clears restored completion on restart and begins a fresh answer journey", () => {
   const result = calculateResult([
     "1a",

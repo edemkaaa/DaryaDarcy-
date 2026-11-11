@@ -22,22 +22,28 @@ export class BrowserAudioPlayer {
   private playTimer: ReturnType<typeof setTimeout> | null = null;
   private volumeValue = 1;
   private loopValue = false;
+  /** Сохраняем источник и фабрику; HTMLAudioElement создаётся лениво, чтобы конструктор работал также при SSR. */
   constructor(
     private source: string,
     private createAudio = (source: string) => new Audio(source),
   ) {}
+  /** Подписчик получает уведомления о новом snapshot; возвращённая функция удаляет только его слушателя. */
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
     return () => {
       this.listeners.delete(listener);
     };
   };
+  /** Возвращаем стабильную ссылку до следующего update, как требует useSyncExternalStore. */
   getSnapshot = () => this.snapshot;
+  /** На сервере воспроизведения нет: используем общий неизменяемый начальный snapshot. */
   getServerSnapshot = () => initial;
+  /** Публикуем новый snapshot перед оповещением слушателей, чтобы они читали уже согласованное состояние. */
   private update(patch: Partial<AudioSnapshot>) {
     this.snapshot = { ...this.snapshot, ...patch };
     for (const listener of this.listeners) listener();
   }
+  /** Считываем реальное состояние медиаэлемента; неизвестную длительность не выдаём как Infinity или NaN. */
   private onChange = () => {
     const audio = this.audio;
     if (!audio) return;
@@ -47,6 +53,7 @@ export class BrowserAudioPlayer {
       duration: Number.isFinite(audio.duration) ? audio.duration : 0,
     });
   };
+  /** Переводим плеер в повторяемое состояние ошибки без обещания успешного запуска. */
   private onError = () => {
     this.update({
       playing: false,
@@ -55,10 +62,12 @@ export class BrowserAudioPlayer {
         "Не удалось воспроизвести аудио. Проверьте соединение и попробуйте ещё раз.",
     });
   };
+  /** После естественного завершения возвращаем позицию в начало и снимаем состояние воспроизведения. */
   private onEnded = () => {
     if (this.audio) this.audio.currentTime = 0;
     this.update({ playing: false, starting: false, currentTime: 0 });
   };
+  /** Подключаем единственный медиаэлемент и обработчики, применяя заранее заданные volume/loop без автозапуска. */
   connect = () => {
     if (this.audio || typeof Audio === "undefined") return;
     const audio = this.createAudio(this.source);
@@ -77,26 +86,33 @@ export class BrowserAudioPlayer {
     audio.addEventListener("error", this.onError);
     audio.addEventListener("ended", this.onEnded);
   };
+  /** Читаем длительность из последнего snapshot, а не из ещё не подключённого DOM-элемента. */
   get duration() {
     return this.snapshot.duration;
   }
+  /** Возвращаем последнюю подтверждённую событиями позицию аудио. */
   get currentTime() {
     return this.snapshot.currentTime;
   }
+  /** До подключения возвращаем сохранённую громкость, после — фактическую громкость элемента. */
   get volume() {
     return this.audio?.volume ?? this.volumeValue;
   }
+  /** Ограничиваем громкость диапазоном HTMLMediaElement и сохраняем её для будущего подключения. */
   set volume(value: number) {
     this.volumeValue = Math.max(0, Math.min(1, value));
     if (this.audio) this.audio.volume = this.volumeValue;
   }
+  /** Читаем текущий loop либо его отложенное значение до создания элемента. */
   get loop() {
     return this.audio?.loop ?? this.loopValue;
   }
+  /** Сохраняем повтор для ленивого подключения и сразу применяем к уже созданному аудио. */
   set loop(value: boolean) {
     this.loopValue = value;
     if (this.audio) this.audio.loop = value;
   }
+  /** Запускаем аудио с дедлайном; номер поколения не даёт старому play обновить состояние после pause/release. */
   async play(): Promise<void> {
     this.connect();
     if (!this.audio) throw new Error("Аудио недоступно");
@@ -131,6 +147,7 @@ export class BrowserAudioPlayer {
       if (this.playTimer === timer) this.playTimer = null;
     }
   }
+  /** Прерываем текущее поколение запуска, снимаем дедлайн и явно сообщаем остановку независимо от событий браузера. */
   pause() {
     if (this.playTimer) clearTimeout(this.playTimer);
     this.playTimer = null;
@@ -138,6 +155,7 @@ export class BrowserAudioPlayer {
     this.audio?.pause();
     this.update({ playing: false, starting: false });
   }
+  /** Перемещаем уже подключённый плеер не раньше начала и сразу обновляем snapshot позиции. */
   seekTo(value: number) {
     if (this.audio) {
       this.audio.currentTime = Math.max(0, value);
@@ -145,6 +163,7 @@ export class BrowserAudioPlayer {
     }
   }
   // Убираем и обработчики, и src: одного pause недостаточно для освобождения сетевого ресурса.
+  /** Разрываем связь с элементом до очистки, затем снимаем события, src и сетевую загрузку; поздние ответы старого поколения игнорируются. */
   release = () => {
     if (this.playTimer) clearTimeout(this.playTimer);
     this.playTimer = null;

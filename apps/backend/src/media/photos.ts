@@ -23,6 +23,7 @@ export const photoInput = z.object({
 export const publicCoverPhotoInput = photoInput.extend({ purpose: z.literal("publicCover") });
 
 /** Decode/re-encode on every photo boundary; keys and MIME are server-owned. */
+/** Принимаем канонический JPEG/PNG/WebP до 4 МиБ, ограничиваем четыре декодера и 20 мегапикселей, исправляем ориентацию, удаляем метаданные и создаём WebP до 2560px с таймаутом. */
 export async function preparePhoto(base64: string): Promise<Buffer> {
   if (base64.length > 4 * Math.ceil(MAX_PHOTO_BYTES / 3) ||
       base64.length % 4 !== 0 || !/^[A-Za-z0-9+/]+={0,2}$/.test(base64)) {
@@ -58,6 +59,7 @@ export async function preparePhoto(base64: string): Promise<Buffer> {
 }
 
 /** Публичная загрузка требует разрешённого назначения; произвольный каталог недопустим. */
+/** Публично загружаем лишь обложку или аватар по разрешённому каталогу; после обработки повторно проверяем полномочия и отмену перед записью нового UUID-объекта. */
 export async function uploadPhoto(
   base64: string,
   folder: string,

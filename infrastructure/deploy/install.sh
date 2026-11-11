@@ -5,6 +5,7 @@ set -euo pipefail
 APP=/var/www/daryadarcy
 cd "$APP"
 
+# До установки требуются env и готовые прежние артефакты; исходники здесь не собираются.
 if [ ! -f .env ]; then
   echo "Missing $APP/.env"
   exit 1
@@ -24,8 +25,10 @@ if ! command -v pnpm >/dev/null 2>&1; then
   npm install -g pnpm
 fi
 
+# Устанавливаются зависимости старого PM2/runtime на хост, а не внутри образа.
 pnpm install --prod --frozen-lockfile
 
+# Меняются системные Nginx/firewall-службы; этот установщик нельзя применять поверх актуального Compose вслепую.
 cp "$APP/infrastructure/deploy/nginx-daryadarcy.conf" /etc/nginx/sites-available/daryadarcy
 ln -sfn /etc/nginx/sites-available/daryadarcy /etc/nginx/sites-enabled/daryadarcy
 rm -f /etc/nginx/sites-enabled/default
@@ -39,6 +42,7 @@ nginx -t
 systemctl enable --now nginx
 systemctl restart nginx
 
+# Старый процесс останавливается перед запуском нового; безостановочного переключения двух реплик здесь нет.
 pm2 delete daryadarcy-api >/dev/null 2>&1 || true
 NODE_ENV=production PORT=3000 HOST=127.0.0.1 pm2 start /usr/bin/node --name daryadarcy-api --cwd "$APP" --interpreter none -- dist/index.mjs
 pm2 save

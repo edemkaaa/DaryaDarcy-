@@ -13,7 +13,7 @@ assert.equal(base.protocol, "http:");
 assert.ok(!base.username && !base.password && !base.search && !base.hash);
 assert.equal(base.pathname, "/");
 
-const get = (path, extra = {}) => fetch(new URL(path, base), {
+const get = (path, extra = {}) => /* Выполняет ограниченный по времени запрос к заранее разрешённому локальному стенду превью. */ fetch(new URL(path, base), {
   signal: AbortSignal.timeout(30_000), ...extra,
 });
 for (let attempt = 0; ; attempt++) {
@@ -38,7 +38,7 @@ const album = albums.find(photos => Array.isArray(photos) && photos.length >= 9)
 assert.ok(album, "Need a real public nine-photo album");
 const photos = album.slice(0, 9);
 assert.ok(photos.every(uri => /^https:\/\/s3\.twcstorage\.ru\/daryadarcy-s3\/feed\//.test(uri)));
-const previewPath = (uri, width) => `/_next/image?url=${encodeURIComponent(uri)}&w=${width}&q=75`;
+const previewPath = (uri, width) => /* Кодирует исходную ссылку и ширину в запрос оптимизатора изображений. */ `/_next/image?url=${encodeURIComponent(uri)}&w=${width}&q=75`;
 for (const width of [480, 1440]) {
   const started = performance.now();
   const replies = await Promise.all(photos.map(async uri => {

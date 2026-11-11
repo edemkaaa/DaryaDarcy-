@@ -1,3 +1,4 @@
+/** Дочерний CLI проверяется только на синтетических sandbox-настройках, без платежа. */
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 import { expect, it } from "vitest";
@@ -10,6 +11,7 @@ const fixture = {
   PRODAMUS_SANDBOX_SYS: "daryadarcy",
   PUBLIC_APP_URL: "https://daryadarcy.dev.reeskeen.ru",
 };
+/** Запускаем локальный генератор ссылки с изолированным env и ограничением времени. */
 function run(env = fixture, args: string[] = []) {
   return spawnSync(
     process.execPath,
@@ -26,6 +28,7 @@ function run(env = fixture, args: string[] = []) {
     },
   );
 }
+/** Детерминированный вывод содержит demo URL и accessGranted:false, без секрета и реального email. */
 it("prints only a synthetic demo link and an explicit no-access result", () => {
   const result = run();
   expect(result.status).toBe(0);
@@ -41,12 +44,14 @@ it("prints only a synthetic demo link and an explicit no-access result", () => {
   expect(result.stdout).not.toContain(fixture.PRODAMUS_SANDBOX_SECRET);
   expect(run().stdout).toBe(result.stdout);
 });
+/** Выключенный sandbox возвращает только безопасное сообщение и ненулевой exit. */
 it("refuses disabled mode without leaking configuration or a stack", () => {
   const result = run({ ...fixture, PRODAMUS_SANDBOX_ENABLED: "false" });
   expect(result.status).toBe(1);
   expect(result.stdout).toBe("");
   expect(result.stderr).toBe("Prodamus sandbox is not configured\n");
 });
+/** CLI не разрешает подменить синтетического получателя произвольным аргументом. */
 it("refuses user input overrides rather than taking an email or a live merchant", () => {
   const result = run(fixture, ["--email=real@gmail.com"]);
   expect(result.status).toBe(1);

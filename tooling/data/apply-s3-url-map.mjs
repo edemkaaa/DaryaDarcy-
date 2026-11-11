@@ -18,6 +18,8 @@ const skipDir = /node_modules|web-dist|\.git/;
 
 let filesChanged = 0;
 function walk(dir) {
+  // Обходит только выбранные текстовые расширения, исключая служебные каталоги; замена ссылок затрагивает локальные исходники.
+
   for (const name of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, name.name);
     if (skipDir.test(full)) continue;

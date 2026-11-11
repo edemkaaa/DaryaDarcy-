@@ -3,8 +3,10 @@ import type { Connection, RowDataPacket } from "mysql2/promise";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 import * as db from "../apps/backend/src/db";
 
+/** Проверяет состав push-аудиторий с учётом блокировки, клубного доступа и последнего согласия marketing. */
 describe.skipIf(!testDatabaseUrl)("push recipient access on disposable MySQL", () => {
   let connection: Connection;
+  /** Получает общий lock push-аудитории, создаёт необходимые таблицы и семь собственных ролей участников. */
   beforeAll(async () => {
     connection = await openTestDatabase();
     // Native registration checks use the same global device audience.
@@ -32,6 +34,7 @@ describe.skipIf(!testDatabaseUrl)("push recipient access on disposable MySQL", (
       (895,'push-admin','admin'),(896,'push-no-consent','user'),
       (897,'push-revoked','user')`);
   });
+  /** Восстанавливает enabled-токены, подписки, блокировки и историю согласий собственных участников. */
   beforeEach(async () => {
     await connection.query("DELETE FROM push_tokens WHERE token LIKE 'fixture-push-%'");
     await connection.query("DELETE FROM push_consent_events WHERE userId BETWEEN 891 AND 897");
@@ -58,6 +61,7 @@ describe.skipIf(!testDatabaseUrl)("push recipient access on disposable MySQL", (
       (895,'marketing','granted','test-v1','2026-10-02 10:00:00'),
       (897,'marketing','revoked','test-v1','2026-10-02 10:00:00')`);
   });
+  /** Удаляет собственные токены, согласия, платежи и аккаунты, снимает lock и закрывает соединения. */
   afterAll(async () => {
     await connection?.query("DELETE FROM push_tokens WHERE token LIKE 'fixture-push-%'");
     await connection?.query("DELETE FROM push_consent_events WHERE userId BETWEEN 891 AND 897");
@@ -74,6 +78,7 @@ describe.skipIf(!testDatabaseUrl)("push recipient access on disposable MySQL", (
   const feedMarketing = ["fixture-push-admin", "fixture-push-free", "fixture-push-paid"];
   const clubMarketing = ["fixture-push-admin", "fixture-push-paid"];
 
+  /** Каждый audience-selector исключает заблокированные, анонимные, отключённые и осиротевшие токены по своему виду сообщений. */
   it.each([
     ["enabled audience", () => db.getAllEnabledPushTokens(), feedService],
     ["paid club audience", () => db.getClubMemberPushTokens(), clubService],
@@ -87,27 +92,32 @@ describe.skipIf(!testDatabaseUrl)("push recipient access on disposable MySQL", (
     expect((await select()).sort()).toEqual(expected);
   });
 
+  /** Адресная служебная рассылка также запрещена заблокированным обычным и admin-аккаунтам. */
   it.each([892, 894])("denies direct service recipients for blocked user %s", async userId => {
     expect(await db.getPushTokensForUser(userId)).toEqual([]);
   });
+  /** Служебные сообщения не требуют marketing-согласия, но клубный target всё равно требует доступ. */
   it("preserves direct service recipients without requiring marketing consent", async () => {
     expect(await db.getPushTokensForUser(896)).toEqual(["fixture-push-no-consent"]);
     expect(await db.getServicePushTokens("club", 896)).toEqual(["fixture-push-no-consent"]);
     expect(await db.getServicePushTokens("club", 893)).toEqual([]);
     expect(await db.getServicePushTokens("club", 892)).toEqual([]);
   });
+  /** Новая блокировка немедленно исключает токен из следующих marketing и service выборок. */
   it("stops selecting recipients immediately after a new block", async () => {
     expect(await db.getMarketingPushTokens("club")).toContain("fixture-push-paid");
     await connection.query("UPDATE users SET blockedAt=NOW() WHERE id=891");
     expect(await db.getMarketingPushTokens("club")).not.toContain("fixture-push-paid");
     expect(await db.getServicePushTokens("club")).not.toContain("fixture-push-paid");
   });
+  /** При одинаковом timestamp последняя запись согласия по ID учитывает отзыв. */
   it("reports same-second consent revocation as the latest choice", async () => {
     await connection.query(`INSERT INTO push_consent_events
       (userId,consentType,status,consentVersion,createdAt)
       VALUES (891,'marketing','revoked','test-v1','2026-10-02 10:00:00')`);
     expect(await db.hasMarketingPushConsent(891)).toBe(false);
   });
+  /** Marketing-отзыв в ту же секунду исключает рекламную доставку, сохраняя служебную. */
   it("removes a same-second revoked token from marketing, not service messages", async () => {
     await connection.query(`INSERT INTO push_consent_events
       (userId,consentType,status,consentVersion,createdAt)
@@ -115,6 +125,7 @@ describe.skipIf(!testDatabaseUrl)("push recipient access on disposable MySQL", (
     expect(await db.getMarketingPushTokens("club")).not.toContain("fixture-push-paid");
     expect(await db.getServicePushTokens("club")).toContain("fixture-push-paid");
   });
+  /** Более поздняя запись согласия в ту же секунду возвращает marketing-доступ. */
   it("honors a new grant recorded after a same-second revocation", async () => {
     await connection.query(`INSERT INTO push_consent_events
       (userId,consentType,status,consentVersion,createdAt)

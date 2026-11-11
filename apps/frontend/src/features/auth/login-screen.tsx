@@ -39,6 +39,7 @@ import { getRequestErrorMessage } from "@/shared/api/errors";
 import { SessionStatus } from "@/domain/session/session-status";
 
 type Mode = "login" | "register" | "recover";
+/** Управляем email-входом, регистрацией и запросом письма раздельно; до готовности JS и окончания предыдущего запроса повтор заблокирован. */
 export default function LoginScreen({
   next,
   formUnavailable = false,
@@ -130,6 +131,7 @@ export default function LoginScreen({
   }, [height]);
   useEffect(() => {
     if (!retryAt) return;
+    /** Считаем cooldown от абсолютного retryAt, чтобы фоновые ограничения таймеров не продлевали искусственно блокировку. */
     const update = () => {
       const seconds = Math.max(0, Math.ceil((retryAt - Date.now()) / 1000));
       setRetrySeconds(seconds);
@@ -140,11 +142,13 @@ export default function LoginScreen({
     return () => clearInterval(timer);
   }, [retryAt]);
   const sms = smsLogin && method === "sms";
+  /** После условного SMS-входа применяем подтверждённого пользователя и расходуем сохранённое намерение навигации. */
   const goNext = async (user: Api.AuthUser | null) => {
     if (!user) throw new Error("Не удалось получить профиль. Повторите вход.");
     await applySession(user);
     router.finishLogin();
   };
+  /** Смена режима сохраняет email, но удаляет пароль, TOTP и прежние сообщения, чтобы не смешивать разные действия. */
   const changeMode = (value: Mode) => {
     setMode(value);
     setError(null);
@@ -154,6 +158,7 @@ export default function LoginScreen({
     setPassword("");
     setPasswordVisible(false);
   };
+  /** Сериализуем отправку и соблюдаем Retry-After; письмо означает принятую инструкцию, а успешный вход подтверждает SessionController. */
   const submitEmail = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!ready || inFlight.current || retryAt > Date.now()) return;
@@ -170,6 +175,7 @@ export default function LoginScreen({
     try {
       if (mode === "login") {
         const accepted = await authenticate(async (signal) => {
+          /** Связываем отмену контроллера сессии с локальным запросом формы и снимаем listener после ответа. */
           const cancel = () => task.abort();
           signal.addEventListener("abort", cancel, { once: true });
           if (signal.aborted) cancel();

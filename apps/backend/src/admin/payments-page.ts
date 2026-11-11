@@ -17,6 +17,7 @@ export const paymentsPageInput = z
   .default({ limit: 20 });
 
 /** History only: no settlement, provider calls or access changes. */
+/** Возвращает явную read-only проекцию истории оплат в порядке createdAt/id; непрозрачный курсор принадлежит actor и не запускает settlement. */
 export async function paymentsPage(
   database: MySql2Database | null,
   actorId: number,

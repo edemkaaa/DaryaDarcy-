@@ -1,3 +1,4 @@
+// Архив Expo. Сначала разворачивает условные className, затем разрешает конфликты Tailwind классов.
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -11,5 +12,7 @@ import { twMerge } from "tailwind-merge";
  * ```
  */
 export function cn(...inputs: ClassValue[]) {
+  // Сначала разворачивает условные className, затем разрешает конфликты Tailwind классов.
+
   return twMerge(clsx(inputs));
 }

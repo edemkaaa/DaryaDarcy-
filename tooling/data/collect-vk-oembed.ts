@@ -8,6 +8,8 @@ import { setTimeout as pause } from "node:timers/promises";
 import { parseVkEmbed } from "../../apps/backend/src/content/vk-video-input";
 
 export function parseSources(text: string): string[] {
+  // Принимает ограниченный список канонических ссылок заданного VK-сообщества, отклоняя лишние параметры и дубли.
+
   if (Buffer.byteLength(text, "utf8") > 1024 * 1024)
     throw new Error("Input file exceeds1MiB");
   const sources = new Set<string>();
@@ -43,6 +45,8 @@ export type VideoMetadata = {
 };
 
 function parseOembedPlayer(value: string) {
+  // Убирает только известный служебный __ref и проверяет адрес плеера серверным парсером VK.
+
   if (value.length > 2048) return null;
   try {
     const url = new URL(value);
@@ -62,6 +66,8 @@ export async function collectVideo(
   source: string,
   options: { fetchImpl?: typeof fetch; timeoutMs?: number } = {},
 ): Promise<VideoMetadata> {
+  // Получает ограниченный oEmbed-ответ с дедлайном и проверяет совпадение owner/id; HTML ответа не выполняется.
+
   const sourceUrl = parseSources(source)[0]!;
   const result: VideoMetadata = {
     sourceUrl,
@@ -71,7 +77,7 @@ export async function collectVideo(
     thumbnailSourceUrl: null,
     issues: [],
   };
-  const fail = (issue: string) => ({ ...result, issues: [issue] });
+  const fail = (issue: string) => /* Возвращает структурированное описание неуспешного сбора конкретного ролика без прекращения всей партии. */ ({ ...result, issues: [issue] });
   const signal = AbortSignal.timeout(options.timeoutMs ?? 10000);
   let response: Response;
   try {
@@ -97,6 +103,8 @@ export async function collectVideo(
   const reader = response.body?.getReader();
   // Keep the body deadline explicit after fetch has returned its headers.
   const abortBody = () => {
+    // Останавливает чтение ответа при отмене или превышении ограничения; соединение не должно продолжать качать тело.
+
     void reader?.cancel().catch(() => {});
   };
   signal.addEventListener("abort", abortBody, { once: true });
@@ -189,6 +197,8 @@ export async function collectVideo(
   return result;
 }
 async function main() {
+  // Отделяет офлайн-план от явного сбора: пишет новый закрытый файл метаданных, последовательно опрашивая VK с паузой.
+
   const { values } = parseArgs({
     options: {
       input: { type: "string" },

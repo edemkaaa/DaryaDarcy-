@@ -2,6 +2,7 @@
 @use "../../shared/styles/layers";
 
 @layer components {
+  /* Длинные отличия профиля переносятся внутри доступной ширины, не расширяя экран. */
   .review {
     align-items: center;
     gap: 8px;
@@ -15,6 +16,7 @@
     overflow-wrap: anywhere;
   }
 
+  /* Подтверждение восстановления визуально отделено от описания; решение о замене черновика остаётся явным действием. */
   .accept {
     padding: 8px 12px;
     border-radius: 8px;

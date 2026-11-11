@@ -1,3 +1,4 @@
+# Передаёт старые SQL и устанавливает системную БД, затем меняет прежний PM2 runtime; актуальный миграционный порядок не сохраняет.
 import os
 import pathlib
 import socket
@@ -13,6 +14,7 @@ for line in (root / ".env").read_text(encoding="utf-8").splitlines():
 drizzle = root / "packages" / "database" / "drizzle"
 sql_files = sorted(drizzle.glob("*.sql"))
 
+# Подключение использует историческое автоматическое доверие неизвестному SSH host key; перед новым запуском требуется отдельная сверка хоста.
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 sock = socket.create_connection((env["DEPLOY_HOST"], 22), 45)
@@ -30,6 +32,7 @@ remote_mig = "/var/www/daryadarcy/drizzle-migrations"
 sftp = client.open_sftp()
 
 
+# Создаёт недостающие родительские каталоги только по выбранному серверному пути.
 def ensure_dir(path: str):
     parts = path.strip("/").split("/")
     cur = ""
@@ -50,6 +53,7 @@ sftp.put(
 )
 sftp.close()
 
+# Следующий текст — удалённая команда; её содержимое сохранено как историческое и не исполняется при чтении исходника.
 cmd = r"""
 set -e
 chmod +x /var/www/daryadarcy/infrastructure/deploy/setup-local-mysql.sh

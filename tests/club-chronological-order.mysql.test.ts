@@ -23,6 +23,7 @@ const expectedClub = [98313, 98312, 98311, 98314, 98315, 98310];
 const paymentOrder = "owned-club-order-access";
 
 // Real HTTP/JWT and canonical MySQL; no uploads, external effects or app workers.
+/** Разделяет пользовательскую хронологию Клуба и ручной порядок админки на настоящем HTTP и мигрированной MySQL. */
 describe.skipIf(!uri)(
   "club chronological pages preserve independent admin ordering",
   () => {
@@ -30,9 +31,11 @@ describe.skipIf(!uri)(
     let admin: ReturnType<typeof createTRPCProxyClient<AppRouter>>;
     let member: ReturnType<typeof createTRPCProxyClient<AppRouter>>;
     let guest: ReturnType<typeof createTRPCProxyClient<AppRouter>>;
+    /** Читает контрольное состояние схемы и тестовых строк напрямую через отдельное UTC-соединение. */
     async function rows(query: string, args: unknown[] = []) {
       return (await conn.query<RowDataPacket[]>(query, args))[0];
     }
+    /** Создаёт tRPC-клиент выбранного участника, администратора или гостя. */
     function client(token?: string) {
       return createTRPCProxyClient<AppRouter>({
         links: [
@@ -44,6 +47,7 @@ describe.skipIf(!uri)(
         ],
       });
     }
+    /** Удаляет только диапазон собственных публикаций, вложения и синтетический период доступа. */
     async function clearPosts() {
       await conn.query(
         "DELETE FROM post_media WHERE postId BETWEEN 98310 AND 98321",
@@ -53,6 +57,7 @@ describe.skipIf(!uri)(
         paymentOrder,
       ]);
     }
+    /** Проверяет тестовый URL и историю миграций, создаёт двух собственных пользователей и локальный API. */
     beforeAll(async () => {
       assertTestDatabase(uri!);
       conn = await mysql.createConnection({ uri: uri!, timezone: "Z" });
@@ -89,6 +94,7 @@ describe.skipIf(!uri)(
       );
       guest = client();
     });
+    /** Восстанавливает доступ аккаунтов и набор публикаций с расходящимися sortOrder, publishedAt, createdAt и статусами. */
     beforeEach(async () => {
       await clearPosts();
       await conn.query(
@@ -225,6 +231,7 @@ describe.skipIf(!uri)(
         "INSERT INTO post_media(id,postId,type,url,filename) VALUES(98311,98311,'document','https://fixture.invalid/owned.txt','owned.txt')",
       );
     });
+    /** Закрывает API, удаляет свои публикации и пользователей и возвращает окружение. */
     afterAll(async () => {
       await app?.close();
       if (conn) {
@@ -238,6 +245,7 @@ describe.skipIf(!uri)(
       vi.unstubAllEnvs();
     });
 
+    /** Обе клубные процедуры сортируют до LIMIT по effective date и стабильному ID, игнорируя импортированные ранги. */
     it.each(["list", "listByCategory"] as const)(
       "orders %s by effective date before LIMIT, ignoring manual/timestamp ranks",
       async (route) => {
@@ -261,6 +269,7 @@ describe.skipIf(!uri)(
       },
     );
 
+    /** Равные даты упорядочиваются по возрастанию ID через границу страниц и при повторном чтении. */
     it("uses ascending IDs for equal dates across page boundaries and stable reloads", async () => {
       const first = await admin.club.listByCategory.query({ limit: 3 });
       const second = await admin.club.listByCategory.query({
@@ -279,6 +288,7 @@ describe.skipIf(!uri)(
       ).toEqual([98313, 98312, 98311]);
     });
 
+    /** Рубрика и нормализованный тег сезона фильтруются до хронологической пагинации. */
     it("filters rubric and board aliases before chronological pagination", async () => {
       await conn.query(
         "INSERT INTO posts(id,text,photos,tags,target,published,status,publishedAt) VALUES(98320,'Other category',JSON_ARRAY(),JSON_ARRAY('community','winter'),'club',1,'published','2027-01-01')",
@@ -308,6 +318,7 @@ describe.skipIf(!uri)(
       ).toEqual([98310]);
     });
 
+    /** Админские списки и представитель дня календаря сохраняют прежний приоритет sortOrder. */
     it("preserves manual admin ordering and the calendar's representative card", async () => {
       const page = await admin.admin.postsPage.query({
         limit: 20,
@@ -333,6 +344,7 @@ describe.skipIf(!uri)(
       expect(calendar.days[0].total).toBe(2);
     });
 
+    /** Публичная Лента сохраняет свой прежний порядок независимо от клубной хронологии. */
     it("preserves the existing feed ordering", async () => {
       expect(
         (await guest.feed.listPaginated.query({ limit: 20 })).posts.map(
@@ -341,6 +353,7 @@ describe.skipIf(!uri)(
       ).toEqual([98317, 98315]);
     });
 
+    /** Каждая страница повторно проверяет сессию и актуальный paid-период, включая отзыв между страницами. */
     it("keeps membership and revocation checks on every page", async () => {
       await expect(
         guest.club.listByCategory.query({ limit: 2 }),
@@ -366,6 +379,7 @@ describe.skipIf(!uri)(
       ).rejects.toMatchObject({ data: { httpStatus: 403 } });
     });
 
+    /** Чтение хронологических страниц не меняет исходные даты, ранги и привязки вложений. */
     it("leaves stored dates, ranks and attachments intact", async () => {
       const before = await rows(
         "SELECT id,sortOrder,publishedAt,createdAt FROM posts WHERE id BETWEEN 98310 AND 98321 ORDER BY id",

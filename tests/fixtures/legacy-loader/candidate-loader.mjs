@@ -7,6 +7,7 @@ const coreEntry = require.resolve("@esbuild-kit/core-utils");
 const compiler = require("esbuild");
 const originalLoad = Module._load;
 let injected = false;
+// Перехват ограничен конкретным esbuild import внутри изолированного Node worker; после загрузки hooks исходный загрузчик возвращается.
 Module._load = function (id, parent, ...rest) {
   if (id === "esbuild" && parent?.filename === coreEntry) {
     injected = true;

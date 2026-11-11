@@ -1,4 +1,5 @@
 /* Базовые CSS-токены используются общими контролами и экранными модулями, чтобы значения не расходились. */
+/* Токены задают ширину оболочки, запас конца страницы и высоты плавающих элементов, не дублируя высоту постоянных вкладок. */
 :root {
   --app-max-width: 480px;
   // Bottom tabs reserve their own height; ordinary pages need only this gap.
@@ -7,6 +8,7 @@
   --floating-menu-height: 0px;
   --floating-stack-height: 44px;
   --admin-floating-stack-height: 110px;
+  /* Палитра и семейства шрифтов служат общим словарём экранных модулей; смена значения затронет все потребители. */
   --paper: #fdf8f0;
   --ink: #4a3728;
   --brown: #5c4033;
@@ -20,6 +22,7 @@
   --font-wordmark: Woolen-Regular;
 }
 
+/* При низком viewport запас под административную группу уменьшается вместе с её переходом в горизонтальный ряд. */
 @media (max-height: 480px) {
   :root {
     --admin-floating-stack-height: 56px;

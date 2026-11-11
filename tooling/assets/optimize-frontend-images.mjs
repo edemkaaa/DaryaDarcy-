@@ -15,6 +15,8 @@ const write = process.argv.includes("--write");
 const reportPath = process.argv.find((arg) => arg.startsWith("--report="))?.slice(9);
 
 async function walk(dir) {
+  // Перечисляет локальную статику и исходники, исключая сетевое скачивание из самого обхода.
+
   const entries = await fs.readdir(dir, { withFileTypes: true });
   const groups = await Promise.all(entries.map((entry) => {
     const file = path.join(dir, entry.name);
@@ -25,6 +27,8 @@ async function walk(dir) {
 
 // Compare displayed, oriented RGBA pixels, including transparent pixels.
 async function pixels(bytes) {
+  // Нормализует ориентацию, цвет и alpha перед сравнением фактически отображаемых пикселей кандидата.
+
   return sharp(bytes).autoOrient().toColourspace("srgb").ensureAlpha()
     .raw().toBuffer({ resolveWithObject: true });
 }

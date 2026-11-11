@@ -1,3 +1,4 @@
+// Архив Expo. Архивный landing подписки переключается на ClubSubscribed по серверному контексту; старый paid query здесь не является доказательством платежа.
 import { useState, useRef, useCallback, useEffect } from "react";
 import { ClubSubscribed } from "@/components/club/club-subscribed";
 import { useClub } from "@/lib/club-context";
@@ -180,6 +181,8 @@ const TYPE_LABELS: Record<string, string> = {
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export default function ClubScreen() {
+  // Архивный landing подписки переключается на ClubSubscribed по серверному контексту; старый paid query здесь не является доказательством платежа.
+
   const colors = useColors();
   const { isSubscribed, refreshSubscription, monthlyPrice } = useClub();
   const { isAuthenticated, loading: authLoading, applySession, user } = useAuth();
@@ -192,6 +195,8 @@ export default function ClubScreen() {
   const justPaid = params.paid === "1";
 
   const openPayUrl = useCallback((url: string) => {
+    // Переходит на возвращённый checkout URL через web navigation либо системный Linking.
+
     if (Platform.OS === "web" && typeof window !== "undefined") {
       window.location.assign(url);
       return;
@@ -200,6 +205,8 @@ export default function ClubScreen() {
   }, []);
 
   const handlePay = useCallback(async () => {
+    // Передаёт email серверной checkout-процедуре, применяет возможный профиль и открывает платёжную страницу.
+
     setPayError(null);
     const email = (user?.email || guestEmail).trim();
     if (!isAuthenticated && !email) {
@@ -218,6 +225,8 @@ export default function ClubScreen() {
   }, [applySession, checkout, guestEmail, isAuthenticated, openPayUrl, user?.email]);
 
   useEffect(() => {
+    // После возврата paid пробует claimPending и опрашивает серверную подписку 20 секунд; cleanup отменяет interval и позднее обновление.
+
     if (!justPaid || authLoading || !isAuthenticated) return;
     let cancelled = false;
     void (async () => {
@@ -240,6 +249,8 @@ export default function ClubScreen() {
   const letterCardWidth = SCREEN_WIDTH * 0.4;
   const letterSnapInterval = letterCardWidth + 10;
   const onLetterScroll = useCallback((e: any) => {
+    // Обновляет номер карточки письма по ширине и межкарточному зазору.
+
     const offsetX = e.nativeEvent.contentOffset.x;
     const index = Math.round(offsetX / (SCREEN_WIDTH * 0.4 + 10));
     setActiveLetterIndex(index);
@@ -590,6 +601,7 @@ export default function ClubScreen() {
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   // Italic text
   italicText: {

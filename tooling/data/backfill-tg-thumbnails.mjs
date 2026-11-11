@@ -33,6 +33,8 @@ const s3 = new S3Client({
 const S3_PUBLIC = `${env.S3_ENDPOINT}/${env.S3_BUCKET}/`;
 
 function yandexDiskPath(relativePath) {
+  // Переводит относительный путь Telegram-экспорта в путь файла на согласованном публичном Яндекс Диске.
+
   const base = path.basename(relativePath.replace(/\\/g, "/"));
   const rel = relativePath.replace(/\\/g, "/");
   if (rel.startsWith("photos/")) return `/фото из клуба/${base}`;
@@ -41,6 +43,8 @@ function yandexDiskPath(relativePath) {
 }
 
 async function getCachedOrDownload(diskPath) {
+  // Переиспользует локальную копию или скачивает исходник в кэш; этот исторический путь может обращаться к сети и в dry-run.
+
   fs.mkdirSync(CACHE_DIR, { recursive: true });
   const safe = diskPath.replace(/[^\w@.\-]+/g, "_");
   const cacheFile = path.join(CACHE_DIR, safe);
@@ -60,6 +64,8 @@ async function getCachedOrDownload(diskPath) {
 }
 
 async function uploadS3(key, body) {
+  // Историческая загрузка создаёт публичный объект public-read; не использовать как замену нынешнему защищённому переносу.
+
   await s3.send(
     new PutObjectCommand({
       Bucket: env.S3_BUCKET,
@@ -73,6 +79,8 @@ async function uploadS3(key, body) {
 }
 
 async function main() {
+  // Заполняет отсутствующие старые Telegram-превью, публикуя отдельные JPEG; текущая защищённая загрузка здесь не используется.
+
   const data = JSON.parse(fs.readFileSync(RESULT_JSON, "utf8"));
   const byId = new Map(data.messages.filter((m) => m.type === "message").map((m) => [m.id, m]));
   const conn = await mysql.createConnection(env.DATABASE_URL);

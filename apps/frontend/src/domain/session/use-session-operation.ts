@@ -8,6 +8,7 @@ import { getSessionRequestSignal } from "@/shared/api/request-lifecycle";
 import { getHttpStatus } from "@/shared/api/errors";
 import { requestSessionCheck } from "@/shared/api/session-events";
 
+/** Один scope принадлежит экземпляру hook, активности, ключу объекта и пользователю; их смена отзывает право позднего ответа менять экран. */
 export function useSessionOperation(
   active = true,
   scopeKey: string | number | null = null,
@@ -24,6 +25,7 @@ export function useSessionOperation(
     kind,
     busy: kind !== null,
     cancel: scope.cancel,
+    /** Запускаем только подтверждённому активному владельцу; общий сигнал сессии и проверка storage owner сопровождают всю задачу. */
     begin: (operationKind: string) => {
       const ownerId = user?.id;
       if (!active || !isAuthenticated || !ownerId) return null;
@@ -34,7 +36,7 @@ export function useSessionOperation(
   };
 }
 
-/** Direct cancellable tRPC calls also participate in the access-error policy. */
+/** Ошибка доступа прямого отменяемого вызова инициирует общую перепроверку сессии так же, как tRPC middleware. */
 export function checkOperationAccessError(error: unknown): void {
   const status = getHttpStatus(error);
   if (status === 401 || status === 403) requestSessionCheck(status);

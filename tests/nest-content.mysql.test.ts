@@ -20,6 +20,7 @@ import { sdk } from "../apps/backend/src/_core/sdk";
 import { getDb, getPostById, getPostsForTarget } from "../apps/backend/src/db";
 import { openVideoTestDatabase } from "./helpers/video-mysql";
 
+/** Проверяет публичные и закрытые чтения постов, статей и видео через настоящий HTTP, JWT и отдельный SQL. */
 describe.skipIf(!testDatabaseUrl)(
   "native content reads over real HTTP/JWT/MySQL",
   () => {
@@ -27,6 +28,7 @@ describe.skipIf(!testDatabaseUrl)(
       conn: Connection,
       base: string,
       bearer: string;
+    /** Создаёт synthetic-каталоги постов, статей, тегов и вложений и запускает локальный API с участником клуба. */
     beforeAll(async () => {
       conn = await openContentTestDatabase();
       const videoFixture = await openVideoTestDatabase();
@@ -93,6 +95,7 @@ describe.skipIf(!testDatabaseUrl)(
         sessionVersion: 0,
       });
     });
+    /** Возвращает роль, эпоху, подписку и пустые персональные реакции пользователя перед сценарием. */
     beforeEach(async () => {
       await conn.query(
         "UPDATE users SET role='user',blockedAt=NULL,sessionVersion=0 WHERE id=8970",
@@ -103,6 +106,7 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query("DELETE FROM saved_posts WHERE userId=8970");
       await conn.query("DELETE FROM likes WHERE userId=8970");
     });
+    /** Удаляет только свои каталоги, media, реакции и аккаунт и закрывает локальный API и SQL-пул. */
     afterAll(async () => {
       await application?.close();
       await conn?.query("DELETE FROM saved_posts WHERE userId=8970");
@@ -125,6 +129,7 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** Создаёт tRPC HTTP-клиент выбранного пользователя либо гостя. */
     const client = (token?: string) =>
       createTRPCProxyClient<AppRouter>({
         links: [
@@ -135,6 +140,7 @@ describe.skipIf(!testDatabaseUrl)(
           }),
         ],
       });
+    /** Проверяет открытый detail публичного поста и отсутствие закрытого тела для гостя. */
     it("keeps public detail visible while hiding club body from anonymous readers", async () => {
       expect(await client().feed.getById.query({ id: 8970 })).toMatchObject({
         id: 8970,
@@ -143,6 +149,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await client().feed.getById.query({ id: 8971 })).toBeUndefined();
     });
 
+    /** Проверяет устойчивый public UUID и одинаковую политику numeric и UUID detail без раскрытия draft и закрытых постов. */
     it("keeps the public post ID stable and applies the same access by UUID", async () => {
       const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
       const guest = client();
@@ -154,6 +161,7 @@ describe.skipIf(!testDatabaseUrl)(
       const publicId = publicPost!.publicId;
       const clubId = clubPost!.publicId;
       expect(publicId).not.toBe(clubId);
+      /** Читает detail по publicId выбранным гостевым либо авторизованным клиентом. */
       const byPublicId = (id: string, caller = guest) =>
         caller.feed.getById.query({ publicId: id });
       expect(await byPublicId(publicId)).toEqual(publicPost);
@@ -191,6 +199,7 @@ describe.skipIf(!testDatabaseUrl)(
       "https://vkvideo.ru/video_ext.php?oid=-101&id=1&hash=clubfixture123";
     const publicVk =
       "https://vk.com/video_ext.php?oid=-101&id=2&hash=publicfixture123";
+    /** Проверяет закрытие VK-source клуба с hash и без него во всех detail/list/saved/admin границах для разных актуальных ролей. */
     it.each([
       {
         name: "guest",
@@ -327,6 +336,7 @@ describe.skipIf(!testDatabaseUrl)(
         }
       },
     );
+    /** Проверяет публичный standalone VK-каталог и сокрытие unpublished video URL. */
     it("keeps the existing standalone VK video catalog public and hides unpublished sources", async () => {
       await conn.query(
         "INSERT INTO videos (id,youtubeId,title,videoUrl,published) VALUES (8990,'native-vk-public','VK standalone fixture',?,TRUE)",
@@ -356,6 +366,7 @@ describe.skipIf(!testDatabaseUrl)(
         );
       }
     });
+    /** Проверяет разделение внутреннего row lookup и пользовательской видимости закрытого либо неопубликованного поста. */
     it("keeps private row lookup separate from public visibility", async () => {
       for (const fixture of [
         { id: 8972, text: "draft body", status: "draft", published: true },
@@ -372,12 +383,14 @@ describe.skipIf(!testDatabaseUrl)(
         ).toBeUndefined();
       }
     });
+    /** Проверяет отсутствие подстановки соседнего поста для неизвестного ID. */
     it("does not return a neighboring post for a missing ID", async () => {
       expect(await getPostById(999999)).toBeUndefined();
       expect(
         await client(bearer).feed.getById.query({ id: 999999 }),
       ).toBeUndefined();
     });
+    /** Проверяет канонический порядок и полные audio/document/video-метаданные публичного detail. */
     it("returns ordered audio, document and video metadata on public post detail", async () => {
       await conn.query(
         "INSERT INTO post_media (id,postId,type,url,filename,mimeType,fileSize,duration,sortOrder) VALUES (8977,8975,'video','https://assets.example.test/detail.mp4','detail.mp4','video/mp4',1234,17,2)",
@@ -417,6 +430,7 @@ describe.skipIf(!testDatabaseUrl)(
         );
       }
     });
+    /** Проверяет отсутствие media другого поста в пустом detail и batch-списке. */
     it("does not attach another post's files to an empty post in detail or batch reads", async () => {
       expect(await client().feed.getById.query({ id: 8976 })).toMatchObject({
         id: 8976,
@@ -428,6 +442,7 @@ describe.skipIf(!testDatabaseUrl)(
         media: [],
       });
     });
+    /** Проверяет целочисленные и безопасные пределы feed-пагинации до SQL. */
     it.each([
       { limit: 1.5 },
       { limit: 12, cursor: -1 },
@@ -440,6 +455,7 @@ describe.skipIf(!testDatabaseUrl)(
         data: { code: "BAD_REQUEST", httpStatus: 400 },
       });
     });
+    /** Проверяет только опубликованные feed/both записи с сохранением порядка и media без закрытых тел. */
     it("lists only public feed/both posts, retaining order and media without paid or hidden bodies", async () => {
       const expected = [
         8975, 8976, 8977, 8978, 8979, 8980, 8981, 8982, 8983, 8984, 8985, 8986,
@@ -463,6 +479,7 @@ describe.skipIf(!testDatabaseUrl)(
         [],
       );
     });
+    /** Фиксирует прежний likeCount каждого поста legacy-feed без добавления невыбранного commentCount. */
     it("counts each post's own likes in the legacy feed without adding comment counts", async () => {
       await conn.query(
         "INSERT INTO likes (userId,postId) VALUES (8970,8970),(8970,8975)",
@@ -479,6 +496,7 @@ describe.skipIf(!testDatabaseUrl)(
         media: [],
       });
     });
+    /** Проверяет точное совпадение целого тега legacy-feed и media только совпавшего поста без SQL-внедрения. */
     it("matches whole tags in the legacy feed and retains only the matching post's media", async () => {
       await conn.query(
         "UPDATE posts SET tags=JSON_ARRAY('native-catalog','native-season') WHERE id=8975",
@@ -507,6 +525,7 @@ describe.skipIf(!testDatabaseUrl)(
         );
       }
     });
+    /** Проверяет целочисленные и безопасные пределы club-пагинации до SQL. */
     it.each([
       { limit: 1.5 },
       { limit: 20, cursor: -1 },
@@ -519,6 +538,7 @@ describe.skipIf(!testDatabaseUrl)(
         },
       );
     });
+    /** Проверяет defaults, NULL cursor, максимум limit и актуальную видимость страниц Клуба с датой DESC и ID ASC. */
     it("preserves club pagination defaults, null cursor, upper limit and visibility", async () => {
       // Explicit dates keep this independent from wall-clock seconds and the
       // old manual ranks. Club order is date DESC, then ID ASC before LIMIT.
@@ -554,6 +574,7 @@ describe.skipIf(!testDatabaseUrl)(
         data: { code: "UNAUTHORIZED", httpStatus: 401 },
       });
     });
+    /** Проверяет пересечение клубной видимости, тега и нормализованного repository search до пагинации. */
     it("intersects club visibility with tags and trimmed search before pagination", async () => {
       // Search is an existing repository option, not a club.list HTTP field.
       const body = await getPostsForTarget("club", {
@@ -573,6 +594,7 @@ describe.skipIf(!testDatabaseUrl)(
         });
       }
     });
+    /** Проверяет каждую строку с одинаковой датой ровно один раз между неизменными страницами; конкурентные вставки этим сценарием не моделируются. */
     it.each(["feed", "club"] as const)(
       "returns every tied-date %s row exactly once across unchanged pages",
       async (target) => {
@@ -616,6 +638,7 @@ describe.skipIf(!testDatabaseUrl)(
       },
     );
 
+    /** Проверяет default-страницу двенадцать, NULL cursor и исчерпание отфильтрованной выдачи. */
     it("paginates filtered rows with default 12 and treats null cursor as the first page", async () => {
       const first = await client().feed.listPaginated.query({
         tag: "native-catalog",
@@ -643,6 +666,7 @@ describe.skipIf(!testDatabaseUrl)(
         }),
       ).toEqual({ posts: [], nextCursor: null });
     });
+    /** Проверяет сочетание тега и trim/case-insensitive search со связанными SQL-параметрами. */
     it("combines tags and trimmed case-insensitive search using bound SQL values", async () => {
       const coffee = await client().feed.listPaginated.query({
         tag: "native-catalog",
@@ -669,6 +693,7 @@ describe.skipIf(!testDatabaseUrl)(
         ).toEqual({ posts: [], nextCursor: null });
       }
     });
+    /** Проверяет likeCount, commentCount и упорядоченные media в paginated feed-ответе. */
     it("preserves feed like/comment counts and ordered attachments in paginated replies", async () => {
       await conn.query("INSERT INTO likes (userId,postId) VALUES (8970,8975)");
       await conn.query(
@@ -689,6 +714,7 @@ describe.skipIf(!testDatabaseUrl)(
         "https://assets.example.test/catalog.pdf",
       ]);
     });
+    /** Проверяет публичные поля справочника тегов и display sortOrder. */
     it("returns reference tags in display order without changing the public fields", async () => {
       const tags = (await client().feed.tags.query()).filter(
         (tag) => tag.id === 8975 || tag.id === 8976,
@@ -710,6 +736,7 @@ describe.skipIf(!testDatabaseUrl)(
         },
       ]);
     });
+    /** Проверяет сохранение неиспользованного сезона в полном публичном справочнике без скрытой нормализации label. */
     it("keeps an unused season in the full public tag catalog with its original label", async () => {
       await conn.query(
         "INSERT INTO tags (id,slug,label,category,sortOrder) VALUES (8977,'native-unused','  Неиспользованный сезон  ','season',-3)",
@@ -745,6 +772,7 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query("DELETE FROM tags WHERE id=8977");
       }
     });
+    /** Проверяет сокрытие неопубликованного detail даже подписанному администратору. */
     it.each([8972, 8973, 8974])(
       "hides non-published detail %s even from a subscribed administrator",
       async (id) => {
@@ -752,6 +780,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await client(bearer).feed.getById.query({ id })).toBeUndefined();
       },
     );
+    /** Проверяет expiry и актуальные staff-роли с тем же JWT без повторного входа. */
     it("rechecks subscription expiry and live staff roles with the same JWT", async () => {
       expect(
         await client(bearer).feed.getById.query({ id: 8971 }),
@@ -773,6 +802,7 @@ describe.skipIf(!testDatabaseUrl)(
         await client(bearer).feed.getById.query({ id: 8971 }),
       ).toBeUndefined();
     });
+    /** Проверяет порядок сохранённого и удаление закрытого тела и media после expiry. */
     it("preserves bookmark order but removes unpaid club body and attachments", async () => {
       await conn.query(
         "INSERT INTO saved_posts (userId,postId,createdAt) VALUES (8970,8970,'2036-01-01'),(8970,8971,'2036-01-02'),(8970,8972,'2036-01-03')",
@@ -789,6 +819,7 @@ describe.skipIf(!testDatabaseUrl)(
         (await client(bearer).feed.savedPosts.query()).map((post) => post.id),
       ).toEqual([8970]);
     });
+    /** Фиксирует legacy-дубли сохранений с сохранением позиций и исключением отсутствующих и неопубликованных постов. */
     it("preserves duplicate bookmark positions while omitting missing and unpublished rows", async () => {
       await conn.query(
         "INSERT INTO saved_posts (userId,postId,createdAt) VALUES (8970,8970,'2036-01-01'),(8970,8975,'2036-01-02'),(8970,8971,'2036-01-03'),(8970,8975,'2036-01-04'),(8970,8972,'2036-01-05'),(8970,8974,'2036-01-06'),(8970,999999,'2036-01-07')",
@@ -806,6 +837,7 @@ describe.skipIf(!testDatabaseUrl)(
       ]);
       expect(saved[3].media).toEqual([]);
     });
+    /** Проверяет отказ защищённых списков и сокрытие клуба после блокировки либо отзыва сессии. */
     it.each(["blockedAt=NOW()", "sessionVersion=1"])(
       "denies club and protected reads after %s",
       async (patch) => {
@@ -820,6 +852,7 @@ describe.skipIf(!testDatabaseUrl)(
         });
       },
     );
+    /** Проверяет персональные saved и liked IDs только текущего авторизованного пользователя. */
     it("aggregates only the authenticated reader's saved and liked IDs", async () => {
       await conn.query(
         "INSERT INTO saved_posts (userId,postId) VALUES (8970,8971)",
@@ -835,6 +868,7 @@ describe.skipIf(!testDatabaseUrl)(
         data: { code: "UNAUTHORIZED", httpStatus: 401 },
       });
     });
+    /** Проверяет независимость saved-тел и reactions двух авторизованных аккаунтов. */
     it("keeps two authenticated readers' interactions and saved bodies separate", async () => {
       await conn.query(
         "INSERT INTO users (id,openId,role) VALUES (8988,'native-content-other','user')",
@@ -876,6 +910,7 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query("DELETE FROM users WHERE id=8988");
       }
     });
+    /** Фиксирует legacy-повторы reaction IDs и newest-first saved-позиции, отдельно скрывая draft-тела. */
     it("preserves raw repeated reaction IDs and newest-first bookmark positions", async () => {
       await conn.query(
         "INSERT INTO likes (userId,postId) VALUES (8970,8975),(8970,8972),(8970,8975)",
@@ -894,6 +929,7 @@ describe.skipIf(!testDatabaseUrl)(
         (await client(bearer).feed.savedPosts.query()).map((post) => post.id),
       ).toEqual([8970, 8971, 8970]);
     });
+    /** Проверяет публичные allowlisted-карточки статей без sections, закрытых URL и черновиков для всех ролей. */
     it.each([
       {
         name: "guest",
@@ -959,6 +995,7 @@ describe.skipIf(!testDatabaseUrl)(
         ]);
       },
     );
+    /** Проверяет открытые sections публичной статьи и только allowlisted locked preview закрытой для гостя. */
     it("serves public article sections but only an allowlisted locked club preview to anonymous readers", async () => {
       expect(await client().articles.getById.query({ id: 8970 })).toEqual({
         id: 8970,
@@ -977,6 +1014,7 @@ describe.skipIf(!testDatabaseUrl)(
         sections: [],
       });
     });
+    /** Проверяет немедленное закрытие sections после expiry с тем же JWT и отдельный служебный доступ модератора. */
     it("relocks article sections immediately after subscription expiry with the same JWT", async () => {
       expect(
         await client(bearer).articles.getById.query({ id: 8971 }),
@@ -998,6 +1036,7 @@ describe.skipIf(!testDatabaseUrl)(
         sections: [{ type: "text", text: "club article body" }],
       });
     });
+    /** Проверяет отсутствие sections после блокировки либо отзыва даже ранее административной сессии. */
     it.each(["blockedAt=NOW()", "sessionVersion=1"])(
       "does not leak article sections after %s",
       async (patch) => {
@@ -1009,6 +1048,7 @@ describe.skipIf(!testDatabaseUrl)(
         ).toMatchObject({ locked: true, sections: [] });
       },
     );
+    /** Проверяет отсутствие unpublished и неизвестной статьи даже для администратора. */
     it("hides unpublished and missing articles even from an administrator", async () => {
       await conn.query("UPDATE users SET role='admin' WHERE id=8970");
       expect(

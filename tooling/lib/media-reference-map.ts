@@ -27,12 +27,16 @@ type ReferenceMap = {
 };
 
 function referenceReport() {
+  // Создаёт общий накопитель точных хешей URL, видимости и диагностических проблем без запросов к файлам.
+
   const issues: string[] = [];
   const grouped = new Map<
     string,
     { access: Set<Visibility>; references: Set<string> }
   >();
   const add = (value: unknown, location: string, visibility: Visibility) => {
+    // Проверяет ссылку и объединяет только побайтно одинаковые URL; подпись и fragment сохраняются как отдельное свидетельство.
+
     if (value === "" || value === null || value === undefined) return;
     let url: URL;
     try {
@@ -65,6 +69,8 @@ function referenceReport() {
     grouped.set(urlHash, group);
   };
   const text = (value: unknown, location: string, access: Visibility) => {
+    // Извлекает только явно размеченные ссылки текстового блока; обычный текст не превращается автоматически в ссылку.
+
     if (value === undefined || value === null) return;
     if (typeof value !== "string") {
       issues.push(location + ".invalid-text");
@@ -76,6 +82,8 @@ function referenceReport() {
         add(inline.url, `${location}.link:${index++}`, access);
   };
   const list = (value: unknown, location: string, access: Visibility) => {
+    // Проверяет массив ссылок и сохраняет точное положение каждого элемента для будущей сверки привязок.
+
     if (!Array.isArray(value)) {
       issues.push(location + ".invalid-array");
       return;
@@ -87,7 +95,7 @@ function referenceReport() {
       else add(url, item, access);
     });
   };
-  const finish = <S extends string>(scope: S) => ({
+  const finish = <S extends string>(scope: S) => /* Возвращает неизменяющий файлы отчёт; неизвестная видимость имеет приоритет над предположением о публичности. */ ({
     scope,
     groups: [...grouped].map(([urlHash, group]) => ({
       urlHash,
@@ -101,6 +109,8 @@ function referenceReport() {
     issues,
   });
   const merge = (report: ReferenceMap) => {
+    // Объединяет частичные карты ссылок, сохраняя смешанную публичную/закрытую принадлежность объектов.
+
     issues.push(...report.issues);
     for (const source of report.groups) {
       const group = grouped.get(source.urlHash) ?? {
@@ -120,6 +130,8 @@ function referenceReport() {
 
 /** Offline reference evidence only: never an object inventory or ACL decision. */
 export function collectArticleReferences(input: unknown) {
+  // Проверяет снимок статей и поддерживаемые блоки; неизвестные структуры отмечаются для ручного исследования.
+
   const parsed = snapshot.safeParse(input);
   if (
     !parsed.success ||
@@ -290,6 +302,8 @@ const postSnapshot = z
 
 /** Selected references only; omitted sources are never an inventory or ACL. */
 export function collectPostReferences(input: unknown) {
+  // Собирает ссылки постов, вложений, комментариев и оформления; отсутствие родителя означает неизвестную видимость.
+
   const parsed = postSnapshot.safeParse(input);
   if (
     !parsed.success ||
@@ -466,6 +480,8 @@ const inventorySnapshot = z
   .strict();
 
 function mapDeclaredObjects(report: ReferenceMap, input: unknown) {
+  // Сопоставляет хеши с явно объявленными объектами; невыбранные строки и отсутствующие файлы не считаются проверенными.
+
   const parsed = inventorySnapshot.safeParse(input);
   if (!parsed.success) throw new Error("Invalid media inventory");
   const hashes = [
@@ -517,6 +533,8 @@ function mapDeclaredObjects(report: ReferenceMap, input: unknown) {
 }
 
 export function collectMediaSnapshot(input: unknown, inventory?: unknown) {
+  // Дополняет карту явным отчётом полноты выбранных полей; это не доказательство полноты рабочей БД или S3.
+
   const report = collectPostReferences(input);
   const parsed = postSnapshot.parse(input);
   const missingFields: string[] = [];

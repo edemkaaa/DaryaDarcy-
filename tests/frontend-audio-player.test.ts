@@ -1,3 +1,4 @@
+/** Состояние BrowserAudioPlayer проверяется управляемым EventTarget Audio, без реального декодирования звука. */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { BrowserAudioPlayer } from "../apps/frontend/src/shared/media/browser-audio-player";
 class TestAudio extends EventTarget {
@@ -21,6 +22,7 @@ class TestAudio extends EventTarget {
 }
 let audio: TestAudio;
 let player: BrowserAudioPlayer;
+/** Соединяем новый player с отдельным синтетическим audio и стандартными событиями play/pause. */
 beforeEach(() => {
   audio = new TestAudio();
   vi.stubGlobal("Audio", TestAudio);
@@ -30,10 +32,12 @@ beforeEach(() => {
   );
   player.connect();
 });
+/** Освобождаем player и глобальный Audio после сценария. */
 afterEach(() => {
   player.release();
   vi.unstubAllGlobals();
 });
+/** Autoplay denial снимает starting/playing и показывает возможность повторной попытки. */
 it("a rejected play promise leaves playback stopped and exposes a recoverable error", async () => {
   audio.play.mockRejectedValue(new Error("Autoplay denied"));
   await expect(player.play()).rejects.toThrow("Autoplay denied");
@@ -43,6 +47,7 @@ it("a rejected play promise leaves playback stopped and exposes a recoverable er
     error: expect.stringContaining("Не удалось воспроизвести"),
   });
 });
+/** Не обрываем последние доли секунды; reset позиции происходит только по ended. */
 it("plays the final half-second and resets its real position only on ended", async () => {
   await player.play();
   audio.currentTime = 9.8;
@@ -59,11 +64,13 @@ it("plays the final half-second and resets its real position only on ended", asy
     currentTime: 0,
   });
 });
+/** Явный volume=0 не заменяется fallback-значением. */
 it("preserves an explicitly muted volume", () => {
   player.volume = 0;
   expect(player.volume).toBe(0);
   expect(audio.volume).toBe(0);
 });
+/** Поздний resolve play после release не возобновляет звук и не возвращает src. */
 it("a late play completion cannot revive a released player", async () => {
   let release!: () => void;
   audio.play.mockImplementation(
@@ -83,6 +90,7 @@ it("a late play completion cannot revive a released player", async () => {
   expect(audio.removeAttribute).toHaveBeenCalledWith("src");
   expect(audio.load).toHaveBeenCalled();
 });
+/** Повторное connect использует новый audio; события старого экземпляра больше не меняют snapshot. */
 it("Strict Mode cleanup allows a new connection and ignores events from the old audio", async () => {
   const old = audio;
   player.release();
@@ -95,6 +103,7 @@ it("Strict Mode cleanup allows a new connection and ignores events from the old 
   expect(player.getSnapshot().playing).toBe(true);
 });
 
+/** Зависший play завершается по 15-секундному deadline, ставит pause и допускает явный новый play. */
 it("a stalled play has a deadline and can be retried", async () => {
   vi.useFakeTimers();
   audio.play.mockImplementationOnce(() => new Promise<void>(() => {}));

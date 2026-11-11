@@ -1,3 +1,4 @@
+// Архив Expo. Архивный главный экран локальных досок показывает последнюю осеннюю доску и доступные папки.
 import { useCallback, useState } from "react";
 import {
   Alert,
@@ -32,6 +33,8 @@ const BOARD_W = Math.min(SCREEN_W - 32, 448);
 const DEFAULT_SEASON: MoodboardSeason = "autumn";
 
 export default function MoodboardHomeScreen() {
+  // Архивный главный экран локальных досок показывает последнюю осеннюю доску и доступные папки.
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isSubscribed } = useClub();
@@ -41,6 +44,8 @@ export default function MoodboardHomeScreen() {
   const [board, setBoard] = useState<MoodboardDoc | null>(null);
 
   const refresh = useCallback(async () => {
+    // Перечитывает boardId или последнюю доску сезона при возвращении на экран.
+
     if (boardId) {
       const byId = await getMoodboard(boardId);
       if (byId) {
@@ -54,12 +59,16 @@ export default function MoodboardHomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
+    // При фокусе перечитывает локальную доску, чтобы изменения редактора отобразились на главной.
+
       void refresh();
     }, [refresh]),
   );
 
   /** ТЗ: тап на папку → сетка выбора (всегда). */
   const openSeason = (season: MoodboardSeason) => {
+    // Проверяет локальный лимит создания и открывает picker доступного сезона.
+
     const meta = SEASON_META[season];
     if (!meta.enabled) {
       Alert.alert("Скоро", `${meta.label} откроется позже.`);
@@ -116,6 +125,7 @@ export default function MoodboardHomeScreen() {
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   header: {
     flexDirection: "row",

@@ -15,6 +15,7 @@ import { clubSettlementPayloadHash } from "./settlement-request";
 type Reader = Pick<MySql2Database, "select">;
 type BillingProfile = typeof billingProfiles.$inferSelect;
 
+/** Для каждого paid monthly-заказа ищет однозначный receipt/profile этого пользователя; отдельный подписанный TEST-заказ не считается автосписанием. */
 export async function hasUnboundMonthlyPayment(
   database: Reader,
   userId: number,
@@ -104,6 +105,7 @@ export async function hasUnboundMonthlyPayment(
   });
 }
 
+/** Разрешает известные форматы клубного заказа; YooKassa TEST требует согласованных intent, paymentId и receipt с той же суммой/владельцем. */
 export async function supportsCancellationPayment(
   database: Reader,
   paid: ClubPayment,

@@ -1,5 +1,8 @@
+// Архив Expo. Отбрасывает нестроковые и небезопасные схемы/учётные данные, сохраняя порядок HTTP(S) картинок.
 /** Ignore malformed API photo values without changing valid URL order. */
 export function sanitizePhotoUrls(value: unknown): string[] {
+  // Отбрасывает нестроковые и небезопасные схемы/учётные данные, сохраняя порядок HTTP(S) картинок.
+
   if (!Array.isArray(value)) return [];
   return value.filter((url): url is string => {
     if (typeof url !== "string" || !url.trim()) return false;

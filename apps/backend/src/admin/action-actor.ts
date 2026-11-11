@@ -8,6 +8,7 @@ import type { AdminActionKind } from "../../../../packages/shared/src/admin-acti
 type Transaction = Parameters<Parameters<MySql2Database["transaction"]>[0]>[0];
 
 /** Проверяем допустимость текущего административного автора до операции. */
+/** Сверяет текущие openId/epoch с actor, запрещает blocked/deletion и отличает admin-only выдачу доступа от staff-повтора письма. */
 export function requireAdminActionActor(
   current: User | undefined,
   actor: User,
@@ -29,6 +30,7 @@ export function requireAdminActionActor(
     throw new TRPCError({ code: "FORBIDDEN" });
 }
 /** Lock both owners in the same order for legacy and receipt-backed actions. */
+/** Блокирует actor и target по возрастанию ID, затем проверяет актуальные права; legacy и receipt-backed действия используют один порядок. */
 export async function lockAdminActionActor(
   tx: Transaction,
   actor: User,

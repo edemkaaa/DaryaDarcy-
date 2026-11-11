@@ -1,3 +1,4 @@
+// Архив Expo. Выбирает декоративный значок по MIME без проверки содержимого файла.
 import React from "react";
 import { View, Text, Pressable, StyleSheet, Linking } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -15,6 +16,8 @@ interface DocumentAttachmentProps {
 }
 
 function getDocIcon(mimeType?: string): keyof typeof MaterialIcons.glyphMap {
+  // Выбирает декоративный значок по MIME без проверки содержимого файла.
+
   if (!mimeType) return "insert-drive-file";
   if (mimeType.includes("pdf")) return "picture-as-pdf";
   if (mimeType.includes("word") || mimeType.includes("document")) return "description";
@@ -24,6 +27,8 @@ function getDocIcon(mimeType?: string): keyof typeof MaterialIcons.glyphMap {
 }
 
 function formatFileSize(bytes?: number): string {
+  // Показывает размер до мегабайт с одним десятичным знаком.
+
   if (!bytes) return "";
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -31,7 +36,11 @@ function formatFileSize(bytes?: number): string {
 }
 
 export function DocumentAttachmentCard({ url, filename, mimeType, fileSize }: DocumentAttachmentProps) {
+  // Показывает название/размер и делегирует открытие документа системному Linking.
+
   const handlePress = () => {
+    // Передаёт URL системному обработчику; авторизация выдачи должна проверяться самим сервером.
+
     Linking.openURL(url);
   };
 
@@ -58,6 +67,7 @@ export function DocumentAttachmentCard({ url, filename, mimeType, fileSize }: Do
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",

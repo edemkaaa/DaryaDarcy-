@@ -1,3 +1,4 @@
+/** Проверяем обычный авторизованный checkout через подменённый tRPC transport и отдельный durable journal аккаунта, без настоящих платежей. */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import superjson from "superjson";
 import { createTRPCClient } from "../apps/frontend/src/shared/api/trpc";
@@ -15,7 +16,9 @@ let values: Map<string, string>;
 let response: unknown;
 const expiration = new Date("2040-11-01T10:00:00Z");
 const slot = "darcy:user:101:normal-checkout:v1";
+/** Создаёт отдельный активный signal для текущего шага сценария. */
 const signal = () => new AbortController().signal;
+/** Формирует настоящий SuperJSON envelope как для одиночного, так и batch tRPC-ответа; сеть не используется. */
 const fetcher = vi.fn(
   async (_url: RequestInfo | URL, _options?: RequestInit) => {
     const serialized = { result: { data: superjson.serialize(response) } };
@@ -30,6 +33,7 @@ const fetcher = vi.fn(
     );
   },
 );
+/** Создаём чистые storage/locks и назначаем текущего владельца персональных данных до подготовки intent. */
 beforeEach(() => {
   values = new Map();
   vi.stubGlobal("window", {
@@ -55,12 +59,14 @@ beforeEach(() => {
     url: "https://payments.example.test/normal",
   };
 });
+/** Отменяем session requests и очищаем владельца, чтобы следующий сценарий не получил чужой журнал. */
 afterEach(() => {
   cancelSessionRequests();
   setPersonalDataOwner(null);
   vi.unstubAllGlobals();
 });
 
+/** Обычная mutation передаёт UUID, план и контакт в JSON, не использует TEST Idempotency-Key и не сохраняет платёжный URL в журнале. */
 it("persists a lowercase UUID and the account's plan before POST, without the TEST header or email", async () => {
   const journal = new NormalCheckoutJournal(101);
   const intent = await journal.prepare(signal(), "+79991234567");
@@ -88,6 +94,7 @@ it("persists a lowercase UUID and the account's plan before POST, without the TE
     /https|email|signature|expiresAt/,
   );
 });
+/** Перезагрузка восстанавливает исходный key/plan, в том числе полугодовой, без нового намерения. */
 it("reload keeps the key and selected plan instead of reserving a new purchase", async () => {
   const first = await new NormalCheckoutJournal(101).prepare(signal(), "+79991234567");
   const encoded = { ...first, plan: "semiannual" };
@@ -104,6 +111,7 @@ it("reload keeps the key and selected plan instead of reserving a new purchase",
     '"plan":"semiannual"',
   );
 });
+/** Status является чтением по сохранённому ключу; дата восстанавливается SuperJSON и не подменяет durable evidence. */
 it("checks only the saved key with GET and accepts a Date through SuperJSON", async () => {
   const journal = new NormalCheckoutJournal(101);
   const intent = await journal.prepare(signal(), "+79991234567");
@@ -126,6 +134,7 @@ it("checks only the saved key with GET and accepts a Date through SuperJSON", as
   expect(fetcher.mock.calls[0][1]?.method).not.toBe("POST");
   expect(values.get(slot)).not.toContain("expiresAt");
 });
+/** Pending и notRecorded не разрешают создавать следующий ключ или стирать старую заявку. */
 it.each(["notRecorded", "pending"] as const)(
   "%s cannot rotate the saved purchase",
   async (state) => {
@@ -141,6 +150,7 @@ it.each(["notRecorded", "pending"] as const)(
     expect(fetcher).toHaveBeenCalledTimes(1);
   },
 );
+/** Новая покупка требует свежего терминального status, после которого разрешён отдельный UUID без чужого orderId. */
 it.each(["succeeded", "failed"] as const)(
   "a deliberate next purchase verifies fresh %s before creating its distinct key",
   async (state) => {
@@ -157,6 +167,7 @@ it.each(["succeeded", "failed"] as const)(
     expect(fetcher.mock.calls[0][1]?.method).not.toBe("POST");
   },
 );
+/** Status другого order отклоняется и не подтверждает или заменяет текущую покупку. */
 it("an order mismatch never turns another purchase into this intent's successful result", async () => {
   const journal = new NormalCheckoutJournal(101);
   const first = await journal.prepare(signal(), "+79991234567");
@@ -174,6 +185,7 @@ it("an order mismatch never turns another purchase into this intent's successful
   ).rejects.toThrow("Некорректный ответ");
   expect(journal.read()?.idempotencyKey).toBe(first.idempotencyKey);
 });
+/** Намерение принадлежит аккаунту; после смены владельца mutation не отправляется. */
 it("a change of account prevents dispatch of the previous account's intent", async () => {
   const journal = new NormalCheckoutJournal(101);
   const intent = await journal.prepare(signal(), "+79991234567");
@@ -184,6 +196,7 @@ it("a change of account prevents dispatch of the previous account's intent", asy
   expect(fetcher).not.toHaveBeenCalled();
   expect(new NormalCheckoutJournal(102).read()).toBeNull();
 });
+/** Поздний ответ не записывает orderId в intent, уже заменённый другой вкладкой. */
 it("a late response cannot bind an order to a replaced browser intent", async () => {
   const journal = new NormalCheckoutJournal(101);
   const intent = await journal.prepare(signal(), "+79991234567");
@@ -204,6 +217,7 @@ it("a late response cannot bind an order to a replaced browser intent", async ()
   ).rejects.toThrow("изменилась");
   expect(JSON.parse(values.get(slot)!)).not.toHaveProperty("orderId");
 });
+/** Повреждённый durable record блокирует подготовку и сохраняется без временного fallback UUID. */
 it("corrupt evidence is never overwritten by a temporary key", async () => {
   values.set(slot, "corrupt");
   await expect(
@@ -212,6 +226,7 @@ it("corrupt evidence is never overwritten by a temporary key", async () => {
   expect(values.get(slot)).toBe("corrupt");
   expect(fetcher).not.toHaveBeenCalled();
 });
+/** Неизвестное состояние, строковая/невалидная дата и лишний URL не принимаются за подтверждение. */
 it.each([
   null,
   {},
@@ -222,6 +237,7 @@ it.each([
 ])("malformed status cannot confirm payment (%#)", (value) => {
   expect(() => parseNormalCheckoutStatus(value)).toThrow();
 });
+/** Ответ создания обязан содержать корректные state/order/HTTPS URL до открытия платёжной страницы. */
 it.each([
   null,
   {},
@@ -232,6 +248,7 @@ it.each([
   expect(() => parseNormalCheckoutResult(value)).toThrow();
 });
 
+/** Нормализованный контакт входит в неизменное намерение; смена сохранённого номера нарушает его целостность. */
 it("freezes the unverified contact through a lost response and rejects a changed contact", async () => {
   const journal = new NormalCheckoutJournal(101);
   const intent = await journal.prepare(signal(), "8 (999) 123-45-67");

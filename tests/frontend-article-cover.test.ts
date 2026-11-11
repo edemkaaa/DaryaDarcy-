@@ -1,9 +1,11 @@
+/** Проверяем форму квитанции публичной обложки и разделение незавершённого draft от финального create намерения. */
 import { expect, it } from "vitest";
 import { requirePublicCoverReceipt } from "../apps/frontend/src/domain/content/article-cover-journal";
 import {
   articleDraftSchema,
   parseArticleCreationRecord,
 } from "../apps/frontend/src/domain/content/article-creation-journal";
+/** Небезопасный URL, неполный ответ и аватарные признаки не подтверждают обложку статьи. */
 it.each([
   {
     state: "ready",
@@ -29,6 +31,7 @@ it.each([
 ])("rejects a malformed or avatar-specific cover receipt: %j", (value) => {
   expect(() => requirePublicCoverReceipt(value)).toThrow();
 });
+/** Состояния missing/pending и корректный cover-ready сохраняются без выдуманного успеха. */
 it.each([
   { state: "missing" },
   { state: "pending" },
@@ -41,6 +44,7 @@ it.each([
 ])("accepts the explicit cover contract: %j", (value) => {
   expect(requirePublicCoverReceipt(value)).toEqual(value);
 });
+/** Пустой заголовок допустим для локального draft загрузки; финальный create snapshot остаётся строгим. */
 it("a cover snapshot can preserve an unfinished title without weakening article write validation", () => {
   const draft = {
     title: "",

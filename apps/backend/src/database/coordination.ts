@@ -19,11 +19,13 @@ export function coordinationMode(): "local" | "mysql" {
   return mode;
 }
 
+/** Возвращаем временный отказ вместо обхода общей блокировки или распределённого лимита. */
 export const coordinationUnavailable = () =>
   new ServiceUnavailableException(
     "Сервис временно недоступен. Попробуйте позже.",
   );
 
+/** Заимствуем отдельное соединение максимум за три секунды; если ожидание истекло, поздно полученное соединение немедленно возвращаем, не оставляя утечку пула. */
 async function borrowConnection(): Promise<PoolConnection> {
   const db = await getDb();
   if (!db) throw coordinationUnavailable();

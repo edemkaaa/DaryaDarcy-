@@ -22,12 +22,14 @@ import type { AppRouter } from "../apps/backend/src/routers";
 // This global "latest" read needs its own fresh disposable database: do not run
 // alongside SQL suites publishing unrelated posts into the same fixture schema.
 // Explicit opt-in keeps the ordinary parallel SQL run from sharing that dataset.
+/** Проверяет видимость последнего объявления в каждом канале на отдельном пустом content-датасете. */
 describe.skipIf(
   !testDatabaseUrl || process.env.BACKEND_LATEST_ACCEPTANCE !== "1",
 )("latest notification through real HTTP, JWT and SQL", () => {
   let conn: Connection;
   let app: INestApplication;
   let base: string;
+  /** Требует явный acceptance-флаг и отсутствие постов, затем запускает настоящий локальный API. */
   beforeAll(async () => {
     conn = await openContentTestDatabase();
     const [baseline] = await conn.query<RowDataPacket[]>(
@@ -43,6 +45,7 @@ describe.skipIf(
     await app.listen(0, "127.0.0.1");
     base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
   });
+  /** Удаляет только посты своего диапазона, synthetic-подписку и тестового участника. */
   async function cleanup() {
     await conn.query("DELETE FROM posts WHERE id BETWEEN 8450 AND 8459");
     await conn.query(
@@ -50,6 +53,7 @@ describe.skipIf(
     );
     await conn.query("DELETE FROM users WHERE id=8450");
   }
+  /** Восстанавливает пользователя и открытое, клубное, draft, scheduled и unpublished объявления. */
   beforeEach(async () => {
     await cleanup();
     await conn.query(
@@ -62,6 +66,7 @@ describe.skipIf(
       (8453,'Scheduled must stay hidden','[]','[]','both',TRUE,'scheduled','2020-01-04','2020-03-04'),
       (8454,'Unpublished must stay hidden','[]','[]','both',FALSE,'published','2020-01-05','2020-03-05')`);
   });
+  /** Закрывает API, удаляет собственные данные и соединения и возвращает окружение. */
   afterAll(async () => {
     await app?.close();
     if (conn) {
@@ -73,6 +78,7 @@ describe.skipIf(
     )?.$client.end();
     vi.unstubAllEnvs();
   });
+  /** Создаёт клиент гостя либо пользователя с актуальной JWT epoch=2. */
   function client(authenticated = true) {
     const token = authenticated
       ? sdk.createSessionToken("latest-http-8450", { sessionVersion: 2 })
@@ -82,6 +88,7 @@ describe.skipIf(
         httpLink({
           url: `${base}/api/trpc`,
           transformer: superjson,
+          /** Дожидается создания токена только для авторизованного запроса, иначе не отправляет credentials. */
           headers: async () =>
             authenticated
               ? {
@@ -104,6 +111,7 @@ describe.skipIf(
     clubId: 8451,
     clubText: "Private announcement",
   };
+  /** Создаёт synthetic-период с выбранными status, expiry и отменой в конце периода. */
   async function subscription(
     status: "paid" | "pending" | "failed",
     expiry: "future" | "past" | "none",
@@ -115,14 +123,17 @@ describe.skipIf(
       [status, cancelled],
     );
   }
+  /** Гость видит только опубликованное открытое объявление без ID и текста Клуба. */
   it("exposes only the published public announcement to guests", async () => {
     expect(await client(false).notifications.latest.query()).toEqual(
       publicOnly,
     );
   });
+  /** Сам факт входа не открывает клубное объявление. */
   it("does not treat an authenticated account as a club subscription", async () => {
     expect(await client().notifications.latest.query()).toEqual(publicOnly);
   });
+  /** Учитывает только paid неистёкший период, сохраняя доступ до конца уже оплаченного отменённого периода. */
   it.each([
     {
       name: "paid unexpired",
@@ -172,6 +183,7 @@ describe.skipIf(
       fixture.allowed ? withClub : publicOnly,
     );
   });
+  /** Согласованные admin и moderator роли сохраняют клубную видимость без оплаты. */
   it.each(["admin", "moderator"])(
     "preserves %s club access without payment",
     async (role) => {
@@ -179,6 +191,7 @@ describe.skipIf(
       expect(await client().notifications.latest.query()).toEqual(withClub);
     },
   );
+  /** Та же JWT после истечения периода больше не получает закрытое объявление. */
   it("rechecks expiry on the next request using the same JWT", async () => {
     await subscription("paid", "future");
     const session = client();
@@ -188,6 +201,7 @@ describe.skipIf(
     );
     expect(await session.notifications.latest.query()).toEqual(publicOnly);
   });
+  /** Both-пост участвует в обоих каналах только при соответствующем доступе; гость видит лишь feed. */
   it("shows a both-target publication in each authorized channel", async () => {
     await subscription("paid", "future");
     await conn.query(
@@ -206,6 +220,7 @@ describe.skipIf(
       clubText: "",
     });
   });
+  /** Последнее объявление выбирается по publishedAt с fallback createdAt независимо от ID и ручного sortOrder. */
   it("orders by publication date with creation fallback, not ID or sort order", async () => {
     await conn.query(`INSERT INTO posts (id,text,photos,tags,target,sortOrder,createdAt,publishedAt) VALUES
       (8455,'Newer creation but older publication','[]','[]','feed',-100,'2020-06-01','2020-01-01'),
@@ -221,6 +236,7 @@ describe.skipIf(
       publicOnly,
     );
   });
+  /** Отсутствие видимых постов сохраняет явный пустой контракт с null ID и пустым текстом. */
   it("keeps null IDs and empty text when no visible publication exists", async () => {
     await conn.query(
       "UPDATE posts SET published=FALSE WHERE id IN (8450,8451)",

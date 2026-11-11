@@ -31,24 +31,31 @@ const sessions = new Map<
 const original = "REAL_ORIGINAL_POST";
 const articleOriginal = "REAL_ORIGINAL_ARTICLE";
 type Mode = "full" | "quick";
+/** Адресуем текущий post-input после reload и восстановления. */
 const text = (page: Page) =>
   page.getByPlaceholder("Текст поста… Enter — новый абзац");
+/** Адресуем article-input независимо от creation/update recovery. */
 const title = (page: Page) => page.getByPlaceholder("Что посмотреть осенью...");
+/** Сверка читает настоящую серверную версию до нового решения о write. */
 const compare = (page: Page) =>
   page.getByRole("button", {
     name: "Сравнить с серверной версией",
     exact: true,
   });
+/** Принятие сравнения обновляет base, но отправка остаётся отдельным действием. */
 const accept = (page: Page) =>
   page.getByRole("button", {
     name: "Продолжить с моими изменениями после сравнения",
     exact: true,
   });
+/** Выбираем основную save-кнопку текущего редактора. */
 const save = (page: Page) =>
   page.getByRole("button", { name: "Сохранить", exact: true }).first();
+/** SQL-проверки идут только через validated disposable-connection, не API-mock. */
 async function rows(sql: string, values: unknown[] = []) {
   return (await connection.query<RowDataPacket[]>(sql, values))[0];
 }
+/** Проверяем принадлежность fixture и loopback backend_test/API до открытия SQL и любых мутаций. */
 test.beforeAll(async () => {
   if (!file || !basename(dirname(file)).startsWith("darcy-editor-acceptance-"))
     throw new Error("Owned fixture required");
@@ -69,6 +76,7 @@ test.beforeAll(async () => {
     timezone: "Z",
   });
 });
+/** Восстанавливаем только принадлежащие disposable-стенду content/operation таблицы и два исходных материала перед сценарием. */
 test.beforeEach(async ({ context }) => {
   for (const table of [
     "post_media",
@@ -95,12 +103,15 @@ test.beforeEach(async ({ context }) => {
   await prepare(context);
   await login(context);
 });
+/** Закрываем изолированные contexts второго администратора. */
 test.afterEach(async () => {
   for (const context of extraContexts.splice(0)) await context.close();
 });
+/** Освобождаем SQL-соединение после opt-in набора. */
 test.afterAll(async () => {
   await connection?.end();
 });
+/** Браузер ограничен fixture-origin, локальными отметками профиля и test-confirm; внешние файлы/API блокируются. */
 async function prepare(context: BrowserContext) {
   await context.addInitScript(() => {
     if (location.protocol !== "http:" && location.protocol !== "https:") return;
@@ -118,6 +129,7 @@ async function prepare(context: BrowserContext) {
   });
   context.on("page", (page) => page.on("dialog", (dialog) => dialog.accept()));
 }
+/** Реальный login проверяет HttpOnly cookie; повторный тестовый context может получить уже созданную локальную сессию. */
 async function login(context: BrowserContext, id = 501) {
   const cached = sessions.get(id);
   if (cached) {
@@ -138,6 +150,7 @@ async function login(context: BrowserContext, id = 501) {
   ).toBe(true);
   sessions.set(id, await context.cookies());
 }
+/** Отзываем реальную локальную сессию и удаляем её cached-cookie перед входом другого owner. */
 async function logout(context: BrowserContext) {
   expect(
     (
@@ -148,6 +161,7 @@ async function logout(context: BrowserContext) {
   ).toBe(200);
   sessions.delete(501);
 }
+/** Создаём отдельный cookie-context второго prepared-admin и регистрируем cleanup. */
 async function otherPage(page: Page, id = 502) {
   const context = await page
     .context()
@@ -158,6 +172,7 @@ async function otherPage(page: Page, id = 502) {
   await login(context, id);
   return context.newPage();
 }
+/** Открываем full/quick create/edit и различаем обычный checkpoint от заблокированного unresolved-recovery, не считая его idle. */
 async function openPost(page: Page, mode: Mode, create = false) {
   await page.goto(mode === "full" ? "/admin" : "/feed");
   if (mode === "quick" && !create)
@@ -194,6 +209,7 @@ async function openPost(page: Page, mode: Mode, create = false) {
     )
     .toBe(true);
 }
+/** Выбираем server-edit либо явное восстановление локального update и ждём реальное поле. */
 async function openArticle(page: Page, restore = false) {
   await page.goto("/admin");
   await page.getByRole("button", { name: "Статьи", exact: true }).click();
@@ -208,6 +224,7 @@ async function openArticle(page: Page, restore = false) {
     .click();
   await expect(title(page)).toBeVisible();
 }
+/** Наблюдаем исходные POST-payload определённой процедуры, ничего не фабрикуя в ответе. */
 function writes(page: Page, procedure: string) {
   const inputs: Record<string, unknown>[] = [];
   page.on("request", (request) => {
@@ -222,6 +239,7 @@ function writes(page: Page, procedure: string) {
   });
   return inputs;
 }
+/** Убираем только expectedRevision из реально сформированного запроса для настоящего серверного412, сохраняя прочий payload. */
 async function rejectMissingRevision(route: Route) {
   const body = route.request().postDataJSON();
   const input = body[0]?.json ?? body.json;
@@ -229,6 +247,7 @@ async function rejectMissingRevision(route: Route) {
   delete input.expectedRevision;
   await route.continue({ postData: JSON.stringify(body) });
 }
+/** Ровно первый настоящий успешный API-response теряется после commit; done различает завершение fault-handler и сам UI-state. */
 async function loseNextAck(page: Page, procedure: string) {
   let resolve!: () => void;
   let reject!: (error: unknown) => void;
@@ -251,6 +270,7 @@ async function loseNextAck(page: Page, procedure: string) {
   );
   return { done };
 }
+/** Читаем durable article-operation текущего fixture-admin и закрываем IndexedDB даже при отсутствии store. */
 async function storedOperation(page: Page) {
   return page.evaluate(
     () =>
@@ -284,6 +304,7 @@ async function storedOperation(page: Page) {
       }),
   );
 }
+/** Оба post-editor проходят реальные409/412, commit с потерей ACK, file-byte roundtrip, смену owner и stale-tab запрет до API. */
 for (const mode of ["full", "quick"] as const) {
   test(`${mode}: two real admins conflict; reload preserves text; only reviewed save replaces it`, async ({
     page,
@@ -469,6 +490,7 @@ for (const mode of ["full", "quick"] as const) {
   });
 }
 
+/** После конфликта и reload private-file receipt переиспользуется, а серверная защищённая выдача возвращает исходные байты один раз загруженного файла. */
 test("article: real 409, reload and file recovery preserve bytes and reuse the uploaded asset", async ({
   page,
   context,
@@ -541,6 +563,7 @@ test("article: real 409, reload and file recovery preserve bytes and reuse the u
   ).toBe(1);
 });
 
+/** Настоящий committed article-update подтверждается detail-read без второго write. */
 test("article: a committed write with a lost ACK is confirmed without another mutation", async ({
   page,
 }) => {
@@ -590,6 +613,7 @@ test("article: actual 412 and account switch preserve ownership of unsaved input
   ).toHaveCount(0);
 });
 
+/** Открываем quick-tags и при необходимости меняем выбор; restore-путь не добавляет новый тег тестом. */
 async function openTags(page: Page, select = true) {
   await page.goto("/feed");
   await page
@@ -603,6 +627,7 @@ async function openTags(page: Page, select = true) {
   if (select) await form.getByRole("button", { name: /Подборки/ }).click();
   return form;
 }
+/** Manual review тегов не должен затирать чужой новый текст поста, изменяя только выбранные tags. */
 test("tags: real 409 requires review before replacing another admin's version", async ({
   page,
 }) => {
@@ -639,6 +664,7 @@ test("tags: real 409 requires review before replacing another admin's version", 
     (await rows("SELECT text,tags FROM posts WHERE id=71"))[0],
   ).toMatchObject({ text: "OTHER_EDITOR_BEFORE_TAGS", tags: sent[1].tags });
 });
+/** Настоящий412 сохраняет выбранные tags исходного owner, но не переносит их следующему аккаунту. */
 test("tags: actual 412 preserves selection; the next account receives only its own draft", async ({
   page,
   context,
@@ -679,6 +705,7 @@ test("tags: actual 412 preserves selection; the next account receives only its o
     .toEqual(["community"]);
   expect(sent).toHaveLength(1);
 });
+/** Утерянный ACK тегов подтверждается настоящим detail и SQL, не повторяя mutation. */
 test("tags: a lost ACK is confirmed by real detail without another mutation", async ({
   page,
 }) => {

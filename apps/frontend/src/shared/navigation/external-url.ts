@@ -1,7 +1,7 @@
 /** Адреса действий проверяем перед открытием: строка ссылки не должна становиться исполняемой браузерной схемой. */
 import { safeNextPath } from "./paths";
 
-/** Link destinations are data, never executable browser URLs. */
+/** Разрешаем внутренний путь или URL из явного списка схем; credentials и управляющие символы делают адрес недопустимым. */
 export function safeExternalUrl(value: unknown): string | null {
   if (typeof value !== "string" || /[\u0000-\u001f\u007f]/.test(value))
     return null;
@@ -21,6 +21,7 @@ export function safeExternalUrl(value: unknown): string | null {
   }
 }
 
+/** Для перенаправления на оплату дополнительно требуем HTTPS; остальные разрешённые ссылки здесь не подходят. */
 export function requirePaymentUrl(value: unknown): string {
   const url = safeExternalUrl(value);
   if (!url || !url.startsWith("https://"))

@@ -2,6 +2,7 @@
 @use "../../shared/styles/layers";
 
 @layer components {
+  /* TEST-предупреждение отступает от верхней шапки и safe-area, оставаясь отдельным блоком перед промо. */
   .testNotice {
     margin: calc(56px + var(--safe-area-inset-top, 0px)) 20px 20px;
     padding: 16px;
@@ -33,6 +34,7 @@
     position: relative;
   }
 
+  /* Пропорция баннера резервируется до загрузки изображения и не зависит от размеров внешнего файла. */
   .heroBanner {
     width: 100%;
     aspect-ratio: 1.7777777777777777;
@@ -73,6 +75,7 @@
     color: var(--ink);
   }
 
+  /* Контакты и действие оплаты оформлены одной секцией; телефон остаётся отдельным полем с пояснением. */
   .priceSection {
     padding-left: 20px;
     padding-right: 20px;
@@ -137,6 +140,7 @@
     text-align: center;
   }
 
+  /* Преимущества используют иконку фиксированного размера и текст в оставшемся flex-пространстве. */
   .benefitsSection {
     padding-left: 20px;
     padding-right: 20px;
@@ -192,6 +196,7 @@
     line-height: 18px;
   }
 
+  /* Карусели выходят за текстовые поля, но scroll-padding сохраняет правильный край при snap/прокрутке. */
   .letterCarouselContainer {
     margin-top: 2px;
     margin-bottom: 20px;
@@ -208,6 +213,7 @@
     padding-right: 20px;
   }
 
+  /* Разные типы промо используют собственные пропорции, чтобы изображения не получали общую случайную высоту. */
   .exclusiveCarouselSlide {
     margin-right: 10px;
     border-radius: 16px;
@@ -274,6 +280,7 @@
     margin-bottom: 4px;
   }
 
+  /* Название плана, сумма и период разделены; baseline выравнивает большую цену с подписью. */
   .priceCard {
     padding: 24px;
     border-radius: 18px;
@@ -342,6 +349,7 @@
     margin-top: 10px;
   }
 
+  /* Отзывы отделены от тарифа, а нижний gap сохраняет доступ к концу страницы рядом с меню. */
   .reviewsSection {
     margin-top: 28px;
     margin-left: 0;
@@ -371,6 +379,7 @@
   .div2 {
     height: var(--page-end-gap);
   }
+  /* Нажатие и восстановление прозрачности задаются отдельными классами без скачка размеров. */
   .opacityState {
     opacity: 0.9;
     --action-base-opacity: 0.9;

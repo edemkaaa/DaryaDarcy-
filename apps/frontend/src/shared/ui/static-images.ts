@@ -5,6 +5,7 @@ import {
 } from "./static-image-catalog";
 import { getImageProps } from "next/image";
 
+/** Разрешаем оптимизатору только канонические публичные фото feed без query, авторизации и фрагмента. */
 export function isPublicFeedPhoto(uri: string) {
   try {
     const url = new URL(uri);
@@ -22,14 +23,14 @@ export function isPublicFeedPhoto(uri: string) {
 }
 
 // Only known frontend assets change URL. API, signed, blob and data URLs pass through.
+/** Переписываем только точное совпадение с каталогом сборки; внешние и защищённые адреса остаются исходными. */
 export function resolveImageUri(uri: string | undefined): string | undefined {
   if (uri === undefined) return undefined;
   const resolved = STATIC_IMAGE_URLS[uri];
   return typeof resolved === "string" ? resolved : uri;
 }
 
-/** Only public feed photos and opted-in bundled previews enter the optimizer.
- * Signed URLs, protected API media, blobs and full-size viewer sources pass through. */
+/** Выбираем оптимизатор или готовый srcset только для разрешённых превью; fullSize сохраняет путь для полного просмотра. Подписанные URL, закрытые API-медиа, blob и fullSize обходят оптимизатор. */
 export function resolveImageAttributes(
   uri: string | undefined,
   fullSize = false,

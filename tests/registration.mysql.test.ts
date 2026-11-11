@@ -24,6 +24,7 @@ import { SessionService } from "../apps/backend/src/identity/session.service";
 
 // An HTTP 500 intentionally contains no internal cause. Keep bounded diagnostic
 // codes in the assertion, not raw SQL/params, recipients, tokens or key material.
+/** Извлекает ограниченные коды причин из цепочки ошибок, не выводя SQL, адреса и ключевой материал. */
 function registrationFailureCodes(error: unknown): string[] {
   const codes: string[] = [];
   let current = error;
@@ -44,6 +45,7 @@ function registrationFailureCodes(error: unknown): string[] {
   return codes.length ? codes : ["UNCLASSIFIED_REGISTRATION_ERROR"];
 }
 
+/** Проверяет конкурентную регистрацию как создание новой идентичности без присвоения уже существующей. */
 describe.skipIf(!testDatabaseUrl)(
   "insert-only email registration on disposable MySQL",
   () => {
@@ -51,6 +53,7 @@ describe.skipIf(!testDatabaseUrl)(
     const prefix = "registration-fixture-";
     const email = `${prefix}race@example.test`;
     const originalLookup = db.getUserByEmail;
+    /** Перехватывает только диагностические коды настоящей ошибки регистрации и повторно выбрасывает её без подмены результата. */
     function captureRegistrationFailures() {
       const failures: string[][] = [];
       const originalRegister = SessionService.prototype.register;
@@ -66,6 +69,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       return failures;
     }
+    /** Поднимает локальное приложение, отдельную SQL-базу и тестовый ключ шифрования ссылок. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -85,6 +89,7 @@ describe.skipIf(!testDatabaseUrl)(
       base = `http://127.0.0.1:${(application.getHttpServer().address() as AddressInfo).port}`;
       vi.stubEnv("PUBLIC_APP_URL", base);
     });
+    /** Находит собственные ID и удаляет дочерние записи по индексируемым ключам без блокировки чужих владельцев. */
     async function cleanup() {
       // Resolve owned fixture IDs without locks, then use indexed predicates.
       // DELETE JOIN previously scanned/locked other suites' tokens and owners.
@@ -108,7 +113,9 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query(`DELETE FROM users WHERE id IN (${placeholders})`, ids);
     }
     beforeEach(cleanup);
+    /** Возвращает подменённые методы после каждого конкурентного сценария. */
     afterEach(() => vi.restoreAllMocks());
+    /** Удаляет собственные записи, закрывает приложение и SQL-пул и восстанавливает окружение. */
     afterAll(async () => {
       await cleanup();
       await application?.close();
@@ -118,6 +125,7 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** Отправляет регистрацию по настоящему HTTP с текущей версией согласия. */
     const post = (
       recipient = email,
       password = "first-password",
@@ -133,6 +141,7 @@ describe.skipIf(!testDatabaseUrl)(
           consentVersion,
         }),
       });
+    /** Проверяет отделение автоматически выданных ID от зарезервированных диапазонов параллельных фикстур. */
     it("auto-generated account IDs do not overlap reserved parallel fixture ranges", async () => {
       const recipient = `${prefix}isolation@example.test`;
       const [inserted] = await conn.query<ResultSetHeader>(
@@ -141,6 +150,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(inserted.insertId).toBeGreaterThanOrEqual(1_000_000);
     });
+    /** Синхронизирует два настоящих предварительных чтения и проверяет один аккаунт, одно согласие и одно письмо без выдачи сессии. */
     it("concurrent registration accepts the pending loser while creating one account and setup", async () => {
       const failures = captureRegistrationFailures();
       let arrivals = 0;
@@ -191,6 +201,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(consents).toHaveLength(1);
     });
+    /** Проверяет двадцать конкурирующих доменных транзакций с одним созданием и девятнадцатью безопасными pending-результатами. */
     it("arbitrates twenty simultaneous registrations without claiming an existing account", async () => {
       const recipient = `${prefix}burst@example.test`;
       let arrivals = 0;
@@ -243,6 +254,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(records).toHaveLength(1);
       }
     });
+    /** Вставляет аккаунт оплаты между предварительным чтением и созданием и проверяет, что регистрация не назначает ему пароль. */
     it("a checkout-created account appearing after the precheck cannot be claimed", async () => {
       vi.spyOn(db, "getUserByEmail").mockImplementationOnce(
         async (recipient) => {
@@ -263,6 +275,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(rows[0].passwordHash).toBeNull();
     });
+    /** Проверяет отказ для неактуальной версии согласия до создания аккаунта. */
     it("rejects a consent version other than the current displayed text", async () => {
       const result = await post(email, "first-password", "invented-version");
       expect(result.status).toBe(400);
@@ -272,6 +285,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(rows).toHaveLength(0);
     });
+    /** Проверяет полный откат аккаунта и отсутствие сессии при отказе записи согласия. */
     it("does not leave an account or issue a session if consent recording fails", async () => {
       const failures = captureRegistrationFailures();
       await conn.query(
@@ -291,9 +305,11 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query("DROP TRIGGER backend_test_registration_consent");
       }
     });
+    /** Проверяет вход только после использования доказательства из setup-письма без автоматического входа при установке пароля. */
     it("can log in only after consuming the emailed setup link, without an automatic session on completion", async () => {
       const recipient = `${prefix}proof@example.test`;
       expect((await post(recipient)).status).toBe(202);
+      /** Отправляет настоящий вход с паролем, который устанавливается только через setup-доказательство. */
       const login = () =>
         fetch(`${base}/api/auth/login`, {
           method: "POST",
@@ -338,6 +354,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(signedIn.status).toBe(200);
       expect(signedIn.headers.getSetCookie()).toHaveLength(1);
     });
+    /** Удерживает строку постороннего владельца и проверяет, что очистка собственной фикстуры не ждёт её блокировки. */
     it("fixture cleanup does not lock an unrelated owner's password token", async () => {
       expect((await post()).status).toBe(202);
       const [inserted] = await conn.execute<
@@ -381,6 +398,7 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query("DELETE FROM users WHERE id=?", [otherId]);
       }
     });
+    /** Проверяет откат регистрации, если надёжное письмо нельзя зашифровать. */
     it("rolls registration back if durable mail cannot be encrypted", async () => {
       const failures = captureRegistrationFailures();
       vi.stubEnv("AUTH_LINK_ENCRYPTION_KEY", "invalid-test-key");

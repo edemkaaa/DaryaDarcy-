@@ -28,10 +28,14 @@ const DRY_RUN = process.env.DRY_RUN === "1";
 const DELAY_MS = Number(process.env.DELAY_MS || 650);
 
 function sleep(ms) {
+  // Выдерживает паузу между внешними запросами; это ограничение темпа, а не повтор неуспешной операции.
+
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function decodeHtml(text) {
+  // Декодирует ограниченный набор HTML-сущностей полученной подписи, сохраняя текстовое представление.
+
   return text
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
@@ -43,6 +47,8 @@ function decodeHtml(text) {
 }
 
 async function fetchCaption(shortcode) {
+  // Пробует публичный oEmbed, затем HTML встраивания; отсутствие подписи не означает отсутствие поста.
+
   const postUrl = `https://www.instagram.com/p/${shortcode}/`;
   const oembedUrl = `https://api.instagram.com/oembed/?url=${encodeURIComponent(postUrl)}`;
 
@@ -85,6 +91,8 @@ async function fetchCaption(shortcode) {
 }
 
 async function main() {
+  // Заполняет только пустые подписи Instagram с паузой, лимитом и необязательным dry-run.
+
   if (!env.DATABASE_URL) {
     console.error("DATABASE_URL missing");
     process.exit(1);

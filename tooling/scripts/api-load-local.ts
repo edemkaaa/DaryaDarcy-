@@ -23,6 +23,8 @@ import {
 } from "./api-load-policy";
 
 function ensure(condition: unknown, label: string): asserts condition {
+  // Останавливает прогон при нарушении конкретного инварианта, не позволяя успешному HTTP скрыть неверные данные.
+
   if (!condition) throw new Error(label);
 }
 const methods = [
@@ -39,6 +41,8 @@ const methods = [
 ];
 const mix = [0, 1, 2, 3, 4, 0, 1, 2, 5, 6, 0, 1, 2, 3, 4, 0, 1, 7, 8, 9];
 async function main() {
+  // Сверяет одноразовую fixture, создаёт синтетический набор и выполняет ограниченные волны с проверками доступа, SQL-состояния и восстановления.
+
   const uri = process.env.LOAD_DATABASE_URL,
     id = process.env.LOAD_DATABASE_CONTAINER_ID;
   ensure(
@@ -138,6 +142,8 @@ async function main() {
       user: number,
       query = true,
     ) => {
+      // Отправляет только разрешённую процедуру в собственный loopback API с токеном выбранного синтетического пользователя.
+
       ensure(methods.includes(method), "Unexpected load endpoint");
       const encoded = superjson.stringify(input);
       const response = await fetch(
@@ -168,6 +174,8 @@ async function main() {
       target: "feed" | "club" | "saved",
       user: number,
     ) => {
+      // Проверяет форму, публикацию, уникальность и принадлежность каждой записи, включая персональный диапазон сохранённых постов.
+
       ensure(Array.isArray(value), "Post list shape");
       const ids = new Set<number>();
       for (const post of value) {
@@ -203,6 +211,8 @@ async function main() {
       method: string,
       lag: number,
     ): Promise<LoadSample> => {
+      // Выполняет одну операцию смеси и проверяет её смысл; неизвестный исход записи прекращает нагрузку вместо слепого toggle-повтора.
+
       const index = globalIndex++,
         user = 1 + (Math.floor(index / 20) % 50);
       const started = performance.now();
@@ -346,6 +356,8 @@ async function main() {
       }
     };
     async function accessChecks() {
+      // Проверяет неоплаченного, заблокированного и временно просроченного синтетических пользователей без изменения реальных аккаунтов.
+
       for (const user of [51, 60]) {
         ensure(
           (await rpc("club.list", { limit: 1 }, user)).status ===
@@ -374,6 +386,8 @@ async function main() {
       );
     }
     async function invariants() {
+      // Сверяет точные счётчики и паритет реакций с ожидаемой моделью, обнаруживая дубли и потери после нагрузки.
+
       for (const [table, total] of [
         ["users", 60],
         ["posts", 10000],
@@ -429,6 +443,8 @@ async function main() {
       "Questions",
     ];
     async function sample() {
+      // Последовательно собирает SQL/Docker/дисковые метрики, останавливая прогон при переполнении tmpfs или потере наблюдения.
+
       if (samplerBusy) return;
       samplerBusy = true;
       try {
@@ -519,6 +535,8 @@ async function main() {
       for (let i = 0; i < 3; i++)
         ensure(!(await execute(method, 0)).error, "Warmup failed");
     async function baseline(name: string) {
+      // Измеряет каждую процедуру последовательно отдельно от волн и прогрева, чтобы сравнить исходную задержку с восстановлением.
+
       phase = name;
       const grouped: Record<string, LoadSample[]> = {};
       for (const method of methods) {

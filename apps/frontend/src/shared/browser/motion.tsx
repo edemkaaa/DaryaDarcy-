@@ -36,43 +36,52 @@ type Animation = {
   count?: number;
   reverse?: boolean;
 };
+/** Animation descriptor распознаётся по kind; это внутренний объект совместимого API, который type cast представляет как value. */
 const animation = (v: unknown): v is Animation =>
   !!v && typeof v === "object" && "kind" in v;
 export interface SharedValue<T> {
   value: T;
 }
+/** Значение удерживает подписчиков и текущую анимацию; чтение во время сбора зависимостей регистрирует потребителя. */
 class Value implements SharedValue<number> {
   private current: number;
   private listeners = new Set<Listener>();
   private stop?: () => void;
+  /** Начальное значение устанавливается без анимации и без уведомления ещё не подключённых подписчиков. */
   constructor(value: number) {
     this.current = value;
   }
+  /** Во время computations чтение добавляет Value в набор зависимостей, после чего возвращает текущее число. */
   get value(): number {
     collect?.add(this);
     return this.current;
   }
+  /** Новая запись останавливает прежнюю анимацию; descriptor запускает play, обычное значение применяется сразу. */
   set value(value: number) {
     this.stop?.();
     if (animation(value)) this.stop = play(this, value);
     else this.update(value);
   }
+  /** Уведомляем только при реальном изменении значения, чтобы одинаковые кадры не дублировали DOM-обновления. */
   update(value: number) {
     if (Object.is(this.current, value)) return;
     this.current = value;
     this.listeners.forEach((fn) => fn());
   }
+  /** Возвращаем точечную отписку: несколько стилей или реакций могут независимо наблюдать один Value. */
   subscribe(fn: Listener) {
     this.listeners.add(fn);
     return () => {
       this.listeners.delete(fn);
     };
   }
+  /** Останавливаем текущую цепочку и убираем её cancel-handle, сохраняя последнее уже показанное значение. */
   stopAnimation() {
     this.stop?.();
     this.stop = undefined;
   }
 }
+/** Выполняем timing/spring или композицию delay/sequence/repeat; cancel рекурсивно останавливает frame, timer и дочерний запуск. */
 function play(
   value: Value,
   a: Animation,
@@ -84,6 +93,7 @@ function play(
     cancelChild: () => void = () => {};
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (reduced && a.kind === "repeat") return () => {};
+  /** Callback и продолжение вызываются только при штатном завершении, а не после отмены текущей ветки. */
   const finish = () => {
     if (!stopped) {
       a.callback?.(true);
@@ -96,6 +106,7 @@ function play(
     }, a.delay);
   else if (a.kind === "sequence") {
     let index = 0;
+    /** После штатного завершения шага запускаем следующий; остановленная последовательность дальше не планируется. */
     const step = () => {
       if (stopped) return;
       if (index === a.items!.length) finish();
@@ -105,6 +116,7 @@ function play(
   } else if (a.kind === "repeat") {
     let index = 0;
     const initial = value.value;
+    /** Перед повтором проверяем отмену и число итераций; reverse меняет цель очередной копии descriptor. */
     const step = () => {
       if (stopped) return;
       if (a.count !== -1 && index >= (a.count || 2)) {
@@ -122,6 +134,7 @@ function play(
       to = a.to!,
       start = performance.now(),
       duration = reduced ? 1 : (a.duration ?? 300);
+    /** Интерполируем один кадр от зафиксированного старта к цели; последний кадр ставит точное значение вместо приблизительной spring-позиции. */
     const tick = (now: number) => {
       if (stopped) return;
       const t = Math.min(1, (now - start) / duration);
@@ -140,17 +153,27 @@ function play(
     cancelChild();
   };
 }
+/** Чистые кривые и их in/out/inOut-композиции преобразуют нормализованное время, не планируя кадры самостоятельно. */
 export const Easing = {
+  /** Равномерное нормализованное время без ускорения. */
   linear: (t: number) => t,
+  /** Smoothstep сглаживает скорость у начала и конца интервала. */
   ease: (t: number) => t * t * (3 - 2 * t),
+  /** Кубическая кривая ускорения используется как основа композиций out/inOut. */
   cubic: (t: number) => t * t * t,
+  /** Квадратичная кривая даёт более мягкое ускорение, чем cubic. */
   quad: (t: number) => t * t,
+  /** Четверть синусоидального цикла преобразует нормализованный прогресс в плавное ускорение. */
   sin: (t: number) => 1 - Math.cos((t * Math.PI) / 2),
+  /** Входная композиция сохраняет исходную кривую как заданное ускорение. */
   in: (fn: (t: number) => number) => fn,
+  /** Отражаем входную кривую, чтобы получить замедление к концу интервала. */
   out: (fn: (t: number) => number) => (t: number) => 1 - fn(1 - t),
+  /** Склеиваем ускорение и отражённое замедление на двух половинах нормализованного времени. */
   inOut: (fn: (t: number) => number) => (t: number) =>
     t < 0.5 ? fn(t * 2) / 2 : 1 - fn((1 - t) * 2) / 2,
 };
+/** Создаём descriptor временной анимации; само выполнение начинается при присваивании его shared value. */
 export function withTiming(
   to: number,
   options: {
@@ -161,6 +184,7 @@ export function withTiming(
 ): number {
   return { kind: "timing", to, ...options, callback } as unknown as number;
 }
+/** Совместимая spring использует фиксированную затухающую кривую в play и заданную длительность; это не отдельный физический solver. */
 export function withSpring(
   to: number,
   options: Record<string, number> = {},
@@ -173,19 +197,25 @@ export function withSpring(
     callback,
   } as unknown as number;
 }
+/** Обертываем дочерний descriptor задержкой, сохраняя общую цепочку отмены в play. */
 export function withDelay(delay: number, a: number): number {
   return { kind: "delay", delay, animation: a } as unknown as number;
 }
+/** Последовательность передаёт управление следующему descriptor только после штатного окончания предыдущего. */
 export function withSequence(...items: number[]): number {
   return { kind: "sequence", items } as unknown as number;
 }
+/** Описываем число повторов и обратную цель; отрицательная единица означает незавершаемую до cancel цепочку. */
 export function withRepeat(a: number, count = 2, reverse = false): number {
   return { kind: "repeat", animation: a, count, reverse } as unknown as number;
 }
+/** Явно останавливаем анимацию данного совместимого Value, не удаляя его подписчиков и последнее значение. */
 export function cancelAnimation(value: SharedValue<number>) {
   (value as Value).stopAnimation();
 }
+/** В браузерном адаптере callbacks уже находятся в JS-потоке; совместимый runOnJS возвращает исходную функцию. */
 export const runOnJS = <T extends (...args: never[]) => unknown>(fn: T) => fn;
+/** Создаём один Value на экземпляр hook и отменяем его анимацию при unmount; number/boolean overload сохраняют совместимость вызывающего кода. */
 export function useSharedValue(value: number): SharedValue<number>;
 export function useSharedValue(value: boolean): SharedValue<boolean>;
 export function useSharedValue(
@@ -197,6 +227,7 @@ export function useSharedValue(
   return ref.current as unknown as SharedValue<number | boolean>;
 }
 const styles = new WeakMap<object, () => object>();
+/** Стабильный marker хранит актуальную функцию в WeakMap, чтобы animated component мог вычислять стиль без React-рендера каждого кадра. */
 export function useAnimatedStyle<T extends object>(fn: () => T): T {
   const ref = useRef(fn);
   ref.current = fn;
@@ -204,18 +235,21 @@ export function useAnimatedStyle<T extends object>(fn: () => T): T {
   styles.set(marker, () => ref.current());
   return marker as T;
 }
+/** Из вложенного массива style выбираем только зарегистрированные animated computations для подписки на их Value. */
 function computations(style: unknown): Array<() => object> {
   if (Array.isArray(style)) return style.flatMap(computations);
   return style && typeof style === "object" && styles.has(style)
     ? [styles.get(style)!]
     : [];
 }
+/** Разворачиваем animated markers при первом DOM-рендере, сохраняя остальные объекты и массивы стилей. */
 function resolved(style: unknown): unknown {
   if (Array.isArray(style)) return style.map(resolved);
   return style && typeof style === "object" && styles.has(style)
     ? styles.get(style)!()
     : style;
 }
+/** Переводим вычисленные свойства в CSS, добавляя px размерным числам и отдельно собирая совместимый массив transform. */
 function applyMotion(element: HTMLElement, style: Record<string, unknown>) {
   for (const [key, value] of Object.entries(style)) {
     if (key === "transform" && Array.isArray(value)) {
@@ -243,28 +277,36 @@ function applyMotion(element: HTMLElement, style: Record<string, unknown>) {
     }
   }
 }
+/** Передаём найденный DOM-узел наружу одинаково для callback-ref и object-ref. */
 function assign(ref: Ref<HTMLElement> | undefined, value: HTMLElement | null) {
   if (typeof ref === "function") ref(value);
   else if (ref) ref.current = value;
 }
+/** Описание entrance хранит имя, длительность и задержку; совместимые spring-настройки здесь не создают физическую анимацию. */
 class Entrance {
+  /** Храним независимые параметры entrance preset; построение описания не запускает DOM-анимацию. */
   constructor(
     public name: string,
     public ms = 300,
     public wait = 0,
   ) {}
+  /** Возвращаем новое описание с другой длительностью, не изменяя общий экспортированный preset для остальных компонентов. */
   duration(ms: number) {
     return new Entrance(this.name, ms, this.wait);
   }
+  /** Создаём отдельный preset задержки, сохраняя исходные имя и длительность. */
   delay(ms: number) {
     return new Entrance(this.name, this.ms, ms);
   }
+  /** Совместимый метод цепочки сохраняет preset; web entrance продолжает использовать Web Animations, отдельного springify-преобразования нет. */
   springify() {
     return this;
   }
+  /** Параметр оставлен для совместимости цепочек; браузерная entrance-реализация его не применяет. */
   damping(_v: number) {
     return this;
   }
+  /** Совместимый параметр не меняет easing web entrance; возврат this сохраняет существующий builder API. */
   stiffness(_v: number) {
     return this;
   }
@@ -287,8 +329,10 @@ type MotionProps<C extends ElementType> = Omit<
   "style"
 > &
   MotionOptions;
+/** Оборачиваем DOM/UI-компонент подпиской на Value и entrance-effect; supportsMotionStyles сообщает соседним адаптерам о поддержке marker-стилей. */
 function animatedComponent<C extends ElementType>(Component: C) {
   const MotionComponent = forwardRef<HTMLElement, MotionOptions>(
+    /** Разделяем подписку на изменяемые стили и одноразовую entrance-анимацию; exiting принят только ради совместимого props-контракта. */
     function Motion({ style, entering, exiting: _, ...props }, ref) {
       const entranceName = entering?.name;
       const entranceDuration = entering?.ms;
@@ -301,6 +345,7 @@ function animatedComponent<C extends ElementType>(Component: C) {
         collect = values;
         computations(style).forEach((fn) => fn());
         collect = null;
+        /** Читаем последнюю функцию стиля через ref, чтобы подписка на Value не применяла устаревшие props предыдущего кадра. */
         const update = () => {
           const element = node.current;
           if (element instanceof HTMLElement)
@@ -382,6 +427,7 @@ const Animated = {
   createAnimatedComponent: animatedComponent,
 };
 export default Animated;
+/** Стабильный обработчик читает актуальную пользовательскую функцию из ref, поддерживая обе совместимые формы onScroll. */
 export function useAnimatedScrollHandler(
   handler:
     | ((event: UIEvent<HTMLDivElement>) => void)
@@ -397,6 +443,7 @@ export function useAnimatedScrollHandler(
     fn(event);
   };
 }
+/** Собираем Value-зависимости prepare и подписываем react на их изменения; cleanup снимает все подписки текущего набора deps. */
 export function useAnimatedReaction<T>(
   prepare: () => T,
   react: (value: T, previous: T | null) => void,
@@ -426,6 +473,7 @@ export enum Extrapolation {
   EXTEND = "extend",
   IDENTITY = "identity",
 }
+/** Ищем линейный сегмент input/output; CLAMP ограничивает вход краями, остальные режимы здесь используют линейное продолжение. */
 export function interpolate(
   value: number,
   input: number[],

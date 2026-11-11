@@ -10,7 +10,7 @@ import {
 } from "@/shared/media/private-content-upload";
 import type { ScopedOperation } from "@/shared/browser/operation-scope";
 
-/** Recover file receipts only. Creating/updating the article still requires an explicit save. */
+/** Восстанавливаем только файлы существующего upload-intent; каждый ACK checkpoint сохраняется до продолжения, статью не публикуем. */
 export async function recoverArticleFileUploads(
   record: ArticleCreationRecord,
   journal: ArticleCreationJournal,
@@ -31,7 +31,7 @@ export async function recoverArticleFileUploads(
   }
   return current;
 }
-/** Freeze resolved application URLs durably BEFORE a potentially ambiguous article write. */
+/** До внешнего write замораживаем блоки с разрешёнными URL в durable-журнале; изменённая стадия не может быть повторно запечатана. */
 export async function sealArticleFileWrite(
   record: ArticleCreationRecord,
   journal: ArticleCreationJournal,

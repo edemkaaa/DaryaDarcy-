@@ -11,6 +11,7 @@ import {
 import { clubPayments } from "../packages/database/src/schema";
 import { eq } from "drizzle-orm";
 
+/** Проверяет отмену LIVE-профиля при смешанной истории подтверждённых разовых TEST-платежей. */
 describe.skipIf(!testDatabaseUrl)(
   "cancellation after one-off TEST checkout",
   () => {
@@ -22,6 +23,7 @@ describe.skipIf(!testDatabaseUrl)(
     let pool: mysql.Pool;
     let database: MySql2Database;
 
+    /** Удаляет собственные outbox, receipts, billing-профили, платежи и аккаунт в порядке зависимостей. */
     async function cleanup() {
       for (const table of [
         "access_email_outbox",
@@ -32,11 +34,13 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query(`DELETE FROM ${table} WHERE userId=?`, [userId]);
       await conn.query("DELETE FROM users WHERE id=?", [userId]);
     }
+    /** Открывает одноразовую БД и отдельный UTC-пул Drizzle для настоящих транзакций отмены. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       pool = mysql.createPool({ uri: testDatabaseUrl!, timezone: "Z" });
       database = drizzle(pool);
     });
+    /** Очищает историю suite и восстанавливает существующий аккаунт с паролем. */
     beforeEach(async () => {
       await cleanup();
       await conn.query(
@@ -44,12 +48,14 @@ describe.skipIf(!testDatabaseUrl)(
         [userId, "test-history-97861", email, "existing-fixture-password-hash"],
       );
     });
+    /** Закрывает пул, удаляет собственные строки и закрывает контрольное соединение. */
     afterAll(async () => {
       await pool?.end();
       if (conn) await cleanup();
       await conn?.end();
     });
 
+    /** Подтверждает разовый TEST-заказ рублёвым либо явно иностранным доказательством без рекуррентного профиля. */
     async function settleTest(foreign: boolean) {
       await conn.query(
         "INSERT INTO club_payments(userId,orderId,email,sum) VALUES(?,?,?,'790')",
@@ -77,6 +83,7 @@ describe.skipIf(!testDatabaseUrl)(
         }),
       ).toBe(true);
     }
+    /** Подтверждает отдельный LIVE-заказ с проверенными subscriptionId и profileId. */
     async function settleLive() {
       await conn.query(
         "INSERT INTO club_payments(userId,orderId,email,sum) VALUES(?,?,?,'790')",
@@ -98,6 +105,7 @@ describe.skipIf(!testDatabaseUrl)(
         }),
       ).toBe(true);
     }
+    /** Снимает платежную историю и сроки доступа для проверки неизменности после отмены. */
     async function paidRows() {
       return (
         await conn.query<RowDataPacket[]>(
@@ -106,6 +114,7 @@ describe.skipIf(!testDatabaseUrl)(
         )
       )[0];
     }
+    /** Подтверждённый разовый TEST не мешает отменить LIVE; повтор не обращается к провайдеру и не сокращает оплаченный срок. */
     it.each([false, true])(
       "cancels LIVE after a verified one-off TEST (foreign=%s)",
       async (foreign) => {
@@ -142,6 +151,7 @@ describe.skipIf(!testDatabaseUrl)(
         ).toBe(true);
       },
     );
+    /** Одного похожего на TEST orderId недостаточно: непроверенная история запрещает отмену до вызова провайдера. */
     it("still refuses an unverified TEST-shaped paid row", async () => {
       await conn.query(
         "INSERT INTO club_payments(userId,orderId,email,sum,status) VALUES(?,?,?,'790','paid')",
@@ -161,6 +171,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(rows[0].cancelRequestedAt).toBeNull();
     });
+    /** Для подтверждённого разового TEST отсутствие рекуррентных списаний считается подтверждённой отменой без внешнего вызова. */
     it("confirms that a verified one-off TEST alone has no recurring charges", async () => {
       await settleTest(false);
       const result = await requestClubCancellation(
@@ -179,6 +190,7 @@ describe.skipIf(!testDatabaseUrl)(
         "confirmed",
       );
     });
+    /** Подтверждённый TEST не скрывает другую месячную оплату без надёжной привязки профиля. */
     it("a verified TEST never masks an unbound monthly payment", async () => {
       await settleTest(false);
       await conn.query(

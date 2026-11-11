@@ -15,7 +15,7 @@ let values: Map<string, string>;
 let response: unknown;
 let status: number;
 const selection = { contactPhone: "+79991234567", email: "guest@example.test", plan: "monthly" as const };
-const signal = () => new AbortController().signal;
+const signal = () => /* Создаёт независимый сигнал пользовательского действия для гостевой покупки. */ new AbortController().signal;
 const fetcher = vi.fn(
   async (_url: RequestInfo | URL, _options?: RequestInit) =>
     new Response(
@@ -41,20 +41,21 @@ const fetcher = vi.fn(
       },
     ),
 );
+// Начальное состояние — подтверждённый гость с пустым журналом и локально заданным pending-ответом; никакой платёжный провайдер не вызывается.
 beforeEach(() => {
   values = new Map();
   vi.stubGlobal("window", {
     isSecureContext: true,
     localStorage: {
-      getItem: (name: string) => values.get(name) ?? null,
-      setItem: (name: string, value: string) => values.set(name, value),
-      removeItem: (name: string) => values.delete(name),
+      getItem: (name: string) => /* Читает синтетический слот гостевого восстановления из памяти. */ values.get(name) ?? null,
+      setItem: (name: string, value: string) => /* Сохраняет гостевое намерение в памяти, позволяя проверять порядок перед HTTP. */ values.set(name, value),
+      removeItem: (name: string) => /* Удаляет только тестовый слот, не затрагивая другие журналы. */ values.delete(name),
     },
   });
   vi.stubGlobal("navigator", {
     locks: {
       request: async (_name: string, _options: unknown, work: () => unknown) =>
-        work(),
+        /* Выполняет работу под имитацией Web Lock без обращения к реальному браузеру. */ work(),
     },
   });
   vi.stubGlobal("fetch", fetcher);
@@ -76,6 +77,8 @@ afterEach(() => {
 });
 
 it("persists a canonical email, UUID and 32 cryptographic bytes before dispatch; sends separate POSTs without proof in URLs or headers", async () => {
+  // Сценарий: Каноническая почта, UUID и секрет из 32 случайных байт сохраняются до отдельных POST; доказательство не попадает в URL/заголовки.
+
   const journal = new GuestCheckoutJournal(null);
   const intent = await journal.prepare(
     { ...selection, email: " Guest@Example.Test " },
@@ -127,6 +130,8 @@ it("persists a canonical email, UUID and 32 cryptographic bytes before dispatch;
 });
 
 it("reload and an unknown network result reuse both keys and the same recipient", async () => {
+  // Сценарий: Reload после неопределённого сетевого исхода использует оба прежних ключа и того же получателя.
+
   const journal = new GuestCheckoutJournal(null);
   const intent = await journal.prepare(selection, signal());
   fetcher.mockRejectedValueOnce(new TypeError("lost response"));
@@ -144,6 +149,8 @@ it("reload and an unknown network result reuse both keys and the same recipient"
 it.each(["notRecorded", "pending"] as const)(
   "%s never rotates keys or silently changes recipient",
   async (state) => {
+    // Сценарий: NotRecorded/pending не меняют ключи, адресата или тариф молча.
+
     const journal = new GuestCheckoutJournal(null);
     const intent = await journal.prepare(selection, signal());
     response =
@@ -166,6 +173,8 @@ it.each(["notRecorded", "pending"] as const)(
 it.each(["succeeded", "failed"] as const)(
   "only an explicit next purchase with fresh %s proof can rotate both keys",
   async (state) => {
+    // Сценарий: Только явная следующая покупка со свежим терминальным доказательством меняет оба ключа.
+
     const journal = new GuestCheckoutJournal(null);
     const intent = await journal.prepare(selection, signal());
     response =
@@ -191,6 +200,8 @@ it.each(["succeeded", "failed"] as const)(
 it.each(["throw", "silent", "insecure", "no-locks", "no-random"])(
   "storage/coordination failure (%s) prevents every network request",
   async (failure) => {
+    // Сценарий: Отказ storage, координации или криптографической случайности запрещает сетевую отправку.
+
     if (failure === "throw")
       window.localStorage.setItem = () => {
         throw new DOMException("quota", "QuotaExceededError");
@@ -209,6 +220,8 @@ it.each(["throw", "silent", "insecure", "no-locks", "no-random"])(
 it.each(["broken", JSON.stringify({ version: 1 }), "x".repeat(4097)])(
   "damaged storage is never replaced (%#)",
   async (raw) => {
+    // Сценарий: Повреждённый слот не заменяется новым намерением.
+
     values.set(slot, raw);
     await expect(
       new GuestCheckoutJournal(null).prepare(selection, signal()),
@@ -220,6 +233,8 @@ it.each(["broken", JSON.stringify({ version: 1 }), "x".repeat(4097)])(
 it.each([409, 412, 500])(
   "HTTP %s preserves the original evidence without fallback",
   async (code) => {
+    // Сценарий: HTTP-отказ сохраняет исходное доказательство без fallback.
+
     const journal = new GuestCheckoutJournal(null);
     const intent = await journal.prepare(selection, signal());
     status = code;
@@ -232,6 +247,8 @@ it.each([409, 412, 500])(
   },
 );
 it("persists Retry-After across reload and blocks both create and status until a manual retry", async () => {
+  // Сценарий: Cooldown после 429 переживает reload и блокирует create/status до ручной попытки после срока.
+
   vi.useFakeTimers();
   const journal = new GuestCheckoutJournal(null);
   const intent = await journal.prepare(selection, signal());
@@ -271,6 +288,8 @@ it("persists Retry-After across reload and blocks both create and status until a
   expect(fetcher).toHaveBeenCalledTimes(2);
 });
 it("persists a cooldown when fresh terminal verification is rate limited", async () => {
+  // Сценарий: Квота свежей терминальной проверки сохраняет срок задержки без повторного запроса.
+
   const journal = new GuestCheckoutJournal(null);
   const intent = await journal.prepare(selection, signal());
   status = 429;
@@ -287,6 +306,8 @@ it("persists a cooldown when fresh terminal verification is rate limited", async
 });
 
 it("a replaced recovery secret is not adopted by an existing purchase operation", async () => {
+  // Сценарий: Подменённый секрет восстановления не принимается уже начатой покупкой.
+
   const journal = new GuestCheckoutJournal(null);
   const intent = await journal.prepare(selection, signal());
   const replacement = Buffer.from(
@@ -301,6 +322,8 @@ it("a replaced recovery secret is not adopted by an existing purchase operation"
 });
 
 it("a server refusal preserves the secret without treating it as login or starting another order", async () => {
+  // Сценарий: Серверный отказ не стирает секрет и не запускает вход либо новую покупку.
+
   const journal = new GuestCheckoutJournal(null);
   const intent = await journal.prepare(selection, signal());
   const before = values.get(slot);
@@ -312,6 +335,8 @@ it("a server refusal preserves the secret without treating it as login or starti
   expect(fetcher).toHaveBeenCalledTimes(1);
 });
 it("after login, server-accepted proof binds only the existing purchase to its recipient; logout and other accounts cannot read it", async () => {
+  // Сценарий: После входа принятое сервером доказательство связывается только с исходным получателем; другие аккаунты и logout его не читают.
+
   const intent = await new GuestCheckoutJournal(null).prepare(
     selection,
     signal(),
@@ -350,6 +375,8 @@ it("after login, server-accepted proof binds only the existing purchase to its r
   expect(values.get(slot)).not.toBeNull();
 });
 it("a different logged-in recipient cannot dispatch the unbound guest proof", async () => {
+  // Сценарий: Другой вошедший адресат не отправляет несвязанное гостевое доказательство.
+
   const intent = await new GuestCheckoutJournal(null).prepare(
     selection,
     signal(),
@@ -366,6 +393,8 @@ it("a different logged-in recipient cannot dispatch the unbound guest proof", as
   expect(fetcher).not.toHaveBeenCalled();
 });
 it("authenticated terminal completion checks fresh proof then clears only the guest slot", async () => {
+  // Сценарий: Завершение гостевой операции после входа проверяет свежий статус и очищает только гостевой слот.
+
   const guest = await new GuestCheckoutJournal(null).prepare(
     selection,
     signal(),
@@ -381,6 +410,8 @@ it("authenticated terminal completion checks fresh proof then clears only the gu
   expect(values.get("darcy:user:101:normal-checkout:v1")).toBe("preserve");
 });
 it("missing/replaced secrets, order mismatch and notRecorded after an acknowledged order cannot erase evidence", async () => {
+  // Сценарий: Отсутствие секрета, другой orderId и регресс к notRecorded не стирают подтверждённые сведения о заказе.
+
   const journal = new GuestCheckoutJournal(null);
   const intent = await journal.prepare(selection, signal());
   await createGuestCheckout(createTRPCClient(), journal, intent, signal());
@@ -399,6 +430,8 @@ it("missing/replaced secrets, order mismatch and notRecorded after an acknowledg
   expect(fetcher).toHaveBeenCalledTimes(3);
 });
 it("a late result from a previous session cannot bind an order or migrate the secret", async () => {
+  // Сценарий: Поздний ответ прежней сессии не связывает заказ и не переносит секрет новому аккаунту.
+
   const journal = new GuestCheckoutJournal(null);
   const intent = await journal.prepare(selection, signal());
   fetcher.mockImplementationOnce(async () => {
@@ -413,6 +446,8 @@ it("a late result from a previous session cannot bind an order or migrate the se
   expect(JSON.parse(values.get(slot)!)).not.toHaveProperty("orderId");
 });
 it("the guest build opt-in cannot enable either TEST payment mode", () => {
+  // Сценарий: Флаг гостевого восстановления не включает TEST-режимы оплаты.
+
   vi.stubEnv("NEXT_PUBLIC_GUEST_CHECKOUT_RECOVERY_ENABLED", "true");
   vi.stubEnv("NEXT_PUBLIC_PRODAMUS_TEST_ENABLED", "false");
   vi.stubEnv("NEXT_PUBLIC_CLUB_TEST_CHECKOUT", "false");
@@ -425,6 +460,8 @@ it("the guest build opt-in cannot enable either TEST payment mode", () => {
 });
 
 it("identifies a foreign recipient without exposing or deleting its saved proof", async () => {
+  // Сценарий: Чужой получатель распознаётся без раскрытия или удаления его сохранённого доказательства.
+
   await new GuestCheckoutJournal(null).prepare(selection, signal());
   const before = values.get(slot);
   setPersonalDataOwner(102);
@@ -439,6 +476,8 @@ it("identifies a foreign recipient without exposing or deleting its saved proof"
 });
 
 it("keeps a canonical contact in the guest intent and rejects a retry with another contact", async () => {
+  // Сценарий: Телефон канонизируется в намерении, смена контакта при повторе запрещена.
+
   const journal = new GuestCheckoutJournal(null);
   const intent = await journal.prepare({ ...selection, contactPhone: "8 (999) 123-45-67" }, signal());
   expect(intent.contactPhone).toBe("+79991234567");
@@ -448,6 +487,8 @@ it("keeps a canonical contact in the guest intent and rejects a retry with anoth
 });
 
 it.each(["", "   ", "invalid"])("reports invalid phone rather than blaming a valid email (%j)", async (contactPhone) => {
+  // Сценарий: Неверный телефон получает собственное пояснение, не ошибку корректной почты.
+
   const journal = new GuestCheckoutJournal(null);
   await expect(journal.prepare({ ...selection, contactPhone }, signal())).rejects.toThrow("корректный номер телефона");
   expect(values.get(slot)).toBeUndefined();

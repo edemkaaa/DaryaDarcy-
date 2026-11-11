@@ -3,6 +3,7 @@ import type { ViewportSize } from "@/shared/browser/viewport";
 
 import { getQuizResultContent } from "./quiz-result.content";
 
+/** Разделяем размеры героя, образов, мудбордов и интерьеров, сохраняя их редакционные пропорции. */
 export function getQuizResultLayout(viewport: ViewportSize) {
   const { width } = getQuizResultContent(viewport);
   const stylesLayout = {

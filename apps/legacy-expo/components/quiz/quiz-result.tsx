@@ -1,3 +1,4 @@
+// Архив Expo. Выбирает встроенный текстовый справочник эстетики; исторический клиент содержит весь текст в bundle, это не закрытая серверная выдача.
 import React, { useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -39,6 +40,7 @@ const BROWN_MUTED = "#8B7355";
 const BROWN_LIGHT = "#A0845C";
 const CREAM = "#FDF8F0";
 
+// Локальные иллюстрации результата включены в архивный bundle; видимость раздела в JSX сама по себе не делает их приватными.
 const HOUSE_IMAGES: Record<AestheticKey, any> = {
   cottagecore: require("@/assets/quiz/houses/cottagecore.jpg"),
   goblincore: require("@/assets/quiz/houses/goblincore.jpg"),
@@ -342,6 +344,8 @@ const LIGHTACADEMIA_INTERIORS = [
 
 // Get club content for a given aesthetic
 function getClubContent(key: AestheticKey): CottagecoreResultContent | null {
+  // Выбирает встроенный текстовый справочник эстетики; исторический клиент содержит весь текст в bundle, это не закрытая серверная выдача.
+
   if (key === "cottagecore") return COTTAGECORE_RESULT;
   if (key === "darkAcademia") return DARK_ACADEMIA_RESULT;
   if (key === "goblincore") return GOBLINCORE_RESULT;
@@ -353,6 +357,8 @@ function getClubContent(key: AestheticKey): CottagecoreResultContent | null {
 }
 
 export function QuizResultScreen() {
+  // Показывает основной/смешанный результат и клиентский gate гида; архивный AsyncStorage результат общий для устройства.
+
   const { state, dispatch } = useQuiz();
   const { isSubscribed } = useClub();
   const colors = useColors();
@@ -361,11 +367,15 @@ export function QuizResultScreen() {
   const [activeKey, setActiveKey] = useState<AestheticKey | null>(null);
 
   useEffect(() => {
+    // При потере локального признака подписки сворачивает клубный гид.
+
     if (!isSubscribed) setShowClubContent(false);
   }, [isSubscribed]);
 
   // Persist result to AsyncStorage when it becomes available
   useEffect(() => {
+    // Сохраняет итог теста с ISO-датой в общий ключ AsyncStorage; это локальная история, не серверная карточка пользователя.
+
     if (result) {
       const resultData = {
         primaryKey: result.primary.key,
@@ -390,6 +400,8 @@ export function QuizResultScreen() {
   const clubContent = getClubContent(activeResult.key);
 
   const handleTabSwitch = (key: AestheticKey) => {
+    // Переключает эстетику смешанного результата и закрывает раскрытый гид предыдущей вкладки.
+
     if (key !== currentKey) {
       if (Platform.OS !== "web") {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -400,6 +412,8 @@ export function QuizResultScreen() {
   };
 
   const handleRestart = () => {
+    // Сбрасывает quiz reducer к введению и даёт native haptic.
+
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
@@ -407,6 +421,8 @@ export function QuizResultScreen() {
   };
 
   const handleShare = async () => {
+    // Открывает системный share текстового результата, не передавая клубные материалы.
+
     try {
       await Share.share({
         message: `Мой результат в тесте "Какая твоя сказка?" — ${AESTHETIC_NAMES[activeResult.key]}! ${activeResult.title}`,
@@ -415,10 +431,14 @@ export function QuizResultScreen() {
   };
 
   const handleBack = () => {
+    // Возвращает на предыдущий маршрут приложения.
+
     router.back();
   };
 
   const handleClubCTA = () => {
+    // Для локально подписанного аккаунта раскрывает встроенный гид, иначе открывает страницу подписки.
+
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -656,6 +676,8 @@ function ClubContentSection({
   content: CottagecoreResultContent;
   aestheticKey: AestheticKey;
 }) {
+  // Рисует стиль, интерьер, ритуалы и вдохновение из встроенных данных/локальных иллюстраций; серверной проверки файлов здесь нет.
+
   const moodboards =
     aestheticKey === "cottagecore" ? COTTAGECORE_MOODBOARDS :
     aestheticKey === "darkAcademia" ? DARKACADEMIA_MOODBOARDS :
@@ -997,6 +1019,7 @@ function ClubContentSection({
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 60,

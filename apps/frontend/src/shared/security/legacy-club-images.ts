@@ -14,6 +14,7 @@ type Manifest = {
 type Rules = { origin: string; bucket: string; denied: Set<string> };
 let cached: { identity: string; rules: Rules } | undefined;
 
+/** Ключ объекта должен быть однозначным относительным путём без управляющих символов, percent-двусмысленности и traversal-сегментов. */
 function validKey(key: unknown): key is string {
   return (
     typeof key === "string" &&
@@ -25,6 +26,7 @@ function validKey(key: unknown): key is string {
   );
 }
 
+/** Проверяем размер, SHA-256 и согласованность deny/preserved манифеста до кеширования; путь и digest вместе задают его версию. */
 function loadRules(path: string, digest: string): Rules {
   const identity = `${path}:${digest}`;
   if (cached?.identity === identity) return cached.rules;
@@ -61,7 +63,7 @@ function loadRules(path: string, digest: string): Rules {
   return rules;
 }
 
-/** Unwrap an encoded URL, then decode its path separately: encoded '?' is part of a key. */
+/** Разворачиваем URL до разбора пути, сохраняя закодированный вопросительный знак частью ключа; неоднозначность отклоняется, а не угадывается. */
 function sourceKey(value: string, rules: Rules): string | null {
   let source = value;
   for (
@@ -100,7 +102,7 @@ function sourceKey(value: string, rules: Rules): string | null {
   return path.startsWith(prefix) ? path.slice(prefix.length) : null;
 }
 
-/** Called before Next's image cache. Disabled by default, including when a manifest exists. */
+/** Только явно включённый guard перехватывает оптимизатор до cache hit: плохая настройка даёт 503, плохой URL — 400, закрытый ключ — 404. */
 export function legacyClubImageStatus(url: URL): 400 | 404 | 503 | undefined {
   if (
     process.env.LEGACY_CLUB_IMAGE_GUARD_ENABLED !== "true" ||

@@ -1,3 +1,4 @@
+/** Проверяем безопасность цели нагрузки и честность измерений, включая отброшенные запросы. */
 import { describe, expect, it } from "vitest";
 import * as policy from "../tooling/scripts/api-load-policy";
 
@@ -14,7 +15,9 @@ const fixture = {
   mounts: [],
 };
 
+/** Допуск требует совпадения loopback URI, ID, labels, порта и одноразового tmpfs-контейнера. */
 describe("local load target and measurement safety", () => {
+  /** Меняем каждый признак владения отдельно; чужой volume, публичный порт и иной URI должны давать отказ. */
   it("accepts only the exact labelled loopback tmpfs fixture", () => {
     expect(typeof policy.assertLoadFixture).toBe("function");
     expect(policy.assertLoadFixture(uri, id, fixture).port).toBe("54123");
@@ -38,6 +41,7 @@ describe("local load target and measurement safety", () => {
       expect(() => policy.assertLoadFixture(target, id, fixture)).toThrow();
     }
   });
+  /** Timeout остаётся в максимуме и счётчике ошибок; пустая выборка не получает выдуманный p95. */
   it("uses tail latency and counts failures rather than filtering them out", () => {
     expect(typeof policy.summarizeLoad).toBe("function");
     const samples = Array.from({ length: 100 }, (_, i) => ({
@@ -60,6 +64,7 @@ describe("local load target and measurement safety", () => {
     });
     expect(policy.summarizeLoad([])).toMatchObject({ count: 0, p95: null });
   });
+  /** Слишком медленный исполнитель не скрывает запланированные arrivals: started и dropped должны составить весь план. */
   it("records scheduled requests dropped at the concurrency cap", async () => {
     expect(typeof policy.runArrivalStage).toBe("function");
     const result = await policy.runArrivalStage(50, 0.2, 1, async () => {

@@ -2,6 +2,7 @@
 @use "../../shared/styles/layers";
 
 @layer components {
+  /* Быстрые варианты времени переносятся на узком экране; ручной ввод остаётся отдельным полем. */
   .presets {
     flex-direction: row;
     flex-wrap: wrap;
@@ -22,6 +23,7 @@
     font-size: 12px;
     color: var(--muted);
   }
+  /* Нативное поле даты занимает ширину формы и наследует её типографику, не задавая логику часового пояса. */
   .dateInput {
     width: 100%;
     padding: 10px 12px;

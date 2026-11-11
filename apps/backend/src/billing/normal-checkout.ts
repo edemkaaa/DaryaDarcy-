@@ -66,16 +66,20 @@ export const normalCheckoutStatusResult = z.discriminatedUnion("state", [
   succeeded,
   failed,
 ]);
+/** Считает SHA-256 отпечаток journal-key или полной checkout-ссылки без сохранения исходного значения в ключе. */
 const hash = (value: string) =>
   createHash("sha256").update(value).digest("hex");
+/** Возвращает безопасный PRECONDITION_FAILED до новых платёжных эффектов, если конфигурация не позволяет повтор. */
 const unavailable = () =>
   new TRPCError({
     code: "PRECONDITION_FAILED",
     message: "Оплата временно недоступна",
   });
+/** Разделяет intent по actor.id и клиентскому ключу в namespace обычного checkout. */
 const requestKeyFor = (actor: User, key: string) =>
   hash(JSON.stringify(["club.normalCheckout:v1", actor.id, key]));
 type Reader = Pick<MySql2Database, "select">;
+/** Удерживает metadata lock и проверяет InnoDB/уникальность requestKey и orderId без runtime-миграций. */
 async function requireSchema(tx: Reader & Pick<MySql2Database, "execute">) {
   // До проверки ограничений берём metadata lock; рабочий запрос схему не исправляет.
   await tx.select().from(normalCheckoutRequests).limit(0);
@@ -103,6 +107,7 @@ async function requireSchema(tx: Reader & Pick<MySql2Database, "execute">) {
   )
     throw new Error("Checkout schema unavailable");
 }
+/** Под UPDATE-блокировкой сверяет текущий epoch и отклоняет заблокированный или удаляемый аккаунт. */
 async function lockActor(tx: Reader, actor: User) {
   const [current] = await tx
     .select()
@@ -115,6 +120,7 @@ async function lockActor(tx: Reader, actor: User) {
     throw new TRPCError({ code: "FORBIDDEN" });
   return current;
 }
+/** Сверяет формат журнала, владельца/сумму/contact-hash заказа и receipt; только согласованный paid даёт succeeded. */
 async function orderState(
   tx: Reader,
   request: typeof normalCheckoutRequests.$inferSelect,

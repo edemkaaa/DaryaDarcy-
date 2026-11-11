@@ -113,7 +113,7 @@ Backend отдельно:1511SQL pass/299opt-in skips, свежие48мигра�
 Сборочные файлы DevOps теперь явно передают public flags в Next build, включая
 VIDEO_THUMBNAILS_ENABLED; ручных frontend-правок для этого не требуется.
 [Отчёт и карта таблиц](../audits/admin-editors-and-database-acceptance-2026-10-30.md),
-[Docker-инструкция](../../infrastructure/deploy/teamassist/README.build.md).
+[Docker-инструкция](../../infrastructure/build/README.md).
 
 
 ## Что осталось фронтендеру после выпуска — 29 октября

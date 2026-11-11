@@ -4,6 +4,10 @@
   payment enablement/acceptance not completed
 - **Date:** 2026-10-07
 
+## Актуальность на 11 ноября 2026
+
+Ниже сохранена история отдельных срезов тестовой ЮKassa, включая последовательно снятые ограничения. Текущий основной платёжный путь — Prodamus с отдельно согласуемыми TEST/LIVE настройками. Тестовый код ЮKassa не подтверждает боевую оплату. Текущие режимы и границы восстановления описаны в [API](../architecture/api.md) и [интеграциях](../architecture/integrations.md). Утверждения ниже о единственном процессе и неподключённом интерфейсе не являются настройками текущего выпуска.
+
 ## Context
 
 The user supplied a verified test payment shop and approved a one-off club test,

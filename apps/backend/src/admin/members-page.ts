@@ -20,6 +20,7 @@ export const membersPageInput = z
   .default({ limit: 20 });
 
 /** Ограничиваем страницу участников и сохраняем контекст курсора. */
+/** Читает безопасные поля участников и максимум действующего paid-срока одним snapshot; keyset-курсор привязан к actor и фильтру userId. */
 export async function membersPage(
   database: MySql2Database | null,
   actorId: number,

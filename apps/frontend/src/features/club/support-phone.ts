@@ -1,6 +1,7 @@
 /** Подпись контактного телефона поддержки формируется отдельно от номера, который покупатель вводит при оплате. */
 import { z } from "zod";
 
+/** Форматируем введённые цифры под российский номер, ограничивая видимую часть десятью цифрами после кода страны. */
 export function formatSupportPhone(value: string): string {
   let digits = value.replace(/\D/g, "");
   if (!digits) return "";
@@ -15,7 +16,7 @@ export function formatSupportPhone(value: string): string {
   return formatted;
 }
 
-/** Contact format; purchase flows require a phone for a new guest checkout. */
+/** Пустое значение остаётся отсутствующим; непустое принимаем только в российском формате и приводим к +7 без разделителей. Обязательность контакта новой покупки проверяется отдельным purchase-контрактом. */
 export const supportPhoneInput = z
   .string()
   .trim()

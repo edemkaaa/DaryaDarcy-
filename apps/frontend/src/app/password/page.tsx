@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   manifest: null,
 };
 
+/** Установка пароля работает без общих фоновых эффектов приложения; referrer и индексация ограничены метаданными страницы. */
 export default function Page() {
   return <PasswordScreen />;
 }

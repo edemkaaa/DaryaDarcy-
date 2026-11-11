@@ -1,5 +1,5 @@
 /** Межвкладочная блокировка координирует запись теста одного владельца; она не заменяет проверку актуальной версии данных. */
-/** Serialize each owner's read/compare/write across browser tabs. */
+/** Сериализуем синхронную read/compare/write работу одного владельца через Web Locks или readwrite IndexedDB fallback. */
 export async function withQuizStorageLock<T>(
   ownerId: number | null,
   work: () => T,
@@ -25,6 +25,7 @@ export async function withQuizStorageLock<T>(
         new Error("Не удалось согласовать сохранение теста между вкладками."),
       );
     }, 5000);
+    /** Останавливаем ожидание координации, снимаем дедлайн и закрываем соединение; незавершённая работа не возвращает результат. */
     const fail = (error: unknown) => {
       clearTimeout(timer);
       settled = true;

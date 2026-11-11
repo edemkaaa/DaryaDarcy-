@@ -1,3 +1,4 @@
+/** Проверяем ограниченный TEST polling на fake clock: только сохранённый intent, последовательные чтения, конечный бюджет и остановка при отмене или отказе. */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { getClubCheckoutIntent } from "../apps/frontend/src/features/club/checkout-intent";
 import { pollClubTestCheckout } from "../apps/frontend/src/features/club/checkout-polling";
@@ -5,6 +6,7 @@ import { createTRPCClient } from "../apps/frontend/src/shared/api/trpc";
 import { cancelSessionRequests } from "../apps/frontend/src/shared/api/request-lifecycle";
 
 const storageKey = "daryadarcy:club-checkout:yookassa-test:v1";
+/** Формирует минимальный tRPC envelope состояния, не подтверждая настоящий платёж. */
 const reply = (state: string) =>
   new Response(
     JSON.stringify({
@@ -15,6 +17,7 @@ let values: Map<string, string>;
 let key: string;
 let controller: AbortController;
 
+/** Создаём собственный durable TEST intent и AbortController до перехода на виртуальное время. */
 beforeEach(async () => {
   values = new Map();
   vi.stubGlobal("window", {
@@ -40,12 +43,14 @@ beforeEach(async () => {
   controller = new AbortController();
   vi.useFakeTimers();
 });
+/** Отменяем session-scoped работу, возвращаем clock и браузерные globals. */
 afterEach(() => {
   cancelSessionRequests();
   vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
+/** Терминальный/unknown ответ завершает кампанию после одной проверки, не меняя доказательства checkout. */
 it.each(["unknown", "succeeded", "canceled"] as const)(
   "stops after a verified %s without creating, erasing or rotating evidence",
   async (state) => {
@@ -67,6 +72,7 @@ it.each(["unknown", "succeeded", "canceled"] as const)(
   },
 );
 
+/** Интервалы считаются после завершения предыдущего чтения; максимум шесть проверок с тем же Idempotency-Key. */
 it("checks immediately, then never faster than five seconds, with six checks maximum", async () => {
   const fetcher = vi.fn(
     async (_url: RequestInfo | URL, _options?: RequestInit) => reply("pending"),
@@ -97,6 +103,7 @@ it("checks immediately, then never faster than five seconds, with six checks max
   }
 });
 
+/** Общий deadline отменяет зависшую последнюю проверку, сохраняя только ранее подтверждённое pending. */
 it("stops a slow final check at the total thirty-second budget, retaining last pending state", async () => {
   const prior = values.get(storageKey);
   const fetcher = vi.fn(
@@ -121,6 +128,7 @@ it("stops a slow final check at the total thirty-second budget, retaining last p
   expect(vi.getTimerCount()).toBe(0);
 });
 
+/** Abort пользователя и смена сессии прекращают интервалы без последующих HTTP-вызовов. */
 it.each(["caller", "session"])(
   "stops between checks on %s cancellation",
   async (source) => {
@@ -141,6 +149,7 @@ it.each(["caller", "session"])(
   },
 );
 
+/** 429 не вызывает автоматическую повторную кампанию, создание оплаты или очистку intent. */
 it("stops on a quota refusal without automatic retry, new checkout or evidence changes", async () => {
   const prior = values.get(storageKey);
   const fetcher = vi.fn(
@@ -173,6 +182,7 @@ it("stops on a quota refusal without automatic retry, new checkout or evidence c
   expect(vi.getTimerCount()).toBe(0);
 });
 
+/** Подмена durable ключа другой вкладкой останавливает старую кампанию до следующего запроса. */
 it("never switches to another tab's intent between checks", async () => {
   const fetcher = vi.fn(async () => reply("pending"));
   vi.stubGlobal("fetch", fetcher);
@@ -195,6 +205,7 @@ it("never switches to another tab's intent between checks", async () => {
   expect(vi.getTimerCount()).toBe(0);
 });
 
+/** Без сохранённого intent polling возвращает null, не создаёт таймер или сетевую операцию. */
 it("absent saved evidence does not start a check or create a purchase", async () => {
   values.clear();
   const fetcher = vi.fn();
@@ -211,6 +222,7 @@ it("absent saved evidence does not start a check or create a purchase", async ()
   expect(vi.getTimerCount()).toBe(0);
 });
 
+/** Зависшее первое чтение не перекрывается вторым; после pending и последующего success таймеры сняты. */
 it("stops at the first success after pending and never starts an overlapping check", async () => {
   let release: (response: Response) => void = () => {};
   const fetcher = vi.fn(async () => reply("succeeded"));
@@ -246,6 +258,7 @@ it("stops at the first success after pending and never starts an overlapping che
   expect(vi.getTimerCount()).toBe(0);
 });
 
+/** До первого достоверного ответа timeout остаётся ошибкой, а не придуманным состоянием оплаты. */
 it("a first-check timeout is an error, not a fabricated pending/terminal result", async () => {
   const fetcher = vi.fn(() => new Promise<Response>(() => {}));
   vi.stubGlobal("fetch", fetcher);
@@ -262,6 +275,7 @@ it("a first-check timeout is an error, not a fabricated pending/terminal result"
   expect(vi.getTimerCount()).toBe(0);
 });
 
+/** Уже отменённый signal проверяется до browser/storage и callbacks, даже при отсутствии window. */
 it("an already aborted campaign cannot read storage, invoke callbacks or send HTTP", async () => {
   controller.abort();
   vi.stubGlobal("window", undefined);

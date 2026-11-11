@@ -2,6 +2,7 @@
 @use "../shared/styles/layers";
 
 @layer components {
+  /* Оболочка ограничивает высоту flex-дерева; скролл остаётся у конкретного экрана, а не у всей страницы. */
   .shell {
     --app-header-height: calc(44px + env(safe-area-inset-top, 0px));
     position: relative;
@@ -15,6 +16,7 @@
   .shopHeader {
     --app-header-height: calc(46px + env(safe-area-inset-top, 0px));
   }
+  /* Clip не даёт фокусу поля в drawer прокрутить внешнюю оболочку и сдвинуть все вкладки. */
   .content {
     position: relative;
     --screen-safe-top: 0px;
@@ -27,6 +29,7 @@
     // this outer container and shift the entire page.
     overflow: clip;
   }
+  /* Бумажные экраны оставляют отступ внутри своей текстуры; у уходящей шапки отступ принадлежит скролл-контенту. */
   .insetHeader {
     // Paper screens already reserved this space for their original header.
     // Keep the inset inside the screen so its texture extends behind the icons.
@@ -39,6 +42,7 @@
   }
   // A content/access error may replace a scroll area with a centered block.
   // Keep the same header clearance while that scroll area is absent.
+  /* Если вместо списка показана ошибка, сохраняется зазор шапки даже без ui-scroll. */
   .scrollingHeader
     .screens
     > :not(
@@ -66,6 +70,7 @@
     flex: 0 0 var(--app-header-height);
   }
   // Bound route wrappers before sizing their own scroll areas.
+  /* min-height:0 на каждом flex-уровне позволяет дочернему списку сжиматься до видимого viewport. */
   .content > * {
     flex: 1 1 0%;
     min-height: 0;
@@ -82,6 +87,7 @@
     flex: 1 1 0%;
     min-height: 0;
   }
+  /* Скрытый сохранённый экран исключается из раскладки; его DOM и состояние могут сохраняться у владельца. */
   .screen[hidden] {
     display: none;
   }

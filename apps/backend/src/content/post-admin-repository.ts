@@ -67,6 +67,7 @@ export async function getScheduledPosts(db: Database): Promise<Post[]> {
 }
 
 /** Считаем агрегаты публикаций на стороне БД. */
+/** Считаем статусы и месячные интервалы агрегатом, отдельно реакции и пять лидеров; границы месяцев соответствуют часовому поясу процесса, скрытые посты входят в админскую статистику. */
 export async function getPostStatistics(db: Database) {
   if (!db) throw new Error("Database not available");
 

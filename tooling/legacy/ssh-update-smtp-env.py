@@ -1,3 +1,4 @@
+# Перезаписывает SMTP-настройки прежнего VPS и перезапускает API; доставку письма этим не подтверждает.
 """Patch VPS .env with SMTP settings and restart API."""
 import pathlib
 import re
@@ -20,6 +21,7 @@ smtp_defaults = {
     "SMTP_PASS": env.get("SMTP_PASS", ""),
 }
 
+# Подключение использует историческое автоматическое доверие неизвестному SSH host key; перед новым запуском требуется отдельная сверка хоста.
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 sock = socket.create_connection((env["DEPLOY_HOST"], 22), 45)
@@ -63,6 +65,7 @@ for key, value in smtp_defaults.items():
     if key not in keys:
         out.append(f"{key}={value}")
 
+# Сформированная конфигурация содержит секреты и записывается на сервер; выводить её целиком нельзя.
 new_env = "\n".join(out).rstrip() + "\n"
 sftp = client.open_sftp()
 with sftp.file("/var/www/daryadarcy/.env", "w") as f:

@@ -3,6 +3,8 @@ import type { RowDataPacket } from "mysql2/promise";
 import { readFile } from "node:fs/promises";
 
 export async function openContentTestDatabase() {
+  // Дополняет только охраняемую одноразовую схему контентными таблицами и индексами под отдельной блокировкой; фиксированные ID не пересекаются с создаваемыми через API.
+
   const conn = await openTestDatabase();
   await conn.query("SELECT GET_LOCK('backend_test_content_schema',30)");
   try {
@@ -51,6 +53,7 @@ export async function openContentTestDatabase() {
     }
     // Production posts/media/comments have generated IDs. Keep those outside explicit
     // fixture IDs, so real creation/replacement cannot collide with other suites.
+    // AUTO_INCREMENT вынесен выше фиксированных тестовых ID; live metadata предотвращает повторный ALTER при параллельной транзакции.
     for (const table of ["posts", "post_media", "post_comments"]) {
       const [counters] = await conn.query<RowDataPacket[]>("SELECT AUTO_INCREMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?", [table]);
       if (Number(counters[0]?.AUTO_INCREMENT) < 1_000_000) await conn.query(`ALTER TABLE ${table} AUTO_INCREMENT=1000000`);

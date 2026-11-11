@@ -2,6 +2,7 @@
 import type { Express } from "express";
 import { registerPublicResponseCompression } from "./public-response-compression";
 
+/** Проверяет configured browser origins, задаёт no-store/CORS/security headers и отсекает недоверенные cross-site или сжатые тела до парсеров. */
 export function registerHttpSecurity(app: Express): void {
   const origins = new Set<string>();
   const configured = [process.env.PUBLIC_APP_URL || "https://daryadarcy.com", ...(process.env.CORS_ALLOWED_ORIGINS || "").split(",").filter(Boolean)];

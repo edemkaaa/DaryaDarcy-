@@ -22,6 +22,7 @@ export const S3_BACKUP_RETAIN_MS = 90 * 24 * 60 * 60_000;
 let lastBackupAt = 0;
 let activeBackup: Promise<void> | undefined;
 
+/** Разбирает только mysql URL в параметры dump, отклоняет NUL и скрывает исходную строку с доступами в ошибке. */
 function parseDatabaseUrl(url: string) {
   try {
     const parsed = new URL(url);
@@ -43,6 +44,7 @@ function parseDatabaseUrl(url: string) {
   }
 }
 
+/** Экранирует пароль в MySQL option-file синтаксисе, сохраняя кавычки, слеши и управляющие символы без argv/логов. */
 function optionFilePassword(password: string): string {
   if (password.includes("\0"))
     throw new Error("MySQL backup configuration is invalid");
@@ -57,6 +59,7 @@ function optionFilePassword(password: string): string {
   return `[client]\npassword="${password.replace(/[\\"\n\r\t\x08]/g, (char) => escapes[char])}"\n`;
 }
 
+/** Передаёт пароль через уже удалённый именованный файл, потоком сжимает dump в exclusive partial и переименовывает лишь после успешного завершения. */
 async function writeMysqlDump(
   cfg: ReturnType<typeof parseDatabaseUrl>,
   filePath: string,
@@ -160,6 +163,7 @@ async function writeMysqlDump(
   }
 }
 
+/** Загружает готовую локальную gzip-копию в backups/mysql; при отсутствии S3 сохраняет только локальный файл. */
 async function uploadBackup(filePath: string): Promise<void> {
   const client = s3Client();
   if (!client || !ENV.s3Bucket) {
@@ -179,6 +183,7 @@ async function uploadBackup(filePath: string): Promise<void> {
   console.log(`[backup] uploaded ${key} (${body.length} bytes)`);
 }
 
+/** Создаёт клиент строго настроенного S3 либо возвращает null при неполной конфигурации. */
 function s3Client(): S3Client | null {
   if (!ENV.s3Endpoint || !ENV.s3AccessKey || !ENV.s3SecretKey || !ENV.s3Bucket)
     return null;
@@ -265,6 +270,7 @@ export async function runMysqlBackupIfDue(
   }
 }
 
+/** Под эксклюзивным worker-владением убирает свои аварийные partial, создаёт новую копию, затем отдельно выполняет внешнюю загрузку и retention. */
 async function runMysqlBackup(dbUrl: string): Promise<void> {
   const cfg = parseDatabaseUrl(dbUrl);
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");

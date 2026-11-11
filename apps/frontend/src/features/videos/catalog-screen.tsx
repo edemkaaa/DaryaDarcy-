@@ -27,12 +27,14 @@ import { VideosBannerHeader } from "./videos-banner";
 import { PAPER_TEXTURE_URI } from "./videos-screen.content";
 import classes from "./videos-screen.module.scss";
 
+/** Смена аккаунта пересоздаёт локальное окно каталога через owner-key. */
 export function VideoCatalogScreen() {
   const { user } = useAuth();
   const owner = String(user?.id ?? "guest");
   return <Catalog key={owner} owner={owner} />;
 }
 
+/** Сохраняем серверный порядок страниц и показываем фоновые ошибки отдельно от подтверждённых карточек. */
 function Catalog({ owner }: { owner: string }) {
   const active = useScreenActive();
   const { loading, error: sessionError } = useAuth();
@@ -58,6 +60,7 @@ function Catalog({ owner }: { owner: string }) {
   const loadMore = query.fetchNextPage;
   const retry = query.retry;
   if (loading || sessionError) return <SessionStatus />;
+  /** Рисуем публичный thumbnail и признак canWatch; переход к playback заново проверит права на сервере. */
   const renderCard = ({ item }: { item: VideoCard }) => {
     const thumbnail = videoThumbnailUrl(item.thumbnailUrl);
     return (
@@ -183,6 +186,7 @@ function Catalog({ owner }: { owner: string }) {
   );
 }
 
+/** Явно показываем отсутствие обложки без подмены источника самого видео. */
 function ThumbnailUnavailable() {
   return (
     <Typography className={classes.thumbnailUnavailable}>

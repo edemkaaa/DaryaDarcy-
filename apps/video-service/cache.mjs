@@ -3,6 +3,8 @@ import { lstat, mkdtemp, realpath, rm } from "node:fs/promises";
 import { join } from "node:path";
 
 function busy() {
+  // Возвращает ограниченный признак занятости для HTTP 503, не выдавая внутренний путь или причину подготовки.
+
   return Object.assign(new Error("video preparation busy"), { code: "BUSY" });
 }
 
@@ -16,6 +18,8 @@ export async function createVideoCache({
   prepareTimeoutMs = 150_000,
   now = Date.now,
 }) {
+  // Закрепляет приватный каталог и общий бюджет; настройки теста можно подменить без доступа к рабочим файлам.
+
   const rootInfo = await lstat(root);
   if (
     !rootInfo.isDirectory() ||
@@ -30,6 +34,8 @@ export async function createVideoCache({
   let closed = false;
 
   async function remove(entry) {
+    // Удаляет только всё ещё принадлежащую карте запись, чтобы повторная очистка не затронула новый файл того же ID.
+
     if (entries.get(entry.id) !== entry) return;
     entries.delete(entry.id);
     await rm(entry.directory, { recursive: true, force: true });
@@ -37,6 +43,8 @@ export async function createVideoCache({
 
   // Заранее резервируем максимальный готовый файл: иначе параллельные читатели съедят место для новой подготовки.
   async function prepareEntry(id, signal) {
+    // Резервирует максимальный готовый файл до загрузки и принимает только обычный файл подходящего размера; частичный каталог убирается при ошибке.
+
     let directory;
     try {
       const ordered = [...entries.values()].sort((a, b) => a.used - b.used);
@@ -76,6 +84,8 @@ export async function createVideoCache({
   }
 
   async function acquire(id, signal) {
+    // Объединяет зрителей одного ID и учитывает активных читателей, не позволяя вытеснить выдаваемый файл или отменить чужую подготовку.
+
     if (!/^[\w-]{11}$/.test(id)) throw new Error("invalid video id");
     signal?.throwIfAborted();
     if (closed) throw busy();
@@ -130,6 +140,8 @@ export async function createVideoCache({
     return {
       path: entry.path,
       release() {
+        // Освобождает одного читателя идемпотентно; повторное завершение HTTP не должно сделать счётчик отрицательным.
+
         if (!released) {
           released = true;
           entry.readers--;
@@ -139,6 +151,8 @@ export async function createVideoCache({
   }
 
   async function close() {
+    // Останавливает sweeper и общую подготовку, дожидаясь её адресной очистки перед завершением процесса.
+
     closed = true;
     clearInterval(sweeper);
     job?.controller.abort();

@@ -26,6 +26,7 @@ const payloadSchema = z
     thumbnailUrl: z.string().nullable().optional(),
   })
   .strict();
+// Строгая схема связывает owner, базовую ревизию и исходный writePayload: восстановление не должно отправить изменённые данные под прежним намерением.
 const schema = z
   .object({
     version: z.literal(1),
@@ -71,8 +72,10 @@ export type VkEditorPayload = {
   thumbnailUrl?: string | null;
 };
 export const vkEditorDraftKey = (ownerId: number) =>
-  `darcy:user:${ownerId}:vk-editor:v1`;
+  /* Изолирует черновик VK по аккаунту и версии формата в storage текущей вкладки. */ `darcy:user:${ownerId}:vk-editor:v1`;
 export function emptyVkEditorDraft(ownerId: number): VkEditorDraft {
+  // Новая запись начинается закрытым неопубликованным черновиком, без выдуманной серверной ревизии.
+
   return {
     version: 1,
     ownerId,
@@ -93,12 +96,18 @@ export function emptyVkEditorDraft(ownerId: number): VkEditorDraft {
 }
 /** Tab-local storage survives reload without allowing another tab to replace this draft. */
 export class VkEditorDraftStore {
-  constructor(readonly ownerId: number) {}
+  constructor(readonly ownerId: number) {
+    // Закрепляет владельца хранилища на время работы редактора.
+}
   private assertOwner() {
+    // Запрещает чтение и запись черновика после смены владельца персональных данных.
+
     if (!isPersonalDataOwner(this.ownerId))
       throw new Error("Аккаунт редактора изменился.");
   }
   read(): VkEditorDraft | null {
+    // Ограничивает размер и строго проверяет схему вместе с владельцем; повреждение блокирует запись вместо сброса данных.
+
     this.assertOwner();
     try {
       const raw = window.sessionStorage.getItem(vkEditorDraftKey(this.ownerId));
@@ -114,6 +123,8 @@ export class VkEditorDraftStore {
     }
   }
   save(value: VkEditorDraft) {
+    // Проверяет схему и обратным чтением подтверждает запись; ошибка storage не должна разрешать отправку без durable копии.
+
     this.assertOwner();
     try {
       const parsed = schema.parse(value);
@@ -135,6 +146,8 @@ export function draftFromVkDetail(
   ownerId: number,
   value: VkEditorDetail,
 ): VkEditorDraft {
+  // Переносит прочитанную серверную ревизию в базу редактирования, сохраняя все поля для сравнения.
+
   return {
     ...emptyVkEditorDraft(ownerId),
     editing: true,
@@ -151,6 +164,8 @@ export function vkEditorPayload(
   draft: VkEditorDraft,
   thumbnailsEnabled: boolean,
 ): VkEditorPayload {
+  // Нормализует экспорт VK и сохраняет expectedRevision; после неизвестного создания допускает только исходный неизменённый payload.
+
   if (!draft.editing && draft.state === "uncertain" && draft.writePayload)
     return { ...draft.writePayload };
   const embedUrl = getVkCatalogEmbedUrl(draft.embedUrl);
@@ -189,10 +204,14 @@ export function reviewVkDraft(
   draft: VkEditorDraft,
   current: VkEditorDetail,
 ): VkEditorDraft {
+  // Добавляет серверную версию для сравнения, не меняя текущую базу или локальный ввод.
+
   if (!draft.base || draft.base.id !== current.id) throw invalidResponse();
   return { ...draft, review: current };
 }
 export function reconcileVkDraft(draft: VkEditorDraft): VkEditorDraft {
+  // После явного принятия делает просмотренную ревизию новой базой; ручную правку обложки сохраняет.
+
   if (!draft.review || draft.review.id !== draft.base?.id)
     throw invalidResponse();
   return {

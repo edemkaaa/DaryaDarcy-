@@ -15,6 +15,7 @@ import { PhotoTile } from "./photo-tile";
 import { PhotoDots } from "./photo-dots";
 import { scrollPhotoWithKeyboard } from "./photo-carousel-navigation";
 import { usePhotoMouseDrag } from "./use-photo-mouse-drag";
+/** Сохраняем выбранный кадр при измерении ширины и сокращении списка; загружаем только текущую фотографию и ближайших соседей. */
 export function PostPhotoCarousel({
   photos,
   onPhotoPress,
@@ -29,6 +30,7 @@ export function PostPhotoCarousel({
   const scrollRef = useRef<HTMLDivElement>(null);
   const mouseDrag = usePhotoMouseDrag(width, photos.length);
   useLayoutEffect(() => {
+    // При изменении ширины сохраняем логический индекс, а scrollLeft пересчитываем до отрисовки.
     const preserved = Math.min(
       currentIndex.current,
       Math.max(photos.length - 1, 0),
@@ -40,6 +42,7 @@ export function PostPhotoCarousel({
       behavior: "instant",
     });
   }, [width, photos.length]);
+  /** Округляем scrollLeft к текущему слоту и ограничиваем индекс существующими кадрами перед обновлением счётчика. */
   const onScroll = (event: ScrollEvent) => {
     if (width <= 0 || !photos.length) return;
     const next = Math.round(event.currentTarget.scrollLeft / width);

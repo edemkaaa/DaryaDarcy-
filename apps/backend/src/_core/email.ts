@@ -7,6 +7,7 @@ const DEFAULT_SMTP_IDENTITY = "daryadarcyapp@yandex.ru";
 
 let transporter: Transporter | null = null;
 
+/** Лениво создаёт один SMTP-транспорт; без пароля возвращает null, а file/url access для содержимого письма запрещён. */
 function getTransporter(): Transporter | null {
   if (transporter) return transporter;
   const host = (process.env.SMTP_HOST || "smtp.yandex.ru").trim();

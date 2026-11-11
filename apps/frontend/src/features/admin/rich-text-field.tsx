@@ -44,14 +44,20 @@ export const RichTextField = forwardRef<
   },
   ref,
 ) {
+  // Связывает native textarea, панель форматирования и предпросмотр, отдавая родителю финальный снимок через ref.
+
   const [previewOpen, setPreviewOpen] = useState(false);
   const editor = useRef<HTMLDivElement>(null);
   useEffect(() => {
+    // Наблюдает высоту области формы и focusin; отменяет animation frame и наблюдатель при закрытии.
+
     const node = editor.current;
     const scroll = node?.closest<HTMLElement>(".ui-scroll");
     if (!node || !scroll) return;
     let frame = 0;
     const reveal = () => {
+      // После изменения клавиатуры прокручивает только форму к полю и панели, не меняя фокус или выделение.
+
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         if (!node.contains(document.activeElement) || node.closest("[inert]"))
@@ -85,17 +91,17 @@ export const RichTextField = forwardRef<
     getRichTextBlocks: fmt.getRichTextBlocks,
     getRichTextBlocksForSubmit: fmt.getRichTextBlocksForSubmit,
   }));
-  const formatActionProps = (action: () => void) => ({
+  const formatActionProps = (action: () => void) => /* Снимает выделение до pointer-события кнопки и сбрасывает подготовку при отмене или клавиатурном вводе. */ ({
     ...formatToolbarProps(action, fmt.prepareToolbarSelection),
     onPointerCancel: fmt.cancelToolbarSelection,
     onKeyDown: fmt.cancelToolbarSelection,
   });
   const webInputProps = {
     id: RICH_TEXT_INPUT_ID,
-    onMouseUp: () => fmt.syncLiveSelection(),
-    onKeyUp: () => fmt.syncLiveSelection(),
-    onTouchEnd: () => fmt.syncLiveSelection(),
-    onClick: () => fmt.syncLiveSelection(),
+    onMouseUp: () => /* После мыши синхронизирует native выделение с панелью форматирования. */ fmt.syncLiveSelection(),
+    onKeyUp: () => /* После клавиатурного перемещения обновляет цель панели. */ fmt.syncLiveSelection(),
+    onTouchEnd: () => /* После touch-выделения читает native диапазон текста. */ fmt.syncLiveSelection(),
+    onClick: () => /* При установке каретки снимает устаревшую цель форматирования. */ fmt.syncLiveSelection(),
   } as const;
   return (
     <>

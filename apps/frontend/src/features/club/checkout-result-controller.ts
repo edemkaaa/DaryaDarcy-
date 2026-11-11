@@ -16,6 +16,7 @@ export type ClubCheckoutResultState =
     }
   | { phase: "error"; message: string; retryAt: number };
 
+/** Из 429 строим допустимое время следующей проверки; непроверенный или чрезмерный Retry-After заменяем минутой. */
 export function clubCheckoutRetryAt(error: unknown): number {
   if (getHttpStatus(error) !== 429) return 0;
   const seconds =
@@ -32,6 +33,7 @@ export function clubCheckoutRetryAt(error: unknown): number {
   );
 }
 
+/** Сериализуем кампании проверки и отделяем паузу от ошибки и результата; dispose прекращает публикацию состояния. */
 export function createClubCheckoutResultController(
   client: TRPCClient<AppRouter>,
   onChange: (state: ClubCheckoutResultState) => void,
@@ -39,10 +41,12 @@ export function createClubCheckoutResultController(
   let disposed = false;
   let current: AbortController | null = null;
   let retryAt = 0;
+  /** Доставляем изменения только живому владельцу контроллера. */
   const publish = (state: ClubCheckoutResultState) => {
     if (!disposed) onChange(state);
   };
   return {
+    /** Запускаем одну кампанию с текущим сигналом сессии и соблюдаем сохранённую паузу после 429. */
     async check() {
       if (disposed || current || Date.now() < retryAt) return;
       const controller = new AbortController();
@@ -77,9 +81,11 @@ export function createClubCheckoutResultController(
       }
     },
     // Остановка опроса сохраняет возможность новой явной проверки; она не отменяет сам платёж.
+    /** Прерываем текущую проверку, сохраняя возможность явного повтора; платёж у провайдера не отменяем. */
     cancel() {
       current?.abort();
     },
+    /** Запрещаем новые уведомления и прекращаем незавершённую кампанию после ухода экрана. */
     dispose() {
       disposed = true;
       current?.abort();

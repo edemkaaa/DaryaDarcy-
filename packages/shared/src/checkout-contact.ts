@@ -2,6 +2,7 @@
 import { z } from "zod";
 
 /** Contact only: no ownership, login, SMS or provider side effects. */
+/** Нормализуем контакт без доказательства владения: международный номер с плюсом либо российские 7/8 приводим к +digits; никаких SMS, входа или уникальности аккаунта это не создаёт. */
 export function normalizeContactPhone(input: string): string | null {
   const value = input.trim();
   if (value.length > 40 || !/^\+?[\d ()-]+$/.test(value)) return null;

@@ -19,6 +19,7 @@ import { getDb } from "../apps/backend/src/db";
 import { COOKIE_NAME } from "../packages/shared/src/const";
 
 const enabled = process.env.AG4_S3_ACCEPTANCE === "true" && !!testDatabaseUrl;
+/** Явно включаемая приёмка private attachment upload на настоящем S3 с потерей HTTP-ответа и новым процессом API. */
 describe.skipIf(!enabled)(
   "actual private upload with SQL, lost HTTP ACK and process restart",
   () => {
@@ -47,8 +48,10 @@ describe.skipIf(!enabled)(
       size: number;
       etag: string;
     }> = [];
+    /** Читает собственные upload/post journals и media через контрольное соединение. */
     const rows = async (sql: string, args: unknown[] = []) =>
       (await conn.query<RowDataPacket[]>(sql, args))[0];
+    /** Вызывает admin-процедуру настоящего API с выбранной JWT и deadline. */
     async function request(
       method: string,
       value: unknown,
@@ -77,6 +80,7 @@ describe.skipIf(!enabled)(
           : json.error?.json?.data?.code,
       };
     }
+    /** Пропускает полный upstream ответ через loopback proxy, затем разрывает downstream для имитации потерянного ACK. */
     async function droppedResponse(method: string, value: unknown) {
       let proxy: Server | undefined;
       try {
@@ -106,6 +110,7 @@ describe.skipIf(!enabled)(
           await new Promise<void>((resolve) => proxy!.close(() => resolve()));
       }
     }
+    /** Формирует точный список новых fixture-keys только из owner-префикса filename, UUID и своих receipt. */
     async function rememberOwnObjects() {
       for (const row of await rows(
         "SELECT * FROM private_attachment_uploads WHERE actorUserId=97350",
@@ -128,6 +133,7 @@ describe.skipIf(!enabled)(
           });
       }
     }
+    /** Требует совпадающий disposable DB и явный S3-доступ, сохраняет policy и создаёт своих admin/member и paid-период. */
     beforeAll(async () => {
       if (
         process.env.DATABASE_URL !== testDatabaseUrl ||
@@ -176,6 +182,7 @@ describe.skipIf(!enabled)(
       workers = await privateAttachmentProcesses();
       api = await workers.start();
     }, 25000);
+    /** Останавливает процессы и удаляет только новые owner-fixture объекты после live metadata/ETag guard, затем свои SQL-строки; policy сравнивается неизменной. */
     afterAll(async () => {
       await api?.stop();
       await workers?.close();
@@ -253,6 +260,7 @@ describe.skipIf(!enabled)(
       storage?.destroy();
       vi.unstubAllEnvs();
     }, 25000);
+    /** После двух потерянных ответов новый API восстанавливает один asset и пост, private-доступ меняется с parent и retired нельзя привязать заново. */
     it("lost upload/post responses survive a fresh backend process without duplicates", async () => {
       await droppedResponse("uploadPrivateAttachment", input);
       expect(
@@ -308,6 +316,7 @@ describe.skipIf(!enabled)(
         expect(direct.status).toBe(403);
         await direct.body?.cancel();
       }
+      /** Читает bound media URL с выбранной cookie либо как гость. */
       const read = (cookie?: string) =>
         fetch(`${api.base}${media[0].url}`, {
           headers: cookie ? { cookie: `${COOKIE_NAME}=${cookie}` } : {},
@@ -355,6 +364,7 @@ describe.skipIf(!enabled)(
         await rows("SELECT id FROM posts WHERE source=?", [source]),
       ).toHaveLength(1);
     }, 35000);
+    /** Валидный маленький WAV сохраняется в private audio-prefix и выдаёт точный RIFF Range при анонимном отказе прямого S3 HEAD. */
     it("uploads real WAV bytes to the audio prefix and serves an exact range", async () => {
       const bytes = wavFixture();
       const audio = await request("uploadPrivateAttachment", {

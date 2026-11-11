@@ -11,6 +11,7 @@ interface TabMusicToggleProps {
   iconColor?: string;
   volume?: number;
 }
+/** Кнопка управляет выделенным аудиоплеером: повтор ошибки относится только к тому экземпляру, запуск которого пользователь уже пытался выполнить. */
 export function TabMusicToggle({
   url,
   iconColor = "#FFFFFF",
@@ -26,6 +27,7 @@ export function TabMusicToggle({
   const errorId = useId();
   useEffect(() => {
     setShowLoading(false);
+    // Короткий запуск оставляет привычный значок; отложенный spinner отменяем при смене состояния или плеера.
     if (!starting) return;
     // Fast starts keep the familiar icon; only a noticeable wait shows a spinner.
     const timer = setTimeout(() => setShowLoading(true), 600);
@@ -33,10 +35,12 @@ export function TabMusicToggle({
   }, [starting, player]);
   useEffect(() => {
     if (player) {
+      // Громкость и loop применяем к текущему экземпляру, не инициируя автоматическое воспроизведение.
       player.loop = true;
       player.volume = volume;
     }
   }, [player, volume]);
+  /** Повторное нажатие отменяет и загрузку, и воспроизведение; ошибка play хранится в состоянии плеера, а не теряется в обработчике. */
   const toggle = () => {
     setAttemptedPlayer(player);
     if (isPlaying || starting) player.pause();

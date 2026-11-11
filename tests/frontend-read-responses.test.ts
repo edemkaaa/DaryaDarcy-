@@ -38,6 +38,8 @@ const post = {
   commentCount: 0,
 };
 it("checks that a UUID detail response matches the requested post", () => {
+  // Сценарий: Детальный ответ UUID должен относиться к запрошенному publicId.
+
   const publicId = "c22db58f-698b-41ea-8e12-524d8323b034";
   expect(() => validateReadResponse("feed.getById", { ...post, publicId }, { publicId })).not.toThrow();
   expect(() => validateReadResponse("feed.getById", post, { publicId })).toThrow();
@@ -133,6 +135,7 @@ const input = {
   postId: 7,
   days: [{ from: "2026-10-30", to: "2026-10-31" }],
 };
+// Матрица совместимых ответов включает страницы, детали, nullable-поля и счётчики: новые поля сохраняются, обязательные проверяются.
 const valid = [
   ["moderation.listCommentReports", [report]],
   [
@@ -185,6 +188,7 @@ const valid = [
   ["admin.postCounts", counts],
   ["admin.postCalendar", { days: [day], upcoming: [card] }],
 ] as const;
+// Отрицательная матрица нарушает по одному полю: типы, принадлежность детали, даты, enum и курсоры должны проверяться до обновления кеша.
 const bad = [
   ["moderation.listCommentReports", null],
   ["moderation.listCommentReports", {}],
@@ -300,13 +304,15 @@ const bad = [
   ["admin.postCalendar", { days: [{ ...day, published: true }], upcoming: [] }],
   ["admin.postCalendar", { days: [], upcoming: [null] }],
 ] as const;
-const envelope = (value: unknown) => ({
+const envelope = (value: unknown) => /* Кодирует тестовый ответ SuperJSON, сохраняя даты и разрешённые отсутствующие значения. */ ({
   result: { data: superjson.serialize(value) },
 });
 
 it.each(valid)(
   "accepts compatible decoded %s without replacing data",
   (path, value) => {
+    // Сценарий: Совместимые декодированные ответы принимаются без подмены данных.
+
     expect(() => validateReadResponse(path, value, input)).not.toThrow();
   },
 );
@@ -314,6 +320,8 @@ it.each(valid)(
 it.each(bad)(
   "rejects malformed %s before the real tRPC query resolves (%#)",
   async (path, value) => {
+    // Сценарий: Повреждённый успешный ответ отклоняется до завершения query и не повторяется автоматически.
+
     const fetcher = vi.fn(async () => Response.json([envelope(value)]));
     vi.stubGlobal("fetch", fetcher);
     const error = await getUntypedClient(createTRPCClient())
@@ -330,6 +338,8 @@ it.each(bad)(
 it.each(valid)(
   "preserves new fields and SuperJSON in %s",
   async (path, value) => {
+    // Сценарий: Новые поля и даты SuperJSON сохраняются после проверки обязательной части контракта.
+
     const withExtras = Array.isArray(value)
       ? value.map((row) => ({ ...row, futureField: date }))
       : { ...value, futureField: date };
@@ -346,6 +356,8 @@ it.each([
   "feed.tags",
   "moderation.listCommentReports",
 ])("accepts an empty %s", async (path) => {
+  // Сценарий: Пустой список остаётся допустимым успешным ответом.
+
   vi.stubGlobal("fetch", async () => Response.json([envelope([])]));
   await expect(
     getUntypedClient(createTRPCClient()).query(path),
@@ -355,6 +367,8 @@ it.each([
 it.each([undefined, false, "true"])(
   "preserves readable reports with a non-authorizing permission hint %s",
   async (canBlockAuthor) => {
+    // Сценарий: Подсказка права блокировки не превращается в самостоятельное разрешение и не мешает читать жалобы.
+
     const value = [{ ...report, canBlockAuthor }];
     vi.stubGlobal("fetch", async () => Response.json([envelope(value)]));
     await expect(
@@ -367,6 +381,8 @@ it.each(
     [null, undefined].map((value) => ({ path, value })),
   ),
 )("preserves allowed absence for $path ($value)", async ({ path, value }) => {
+  // Сценарий: Разрешённое отсутствие детали сохраняет null/undefined.
+
   vi.stubGlobal("fetch", async () => Response.json([envelope(value)]));
   await expect(
     getUntypedClient(createTRPCClient()).query(path, input),
@@ -374,6 +390,8 @@ it.each(
 });
 
 it("accepts a locked article and valid ISO dates", () => {
+  // Сценарий: Закрытая статья и корректные ISO-даты проходят валидацию.
+
   validateReadResponse(
     "articles.getById",
     { ...article, access: "club", locked: true, sections: [] },
@@ -391,17 +409,19 @@ it.each([
     name: "articles",
     value: article,
     read: (client: ReturnType<typeof createTRPCClient>) =>
-      client.articles.list.query(),
+      /* Читает список статей реальным tRPC-клиентом для проверки поведения QueryClient. */ client.articles.list.query(),
   },
   {
     name: "reports",
     value: report,
     read: (client: ReturnType<typeof createTRPCClient>) =>
-      client.moderation.listCommentReports.query(),
+      /* Читает список жалоб реальным tRPC-клиентом для проверки изоляции ошибки контракта. */ client.moderation.listCommentReports.query(),
   },
 ])(
   "does not poison or erase the last confirmed $name cache or retry a malformed 200",
   async ({ name, value: row, read }) => {
+    // Сценарий: Повреждённый 200 не стирает подтверждённый кеш и не вызывает повтор; настоящий пустой ответ его обновляет.
+
     const cache = createAppQueryClient();
     let value: unknown = [row];
     const fetcher = vi.fn(async () => Response.json([envelope(value)]));
@@ -410,7 +430,7 @@ it.each([
     const options = {
       queryKey: [`validated-${name}`],
       staleTime: 0,
-      queryFn: async () => read(client),
+      queryFn: async () => /* Передаёт выбранное чтение в QueryClient, чтобы проверить сохранность последнего подтверждённого кеша. */ read(client),
     };
     try {
       await cache.fetchQuery(options);
@@ -430,6 +450,8 @@ it.each([
 );
 
 it("keeps a malformed success isolated from another success in the same batch", async () => {
+  // Сценарий: Неверный элемент batch не повреждает независимый успешный элемент.
+
   const fetcher = vi.fn(async () =>
     Response.json([envelope([null]), envelope([])]),
   );
@@ -449,6 +471,8 @@ it("keeps a malformed success isolated from another success in the same batch", 
 });
 
 it("does not reinterpret write acknowledgements or unrelated read protocols", () => {
+  // Сценарий: Проверка read-контрактов не переопределяет квитанции записи и посторонние протоколы.
+
   expect(() =>
     validateReadResponse(
       "profile.update",
@@ -463,6 +487,8 @@ it("does not reinterpret write acknowledgements or unrelated read protocols", ()
 });
 
 it("keeps an aborted read cancelled while another operation in its batch completes", async () => {
+  // Сценарий: Отменённое чтение остаётся отменённым, пока соседний элемент batch завершается успешно.
+
   let release!: () => void;
   const held = new Promise<void>((resolve) => {
     release = resolve;

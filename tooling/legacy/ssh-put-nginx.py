@@ -1,3 +1,4 @@
+# Загружает старый локальный vhost в системный Nginx и сохранённую копию, затем выполняет reload.
 import pathlib
 import socket
 import paramiko
@@ -11,6 +12,7 @@ for line in (root / ".env").read_text(encoding="utf-8").splitlines():
 
 local_nginx = root / "infrastructure" / "deploy" / "nginx-daryadarcy.conf"
 
+# Подключение использует историческое автоматическое доверие неизвестному SSH host key; перед новым запуском требуется отдельная сверка хоста.
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 sock = socket.create_connection((env["DEPLOY_HOST"], 22), 20)
@@ -33,6 +35,7 @@ sftp.put(str(local_nginx), "/var/www/daryadarcy/infrastructure/deploy/nginx-dary
 sftp.close()
 print("uploaded nginx conf")
 
+# Следующий текст — удалённая команда; её содержимое сохранено как историческое и не исполняется при чтении исходника.
 cmd = r"""
 set -e
 nginx -t

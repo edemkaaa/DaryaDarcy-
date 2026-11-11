@@ -28,6 +28,7 @@ import {
 import { OperationScope } from "@/shared/browser/operation-scope";
 import { getSessionRequestSignal } from "./request-lifecycle";
 
+/** Базовая структура должна содержать положительные ID и строковый/пустой курсор; специализацию элементов проверяет транспорт. */
 export function requireCursorPage(value: unknown): void {
   const page = value as CursorPage | null;
   if (
@@ -44,7 +45,7 @@ export function requireCursorPage(value: unknown): void {
     throw invalidResponse();
 }
 
-/** Refresh the head and visible pages; explicitly refresh the complete retained window. */
+/** Управляем чтением, ручной догрузкой и ограниченным кешем одной цепочки, привязанной к владельцу, фильтрам и версии. Явное обновление перечитывает всё удержанное окно, обычное — голову и видимые страницы. */
 export function useCursorPages<P extends CursorPage>({
   key,
   scope,
@@ -161,6 +162,7 @@ export function useCursorPages<P extends CursorPage>({
       ? firstCursor != null && Number(firstCursor) > 0
       : query.data?.previousCursors?.length,
   );
+  /** Выбираем следующий токен или сохранённый предыдущий, затем коммитим ответ только в тот снимок цепочки, от которого началась операция. */
   const loadPage = async (direction: "next" | "previous") => {
     const before = query.data;
     if (
@@ -234,6 +236,7 @@ export function useCursorPages<P extends CursorPage>({
       task.finish();
     }
   };
+  /** Отмечаем фактически показанные карточки; новая видимая устаревшая страница получает readback вместо опроса всех когда-либо открытых страниц. */
   const onVisibleItemsChange = useCallback(
     (info: { visibleItems: { item: { id: string | number } }[] }) => {
       const ids = new Set(info.visibleItems.map(({ item }) => Number(item.id)));
@@ -276,6 +279,7 @@ export function useCursorPages<P extends CursorPage>({
     isFetchingNextPage: operationKind === "next",
     isFetchingPreviousPage: operationKind === "previous",
     hasPreviousPage,
+    /** Сломанная цепочка при возврате начинается с головы заново; иначе используем обычное чтение предыдущего токена. */
     fetchPreviousPage: () => {
       if (nextError instanceof CursorChainError) {
         refreshMode.current = { identity, mode: "restart" };
@@ -284,6 +288,7 @@ export function useCursorPages<P extends CursorPage>({
       return loadPage("previous");
     },
     hasNextPage: Boolean(query.data?.pages.at(-1)?.nextCursor),
+    /** После ошибки границ догрузку заменяем полным обновлением окна, а не зацикленным запросом прежнего токена. */
     fetchNextPage: () => {
       if (nextError instanceof CursorChainError) {
         refreshMode.current = { identity, mode: "all" };
@@ -291,10 +296,12 @@ export function useCursorPages<P extends CursorPage>({
       }
       return loadPage("next");
     },
+    /** Явный пользовательский повтор перечитывает все удержанные страницы; фоновый режим остаётся отдельной более дешёвой веткой. */
     refetch: (options?: Parameters<typeof query.refetch>[0]) => {
       refreshMode.current = { identity, mode: "all" };
       return query.refetch(options);
     },
+    /** Отзываем ручную догрузку и старое чтение, но сохраняем подтверждённые карточки до успешного ответа новой головы. */
     restart: async () => {
       operation.cancel();
       await client.cancelQueries({ queryKey, exact: true });

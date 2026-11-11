@@ -1,3 +1,4 @@
+// Архив Expo. Рисует обрезанную ячейку с memory-disk кешем и стабильным recyclingKey URI.
 import { type ReactNode, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Image } from "expo-image";
@@ -28,6 +29,8 @@ function Cell({
   style?: object;
   aspectRatio?: number;
 }) {
+  // Рисует обрезанную ячейку с memory-disk кешем и стабильным recyclingKey URI.
+
   return (
     <Pressable onPress={onPress} style={[styles.cell, { aspectRatio }, style]}>
       <Image
@@ -42,6 +45,8 @@ function Cell({
 }
 
 function Row({ children }: { children: ReactNode }) {
+  // Объединяет соседние ячейки одной горизонтальной строки с общим зазором.
+
   return <View style={styles.row}>{children}</View>;
 }
 
@@ -56,6 +61,8 @@ function PhotoGrid({
   columns: number;
   ratios: number[];
 }) {
+  // Группирует фото по числу колонок, дополняя последнюю строку пустыми ячейками.
+
   const rows: string[][] = [];
   for (let i = 0; i < photos.length; i += columns) {
     rows.push(photos.slice(i, i + columns));
@@ -98,6 +105,8 @@ function VideoPhotoGrid({
   press: (index: number) => (() => void) | undefined;
   ratios: number[];
 }) {
+  // Размещает видеоячейку с фото в первой строке и переносит остаток вниз.
+
   const topPhotos = photos.slice(0, 2);
   const bottomPhotos = photos.slice(2);
 
@@ -139,6 +148,8 @@ function VideoPhotoGrid({
 }
 
 function SinglePhoto({ uri, onPress }: { uri: string; onPress?: () => void }) {
+  // Уточняет пропорции по onLoad и сохраняет их в общем кеше размеров.
+
   const [ratio] = usePhotoAspectRatios([uri]);
   const [loadedRatio, setLoadedRatio] = useState<number | null>(
     () => getCachedPhotoRatio(uri) ?? null,
@@ -174,10 +185,12 @@ export function NaturalPhotoStack({
   video?: VideoGridSlot;
   posterUrl?: string;
 }) {
+  // Выбирает раскладку по числу фото, включая видео и карусель для более девяти кадров.
+
   const ratios = usePhotoAspectRatios(photos);
   if (!photos.length && !video) return null;
 
-  const press = (index: number) => (onPhotoPress ? () => onPhotoPress(index) : undefined);
+  const press = (index: number) => /* Связывает локальный индекс фотографии с внешним viewer callback. */ (onPhotoPress ? () => onPhotoPress(index) : undefined);
 
   if (video && photos.length > 0) {
     return (
@@ -279,6 +292,7 @@ export function NaturalPhotoStack({
   return <PhotoGrid photos={photos} press={press} columns={3} ratios={ratios} />;
 }
 
+// Flex-строки делят ширину равномерно с общим пиксельным зазором; одиночный кадр сохраняет измеренный aspect.
 const styles = StyleSheet.create({
   stackCol: {
     width: "100%",

@@ -2,6 +2,7 @@
 name: daryadarcy-ci
 
 services:
+# Manager получает привилегированный по смыслу Docker socket только на выделенном CI-хосте; job-контейнерам он не выдаётся.
   runner:
     image: gitlab/gitlab-runner:alpine-v19.5.0@sha256:b7dead3b57cd9e5e5d6aedc6c0736c43972af9a24aa19875c2802bc8afcd3978
     platform: linux/amd64

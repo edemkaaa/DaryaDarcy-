@@ -12,6 +12,7 @@ import type { AppRouter } from "../apps/backend/src/routers";
 
 // The executable reads this legacy absolute env path. Never let a test read
 // deployment credentials; the importable application tests do not load env files.
+/** Проверяет собранный production entrypoint только при отсутствии системного deployment env, чтобы не читать рабочие секреты. */
 describe.skipIf(existsSync("/var/www/daryadarcy/.env"))(
   "built backend executable",
   () => {
@@ -20,6 +21,7 @@ describe.skipIf(existsSync("/var/www/daryadarcy/.env"))(
     let entry: string;
     let metafile: Metafile;
 
+    /** Собирает entrypoint в собственный временный каталог и сохраняет карту входов сборщика. */
     beforeAll(async () => {
       buildDir = mkdtempSync(resolve(".tmp-nest-build-"));
       runtimeDir = mkdtempSync(join(tmpdir(), "daryadarcy-nest-runtime-"));
@@ -36,6 +38,7 @@ describe.skipIf(existsSync("/var/www/daryadarcy/.env"))(
       });
       metafile = result.metafile!;
     });
+    /** Удаляет только артефакт и временные каталоги, созданные этим набором. */
     afterAll(() => {
       if (entry) rmSync(entry, { force: true });
       if (buildDir) rmdirSync(buildDir);
@@ -44,6 +47,7 @@ describe.skipIf(existsSync("/var/www/daryadarcy/.env"))(
         rmdirSync(runtimeDir);
       }
     });
+    /** Запускает собранный API с явно ограниченным окружением без наследования БД и провайдерских секретов. */
     function start(port: number) {
       return spawn(process.execPath, [entry], {
         cwd: join(runtimeDir, "cwd"),
@@ -61,12 +65,14 @@ describe.skipIf(existsSync("/var/www/daryadarcy/.env"))(
         },
       });
     }
+    /** Завершает оставшийся дочерний API и ожидает exit, чтобы процесс не пережил тест. */
     async function stop(child: ChildProcess) {
       if (child.exitCode !== null || child.signalCode !== null) return;
       const exited = once(child, "exit");
       child.kill("SIGKILL");
       await exited;
     }
+    /** Проверяет включение Nest composition и фабрики приложения в фактическую production-сборку. */
     it("compiles the Nest composition into the actual production entrypoint", () => {
       expect(Object.keys(metafile.inputs)).toContain(
         "apps/backend/src/app.module.ts",
@@ -75,6 +81,7 @@ describe.skipIf(existsSync("/var/www/daryadarcy/.env"))(
         "apps/backend/src/_core/application.ts",
       );
     });
+    /** На собранном Node-артефакте проверяет публичные HTTP/tRPC контракты и отказы при недоступной БД и отсутствии сессии. */
     it("starts the compiled Node artifact and keeps public HTTP contracts", async () => {
       const reservation = createServer();
       await new Promise<void>((resolve) =>
@@ -249,6 +256,7 @@ describe.skipIf(existsSync("/var/www/daryadarcy/.env"))(
         await stop(child);
       }
     }, 15_000);
+    /** Удерживает занятый порт и проверяет явное завершение API вместо незаметного выбора другого порта. */
     it("fails rather than silently switching the production port when it is occupied", async () => {
       const occupied = createServer();
       await new Promise<void>((resolve) =>

@@ -1,3 +1,4 @@
+/** Ограниченный infinite cache хранит восемь payload-страниц и курсоры посещённого пути, не смешивая наблюдателей. */
 import { describe, expect, it } from "vitest";
 import { QueryClient, QueryObserver } from "@tanstack/react-query";
 import {
@@ -16,7 +17,9 @@ const chain: CursorChain<typeof head> = {
   pages: [head, { items: [{ id: 2 }], nextCursor: null }],
   pageParams: [null, "next"],
 };
+/** Проверяем отмену общей query и строгую связность cursor-chain. */
 describe("bounded cursor chains", () => {
+  /** Отписка одного QueryObserver не отменяет запрос второго активного экрана. */
   it("does not cancel a shared head still observed by another screen", async () => {
     const client = new QueryClient();
     const key = ["shared-cursor-test"];
@@ -48,6 +51,7 @@ describe("bounded cursor chains", () => {
     two();
     client.clear();
   });
+  /** Повтор nextCursor и повторная уже загруженная граница отвергаются. */
   it("does not accept a repeated boundary, preventing automatic loops", () => {
     expect(() =>
       appendCursorPage({ pages: [head], pageParams: [null] }, "next", {
@@ -61,7 +65,9 @@ describe("bounded cursor chains", () => {
   });
 });
 
+/** Проходим 240 страниц вперёд и назад, проверяя лимит payload, сохранение opaque cursors и удаление старого текста. */
 it("keeps eight payload pages while opaque cursors allow returning through a long visited list", async () => {
+  /** Синтетический reader преобразует opaque cursor в отдельную страницу с узнаваемым payload. */
   const read = async (cursor: string | null) => {
     const index = cursor === null ? 0 : Number(cursor.slice("opaque:".length));
     return {
@@ -111,6 +117,7 @@ it("keeps eight payload pages while opaque cursors allow returning through a lon
   expect(window.pages[0].items[0].id).toBe(2);
 });
 
+/** Несвязная предыдущая страница и цикл в отброшенный cursor не меняют исходную цепочку. */
 it("rejects a changed previous boundary and a loop into a discarded opaque page", () => {
   const window = {
     pages: [{ items: [{ id: 3 }], nextCursor: "third" }],

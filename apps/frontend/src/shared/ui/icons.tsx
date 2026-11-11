@@ -11,7 +11,9 @@ type Props = {
   style?: StyleInput;
   [key: string]: unknown;
 };
+/** Связываем таблицу кодов с конкретным шрифтом; экраны работают с именами, неизвестный глиф даёт пустой текст. */
 function family(font: string, glyphs: Record<string, number>) {
+  /** Переносим размер и цвет в текстовый глиф, оставляя значок декоративным для вспомогательных технологий. */
   return function Icon({ name, size = 24, color, style, ...props }: Props) {
     return (
       <Typography

@@ -1,3 +1,4 @@
+// Архив Expo. Показывает публичное введение в тест, локальный коллаж и старт reducer без запроса к API.
 import React from "react";
 import {
   View,
@@ -21,10 +22,14 @@ const BROWN_MUTED = "#8B7355";
 const { width } = Dimensions.get("window");
 
 export function QuizWelcome() {
+  // Показывает публичное введение в тест, локальный коллаж и старт reducer без запроса к API.
+
   const { dispatch } = useQuiz();
   const colors = useColors();
 
   const handleStart = () => {
+    // Переводит общий quiz reducer из welcome к первому вопросу.
+
     dispatch({ type: "START_QUIZ" });
   };
 
@@ -106,6 +111,7 @@ export function QuizWelcome() {
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 40,

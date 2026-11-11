@@ -1,3 +1,4 @@
+// Архив Expo. Монтирует viewer только с непустыми фото и сбрасывает внутреннюю сцену по ключу набора.
 import { useState, useCallback, useRef, useLayoutEffect } from "react";
 import {
   Modal,
@@ -30,6 +31,8 @@ interface PhotoViewerProps {
 }
 
 export function PhotoViewer({ visible, photos, initialIndex = 0, onClose }: PhotoViewerProps) {
+  // Монтирует viewer только с непустыми фото и сбрасывает внутреннюю сцену по ключу набора.
+
   if (!visible || photos.length === 0) return null;
   return (
     <PhotoViewerInner
@@ -42,6 +45,8 @@ export function PhotoViewer({ visible, photos, initialIndex = 0, onClose }: Phot
 }
 
 function PhotoViewerInner({ photos, initialIndex = 0, onClose }: Omit<PhotoViewerProps, "visible">) {
+  // Показывает постраничную галерею с SafeArea, счётчиком и вертикальным жестом закрытия.
+
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const safeInitialIndex = Math.min(Math.max(initialIndex, 0), Math.max(photos.length - 1, 0));
@@ -52,12 +57,16 @@ function PhotoViewerInner({ photos, initialIndex = 0, onClose }: Omit<PhotoViewe
   const opacity = useSharedValue(1);
 
   const handleClose = useCallback(() => {
+    // Уведомляет владельца и сбрасывает shared values для следующего открытия.
+
     onClose();
     translateY.value = 0;
     opacity.value = 1;
   }, [onClose, opacity, translateY]);
 
   useLayoutEffect(() => {
+    // После layout и смены размеров повторно выставляет начальный offset; cleanup снимает платформенный таймер.
+
     setCurrentIndex(safeInitialIndex);
     const offset = safeInitialIndex * screenWidth;
     scrollRef.current?.scrollTo({ x: offset, y: 0, animated: false });
@@ -98,6 +107,8 @@ function PhotoViewerInner({ photos, initialIndex = 0, onClose }: Omit<PhotoViewe
 
   const updateIndexFromOffset = useCallback(
     (offsetX: number) => {
+      // Округляет смещение до допустимого индекса фотографии.
+
       const index = Math.round(offsetX / screenWidth);
       if (index >= 0 && index < photos.length) setCurrentIndex(index);
     },
@@ -106,6 +117,8 @@ function PhotoViewerInner({ photos, initialIndex = 0, onClose }: Omit<PhotoViewe
 
   const onScrollEnd = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      // Согласует текущий индекс после инерционного либо ручного завершения листания.
+
       updateIndexFromOffset(event.nativeEvent.contentOffset.x);
     },
     [updateIndexFromOffset],

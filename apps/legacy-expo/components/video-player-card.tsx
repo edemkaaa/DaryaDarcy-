@@ -1,3 +1,4 @@
+// Архив Expo. Показывает poster до native запуска либо HTML video на web с рамкой от заданного aspectRatio.
 import { createElement, useCallback, useState } from "react";
 import { View, Pressable, StyleSheet, Dimensions, Platform } from "react-native";
 import { Image } from "expo-image";
@@ -24,6 +25,8 @@ interface VideoPlayerCardProps {
 }
 
 export function VideoPlayerCard({ videoUrl, thumbnailUrl, aspectRatio = 4 / 5 }: VideoPlayerCardProps) {
+  // Показывает poster до native запуска либо HTML video на web с рамкой от заданного aspectRatio.
+
   const [isPlaying, setIsPlaying] = useState(false);
   const height = SCREEN_WIDTH / aspectRatio;
 
@@ -91,12 +94,16 @@ function NativeVideoPlayer({
   height: number;
   setIsPlaying: (v: boolean) => void;
 }) {
+  // Создаёт native player с немедленным запуском и делегирует controls Expo VideoView.
+
   const player = useVideoPlayer(videoUrl, (p: any) => {
     p.loop = false;
     p.play();
   });
 
   const handlePause = useCallback(() => {
+    // Останавливает native player и возвращает родительскую карточку к обложке.
+
     setIsPlaying(false);
     player.pause();
   }, [player, setIsPlaying]);

@@ -40,12 +40,15 @@ export type PrivateCommentApi = {
     signal: AbortSignal,
   ) => Promise<unknown>;
 };
+/** Проверяем безопасный положительный ID для владельца, поста, родителя и ACK. */
 const positive = (id: unknown): id is number =>
   Number.isSafeInteger(id) && (id as number) > 0;
+/** Повреждение сохранённого intent не разрешает создать новый ключ и потенциальный дубль комментария. */
 const error = () =>
   new Error(
     "Не удалось проверить сохранённую отправку комментария. Новая операция не создаётся.",
   );
+/** Формируем неизменный write-payload из готовых фото и того же idempotency key. */
 const payload = (record: PrivateCommentRecord) => ({
   postId: record.postId,
   text: record.text,
@@ -57,7 +60,7 @@ const payload = (record: PrivateCommentRecord) => ({
   ),
   idempotencyKey: record.key,
 });
-/** Storage is untrusted. A frozen write cannot change its parent, text, files or key. */
+/** Проверяем строгую структуру журнала, владельца и фазы; после write текст, родитель, файлы и сериализованный payload не могут расходиться. */
 export function requirePrivateCommentRecord(
   value: unknown,
 ): PrivateCommentRecord {
@@ -130,6 +133,7 @@ export function requirePrivateCommentRecord(
     throw error();
   return record;
 }
+/** Создаём intent комментария с фото; пустой набор здесь не переводится молча в другой сценарий. */
 export function preparePrivateComment(
   ownerId: number,
   input: CommentDraft,
@@ -138,12 +142,14 @@ export function preparePrivateComment(
   if (!files.length) throw error();
   return prepareComment(ownerId, input, files);
 }
+/** Создаём тот же восстанавливаемый протокол для текстового комментария без файлов. */
 export function prepareTextComment(
   ownerId: number,
   input: CommentDraft,
 ): PrivateCommentRecord {
   return prepareComment(ownerId, input, []);
 }
+/** Фиксируем новый ключ и нормализованный текст до сети, копируя метаданные выбранных файлов в отдельный intent. */
 function prepareComment(
   ownerId: number,
   input: CommentDraft,
@@ -164,6 +170,7 @@ function prepareComment(
 }
 /** Caller checkpoints real File bytes durably. No automatic retries or public upload fallback. */
 // Фото и комментарий восстанавливаются под своим исходным намерением; промежуточное подтверждение сохраняется до следующего шага.
+/** Сначала durable-checkpoint, затем загрузки и замороженный write; подтверждённый savedId сохраняется до возврата вызывающему коду. */
 export async function savePrivateComment(
   record: PrivateCommentRecord,
   api: PrivateCommentApi,
@@ -173,6 +180,7 @@ export async function savePrivateComment(
   task.assertCurrent();
   requirePrivateCommentRecord(record);
   if (record.savedId !== null) return record.savedId;
+  /** Проверяем актуальность задачи до и после checkpoint, чтобы смена аккаунта не продолжила отправку. */
   const persist = async () => {
     task.assertCurrent();
     await checkpoint(record);

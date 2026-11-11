@@ -26,6 +26,7 @@ import {
 } from "@/shared/api/errors";
 
 type InteractionKind = "like" | "save";
+/** Согласуем пер-постовый кеш чтения и общие записи владельца; неизвестный исход toggle блокирует повтор до нового подтверждённого чтения. */
 export function usePostInteractions(postIds: readonly number[]) {
   const { user } = useAuth();
   const active = useScreenActive();
@@ -62,6 +63,7 @@ export function usePostInteractions(postIds: readonly number[]) {
   });
   const identity = JSON.stringify(queryKeys);
   useEffect(() => {
+    /** Отменяем только неиспользуемые query скрытого экрана, оставляя общую отметку другим активным карточкам. */
     const cancelUnused = () => {
       for (const key of JSON.parse(identity))
         cancelInactiveCursorQuery(cache, key);
@@ -69,6 +71,7 @@ export function usePostInteractions(postIds: readonly number[]) {
     if (!enabled) cancelUnused();
     return cancelUnused;
   }, [cache, enabled, identity]);
+  /** Ограничиваем отмену/обновление query своим ownerScope и конкретным ID, чтобы поздний ACK не затронул другой аккаунт. */
   const affectedQueries = (postId: number) => ({
     queryKey: getQueryKey(trpc.feed.interactionsForPosts),
     predicate: (query: Query) => {
@@ -103,6 +106,7 @@ export function usePostInteractions(postIds: readonly number[]) {
   const relevantFailures = [...failures].filter(([key]) =>
     requested.has(Number(key.split(":")[1])),
   );
+  /** Получаем фактический счётчик из свежей детали после ACK и распространяем его по кешу; отсутствие поста удаляет карточки. */
   const refreshLikeCount = async (
     postId: number,
     signal: AbortSignal,
@@ -138,6 +142,7 @@ export function usePostInteractions(postIds: readonly number[]) {
     if (post) updateCachedPostLikeCount(cache, postId, post.likeCount);
     else removeUnavailableCachedPost(cache, postId);
   };
+  /** Читаем отметки заново и освобождаем только те ошибки, для которых появилась новая readVersion; лайк дополнительно требует счётчик. */
   const retry = async () => {
     if (!enabled) return;
     const parent = getSessionRequestSignal();
@@ -200,6 +205,7 @@ export function usePostInteractions(postIds: readonly number[]) {
       return next;
     });
   };
+  /** Оптимистично меняем отметку одной scoped-операцией; ACK обновляет кеш, неизвестный исход блокирует новый toggle, finally убирает временный override. */
   const toggle = async (kind: InteractionKind, postId: number) => {
     if (!readyIds.has(postId) || !user) return;
     const key = `${kind}:${postId}`;

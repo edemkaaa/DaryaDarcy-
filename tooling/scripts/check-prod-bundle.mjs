@@ -18,6 +18,8 @@ const MARKERS = [
 ];
 
 function checkBundle(label, dir) {
+  // Сканирует заданный каталог локальных JS-чанков на ожидаемые маркеры и сообщает отсутствующий артефакт отдельно.
+
   if (!fs.existsSync(dir)) {
     console.log(`\n${label}: MISSING ${dir}`);
     return;
@@ -37,6 +39,7 @@ function checkBundle(label, dir) {
   }
 }
 
+// Сначала проверяется локальная статика, затем выполняются реальные GET прежнего production-домена.
 checkBundle("LOCAL web-dist", webDist);
 
 const BASE = process.env.SMOKE_BASE_URL || "https://daryadarcy.com";
@@ -44,6 +47,7 @@ const html = await fetch(`${BASE}/?t=${Date.now()}`).then((r) => r.text());
 const entryMatch = html.match(/entry-[a-f0-9]+\.js/);
 console.log(`\nPROD entry: ${entryMatch?.[0] ?? "?"}`);
 
+// По опубликованному HTML и lazy-ссылкам ищутся маркеры; результат не заменяет сквозной пользовательский тест.
 const prodHits = new Map();
 for (const rel of [
   entryMatch?.[0],

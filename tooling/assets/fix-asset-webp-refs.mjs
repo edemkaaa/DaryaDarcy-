@@ -11,6 +11,8 @@ const codeExt = new Set([".ts", ".tsx", ".js"]);
 let changed = 0;
 
 function walkCode(dir) {
+  // Проверяет наличие WebP перед заменой require-ссылок, обходя только выбранные расширения исходников.
+
   for (const name of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, name.name);
     if (skip.test(full)) continue;

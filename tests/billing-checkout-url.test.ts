@@ -1,3 +1,4 @@
+/** Исходящие checkout/return URL строятся по доверенному PUBLIC_APP_URL, не request Host; только генерация, без платежа. */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Request, Response } from "express";
 import {
@@ -11,6 +12,7 @@ const input = {
   email: "member@example.test",
   userId: 7,
 };
+/** Задаём synthetic application/auth/merchant origins и тариф. */
 beforeEach(() => {
   vi.stubEnv("PUBLIC_APP_URL", "https://daryadarcy.dev.reeskeen.ru");
   vi.stubEnv("PUBLIC_AUTH_URL", "https://auth.example.test");
@@ -18,26 +20,32 @@ beforeEach(() => {
   vi.stubEnv("PRODAMUS_SECRET", "synthetic-signing-key");
   vi.stubEnv("PRODAMUS_SUBSCRIPTION_ID", "12345");
 });
+/** Возвращаем env. */
 afterEach(() => vi.unstubAllEnvs());
 
+/** Проверяем query-кодирование, callback origin и безопасный отказ при повреждённой конфигурации. */
 describe("checkout links stay on the configured application", () => {
+  /** Знак плюс в email не становится пробелом после сериализации. */
   it("preserves a plus-addressed recipient through the signed checkout query", () => {
     const params = new URL(
       buildCheckoutUrl({ ...input, email: "member+club@example.test" }),
     ).searchParams;
     expect(params.get("customer_email")).toBe("member+club@example.test");
   });
+  /** Monthly URL передаёт точный provider SBP identifier и subscription ID. */
   it("uses Prodamus's documented SBP identifier for the monthly subscription", () => {
     const params = new URL(buildCheckoutUrl(input)).searchParams;
     expect(params.get("payment_method")).toBe("SBP");
     expect(params.get("subscription")).toBe("12345");
   });
+  /** Полугодовой one-off не добавляет SBP/recurring тариф, сохраняя свою цену. */
   it("does not force Russian SBP on the foreign-card one-off plan", () => {
     const params = new URL(buildCheckoutUrl({ ...input, orderId: "club6m-7-fixture", plan: "semiannual" })).searchParams;
     expect(params.has("payment_method")).toBe(false);
     expect(params.has("subscription")).toBe(false);
     expect(params.get("products[0][price]")).toBe("4740");
   });
+  /** Оба плана используют выбранный application origin для return/webhook/login. */
   it.each(["monthly", "semiannual"] as const)(
     "keeps every %s callback on staging rather than production or the auth host",
     (plan) => {
@@ -57,6 +65,7 @@ describe("checkout links stay on the configured application", () => {
       expect(params.get("signature")).toMatch(/^[a-f0-9]{64}$/);
     },
   );
+  /** Генератор shop callbacks не означает включение checkout в приложении. */
   it("uses the same application origin for shop callbacks without enabling shop payments", () => {
     const params = new URL(
       buildShopCheckoutUrl({
@@ -74,6 +83,7 @@ describe("checkout links stay on the configured application", () => {
       "https://daryadarcy.dev.reeskeen.ru/api/prodamus/webhook",
     );
   });
+  /** Поддельный Host не меняет redirect назначения; paid=1 остаётся лишь навигацией. */
   it("returns the browser to staging without using a request-supplied host", async () => {
     let location = "";
     const req = {
@@ -89,6 +99,7 @@ describe("checkout links stay on the configured application", () => {
     await handleProdamusReturn(req, res);
     expect(location).toBe("https://daryadarcy.dev.reeskeen.ru/club?paid=1");
   });
+  /** Production требует безопасный app origin и не показывает credentials из отказа. */
   it.each([
     "",
     "javascript:alert(1)",
@@ -104,6 +115,7 @@ describe("checkout links stay on the configured application", () => {
       expect(String(error)).not.toContain("PRIVATE_VALUE");
     }
   });
+  /** Отсутствующий application origin превращается в503, не open redirect. */
   it("responds safely when the browser return is misconfigured", async () => {
     vi.stubEnv("PUBLIC_APP_URL", "");
     let status = 0;

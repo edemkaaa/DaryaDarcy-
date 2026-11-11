@@ -18,9 +18,11 @@ const uri = process.env.BACKEND_TEST_DATABASE_URL;
 const enabled = process.env.CF_S3_ACCEPTANCE === "true" && !!uri;
 const endpoint = "https://s3.twcstorage.ru", Bucket = "daryadarcy-s3";
 const acceptedPolicyHash = "0484dfa2cc0164225db616bc516c53e8be377aca975d32701b6a6467ce1715e8";
+/** Считает SHA-256 строковой bucket-policy для доказательства её неизменности. */
 const hash = (value: string) => createHash("sha256").update(value).digest("hex");
 
 // Opt-in real provider acceptance. No policy writes, working DB, production boot or frontend.
+/** Явно включаемая приёмка private-content на настоящем S3 с owned disposable MySQL, без рабочего запуска. */
 describe.skipIf(!enabled)("private content API with real S3 and a migrated disposable database", () => {
   let conn: Connection, storage: S3Client;
   let workers: Awaited<ReturnType<typeof privateAttachmentProcesses>>;
@@ -29,7 +31,9 @@ describe.skipIf(!enabled)("private content API with real S3 and a migrated dispo
   const tokens: Record<string, string> = {};
   const objects = new Map<string, RowDataPacket>();
   const document = { idempotencyKey: `cf-doc-${owner}`, usage: "articleDocument", filename: `cf-api-${owner}.txt`, mimeType: "text/plain", base64: Buffer.from("0123456789").toString("base64") };
+  /** Читает собственные upload-journals, content и bindings через контрольную SQL-сессию. */
   const rows = async (query: string, args: unknown[] = []) => (await conn.query<RowDataPacket[]>(query, args))[0];
+  /** Вызывает настоящий API дочернего процесса выбранным actor с bounded timeout. */
   async function call(method: string, input: unknown, who = "admin", query = false, base = api.base) {
     const encoded = superjson.stringify(input);
     const response = await fetch(`${base}/api/trpc/${method}${query ? `?input=${encodeURIComponent(encoded)}` : ""}`, {
@@ -39,6 +43,7 @@ describe.skipIf(!enabled)("private content API with real S3 and a migrated dispo
     const json = await response.json();
     return { status: response.status, data: json.result ? superjson.deserialize<any>(json.result.data) : null };
   }
+  /** Loopback proxy теряет downstream-ответ после успешного upstream-коммита и подтверждает upstream HTTP 200. */
   async function dropped(method: string, input: unknown, who = "admin") {
     let upstreamStatus = 0;
     const proxy = createServer((req, res) => {
@@ -53,12 +58,15 @@ describe.skipIf(!enabled)("private content API with real S3 and a migrated dispo
       expect(upstreamStatus).toBe(200);
     } finally { proxy.closeAllConnections(); await new Promise<void>(resolve => proxy.close(() => resolve())); }
   }
+  /** Останавливает собственный API-процесс и запускает новое поколение с выбранным content-флагом. */
   async function restart(contentFiles = true) {
     const previous = api.pid; await api.stop(); api = await workers.start({ contentFiles }); expect(api.pid).not.toBe(previous);
   }
+  /** Читает application file URL выбранным actor с GET/HEAD/Range и ограниченным ожиданием. */
   const read = (url: string, who = "member", method = "GET", range?: string, timeout = 20000) => fetch(`${api.base}${url}`, {
     method, headers: { ...(tokens[who] ? { authorization: `Bearer ${tokens[who]}` } : {}), ...(range ? { range } : {}) }, signal: AbortSignal.timeout(timeout),
   });
+  /** Для GET, HEAD и Range требует 404 no-store без дополнительных storage commands. */
   async function denied(url: string, who = "guest") {
     const count = api.commands.length;
     for (const [method, range] of [["GET", undefined], ["HEAD", undefined], ["GET", "bytes=2-5"]] as const) {
@@ -67,6 +75,7 @@ describe.skipIf(!enabled)("private content API with real S3 and a migrated dispo
     }
     expect(api.commands.length).toBe(count);
   }
+  /** Собирает только журналы своих трёх actor с owner-префиксом filename и корректным UUID, вычисляя точные keys новых объектов. */
   async function rememberObjects() {
     for (const [table, media] of [["private_content_files", false], ["private_attachment_uploads", true]] as const) {
       for (const row of await rows(`SELECT * FROM ${table} WHERE actorUserId IN (98770,98771,98772)`)) {
@@ -77,12 +86,14 @@ describe.skipIf(!enabled)("private content API with real S3 and a migrated dispo
       }
     }
   }
+  /** Перед дальнейшей работой сверяет live metadata, intent-hash, размер, MIME и ETag объекта с собственным receipt. */
   async function checkObject(row: RowDataPacket) {
     const Key: string = row.Key;
     const meta = await storage.send(new HeadObjectCommand({ Bucket, Key }), { abortSignal: AbortSignal.timeout(20000) });
     if (meta.Metadata?.["asset-id"] !== row.assetId || meta.Metadata?.["intent-hash"] !== row.payloadHash || meta.ContentLength !== row.fileSize || meta.ContentType !== row.mimeType || !meta.ETag || (row.etag && meta.ETag !== row.etag)) throw new Error("Owned content storage guard refused");
     return { Key, meta };
   }
+  /** Независимо проверяет анонимный отказ прямого S3 URL для GET, HEAD и Range своего synthetic объекта. */
   async function directDenial(assetId: string) {
     await rememberObjects(); const row = objects.get(assetId); expect(row).toBeDefined(); const { Key } = await checkObject(row!);
     for (const spec of [{ method: "GET" }, { method: "HEAD" }, { method: "GET", headers: { range: "bytes=2-5" } }]) {
@@ -90,10 +101,12 @@ describe.skipIf(!enabled)("private content API with real S3 and a migrated dispo
       expect(response.status).toBe(403); await response.body?.cancel();
     }
   }
+  /** Создаёт маленькое transparent PNG с synthetic EXIF для проверки нормализации и удаления метаданных. */
   async function photoInput(usage: "postPhoto" | "articlePhoto" | "commentPhoto") {
     const bytes = await sharp({ create: { width: 2, height: 3, channels: 4, background: { r: 1, g: 2, b: 3, alpha: 0.5 } } }).withExif({ IFD0: { Artist: "synthetic private author" } }).png().toBuffer();
     return { idempotencyKey: `cf-${usage}-${owner}`, usage, filename: `cf-api-${owner}-${usage}.png`, mimeType: "image/png", base64: bytes.toString("base64") };
   }
+  /** Проверяет WebP-пиксели, alpha, отсутствие EXIF, безопасные заголовки и точный Range защищённой фотографии. */
   async function photoBytes(url: string, who = "member") {
     const response = await read(url, who); expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("image/webp");
@@ -107,6 +120,7 @@ describe.skipIf(!enabled)("private content API with real S3 and a migrated dispo
     const head = await read(url, who, "HEAD"); expect(head.status).toBe(200); expect(head.headers.get("content-length")).toBe(String(bytes.length));
     return bytes;
   }
+  /** Дополняет валидный PNG служебным tEXt-chunk с CRC32 до точной границы source-size, не меняя пиксели. */
   async function maximumPhoto(size: number) {
     const png = Buffer.from((await photoInput("postPhoto")).base64, "base64");
     // A valid ancillary text chunk pads the source, not the encoded image pixels.
@@ -118,6 +132,7 @@ describe.skipIf(!enabled)("private content API with real S3 and a migrated dispo
     chunk.writeUInt32BE(crc32(chunk.subarray(4, -4)), chunk.length - 4);
     return Buffer.concat([png.subarray(0, -12), chunk, png.subarray(-12)]);
   }
+  /** Потоково проверяет длину и SHA-256 полного файла, HEAD и suffix Range и гостевой отказ. */
   async function maximumFileRead(url: string, bytes: Buffer) {
     const response = await read(url, "member", "GET", undefined, 90000);
     expect(response.status).toBe(200);
@@ -138,6 +153,7 @@ describe.skipIf(!enabled)("private content API with real S3 and a migrated dispo
     expect(Buffer.from(await range.arrayBuffer())).toEqual(bytes.subarray(-8));
     await denied(url);
   }
+  /** Проверяет owner-container и ожидаемую policy/versioning, создаёт synthetic actors и запускает изолированный API. */
   beforeAll(async () => {
     const url = assertTestDatabase(uri!); const id = process.env.CF_S3_DATABASE_CONTAINER_ID;
     if (!id || !/^[a-f0-9]{64}$/.test(id) || url.hostname !== "127.0.0.1" || !url.port || process.env.DATABASE_URL !== uri || process.env.S3_ENDPOINT !== endpoint || process.env.S3_BUCKET !== Bucket || !process.env.S3_ACCESS_KEY || !process.env.S3_SECRET_KEY) throw new Error("Explicit owned acceptance inputs required");
@@ -162,11 +178,13 @@ describe.skipIf(!enabled)("private content API with real S3 and a migrated dispo
     expect((await call("admin.uploadPrivateContentFile", document)).status).toBe(404);
     expect(api.commands).toEqual([]); await restart();
   }, 30000);
+  /** Возвращает текущие роли и paid-доступ собственных трёх actor. */
   beforeEach(async () => {
     if (!conn) return;
     await conn.query("UPDATE users SET blockedAt=NULL,sessionVersion=0,role=IF(id=98771,'user','admin') WHERE id IN (98770,98771,98772)");
     await conn.query("UPDATE club_payments SET expiresAt=DATE_ADD(NOW(),INTERVAL 1 DAY) WHERE orderId=?", [`cf-api-paid-${owner}`]);
   });
+  /** Останавливает дочерние API, независимо сверяет каждый новый object и удаляет только owner-fixture keys с IfMatch, сохраняя bucket-policy. */
   afterAll(async () => {
     await api?.stop(); await workers?.close();
     try {
@@ -187,6 +205,7 @@ describe.skipIf(!enabled)("private content API with real S3 and a migrated dispo
       }
     } finally { await conn?.end(); storage?.destroy(); }
   }, 60000);
+  /** Фото ровно 4 МиБ проходит upload и private-binding, extra byte даёт 413 до SQL/storage, replay не дублирует PUT. */
   it.each(["postPhoto", "articlePhoto", "commentPhoto"] as const)("accepts maximum 4 MiB %s through native API/S3 and rejects one extra byte", async usage => {
     const post = await call("admin.createPost", { text: "Maximum photo fixture", source, photos: [], tags: ["community"], target: "club", status: "published", idempotencyKey: `max-photo-post-${usage}-${owner}` });
     expect(post.status).toBe(200);
@@ -224,6 +243,7 @@ describe.skipIf(!enabled)("private content API with real S3 and a migrated dispo
     await denied(uploaded.data.url);
     console.info(`[MAX-S3] ${usage}: source=4194304 stored=${output.length}; extra-byte413; replay/read/HEAD/Range/private GREEN`);
   }, 60000);
+  /** Документ/аудио 32 МиБ и видео 80 МиБ проходят точную границу и SHA/Range; extra byte отклоняется до effects. */
   it.each(["articleDocument", "postDocument", "audio", "video"] as const)("accepts maximum binary %s through native API/S3 and rejects one extra byte", async kind => {
     const limit = (kind === "video" ? 80 : 32) * 1024 * 1024;
     const bytes = Buffer.alloc(limit, kind.endsWith("Document") ? 0x61 : 0);
@@ -237,6 +257,7 @@ describe.skipIf(!enabled)("private content API with real S3 and a migrated dispo
     }
     const filename = `cf-api-${owner}-maximum-${kind}.${kind === "video" ? "mp4" : kind === "audio" ? "wav" : "txt"}`;
     const idempotencyKey = `max-binary-${kind}-${owner}`;
+    /** Для выбранного kind отправляет Base64 content/attachment либо raw video с тем же durable operation-key. */
     async function upload(body: Buffer) {
       if (kind !== "video") return call(kind === "articleDocument" ? "admin.uploadPrivateContentFile" : "admin.uploadPrivateAttachment", {
         idempotencyKey, filename, mimeType, base64: body.toString("base64"),
@@ -277,6 +298,7 @@ describe.skipIf(!enabled)("private content API with real S3 and a migrated dispo
     await directDenial(uploaded.data.assetId);
     console.info(`[MAX-S3] ${kind}: source/stored=${limit}; extra-byte413; replay/full SHA256/HEAD/suffix Range/private GREEN`);
   }, 150000);
+  /** После потери upload и article ответов новое API-поколение восстанавливает те же IDs без повторного файла/статьи. */
   it("recovers lost upload and article responses in fresh API processes without another file or article", async () => {
     await dropped("admin.uploadPrivateContentFile", document);
     expect(api.commands.filter(name => name === "PutObjectCommand")).toHaveLength(1);
@@ -306,6 +328,7 @@ describe.skipIf(!enabled)("private content API with real S3 and a migrated dispo
     await denied(recovered.data.url, "member");
     expect((await call("admin.updateArticle", { id: saved.data, sections: article.sections })).status).toBe(409);
   }, 45000);
+  /** Фото поста привязывается только owner; каждый доступ повторяет paid/block/role/epoch проверки до storage. */
   it("binds post photos once and rechecks paid, blocked, staff and session access before S3", async () => {
     const input = await photoInput("postPhoto"); const asset = await call("admin.uploadPrivateContentFile", input); expect(asset.status).toBe(200);
     const post = { text: "CF actual post photo", source, photos: [asset.data.url], tags: [], target: "club", status: "published", idempotencyKey: `cf-post-${owner}` };
@@ -324,6 +347,7 @@ describe.skipIf(!enabled)("private content API with real S3 and a migrated dispo
     expect((await call("admin.updatePost", { id: saved.data, status: "published", photos: [] })).status).toBe(200); await denied(asset.data.url, "admin");
     expect((await call("admin.updatePost", { id: saved.data, photos: post.photos })).status).toBe(409);
   }, 45000);
+  /** Фото статьи наследует текущую публикацию/access, не становится публичной обложкой и закрывается выключенным флагом. */
   it("keeps article images behind their current publication/access and never treats them as public covers", async () => {
     const asset = await call("admin.uploadPrivateContentFile", await photoInput("articlePhoto")); expect(asset.status).toBe(200);
     const article = { title: `cf-api-${owner}-photo`, access: "public", published: true, idempotencyKey: randomUUID(), sections: [{ type: "png", url: asset.data.url }, { type: "carousel", urls: [asset.data.url] }] };
@@ -338,6 +362,7 @@ describe.skipIf(!enabled)("private content API with real S3 and a migrated dispo
     expect((await call("admin.uploadPrivateContentFile", document)).status).toBe(404); expect(api.commands).toEqual([]);
     await restart(); await photoBytes(asset.data.url);
   }, 45000);
+  /** Потери upload/save ответов комментария восстанавливаются владельцем после restart; чужой actor и отзыв доступа не обходят private-read. */
   it("recovers comment upload/save losses across restarts and isolates account changes and revocation", async () => {
     const post = await call("admin.createPost", { text: "CF actual comment photo", source, photos: [], tags: ["community"], target: "feed", status: "published", idempotencyKey: `cf-comments-post-${owner}` }); expect(post.status).toBe(200);
     const input = { ...await photoInput("commentPhoto"), postId: post.data }; const puts = api.commands.filter(name => name === "PutObjectCommand").length;

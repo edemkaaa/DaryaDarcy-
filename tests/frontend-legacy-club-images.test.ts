@@ -1,3 +1,4 @@
+/** Frontend proxy запрещает точные старые клубные optimizer keys до image-cache, по operator-bound manifest. */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -14,6 +15,7 @@ const manifest = {
   denyKeys: ["feed/club/секрет.jpg", "feed/club/video.jpg"],
   preservedKeys: ["feed/club/public-cover.jpg"],
 };
+/** Сохраняем synthetic private manifest в temp-папку и привязываем его точный SHA-256 через env. */
 function configure(value: unknown = manifest) {
   const path = join(directory, "manifest.json");
   const bytes = JSON.stringify(value);
@@ -24,6 +26,7 @@ function configure(value: unknown = manifest) {
     createHash("sha256").update(bytes).digest("hex"),
   );
 }
+/** Формируем NextRequest к image optimizer с заданным URL и synthetic cookie. */
 function optimized(source: string, cookie = "") {
   const url = new URL("https://app.test/_next/image");
   url.searchParams.set("url", source);
@@ -31,16 +34,19 @@ function optimized(source: string, cookie = "") {
   url.searchParams.set("q", "75");
   return new NextRequest(url, { headers: { cookie } });
 }
+/** Создаём отдельный manifest и явно включаем guard. */
 beforeEach(() => {
   directory = mkdtempSync(join(tmpdir(), "club-guard-"));
   vi.stubEnv("LEGACY_CLUB_IMAGE_GUARD_ENABLED", "true");
   configure();
 });
+/** Удаляем только fixture manifest/pапку и возвращаем env. */
 afterEach(() => {
   vi.unstubAllEnvs();
   rmSync(directory, { recursive: true, force: true });
 });
 
+/** Только точное true включает запрет; disabled не пытается читать отсутствующий manifest. */
 it.each([undefined, "false", "1"])(
   "stays disabled without an explicit true flag (%s)",
   (flag) => {
@@ -53,6 +59,7 @@ it.each([undefined, "false", "1"])(
     ).toBe(200);
   },
 );
+/** Регистры/Unicode/encoding/query нормализуются к запрещённому key; ни guest, ни member/admin cookie не обходят404. */
 it.each([
   "https://s3.twcstorage.ru/daryadarcy-s3/feed/club/секрет.jpg",
   "https://s3.twcstorage.ru:443/daryadarcy-s3/feed/club/%D1%81%D0%B5%D0%BA%D1%80%D0%B5%D1%82.jpg?download=1",
@@ -73,6 +80,7 @@ it.each([
     expect(response.headers.get("x-middleware-next")).toBeNull();
   }
 });
+/** Public cover, другой key/bucket/origin и бесплатная Лошадка не попадают под точечный deny. */
 it.each([
   "https://s3.twcstorage.ru/daryadarcy-s3/feed/club/public-cover.jpg",
   "https://s3.twcstorage.ru/daryadarcy-s3/feed/club/unrelated.jpg",
@@ -82,6 +90,7 @@ it.each([
 ])("preserves public and unrelated sources: %s", (url) => {
   expect(proxy(optimized(url)).status).toBe(200);
 });
+/** Неканоничный scheme, traversal, credentials и повреждённый encoding дают400 до cache. */
 it.each([
   "https:////s3.twcstorage.ru/daryadarcy-s3/feed/club/video.jpg",
   "https:/s3.twcstorage.ru/daryadarcy-s3/feed/club/video.jpg",
@@ -95,6 +104,7 @@ it.each([
 ])("rejects malformed or ambiguous sources: %s", (url) => {
   expect(proxy(optimized(url)).status).toBe(400);
 });
+/** Два url-параметра не дают выбрать разрешённый вместо запрещённого. */
 it("rejects duplicate source parameters", () => {
   const request = optimized(
     manifest.endpoint + "/daryadarcy-s3/feed/club/video.jpg",
@@ -102,6 +112,7 @@ it("rejects duplicate source parameters", () => {
   request.nextUrl.searchParams.append("url", "/assets/responsive/free.webp");
   expect(proxy(request).status).toBe(400);
 });
+/** Повреждённый/противоречивый manifest даёт503/private no-store без его содержимого. */
 it.each([
   { ...manifest, version: 2 },
   { ...manifest, denyKeys: [...manifest.denyKeys, manifest.preservedKeys[0]] },
@@ -119,6 +130,7 @@ it.each([
     expect(response.headers.get("cache-control")).toBe("private, no-store");
   },
 );
+/** Другой digest запрещает только optimizer выдачу, не всю страницу Клуба. */
 it("requires the operator's exact manifest digest", () => {
   vi.stubEnv("LEGACY_CLUB_IMAGE_MANIFEST_SHA256", "0".repeat(64));
   expect(

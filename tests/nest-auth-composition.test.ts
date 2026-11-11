@@ -1,3 +1,4 @@
+/** Два независимых Nest-приложения проверяют app-scoped logout на настоящем HTTP/tRPC, без SQL. */
 import { afterEach, expect, it, vi } from "vitest";
 import type { INestApplication } from "@nestjs/common";
 import { ServiceUnavailableException } from "@nestjs/common";
@@ -10,12 +11,14 @@ import type { AppRouter } from "../apps/backend/src/routers";
 import type { User } from "../packages/database/src/schema";
 
 const apps: INestApplication[] = [];
+/** Закрываем все локальные приложения, снимаем spies/env. */
 afterEach(async () => {
   await Promise.all(apps.splice(0).map((app) => app.close()));
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
 });
 
+/** Полная синтетическая SQL-модель пользователя делает DTO/session поля явными. */
 function member(id: number): User {
   return {
     id,
@@ -40,6 +43,7 @@ function member(id: number): User {
   };
 }
 
+/** На каждом app подменяем только его SessionService, перехватывая HTTP-status/cookie/body типизированного клиента. */
 async function application(actor: User, unavailable = false) {
   vi.stubEnv("DATABASE_URL", "");
   const app = await createBackendApplication();
@@ -77,6 +81,7 @@ async function application(actor: User, unavailable = false) {
   return { client, received };
 }
 
+/** Оба app создаются до запросов: logout обязан использовать собственный actor/provider, а не глобальную последнюю конфигурацию. */
 it("tRPC logout uses the same app-owned session boundary as its verified actor", async () => {
   const first = await application(member(11));
   const second = await application(member(12));
@@ -92,6 +97,7 @@ it("tRPC logout uses the same app-owned session boundary as its verified actor",
   }
 });
 
+/** 503 отзыва сохраняет cookie и скрывает причину; соседний app остаётся работоспособным. */
 it("a refusal from one app does not clear its cookie or prevent logout in the other", async () => {
   const failing = await application(member(21), true);
   const working = await application(member(22));

@@ -8,11 +8,15 @@ test.skip(
   "Requires a locally built NORMAL recovery variant; uses synthetic API only.",
 );
 test.setTimeout(45_000);
+/** Keyspace покупки принадлежит конкретному вошедшему owner, отдельно от guest/TEST. */
 const slot = (owner = 101) => `darcy:user:${owner}:normal-checkout:v1`;
+/** Читаем исходный durable-journal, чтобы сравнить неизменность ключа и payload. */
 const saved = (page: Page, owner = 101) =>
   page.evaluate((name) => localStorage.getItem(name), slot(owner));
+/** Из двух landing-копий выбираем первое пользовательское действие с нужным именем. */
 const action = (page: Page, name: RegExp | string) =>
   page.getByRole("button", { name }).first();
+/** Заполняем обязательный контакт только если он ещё пуст и редактируем, затем запускаем выбранное явное действие покупки. */
 async function startPurchase(page: Page, name: string | RegExp) {
   await action(page, name).waitFor({ state: "visible" });
   const phone = page
@@ -27,6 +31,7 @@ async function startPurchase(page: Page, name: string | RegExp) {
   }
   await action(page, name).click();
 }
+/** Удерживаем create-response для навигационных, account и timeout гонок. */
 const deferred = () => {
   let resolve!: () => void;
   const promise = new Promise<void>((done) => {
@@ -34,6 +39,7 @@ const deferred = () => {
   });
   return { promise, resolve };
 };
+/** Сохраняем Date через superjson, чтобы string-expiry не проходил как корректный typed-ответ. */
 const result = (data: unknown) => ({
   result: { data: superjson.serialize(data) },
 });
@@ -50,6 +56,7 @@ type Order = {
   orderId: string;
   expiresAt?: Date;
 };
+/** Owner+key ledger разделяет create, status и подписку; journal проверяется до POST, URL фиксируется до gate, TEST/legacy proof запрещён. */
 async function fixture(page: Page, paid = false) {
   await layoutApi(page, true);
   const state = {
@@ -185,6 +192,7 @@ async function fixture(page: Page, paid = false) {
   });
   return state;
 }
+/** Создаём pending-order с потерянным ACK и ждём явное recovery-действие без перехода провайдеру. */
 async function loseCheckout(page: Page) {
   await gotoWithSession(page, "/club?checkout=1");
   await startPurchase(page, /Оплатить 790/);
@@ -213,6 +221,7 @@ test("lost response and reload restore the same pending order; status does not c
   expect(state.legacyWrites).toBe(0);
 });
 
+/** Одновременные вкладки разделяют один owner/key/order, даже если обе отправили одинаковый idempotent запрос. */
 test("two NORMAL tabs retain one key and one order for the same account", async ({
   page,
   context,
@@ -247,6 +256,7 @@ test("two NORMAL tabs retain one key and one order for the same account", async 
   await second.close();
 });
 
+/** Неверная expiry-форма и чужой orderId не подтверждают платёж и не стирают сохранённое доказательство. */
 for (const fault of ["invalid expiry", "another order"] as const) {
   test(`NORMAL ${fault} status retains evidence without confirming payment`, async ({
     page,
@@ -282,6 +292,7 @@ for (const fault of ["invalid expiry", "another order"] as const) {
   });
 }
 
+/** Восстановление URL повторяет точный ключ/plan для прежнего order, а не создаёт новую покупку. */
 test("explicit recovery obtains the original payment URL with the same key and plan", async ({
   page,
 }) => {
@@ -296,6 +307,7 @@ test("explicit recovery obtains the original payment URL with the same key and p
   expect(state.orders.size).toBe(1);
 });
 
+/** notRecorded — снимок, а не разрешение сменить ключ после потенциального позднего commit. */
 test("notRecorded is a snapshot and never rotates the key after a late commit", async ({
   page,
 }) => {
@@ -313,6 +325,7 @@ test("notRecorded is a snapshot and never rotates the key after a late commit", 
   );
 });
 
+/** Наличие старого клубного доступа не подтверждает новую pending-покупку. */
 test("an existing paid subscription and payment return do not confirm the new pending purchase", async ({
   page,
 }) => {
@@ -333,6 +346,7 @@ test("an existing paid subscription and payment return do not confirm the new pe
   expect(state.writes).toHaveLength(1);
 });
 
+/** Исторически успешная, но истёкшая покупка может быть подтверждена без выдачи текущего доступа. */
 test("succeeded uses this order's Date; an expired historical purchase does not open current club access", async ({
   page,
 }) => {
@@ -356,6 +370,7 @@ test("succeeded uses this order's Date; an expired historical purchase does not 
   expect(state.writes).toHaveLength(1);
 });
 
+/** Новый ключ допустим только после свежей терминальной сверки и явного нового действия. */
 test("failed allows a deliberate new purchase only after fresh terminal verification", async ({
   page,
 }) => {
@@ -376,6 +391,7 @@ test("failed allows a deliberate new purchase only after fresh terminal verifica
   expect(state.orders.size).toBe(2);
 });
 
+/** 409/412 сохраняют исходный intent и не переключают его на legacy checkout. */
 for (const status of [409, 412]) {
   test(`HTTP ${status} preserves the original purchase and never falls back to an unkeyed order`, async ({
     page,
@@ -408,6 +424,7 @@ test("return without saved evidence does not create a purchase or infer success 
   expect(await saved(page)).toBeNull();
 });
 
+/** Уход со страницы отменяет redirect позднего create-response, сохраняя журнал для ручной проверки. */
 test("a late payment URL cannot navigate after leaving the purchase page", async ({
   page,
 }) => {
@@ -428,6 +445,7 @@ test("a late payment URL cannot navigate after leaving the purchase page", async
   expect(await saved(page)).not.toBeNull();
 });
 
+/** Снятая навигацией continuation не оживает от status-read; recovery не должен повторно открыть оплату. */
 test("an explicit check can recover after a navigation attempt without reviving its cancelled redirect", async ({
   page,
 }) => {
@@ -456,6 +474,7 @@ test("an explicit check can recover after a navigation attempt without reviving 
   expect(await saved(page)).not.toBeNull();
 });
 
+/** Новый аккаунт не получает URL, order или status-read старого владельца. */
 test("a late payment URL cannot enter the next account or bind its order", async ({
   page,
 }) => {
@@ -499,6 +518,7 @@ test("guests keep the existing checkout even when the NORMAL integration build i
   expect(state.statuses).toHaveLength(0);
 });
 
+/** После deadline ключ и один order сохраняются; явная сверка не повторяет create и не открывает провайдера. */
 test("a real client timeout retains one order and its key; checking afterwards never reopens payment", async ({
   page,
 }) => {
@@ -531,6 +551,7 @@ test("a real client timeout retains one order and its key; checking afterwards n
   expect(state.navigations).toHaveLength(0);
 });
 
+/** Потеря durable-evidence не разрешает заменить уже известную outstanding-покупку новым ключом. */
 test("missing browser evidence cannot replace a known outstanding purchase even after a failed check", async ({
   page,
 }) => {

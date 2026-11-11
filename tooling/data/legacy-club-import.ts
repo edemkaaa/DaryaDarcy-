@@ -41,6 +41,8 @@ const link = z
     ["https:", "http:", "mailto:", "tel:"].includes(new URL(value).protocol),
   );
 function jsonField<T extends z.ZodType>(schema: T) {
+  // Разбирает строковое JSON-поле старой БД; ошибку передаёт последующей проверке схемы как отсутствие значения.
+
   return z.preprocess((value) => {
     if (typeof value !== "string") return value;
     try {
@@ -153,6 +155,8 @@ export type LegacyClubContent = Omit<z.output<typeof snapshot>, "tags">;
 export function prepareLegacyClubStagingContent(
   input: unknown,
 ): LegacyClubContent {
+  // Разрешает только согласованный источник и переводит конкретный просроченный пост в черновик без уведомлений.
+
   const content = prepareLegacyClubContent(input);
   if (
     content.sourceSha256 !==
@@ -179,11 +183,13 @@ export function prepareLegacyClubStagingContent(
 
 /** Content-only boundary; no source accounts, payments, settings or video catalog. */
 export function prepareLegacyClubContent(input: unknown): LegacyClubContent {
+  // Проверяет старые посты, статьи и вложения, исключая пользователей и платежи из переноса.
+
   const parsed = snapshot.safeParse(input);
   if (!parsed.success) throw new Error("Invalid legacy Club snapshot");
   const { tags: _tags, ...data } = parsed.data;
   const unique = (rows: { id: number }[]) =>
-    new Set(rows.map((row) => row.id)).size === rows.length;
+    /* Отклоняет повторяющиеся ключи до записи партии, чтобы импорт не зависел от порядка конфликтующих строк. */ new Set(rows.map((row) => row.id)).size === rows.length;
   const postIds = new Set(data.posts.map((row) => row.id));
   const articleIds = new Set(data.articles.map((row) => row.id));
   const cards = data.posts.filter((row) => row.source.startsWith("article:"));

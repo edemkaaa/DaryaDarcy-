@@ -1,3 +1,4 @@
+/** Два Nest-приложения проверяют app-scoped TEST checkout/webhook/result через настоящий HTTP. */
 import { afterEach, expect, it, vi } from "vitest";
 import type { INestApplication } from "@nestjs/common";
 import type { AddressInfo } from "node:net";
@@ -8,11 +9,13 @@ import { ProdamusTestClubService } from "../apps/backend/src/billing/prodamus-te
 import * as db from "../apps/backend/src/db";
 import type { AppRouter } from "../apps/backend/src/routers";
 
+/** Снимаем identity/provider spies и TEST env. */
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
 });
 
+/** Оба app настраиваются до первого запроса; каждый должен использовать свой service, сохранить raw webhook bytes и нейтральный no-cookie result, без настоящих платежей/БД. */
 it("TEST checkout, webhook and return use their own app's billing provider through native HTTP", async () => {
   vi.stubEnv("DATABASE_URL", "");
   vi.stubEnv("PRODAMUS_TEST_ENABLED", "true");

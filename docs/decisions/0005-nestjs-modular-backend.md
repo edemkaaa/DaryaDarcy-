@@ -3,6 +3,10 @@
 - **Status:** Accepted for the user-requested local migration; not release approval
 - **Date:** 2026-10-05
 
+## Актуальность на 11 ноября 2026
+
+NestJS стал основным runtime. Число процедур и версии зависимостей ниже зафиксированы на момент принятия решения; текущие источники — `package.json`, lockfile и `pnpm check:api`. Устройство модулей и жизненный цикл описаны в [API](../architecture/api.md).
+
 ## Context
 
 The user requests NestJS migration and related backend repairs. ADR-002 favoured

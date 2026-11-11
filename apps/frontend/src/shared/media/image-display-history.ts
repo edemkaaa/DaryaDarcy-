@@ -5,6 +5,7 @@
 const displayed = new Set<string>();
 const DISPLAY_HISTORY_LIMIT = 256;
 
+/** Проверяем успешный показ и освежаем LRU-порядок; отсутствие ключа не означает отсутствие файла в HTTP-кеше. */
 export function wasImageDisplayed(key: string): boolean {
   if (!displayed.has(key)) return false;
   displayed.delete(key);
@@ -12,6 +13,7 @@ export function wasImageDisplayed(key: string): boolean {
   return true;
 }
 
+/** Запоминаем только идентичность успешно показанного изображения и вытесняем самый старый ключ сверх лимита. */
 export function rememberImageDisplay(key: string) {
   displayed.delete(key);
   displayed.add(key);

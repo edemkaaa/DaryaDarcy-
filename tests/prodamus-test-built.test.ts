@@ -1,9 +1,11 @@
+/** Приёмка собранного TEST-executable выполняется дочерним Node без БД, provider, почты и рабочих ресурсов. */
 import { expect, it } from "vitest";
 import { build } from "esbuild";
 import { spawn, spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, rmdirSync } from "node:fs";
 import { resolve, join } from "node:path";
 
+/** Сначала проверяем fail-closed disabled startup, затем минимальные TEST POST routes; посторонние API/GET недоступны, unknown result не создаёт сессию, process/temp bundle удаляются. */
 it("compiled test process fails closed without configuration and exposes only the selected POST boundaries", async () => {
   const directory = mkdtempSync(resolve(".tmp-prodamus-test-"));
   const entry = join(directory, "runtime.mjs");

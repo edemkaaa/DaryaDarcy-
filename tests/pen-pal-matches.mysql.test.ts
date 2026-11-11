@@ -21,6 +21,7 @@ import type { AppRouter } from "../apps/backend/src/routers";
 
 // Requires a separately owned disposable backend_test with the fresh schema.
 // No external storage, notifications, mail or payment providers are used.
+/** Проверяет BOLA-защиту заявки Pen Pals, deadline и конкурентное взаимное подтверждение через настоящий HTTP. */
 describe.skipIf(!testDatabaseUrl)(
   "Pen Pals HTTP/JWT/MySQL authorization and lifecycle",
   () => {
@@ -33,6 +34,7 @@ describe.skipIf(!testDatabaseUrl)(
       number,
       ReturnType<typeof createTRPCProxyClient<AppRouter>>
     >();
+    /** Читает полные пары только трёх собственных участников в стабильном порядке. */
     const matches = async () => {
       const [rows] = await conn.query<RowDataPacket[]>(
         "SELECT * FROM pen_pal_matches WHERE userLowId IN (?,?,?) OR userHighId IN (?,?,?) ORDER BY id",
@@ -40,8 +42,10 @@ describe.skipIf(!testDatabaseUrl)(
       );
       return rows;
     };
+    /** Создаёт заявку от выбранного тестового участника к другому через HTTP-клиент. */
     const request = (actor = ids[0], target = ids[1]) =>
       clients.get(actor)!.penPals.requestMatch.mutate({ targetUserId: target });
+    /** Проверяет свободные fixture-ID и схему, создаёт три аккаунта и настоящий API с их JWT. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       // Do not initialize old/partial schemas or delete someone else's fixtures.
@@ -82,6 +86,7 @@ describe.skipIf(!testDatabaseUrl)(
         );
       }
     });
+    /** Очищает собственные пары, снимает блокировки и восстанавливает активные анкеты участников. */
     beforeEach(async () => {
       await conn.query(
         "DELETE FROM pen_pal_matches WHERE userLowId IN (?,?,?) OR userHighId IN (?,?,?)",
@@ -97,6 +102,7 @@ describe.skipIf(!testDatabaseUrl)(
           [id],
         );
     });
+    /** Только при успешном claim удаляет собственные пары, анкеты и аккаунты и закрывает API и пул. */
     afterAll(async () => {
       await app?.close();
       if (ownsFixtures) {
@@ -120,6 +126,7 @@ describe.skipIf(!testDatabaseUrl)(
         )?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** Третий участник не может ни подтвердить, ни удалить чужую пару и получает NOT_FOUND без изменения строки. */
     it.each([false, true])(
       "outsider accept=%s cannot change A–B's match",
       async (accept) => {
@@ -131,6 +138,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await matches()).toEqual(before);
       },
     );
+    /** Любая сторона вправе отклонить свою заявку с её удалением. */
     it.each([0, 1])(
       "participant %s can decline their own match",
       async (index) => {
@@ -141,6 +149,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await matches()).toEqual([]);
       },
     );
+    /** Заявка невозможна, если анкета хотя бы одной стороны неактивна. */
     it.each([0, 1])(
       "inactive profile %s cannot create a match",
       async (index) => {
@@ -154,6 +163,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await matches()).toEqual([]);
       },
     );
+    /** Истёкшую заявку нельзя воскресить ни accept, ни встречным request; исходная строка сохраняется. */
     it.each(["accept", "request"])(
       "expired match cannot be revived via %s",
       async (action) => {
@@ -173,6 +183,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await matches()).toEqual(before);
       },
     );
+    /** Параллельные встречные запросы создают одну пару и сохраняют взаимное подтверждение. */
     it("parallel reciprocal requests create one pair without losing mutual consent", async () => {
       const replies = await Promise.all(
         Array.from({ length: 6 }, (_, index) =>
@@ -188,12 +199,14 @@ describe.skipIf(!testDatabaseUrl)(
       });
       expect(rows[0].mutualConfirmedAt).not.toBeNull();
     });
+    /** Повтор той же заявки не продлевает срок её подтверждения. */
     it("retries do not extend the confirmation deadline", async () => {
       await request();
       const before = await matches();
       await request();
       expect(await matches()).toEqual(before);
     });
+    /** Деактивация одновременно с accept не оставляет пару неактивной анкете. */
     it("deactivation racing acceptance leaves no match for an inactive profile", async () => {
       const { matchId } = await request();
       const outcomes = await Promise.allSettled([

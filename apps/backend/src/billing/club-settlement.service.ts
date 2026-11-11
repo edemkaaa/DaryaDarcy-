@@ -14,12 +14,14 @@ export type ClubSettlementPort = (
 const ACCESS_PERIOD_MS = 30 * 24 * 60 * 60 * 1000;
 const SEMIANNUAL_ACCESS_MS = 180 * 24 * 60 * 60 * 1000;
 
+/** Выбирает фиксированные 180 дней только для club6m-заказа, иначе обычные 30 дней. */
 export function clubAccessMsForOrder(orderId: string): number {
   return orderId.startsWith("club6m-")
     ? SEMIANNUAL_ACCESS_MS
     : ACCESS_PERIOD_MS;
 }
 
+/** Возвращает общий 30-дневный период для совместимых вызовов без orderId. */
 export function clubAccessMs(): number {
   return ACCESS_PERIOD_MS;
 }
@@ -27,8 +29,10 @@ export function clubAccessMs(): number {
 /** Оркестрация после проверки уведомления; повтор и выдачу доступа решает долговечный settlement. */
 @Injectable()
 export class ClubSettlementService {
+  /** Сохраняет переданный порт атомарного settlement, не подтверждая оплату при создании сервиса. */
   constructor(private readonly settlePayment: ClubSettlementPort) {}
 
+  /** Передаёт orderId, вычисленный период и уже проверенные proof/сумму в долговечную операцию, владеющую идемпотентностью. */
   async settle(
     orderId: string,
     details?: ClubSettlementDetails,

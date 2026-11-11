@@ -1,5 +1,5 @@
-/** Значение Retry-After приводим к ограниченной задержке для интерфейса, учитывая обе формы HTTP-заголовка. */
-/** Retry-After is either whole seconds or an HTTP date; never a JS date shorthand. */
+/** Значение Retry-After приводим к целой задержке для интерфейса, учитывая обе формы HTTP-заголовка. Не принимаем сокращённые форматы даты JavaScript. */
+/** Принимаем целые секунды или HTTP-date GMT и возвращаем положительную задержку без переполнения вычисляемого timestamp. */
 export function parseRetryAfter(
   value: string | null,
   now = Date.now(),

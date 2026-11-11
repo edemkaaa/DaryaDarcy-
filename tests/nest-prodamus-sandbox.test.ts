@@ -1,3 +1,4 @@
+/** Диагностический sandbox в полной Nest-композиции не подтверждает доступ и не использует LIVE merchant key. */
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { createHmac } from "node:crypto";
 import type { AddressInfo } from "node:net";
@@ -18,6 +19,7 @@ let disabledBase: string;
 let settlement: ReturnType<typeof vi.spyOn>;
 let mail: ReturnType<typeof vi.spyOn>;
 const path = "/api/prodamus/sandbox/webhook";
+/** Создаём независимые enabled/disabled apps; spies на settlement/mail служат запретом внешних effects. */
 beforeAll(async () => {
   vi.stubEnv("DATABASE_URL", "");
   vi.stubEnv("PUBLIC_APP_URL", "https://daryadarcy.dev.reeskeen.ru");
@@ -44,12 +46,14 @@ beforeAll(async () => {
   await disabled.listen(0, "127.0.0.1");
   disabledBase = `http://127.0.0.1:${(disabled.getHttpServer().address() as AddressInfo).port}`;
 });
+/** Закрываем оба app и возвращаем spies/env. */
 afterAll(async () => {
   await enabled?.close();
   await disabled?.close();
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
 });
+/** Отправляем synthetic signed raw body только в локальный sandbox webhook. */
 function notify(base = enabledBase, body = raw, extraHeaders = {}) {
   return fetch(base + path, {
     method: "POST",
@@ -61,6 +65,7 @@ function notify(base = enabledBase, body = raw, extraHeaders = {}) {
     },
   });
 }
+/** Disabled app отвечает503, enabled подтверждает только notificationVerified/accessGranted:false без cookie. */
 it("keeps the diagnostic opt-in isolated per application instance", async () => {
   const off = await notify(disabledBase);
   expect(off.status).toBe(503);
@@ -76,6 +81,7 @@ it("keeps the diagnostic opt-in isolated per application instance", async () => 
   expect(on.headers.get("cache-control")).toBe("no-store");
   expect(on.headers.get("set-cookie")).toBeNull();
 });
+/** Raw form поля проходят diagnostic HMAC без общей parser-переработки. */
 it("accepts PHP form bytes without the generic form parser changing nested/signature data", async () => {
   const form =
     "currency=rub&customer_email=prodamus-demo%40example.test&demo_mode=1&domain=testpage1.payform.ru&order_id=300155&order_num=dd-demo-83be933e-a277-41f3-801d-45771c12b051&payment_status=success&sum=790.00";
@@ -85,6 +91,7 @@ it("accepts PHP form bytes without the generic form parser changing nested/signa
   expect(response.status).toBe(200);
   expect((await response.json()).accessGranted).toBe(false);
 });
+/** Повтор demo остаётся статeless проверкой и не выдаёт подписку. */
 it("acknowledges replay only as a stateless diagnostic", async () => {
   for (let i = 0; i < 2; i++) {
     const response = await notify();
@@ -92,17 +99,20 @@ it("acknowledges replay only as a stateless diagnostic", async () => {
     expect((await response.json()).accessGranted).toBe(false);
   }
 });
+/** Изменённые signed fields дают400 без echo. */
 it("rejects a payload changed after signing", async () => {
   const response = await notify(enabledBase, raw.replace('"790.00"', '"1.00"'));
   expect(response.status).toBe(400);
   expect(await response.text()).not.toContain("order_num");
 });
+/** Подпись LIVE-ключом недопустима для sandbox. */
 it("does not fall back to the live merchant's configured secret", async () => {
   const response = await notify(enabledBase, raw, {
     Sign: createHmac("sha256", liveKey).update(raw).digest("hex"),
   });
   expect(response.status).toBe(400);
 });
+/** Cookie не участвует в proof и запрещена. */
 it("refuses browser session cookies at the diagnostic receiver", async () => {
   const response = await notify(enabledBase, raw, {
     Cookie: "session=synthetic",
@@ -110,6 +120,7 @@ it("refuses browser session cookies at the diagnostic receiver", async () => {
   expect(response.status).toBe(400);
   expect(response.headers.get("set-cookie")).toBeNull();
 });
+/** Добавленные query-поля отвергаются, не выпадают молча из подписи. */
 it("rejects query additions instead of silently excluding them from the diagnostic proof", async () => {
   const response = await fetch(enabledBase + path + "?demo_mode=0", {
     method: "POST",
@@ -118,6 +129,7 @@ it("rejects query additions instead of silently excluding them from the diagnost
   });
   expect(response.status).toBe(400);
 });
+/** Только разрешённые diagnostic MIME достигают parser. */
 it.each(["text/plain", "application/octet-stream"])(
   "does not parse unsupported content type %s",
   async (contentType) => {
@@ -127,6 +139,7 @@ it.each(["text/plain", "application/octet-stream"])(
     expect(response.status).toBe(415);
   },
 );
+/** Body свыше64КиБ даёт413 с безопасным текстом. */
 it("rejects oversized bytes without echoing body or stack", async () => {
   const response = await notify(
     enabledBase,
@@ -137,12 +150,14 @@ it("rejects oversized bytes without echoing body or stack", async () => {
   expect(text).not.toContain("PRIVATE_SANDBOX_BODY");
   expect(text).not.toContain("Error:");
 });
+/** Чужой browser Origin остаётся запрещён. */
 it("does not relax browser origin security for the new diagnostic", async () => {
   const response = await notify(enabledBase, raw, {
     Origin: "https://evil.test",
   });
   expect(response.status).toBe(403);
 });
+/** GET/paid query не становится webhook или оплатой. */
 it("never accepts GET/browser navigation as a signed payment", async () => {
   const response = await fetch(
     enabledBase + path + "?paid=1&" + new URLSearchParams(JSON.parse(raw)),
@@ -151,6 +166,7 @@ it("never accepts GET/browser navigation as a signed payment", async () => {
   expect(response.status).toBe(404);
   expect(response.headers.get("set-cookie")).toBeNull();
 });
+/** Обычная подпись не делает demo допустимым LIVE-событием. */
 it("still rejects an ordinary-key demo at the production webhook", async () => {
   const response = await fetch(enabledBase + "/api/prodamus/webhook", {
     method: "POST",
@@ -162,6 +178,7 @@ it("still rejects an ordinary-key demo at the production webhook", async () => {
   });
   expect(response.status).toBe(400);
 });
+/** Tripwire-счётчики подтверждают отсутствие всех durable/payment/mail effects за весь набор. */
 it("has not dispatched settlement or queued mail across diagnostic acceptance and rejection", () => {
   expect(settlement).not.toHaveBeenCalled();
   expect(mail).not.toHaveBeenCalled();

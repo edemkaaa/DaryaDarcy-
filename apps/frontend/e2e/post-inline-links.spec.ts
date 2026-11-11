@@ -5,6 +5,7 @@ import type { RichTextBlock } from "../src/domain/content/types";
 
 test.use({ hasTouch: true, isMobile: true });
 
+/** Касаемся координат подсветки, но pointer получает нативный textarea: курсор должен попасть в связанный текст без overlay-controls. */
 async function tapLink(page: Page, form: Locator, url: string) {
   await form.evaluate((node) =>
     Promise.all(node.getAnimations().map((animation) => animation.finished)),
@@ -36,6 +37,7 @@ async function tapLink(page: Page, form: Locator, url: string) {
   expect(selection.position).toBeLessThanOrEqual(start + label.length);
 }
 
+/** Для обоих редакторов проверяем перенос длинной emoji-ссылки, вставку абзаца, внутренний scroll и resize с сохранением геометрии подсветки. */
 for (const mode of ["full", "quick"] as const) {
   for (const width of [320, 1440]) {
     test.describe(`${mode}: inline link wrapping at ${width}px`, () => {
@@ -107,6 +109,7 @@ for (const mode of ["full", "quick"] as const) {
         const highlighted = input
           .locator("..")
           .locator("[aria-hidden='true'] > div");
+        /** После ResizeObserver сверяем ширину, scrollHeight, font и padding зеркала с textarea, чтобы переносы и hit-position совпадали. */
         const assertAlignment = async () => {
           // ResizeObserver paints asynchronously after a native viewport resize.
           await expect(async () => {
@@ -165,6 +168,7 @@ for (const mode of ["full", "quick"] as const) {
   }
 }
 
+/** Редактирование/отмена URL и удаление связанного текста сохраняют остальные ссылки и высоту; после reload читается сохранённый richText. */
 for (const mode of ["full", "quick"] as const) {
   test(`${mode}: edits links through selection and deletes them with their text without changing editor height`, async ({
     page,
@@ -216,6 +220,7 @@ for (const mode of ["full", "quick"] as const) {
       }
     });
     await gotoWithSession(page, mode === "full" ? "/admin" : "/feed");
+    /** Открываем полный или быстрый edit и ждём проверки локального черновика после reload. */
     const open = async () => {
       if (mode === "quick")
         await page
@@ -236,8 +241,10 @@ for (const mode of ["full", "quick"] as const) {
       return form;
     };
     let form = await open();
+    /** Берём поле текущей формы после её повторного открытия. */
     const input = () =>
       form.getByPlaceholder("Текст поста… Enter — новый абзац");
+    /** Фокусируем textarea и сообщаем новое выделение перед действием toolbar. */
     const select = async (start: number, end: number) =>
       input().evaluate(
         (node: HTMLTextAreaElement, range) => {
@@ -247,8 +254,10 @@ for (const mode of ["full", "quick"] as const) {
         },
         [start, end],
       );
+    /** Ссылка редактируется общей кнопкой toolbar, без дополнительных inline-controls поверх поля. */
     const linkButton = () =>
       form.getByRole("button", { name: "Добавить ссылку", exact: true });
+    /** Измеряем весь редакторский блок для проверки отсутствия скачка высоты при работе со ссылкой. */
     const editor = () => input().locator("..").locator("..");
     await expect(form.locator("[data-editor-link]")).toHaveCount(2);
     await expect(
@@ -326,6 +335,7 @@ for (const mode of ["full", "quick"] as const) {
   });
 }
 
+/** Удаление дублирующей подписи не переносит её URL на одинаковый plain-text, а частичное удаление другой ссылки оставляет связь оставшегося текста. */
 for (const mode of ["full", "quick"] as const) {
   test(`${mode}: deleting a linked duplicate does not transfer its URL and partial deletion keeps the other link`, async ({
     page,

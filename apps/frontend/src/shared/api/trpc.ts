@@ -27,6 +27,7 @@ const fileUploads = new Set([
   "admin.uploadMedia",
 ]);
 
+/** Операционный header допускается только для mutation с UUID v4; ключ одного запроса нельзя присвоить общему batch. */
 function operationHeaders(op: {
   type: string;
   context: Record<string, unknown>;
@@ -37,10 +38,7 @@ function operationHeaders(op: {
     throw new Error("Некорректная заявка. Запрос не отправлен.");
   return { "Idempotency-Key": key.data };
 }
-/**
- * Creates the tRPC client with proper configuration.
- * Call this once in your app's root layout.
- */
+/** Собираем links в порядке безопасных ошибок, отмены и проверки ответа, затем выбираем отдельный или batch-транспорт по протоколу. */
 export function createTRPCClient() {
   return trpc.createClient({
     links: [

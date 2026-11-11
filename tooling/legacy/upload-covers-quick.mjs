@@ -1,3 +1,4 @@
+// Заменяет три заранее заданных публичных ключа обложек из локальных файлов; расширение jpg не гарантирует JPEG-байты.
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -40,6 +41,7 @@ const uploads = [
   },
 ];
 
+// Ниже начинается внешняя запись S3 по историческим фиксированным ключам; исходные объекты и ACL нужно проверить до запуска.
 for (const item of uploads) {
   if (!fs.existsSync(item.file)) {
     console.log("SKIP missing", item.file);

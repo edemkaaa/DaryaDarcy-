@@ -14,6 +14,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runMysqlBackupIfDue } from "../../apps/backend/src/_core/backup";
 
+// Probe запускается внутри выбранного образа и требует точный bundle SHA, non-root и отсутствие S3/SMTP окружения.
 assert.equal(process.getuid?.(), 1000);
 assert.equal(
   createHash("sha256")
@@ -25,12 +26,14 @@ assert.equal(
   Object.keys(process.env).some((key) => /^(S3_|SMTP_)/.test(key)),
   false,
 );
+// Разрешена только одноразовая backend_test в namespace собственной БД; backup и restore не должны найти рабочую конфигурацию.
 const url = new URL(process.env.DATABASE_URL!);
 assert.equal(url.hostname, "127.0.0.1");
 assert.equal(url.port, "3306");
 assert.equal(url.pathname, "/backend_test");
 const mode = process.argv[2];
 assert.ok(mode === "backup" || mode === "restore" || mode === "failed-backup");
+// Успех backup проверяется по одному gzip, правам 0600 и отсутствию временных credentials; отказ не должен оставить частичный файл.
 if (mode !== "restore") {
   assert.equal((await stat("/app/backups")).mode & 0o777, 0o700);
   if (mode === "failed-backup") {
@@ -59,6 +62,7 @@ if (mode !== "restore") {
   // maintain a second general-purpose production option-file encoder here.
   const password = decodeURIComponent(url.password);
   assert.match(password, /^[a-zA-Z0-9-]+$/);
+  // Restore передаёт пароль через новый закрытый option-file и удаляет только собственный временный каталог в finally.
   const directory = await mkdtemp(join(tmpdir(), "darcy-image-restore-"));
   const config = join(directory, "client.cnf");
   try {

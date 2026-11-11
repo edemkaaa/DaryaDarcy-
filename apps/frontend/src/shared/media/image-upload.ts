@@ -11,6 +11,7 @@ import {
 import { runFileTask } from "@/shared/browser/file-task";
 import { runApiRequest } from "@/shared/api/request-lifecycle";
 
+/** Открываем общий browser picker с заданными типами и множественностью; ограничения выбора делегируем file-operations. */
 export function pickWebFiles(
   accept: string,
   multiple: boolean,
@@ -18,6 +19,7 @@ export function pickWebFiles(
 ): Promise<File[]> {
   return chooseFiles(accept, multiple, options);
 }
+/** Получаем локальный data URL отменяемым FileReader и возвращаем только Base64-часть без MIME-префикса. */
 export async function blobToBase64(
   blob: Blob,
   signal?: AbortSignal,
@@ -28,6 +30,7 @@ export async function blobToBase64(
   );
   return result.slice(result.indexOf(",") + 1);
 }
+/** Имя доступно только у File; обычный Blob не должен требовать существования File при SSR. */
 function fileName(blob: Blob): string {
   return typeof File !== "undefined" && blob instanceof File ? blob.name : "";
 }
@@ -49,13 +52,15 @@ type PhotoPreparationOptions = {
   maxInputBytes?: number;
 };
 
-/** Reject animation before canvas can silently reduce it to a single frame. */
+/** Проверяем GIF и анимационные чанки PNG/WebP до canvas, чтобы не молча терять остальные кадры. */
 async function assertStaticImage(blob: Blob, signal?: AbortSignal) {
   const bytes = new Uint8Array(
     await runFileTask(() => blob.arrayBuffer(), signal),
   );
+  /** Читаем короткий ASCII-маркер чанка без преобразования всего файла в строку. */
   const tag = (offset: number, length = 4) =>
     String.fromCharCode(...bytes.subarray(offset, offset + length));
+  /** Единообразно отклоняем обнаруженную анимацию до декодирования статичного кадра. */
   const animated = () => {
     throw new Error(
       "Анимированные изображения не поддерживаются. Выберите обычное фото JPG, PNG или WebP.",
@@ -75,6 +80,7 @@ async function assertStaticImage(blob: Blob, signal?: AbortSignal) {
     offset = next;
   }
 }
+/** Используем заявленный MIME, а для пустого/octet-stream восстанавливаем только известный тип по расширению File. */
 function imageType(blob: Blob): string {
   const type = blob.type.toLowerCase();
   if (type && type !== "application/octet-stream") return type;
@@ -82,6 +88,7 @@ function imageType(blob: Blob): string {
     imageTypes[fileName(blob).split(".").at(-1)?.toLowerCase() ?? ""] ?? ""
   );
 }
+/** HEIC/HEIF направляем в нативный img-путь вместо createImageBitmap для совместимости WebKit. */
 function isHeicLike(blob: Blob): boolean {
   return /heic|heif/i.test(imageType(blob));
 }
@@ -92,6 +99,7 @@ type Drawable = {
   draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void;
   release: () => void;
 };
+/** Возвращаем единый draw/release над bitmap или img: fallback сохраняет отмену и освобождает object URL. */
 async function loadDrawableFromBlob(
   blob: Blob,
   signal: AbortSignal,
@@ -123,6 +131,7 @@ async function loadDrawableFromBlob(
   const url = URL.createObjectURL(blob);
   const img = document.createElement("img");
   let released = false;
+  /** Один раз отключаем события img и отзываем временный URL; повторная очистка безопасна. */
   const release = () => {
     if (released) return;
     released = true;
@@ -132,7 +141,9 @@ async function loadDrawableFromBlob(
   };
   try {
     await new Promise<void>((resolve, reject) => {
+      /** Снимаем только abort-listener текущего ожидания после onload/onerror или отмены. */
       const cleanup = () => signal.removeEventListener("abort", cancel);
+      /** Отмена освобождает объект изображения до отклонения Promise, чтобы поздний onload не продолжил подготовку. */
       const cancel = () => {
         cleanup();
         release();
@@ -164,6 +175,7 @@ async function loadDrawableFromBlob(
   }
 }
 // Декодирование и canvas подчиняются сигналу задачи; формат результата проверяется отдельно от расширения исходника.
+/** Уменьшаем длинную сторону без увеличения и кодируем результат; ограниченный исходник можно сохранить, чтобы избежать лишнего lossy-прохода. */
 export async function compressImageBlob(
   blob: Blob,
   maxEdge = 1920,
@@ -211,6 +223,7 @@ export async function compressImageBlob(
       // Release decoded sources even if canvas.toBlob never calls back.
       drawable.release();
       const compressed = await new Promise<Blob | null>((resolve, reject) => {
+        /** Очищаем большой bitmap холста и отклоняем ожидание, даже если браузер не вызвал toBlob callback. */
         const cancel = () => {
           outputCanvas.width = outputCanvas.height = 0;
           reject(taskSignal.reason);
@@ -239,6 +252,7 @@ export async function compressImageBlob(
     }
   }, signal);
 }
+/** Проверяем исходный размер/тип/анимацию и уменьшаем результат ступенями до лимита фото; прозрачность запрашивает WebP. */
 async function preparePhotoBlob(
   raw: Blob,
   opts?: PhotoPreparationOptions,
@@ -275,7 +289,7 @@ async function preparePhotoBlob(
     "Подготовленное фото больше 4 МБ. Уменьшите изображение или выберите другое.",
   );
 }
-/** Canvas/FileReader data URLs are local bytes, not network connections. */
+/** Декодируем только Base64 data URL с предварительной оценкой размера; небольшие блоки ограничивают временные строки atob. Локальные data URL не требуют сетевого запроса. */
 function readPhotoDataUrl(uri: string, maxBytes: number): Blob {
   const comma = uri.indexOf(",");
   const header = uri.slice(0, comma);
@@ -303,6 +317,7 @@ function readPhotoDataUrl(uri: string, maxBytes: number): Blob {
   return blob;
 }
 
+/** Совместимый короткий путь возвращает Base64 уже проверенного и подготовленного изображения. */
 export async function uriToBase64(
   uri: string,
   opts?: PhotoPreparationOptions,
@@ -310,6 +325,7 @@ export async function uriToBase64(
   return (await uriToPhotoUpload(uri, opts)).base64;
 }
 // Сначала получаем проверенный файл изображения, затем кодируем его: MIME результата не выводится только из имени URL.
+/** Отделяем чтение локального data URL от сети, подготавливаем фото и возвращаем фактический MIME вместе с байтами. */
 export async function uriToPhotoUpload(
   uri: string,
   opts?: PhotoPreparationOptions,
@@ -336,6 +352,7 @@ export async function uriToPhotoUpload(
   return { base64: await blobToBase64(blob, opts?.signal), mimeType };
 }
 // Возвращаем новый File с согласованными именем и MIME, который затем проверяет закрытый контракт загрузки.
+/** Создаём File из подготовленного Blob с согласованными расширением и MIME, сохраняя время исходника. */
 export async function fileForPhotoUpload(
   file: File,
   opts?: { preserveAlpha?: boolean; signal?: AbortSignal },
@@ -354,6 +371,7 @@ export async function fileForPhotoUpload(
     lastModified: file.lastModified,
   });
 }
+/** Собираем переносимый payload публичной загрузки только после подготовки изображения и получения итогового имени. */
 export async function fileToUpload(
   file: File,
   opts?: { preserveAlpha?: boolean; signal?: AbortSignal },

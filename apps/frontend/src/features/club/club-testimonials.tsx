@@ -9,6 +9,7 @@ import type { ClubTestimonial } from "./club-testimonials.content";
 import classes from "./club-testimonials.module.scss";
 import { useMouseDragScroll } from "@/shared/browser/use-mouse-drag-scroll";
 
+/** Показываем публичные цитаты с переходом к исходным скриншотам; положение ленты и просмотр оригинала имеют отдельное состояние. */
 export function ClubTestimonials({
   items,
   label,
@@ -24,6 +25,7 @@ export function ClubTestimonials({
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   if (!items.length) return null;
 
+  /** Прокручиваем к измеренному началу карточки и учитываем системное уменьшение анимации. */
   function move(index: number) {
     const node = track.current;
     const article = node?.children[index] as HTMLElement | undefined;

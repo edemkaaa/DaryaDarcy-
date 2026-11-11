@@ -23,6 +23,7 @@ import { privateFilesBrowser } from "./helpers/private-files-browser";
 // Explicit acceptance only. Credentials are supplied in memory by an owned
 // harness; this suite never creates, lists or deletes working storage objects.
 const enabled = process.env.AG2_S3_ACCEPTANCE === "true" && !!testDatabaseUrl;
+/** Явно включаемая приёмка чтения новых private-fixture объектов настоящего S3 через native API и одноразовую SQL. */
 describe.skipIf(!enabled)(
   "actual S3 with native attachment API and SQL",
   () => {
@@ -30,6 +31,7 @@ describe.skipIf(!enabled)(
     let urls: string[];
     // Call-through observation, not a replacement transport or S3 response mock.
     const send = vi.spyOn(S3Client.prototype, "send");
+    /** Проверяет manifest владельца и точные endpoint/bucket, привязывает только два harness-объекта к synthetic посту и запускает API. */
     beforeAll(async () => {
       if (process.env.DATABASE_URL !== testDatabaseUrl)
         throw new Error("Explicit matching fixture DB inputs are required");
@@ -79,6 +81,7 @@ describe.skipIf(!enabled)(
         sessionVersion: 0,
       });
     });
+    /** Очищает call-through счётчик SDK и восстанавливает published-parent и действующие права reader. */
     beforeEach(async () => {
       send.mockClear();
       vi.stubEnv("PRIVATE_POST_MEDIA_DELIVERY_ENABLED", "true");
@@ -97,6 +100,7 @@ describe.skipIf(!enabled)(
           [urls[i], 97301 + i],
         );
     });
+    /** Закрывает API и удаляет только собственные SQL-строки; реальные объекты принадлежат внешнему harness и здесь не удаляются. */
     afterAll(async () => {
       await app?.close();
       if (conn) {
@@ -119,12 +123,15 @@ describe.skipIf(!enabled)(
       send.mockRestore();
       vi.unstubAllEnvs();
     });
+    /** Создаёт session-cookie заголовок собственного reader. */
     const auth = () => ({ Cookie: `${COOKIE_NAME}=${token}` });
+    /** Запрашивает stable attachment URL с deadline и выбранными HTTP-опциями. */
     const read = (options: RequestInit = {}, id = 97302) =>
       fetch(`${base}/api/media/post-attachments/${id}`, {
         ...options,
         signal: AbortSignal.timeout(15000),
       });
+    /** Проверяет приватный 404 и отсутствие любого SDK storage-вызова. */
     async function denied(options: RequestInit = {}) {
       const response = await read(options);
       expect(response.status).toBe(404);
@@ -132,6 +139,7 @@ describe.skipIf(!enabled)(
       expect(response.headers.get("cache-control")).toBe("private, no-store");
       expect(send).not.toHaveBeenCalled();
     }
+    /** API выдаёт точные fixture-байты из private-prefix без storage-key или origin в заголовках. */
     it.each([97301, 97302])(
       "streams exact bytes from private prefix attachment %i",
       async (id) => {
@@ -147,6 +155,7 @@ describe.skipIf(!enabled)(
         );
       },
     );
+    /** HEAD с Range возвращает полную длину без тела и только одним storage HEAD. */
     it("HEAD exposes length but no body, even with Range", async () => {
       const response = await read({
         method: "HEAD",
@@ -157,6 +166,7 @@ describe.skipIf(!enabled)(
       expect(await response.text()).toBe("");
       expect(send).toHaveBeenCalledTimes(1);
     });
+    /** Настоящий S3 возвращает точные обычный, suffix и открытый Range через API. */
     it.each([
       ["bytes=2-5", "2345", "bytes 2-5/10"],
       ["bytes=-3", "789", "bytes 7-9/10"],
@@ -168,6 +178,7 @@ describe.skipIf(!enabled)(
       expect(response.headers.get("content-length")).toBe(String(body.length));
       expect(await response.text()).toBe(body);
     });
+    /** Невыполнимый или множественный Range отвергается после HEAD до GET объекта. */
     it.each(["bytes=10-", "bytes=0-1,4-5"])(
       "refuses range %s before storage GET",
       async (range) => {
@@ -177,6 +188,7 @@ describe.skipIf(!enabled)(
         expect(send).toHaveBeenCalledTimes(1);
       },
     );
+    /** Cookie и Bearer одинаково требуют текущую клубную подписку; гость не достигает S3. */
     it.each(["cookie", "bearer"])(
       "rechecks paid club access through %s",
       async (mode) => {
@@ -190,6 +202,7 @@ describe.skipIf(!enabled)(
         expect(await response.text()).toBe("0123456789");
       },
     );
+    /** Pending, expired, blocked и revoked reader отклоняются до SDK. */
     it.each(["unpaid", "expired", "blocked", "revoked"])(
       "refuses club member %s without S3 calls",
       async (state) => {
@@ -209,6 +222,7 @@ describe.skipIf(!enabled)(
         await denied({ headers: auth() });
       },
     );
+    /** Staff-role даёт service-доступ без оплаты, после demotion тот же JWT не читает private. */
     it.each(["admin", "moderator"])(
       "permits unpaid %s and rechecks role revocation",
       async (role) => {
@@ -225,6 +239,7 @@ describe.skipIf(!enabled)(
         await denied({ headers: auth() });
       },
     );
+    /** Draft, hidden и detached media не допускают storage-read. */
     it.each(["draft", "hidden", "detached"])(
       "refuses %s post/association before S3",
       async (state) => {
@@ -237,10 +252,12 @@ describe.skipIf(!enabled)(
         await denied();
       },
     );
+    /** Выключенная выдача не вызывает SDK даже при существующем объекте. */
     it("disabled delivery never reaches storage", async () => {
       vi.stubEnv("PRIVATE_POST_MEDIA_DELIVERY_ENABLED", "false");
       await denied();
     });
+    /** Удалённый parent либо media запрещает скачивание; fixture восстанавливается в finally. */
     it("deleted post and removed attachment are refused before storage", async () => {
       await conn.query(
         "DELETE FROM posts WHERE id=97301 AND text='ag2-native-fixture'",
@@ -264,6 +281,7 @@ describe.skipIf(!enabled)(
         );
       }
     });
+    /** Неверная synthetic-подпись даёт безопасный 503 без раскрытия bucket path и origin. */
     it("bad storage signature returns generic 503 without URL/key leakage", async () => {
       const key = process.env.S3_SECRET_KEY!;
       vi.stubEnv("S3_SECRET_KEY", "ag2-intentionally-invalid-signature");
@@ -280,6 +298,7 @@ describe.skipIf(!enabled)(
         vi.stubEnv("S3_SECRET_KEY", key);
       }
     });
+    /** Настоящий браузер читает через Next rewrite с cookie, Range и текущей подпиской/epoch; отзыв закрывает следующий запрос. */
     it("browser cookie uses the unchanged Next rewrite and rechecks access", async () => {
       await conn.query("UPDATE posts SET target='club' WHERE id=97301");
       const browser = await privateFilesBrowser(base);

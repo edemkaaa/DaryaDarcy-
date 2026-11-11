@@ -1,5 +1,7 @@
 // Читает ограниченные ответы каталога и обложек с фиксированных источников. Ошибки не превращаются в разрешённую публикацию или бесконечный кеш.
 async function boundedBody(response, maxBytes) {
+  // Ограничивает фактический поток ответа независимо от Content-Length и прекращает оставшееся чтение после отказа.
+
   const chunks = [];
   let size = 0;
   try {
@@ -17,6 +19,8 @@ async function boundedBody(response, maxBytes) {
 }
 
 export async function readPublicCatalog(url, signal) {
+  // Принимает целый валидный публичный каталог ограниченного размера, не отбрасывая ошибочные поля так, будто они разрешают доступ.
+
   const response = await fetch(url, {
     redirect: "error",
     signal: AbortSignal.any([
@@ -53,6 +57,8 @@ export async function readPublicCatalog(url, signal) {
 }
 
 export async function readPublicYoutubeState(url, id, signal) {
+  // Проверяет точный компактный ответ для одного ID; лишние поля не должны незаметно изменить смысл authority.
+
   if (!/^[\w-]{11}$/.test(id)) throw new Error("invalid video id");
   const authority = new URL(url);
   authority.searchParams.set("input", JSON.stringify({ json: { youtubeId: id } }));
@@ -70,6 +76,8 @@ export async function readPublicYoutubeState(url, id, signal) {
 }
 
 export async function readThumbnail(id, signal, request = fetch) {
+  // Выводит фиксированный URL только из строгого ID и проверяет JPEG по типу и сигнатуре без cookies.
+
   if (!/^[\w-]{11}$/.test(id)) throw new Error("invalid video id");
   const response = await request(`https://i.ytimg.com/vi/${id}/hqdefault.jpg`, {
     redirect: "error",
@@ -99,9 +107,13 @@ export function createThumbnailReader({
   maxBytes = 2 * 1024 ** 2,
   maxEntries = 64,
 } = {}) {
+  // Кеширует лишь проверенные байты с TTL и бюджетом; публикация всё равно подтверждается HTTP-обработчиком.
+
   const entries = new Map();
   let bytes = 0;
   const remove = (id) => {
+    // Одновременно освобождает место по байтам и запись, чтобы вытеснение не искажало бюджет обложек.
+
     const entry = entries.get(id);
     if (entry) bytes -= entry.image.length;
     entries.delete(id);

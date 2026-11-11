@@ -1,3 +1,4 @@
+/** Read-only dry-run манифеста Библиотеки проверяет bytes/hash/slots без SQL, S3 и изменения исходных ресурсов. */
 import { expect, expectTypeOf, it } from "vitest";
 import sharp from "sharp";
 import { createHash } from "node:crypto";
@@ -6,14 +7,17 @@ import { libraryFileKey, libraryMaterialKey } from "../apps/backend/src/content/
 import { inspectLibraryMigration } from "../apps/backend/src/content/library-migration-manifest";
 import { uploadPrivateContentFile } from "../apps/backend/src/content/private-content-uploads";
 
+/** Type-level проверка не допускает операторские library usages в обычный upload редактора. */
 it("keeps operator-only library usages out of the existing editor upload contract", () => {
   expectTypeOf<Awaited<ReturnType<typeof uploadPrivateContentFile>>["usage"]>().toEqualTypeOf<
     "postPhoto" | "articlePhoto" | "articleDocument" | "commentPhoto"
   >();
 });
 
+/** SHA-256 фикстуры вычисляется от исходных bytes независимо от migration validator. */
 const hash = (bytes: Buffer) =>
   createHash("sha256").update(bytes).digest("hex");
+/** Создаём отдельный TXT slot с expectedRevision0 и каноническим именем. */
 const document = () => {
   const bytes = Buffer.from("synthetic library document");
   return {
@@ -26,6 +30,7 @@ const document = () => {
     expectedRevision: 0,
   };
 };
+/** Разрешены семь известных aesthetic-коллекций, но не бесплатный horse/houses или traversal. */
 it("accepts the seven club aesthetic namespaces without broadening free/public namespaces", async () => {
   for(const key of ["castlecore","cottagecore","darkacademia","fairycore","goblincore","lightacademia","witchcore"]){
     const materialKey=`aesthetic-${key}`;
@@ -35,6 +40,7 @@ it("accepts the seven club aesthetic namespaces without broadening free/public n
   for(const key of ["houses","horse","loshadka","aesthetic-unknown","aesthetic-castlecore/../houses"])
     expect(libraryMaterialKey(key)).toBe(false);
 });
+/** Source registry однозначно сопоставляет220slots семи коллекциям и текущему пределу до50на коллекцию. */
 it("maps exactly the audited 220 visual slots without key collisions or a hidden second page",async()=>{
   const registry=JSON.parse(await readFile(new URL("../docs/audits/library-source-map-2026-10-20.json",import.meta.url),"utf8"));
   const slots=new Set<string>(),counts=new Map<string,number>();
@@ -49,6 +55,7 @@ it("maps exactly the audited 220 visual slots without key collisions or a hidden
   expect(slots.size).toBe(220);expect(counts.size).toBe(7);
   expect([...counts.values()].every(count=>count<=50)).toBe(true);
 });
+/** Отчёт содержит только totals/material, не имена, Base64 и содержимое. */
 it("dry-runs a verified manifest without database/storage configuration or exposing bytes and names", async () => {
   const report = await inspectLibraryMigration({
     materialKey: "recipes",
@@ -64,6 +71,7 @@ it("dry-runs a verified manifest without database/storage configuration or expos
     /synthetic library document|fixture.txt|base64/,
   );
 });
+/** Нарушенный digest, дубли и неизвестные/path-like поля останавливают план до записи. */
 it("rejects byte substitution, duplicate slots, unknown materials and path-like names", async () => {
   for (const input of [
     {
@@ -89,6 +97,7 @@ it("rejects byte substitution, duplicate slots, unknown materials and path-like 
   ])
     await expect(inspectLibraryMigration(input)).rejects.toThrow();
 });
+/** Реальный lossless WebP проходит проверку, SVG под тем же metadata-контрактом отвергается. */
 it("validates real image bytes without lossy conversion and rejects disguised active content", async () => {
   const bytes = await sharp({
     create: { width: 3, height: 4, channels: 3, background: "red" },

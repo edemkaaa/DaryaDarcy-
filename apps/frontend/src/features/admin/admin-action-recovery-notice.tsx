@@ -8,6 +8,8 @@ export function AdminActionRecoveryNotice({
 }: {
   recovery: AdminActionRecovery;
 }) {
+  // Различает подтверждённый результат команды и неизвестный исход: проверка читает журнал, а повтор требует прежнего ключа и отдельного согласия.
+
   const { intent, error, busy, cooldown } = recovery;
   if (!intent && !error) return null;
   const outcome = intent?.outcome;

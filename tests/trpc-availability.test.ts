@@ -1,9 +1,11 @@
+/** Общий tRPC middleware нормализует инфраструктурную недоступность, сохраняя явные доменные отказы. */
 import { expect, it } from "vitest";
 import { ServiceUnavailableException } from "@nestjs/common";
 import { TRPCError } from "@trpc/server";
 import { publicProcedure, router } from "../apps/backend/src/_core/trpc";
 import type { TrpcContext } from "../apps/backend/src/_core/context";
 
+/** Пропускаем произвольную ошибку через настоящий publicProcedure caller без HTTP и БД. */
 const failure = (error: unknown) =>
   router({
     read: publicProcedure.query(() => {
@@ -13,6 +15,7 @@ const failure = (error: unknown) =>
     .createCaller({ user: null } as TrpcContext)
     .read();
 
+/** Точное переполнение пула и Nest 503 превращаются в безопасный SERVICE_UNAVAILABLE без внутренних сообщений. */
 it.each([
   new Error("Queue limit reached."),
   new Error("PRIVATE_SQL", { cause: new Error("Queue limit reached.") }),
@@ -26,6 +29,7 @@ it.each([
     });
   },
 );
+/** Явный TRPCError имеет приоритет над вложенной причиной переполнения. */
 it.each([
   "BAD_REQUEST",
   "UNAUTHORIZED",
@@ -47,6 +51,7 @@ it.each([
     ).rejects.toMatchObject({ code, message: "Domain refusal" });
   },
 );
+/** Похожая строка, lock timeout и циклический cause не должны ошибочно становиться повторяемым 503. */
 it("does not treat an unknown error, SQL timeout or an unrelated message as queue exhaustion", async () => {
   for (const message of [
     "PRIVATE_UNKNOWN",

@@ -13,10 +13,12 @@ import { getPostStatistics } from "../apps/backend/src/content/post-admin-reposi
 import { openContentTestDatabase } from "./helpers/content-mysql";
 import { testDatabaseUrl } from "./helpers/backend-mysql";
 
+/** Проверяем SQL-агрегаты админки и фактический объём возвращаемых строк на изолированных временных таблицах соединения. */
 describe.skipIf(!testDatabaseUrl)(
   "bounded admin statistics on disposable MySQL",
   () => {
     let connection: Connection;
+    /** Создаём connection-local копии posts/likes/saved_posts, чтобы TRUNCATE не затрагивал фикстуры параллельных файлов. */
     beforeAll(async () => {
       connection = await openContentTestDatabase();
       // Connection-local shadows cannot delete other suites' fixture rows.
@@ -31,6 +33,7 @@ describe.skipIf(!testDatabaseUrl)(
         await connection.query(ddl);
       }
     });
+    /** Очищаем только временные таблицы и фиксируем Date/TZ для предсказуемых месячных границ. */
     beforeEach(async () => {
       for (const table of ["posts", "likes", "saved_posts"])
         await connection.query(`TRUNCATE TABLE ${table}`);
@@ -38,12 +41,14 @@ describe.skipIf(!testDatabaseUrl)(
       vi.useFakeTimers({ toFake: ["Date"] });
       vi.setSystemTime(new Date("2026-10-19T12:00:00Z"));
     });
+    /** Возвращаем часы и окружение, закрывая соединение вместе с его временными таблицами. */
     afterAll(async () => {
       vi.useRealTimers();
       vi.unstubAllEnvs();
       await connection?.end();
     });
 
+    /** На 742 тяжёлых постах сверяем статусы, месяцы, реакции и top5, затем повторяем реальные SELECT для ограничения числа строк и байтов. */
     it("counts a 742-post archive without transferring it into Node", async () => {
       const text = "🌿".repeat(50) + "archive ".repeat(240);
       const fixtures = [
@@ -95,6 +100,7 @@ describe.skipIf(!testDatabaseUrl)(
       const queries: { query: string; params: unknown[] }[] = [];
       const database = drizzle(connection, {
         logger: {
+          /** Сохраняем испущенный SQL и параметры, чтобы независимо проверить реальный объём результата, а не mock query builder. */
           logQuery(query, params) {
             queries.push({ query, params });
           },
@@ -138,6 +144,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(transferredBytes).toBeLessThan(64 * 1024);
     });
 
+    /** Пустой архив возвращает нули и пустой top, без отсутствующих агрегатов. */
     it("keeps zero counters and no leaders for an empty archive", async () => {
       expect(await getPostStatistics(drizzle(connection))).toEqual({
         totalPosts: 0,
@@ -155,6 +162,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
     });
 
+    /** Московская граница месяца разделяет соседние UTC-метки по часовому поясу процесса, сохраняя прежний контракт. */
     it("keeps the process-local month boundary rather than UTC date truncation", async () => {
       vi.stubEnv("TZ", "Europe/Moscow");
       await connection.query(

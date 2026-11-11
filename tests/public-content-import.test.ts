@@ -5,6 +5,7 @@ import {
   preparePublicSnapshot,
 } from "../tooling/data/import-public-staging.mjs";
 
+/** Создаёт исторический публичный снимок с датами и отдельными запрещёнными для переноса персональными данными. */
 function snapshot() {
   return {
     posts: [
@@ -50,7 +51,9 @@ function snapshot() {
     users: [{ email: "never-import@example.test" }],
   };
 }
+/** Проверяет ограниченный bootstrap публичного контента, который исключает аккаунты и engagement. */
 describe("public-only staging content bootstrap", () => {
+  /** Сохраняет публичные записи и даты, исключая пользователей, счётчики и вложенные media вне контракта. */
   it("preserves public content and dates but excludes users and engagement", () => {
     const prepared = preparePublicSnapshot(snapshot());
     expect(Object.keys(prepared).sort()).toEqual(["posts", "tags", "videos"]);
@@ -64,6 +67,7 @@ describe("public-only staging content bootstrap", () => {
     expect(prepared.posts[0]).not.toHaveProperty("media");
     expect(prepared.videos[0].youtubeId).toBe("abcdefghijk");
   });
+  /** Отклоняет закрытые, неопубликованные и неподдерживаемые посты и небезопасные источники фотографий. */
   it.each([
     { target: "club" },
     { target: "both" },
@@ -81,6 +85,7 @@ describe("public-only staging content bootstrap", () => {
       "Invalid public content snapshot",
     );
   });
+  /** Отклоняет повторные исходные ID вместо молчаливой потери записей. */
   it("refuses duplicate source IDs rather than silently losing records", () => {
     const data = snapshot();
     data.posts.push({ ...data.posts[0] });
@@ -88,6 +93,7 @@ describe("public-only staging content bootstrap", () => {
       "Invalid public content snapshot",
     );
   });
+  /** В историческом контракте bootstrap не допускает скрытое видео и некорректный YouTube ID. */
   it("refuses a hidden or non-YouTube catalog record", () => {
     const data = snapshot();
     data.videos[0].published = false;
@@ -100,6 +106,7 @@ describe("public-only staging content bootstrap", () => {
       "Invalid public content snapshot",
     );
   });
+  /** Отклоняет ссылку поста на неизвестный тег. */
   it("refuses unknown tag references", () => {
     const data = snapshot();
     data.posts[0].tags = ["unknown"];
@@ -107,6 +114,7 @@ describe("public-only staging content bootstrap", () => {
       "Invalid public content snapshot",
     );
   });
+  /** Разрешает только явно изолированную staging-БД и ожидаемый origin приложения. */
   it("permits only the isolated staging database and application origin", () => {
     expect(() =>
       assertStagingDestination(
@@ -115,6 +123,7 @@ describe("public-only staging content bootstrap", () => {
       ),
     ).not.toThrow();
   });
+  /** Допускает единственный charset=utf8mb4 и запрещает прочие или повторные driver options. */
   it("accepts the staging URL's explicit UTF-8 charset without allowing other driver options", () => {
     expect(() =>
       assertStagingDestination(
@@ -135,6 +144,7 @@ describe("public-only staging content bootstrap", () => {
       ).toThrow("Not the isolated staging destination");
     }
   });
+  /** Отклоняет небезопасную цель без раскрытия credentials и исходного повреждённого URL. */
   it.each([
     [
       "mysql://fixture:synthetic@mysql/daryadarcy",
@@ -169,11 +179,13 @@ describe("public-only staging content bootstrap", () => {
   );
 });
 
+/** Проверяет порядок транзакционного bootstrap на наблюдаемом connection-double. */
 describe("transactional content bootstrap", () => {
   const destination = {
     database: "mysql://fixture:synthetic@mysql/daryadarcy_staging",
     app: "https://daryadarcy.dev.reeskeen.ru",
   };
+  /** Имитирует advisory lock, движки таблиц, заполненную цель и адресный отказ последней вставки. */
   function connection(occupied = false, failInsert = false) {
     return {
       query: vi.fn(async (sql: string) => {
@@ -199,6 +211,7 @@ describe("transactional content bootstrap", () => {
       rollback: vi.fn(async () => {}),
     };
   }
+  /** По умолчанию выполняет только валидацию без INSERT и транзакции. */
   it("defaults to read-only validation, even with a valid destination", async () => {
     const db = connection();
     const report = await importPublicContent(db, snapshot(), destination);
@@ -212,6 +225,7 @@ describe("transactional content bootstrap", () => {
     expect(db.execute).not.toHaveBeenCalled();
     expect(db.beginTransaction).not.toHaveBeenCalled();
   });
+  /** Вставляет только tags/posts/videos в одной транзакции с параметризованными значениями. */
   it("inserts only the three content tables in one transaction with parameterized values", async () => {
     const db = connection();
     const report = await importPublicContent(db, snapshot(), {
@@ -233,6 +247,7 @@ describe("transactional content bootstrap", () => {
       new Date("2026-09-01T10:00:00.000Z"),
     );
   });
+  /** Не вставляет записи в непустую цель и откатывает начатую транзакцию. */
   it("refuses a non-empty destination without any inserts", async () => {
     const db = connection(true);
     await expect(
@@ -242,6 +257,7 @@ describe("transactional content bootstrap", () => {
     expect(db.rollback).toHaveBeenCalledOnce();
     expect(db.commit).not.toHaveBeenCalled();
   });
+  /** Отказ последней таблицы откатывает предыдущие вставки, освобождает lock и скрывает значения SQL. */
   it("rolls back earlier inserts if the last table fails and hides SQL values", async () => {
     const db = connection(false, true);
     await expect(
@@ -252,6 +268,7 @@ describe("transactional content bootstrap", () => {
     expect(db.commit).not.toHaveBeenCalled();
     expect(db.query.mock.calls.at(-1)?.[0]).toContain("RELEASE_LOCK");
   });
+  /** Отклоняет неверный origin и закрытый снимок ещё до обращения к connection. */
   it("rejects unsafe targets and snapshots before touching the database", async () => {
     const db = connection();
     await expect(
@@ -269,6 +286,7 @@ describe("transactional content bootstrap", () => {
     expect(db.query).not.toHaveBeenCalled();
     expect(db.beginTransaction).not.toHaveBeenCalled();
   });
+  /** Не начинает транзакцию и не захватывает lock для таблиц без транзакционного движка. */
   it("refuses tables without transactional storage before acquiring a lock", async () => {
     const db = connection();
     db.query.mockResolvedValueOnce([
@@ -281,6 +299,7 @@ describe("transactional content bootstrap", () => {
     expect(db.beginTransaction).not.toHaveBeenCalled();
     expect(db.execute).not.toHaveBeenCalled();
   });
+  /** Не начинает перенос и не освобождает чужой lock, когда другой importer уже владеет им. */
   it("does not start a transaction when another importer holds the lock", async () => {
     const db = connection();
     const original = db.query.getMockImplementation()!;

@@ -1,3 +1,4 @@
+# Скачивает, локально обрезает и публикует конкретные книжные обложки в S3 через удалённый helper.
 import pathlib
 import socket
 import paramiko
@@ -18,6 +19,7 @@ books = {
     "book-3": "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/94b5bebfd7f4-IbTlGDtcIAJBcJAR.PNG",
 }
 
+# Подключение использует историческое автоматическое доверие неизвестному SSH host key; перед новым запуском требуется отдельная сверка хоста.
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 sock = socket.create_connection((env["DEPLOY_HOST"], 22), 20)

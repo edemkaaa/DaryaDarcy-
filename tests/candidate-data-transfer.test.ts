@@ -1,3 +1,4 @@
+/** Проверяем чистый план колонок переноса на метаданных, не выполняя SQL или копирование данных. */
 import { expect, it } from "vitest";
 import * as transfer from "../tooling/scripts/candidate-data-transfer";
 
@@ -25,6 +26,7 @@ const oldColumns = [
     ordinal: 2,
   },
 ];
+/** Явный список сохраняет исходные колонки; дополнительное nullable-поле цели не требует выдуманного значения. */
 it("keeps every source column explicit and permits a nullable new target field", () => {
   expect(
     transfer.transferColumnPlan?.(oldColumns, [
@@ -33,6 +35,7 @@ it("keeps every source column explicit and permits a nullable new target field",
     ]),
   ).toEqual([{ name: "users", columns: ["id", "passwordHash"] }]);
 });
+/** Отсутствие, сужение типа и обязательное новое поле должны блокировать перенос. */
 it.each(
   [
     oldColumns.slice(0, 1),
@@ -50,6 +53,7 @@ it.each(
     expect(() => transfer.transferColumnPlan?.(oldColumns, target)).toThrow();
   },
 );
+/** Непроверенное имя таблицы не должно становиться частью генерируемого SQL. */
 it("refuses identifiers which could redirect a generated SQL statement", () => {
   const malicious = oldColumns.map((c) => ({
     ...c,
@@ -57,6 +61,7 @@ it("refuses identifiers which could redirect a generated SQL statement", () => {
   }));
   expect(() => transfer.transferColumnPlan?.(malicious, malicious)).toThrow();
 });
+/** История схемы не переносится как обычные пользовательские записи. */
 it("refuses copying migration history as application data", () => {
   const history = oldColumns.map((c) => ({
     ...c,

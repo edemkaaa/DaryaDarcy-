@@ -9,6 +9,7 @@ export const BROWN_DARK = "#4A3728";
 export const BROWN_LIGHT = "#7A6B5E";
 export const GREEN_ACCENT = "#8B7355";
 
+/** Оставляем совместимую точку получения ширины детального поста от общего viewport. */
 export function getPostScreenContent(viewport: ViewportSize) {
   const { width: SCREEN_WIDTH } = viewport;
   return { SCREEN_WIDTH };

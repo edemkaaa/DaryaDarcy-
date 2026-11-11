@@ -13,6 +13,7 @@ const env = Object.fromEntries(
     })
 );
 
+// Первая страница читается по историческому порядку SQL; результаты не доказывают нынешнюю сортировку tRPC.
 const conn = await mysql.createConnection(env.DATABASE_URL);
 const [firstPage] = await conn.query(
   `SELECT p.id, p.text, p.richText IS NOT NULL AS hasRt,

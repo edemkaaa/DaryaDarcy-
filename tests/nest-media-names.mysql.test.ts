@@ -22,6 +22,7 @@ import { SessionService } from "../apps/backend/src/identity/session.service";
 import type { AppRouter } from "../apps/backend/src/routers";
 
 // Global SQL maintenance needs its own fresh disposable DB, never parallel publishers.
+/** Проверяет глобальную очистку технических camera-filename только на выделенной пустой media-БД. */
 describe.skipIf(
   !testDatabaseUrl || process.env.BACKEND_MEDIA_NAMES_ACCEPTANCE !== "1",
 )("raw-camera filename cleanup over HTTP/JWT/MySQL", () => {
@@ -45,6 +46,7 @@ describe.skipIf(
   ];
   const firstMediaId = 8480;
   const lastMediaId = firstMediaId + fixtures.length - 1;
+  /** Требует явный acceptance-флаг и пустую post_media перед запуском локального API. */
   beforeAll(async () => {
     conn = await openContentTestDatabase();
     const [existing] = await conn.query<RowDataPacket[]>(
@@ -59,6 +61,7 @@ describe.skipIf(
     await app.listen(0, "127.0.0.1");
     base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
   });
+  /** Удаляет свой fault-trigger, диапазон вложений, посты и три аккаунта suite. */
   async function cleanup() {
     await conn.query("DROP TRIGGER IF EXISTS media_names_refusal");
     await conn.query("DELETE FROM post_media WHERE id BETWEEN ? AND ?", [
@@ -68,6 +71,7 @@ describe.skipIf(
     await conn.query("DELETE FROM posts WHERE id IN (8480,8481)");
     await conn.query("DELETE FROM users WHERE id BETWEEN 8480 AND 8482");
   }
+  /** Восстанавливает роли и два поста с распознаваемыми camera-названиями и похожими допустимыми именами. */
   beforeEach(async () => {
     await cleanup();
     await conn.query(
@@ -89,10 +93,12 @@ describe.skipIf(
       );
     }
   });
+  /** Возвращает session spy и снимает адресный fault-trigger. */
   afterEach(async () => {
     vi.restoreAllMocks();
     await conn.query("DROP TRIGGER IF EXISTS media_names_refusal");
   });
+  /** Закрывает API и удаляет fixture и соединения с восстановлением окружения. */
   afterAll(async () => {
     await app?.close();
     if (conn) {
@@ -104,12 +110,14 @@ describe.skipIf(
     )?.$client.end();
     vi.unstubAllEnvs();
   });
+  /** Создаёт HTTP-клиент admin, member, moderator либо гостя. */
   function client(actor: "admin" | "member" | "moderator" | null = "admin") {
     return createTRPCProxyClient<AppRouter>({
       links: [
         httpLink({
           url: `${base}/api/trpc`,
           transformer: superjson,
+          /** Выпускает JWT выбранной роли непосредственно перед запросом, для гостя заголовки пустые. */
           headers: async () =>
             actor
               ? {
@@ -120,6 +128,7 @@ describe.skipIf(
       ],
     });
   }
+  /** Читает все технические поля собственного media-диапазона в порядке ID. */
   async function rows() {
     const [result] = await conn.query<RowDataPacket[]>(
       "SELECT id,postId,type,url,filename,mimeType,fileSize,duration,sortOrder,createdAt FROM post_media WHERE id BETWEEN ? AND ? ORDER BY id",
@@ -127,6 +136,7 @@ describe.skipIf(
     );
     return result;
   }
+  /** Очистка обнуляет только распознанные camera-имена, сохраняя прочие имена и все media-метаданные. */
   it("clears only recognized camera names across posts without changing attachment metadata", async () => {
     const before = await rows();
     expect(await client().admin.cleanupMediaNames.mutate()).toEqual({
@@ -136,6 +146,7 @@ describe.skipIf(
       before.map((row, index) => ({ ...row, filename: fixtures[index][1] })),
     );
   });
+  /** Повторная очистка идемпотентна и не меняет уже обработанные строки. */
   it("retains the same rows on repeated cleanup", async () => {
     await client().admin.cleanupMediaNames.mutate();
     const before = await rows();
@@ -144,6 +155,7 @@ describe.skipIf(
     });
     expect(await rows()).toEqual(before);
   });
+  /** Сбой поздней строки откатывает весь SQL UPDATE вместо частичной очистки. */
   it("rolls back the SQL statement if a later matching row refuses an update", async () => {
     const before = await rows();
     await conn.query(`CREATE TRIGGER media_names_refusal BEFORE UPDATE ON post_media FOR EACH ROW
@@ -156,6 +168,7 @@ describe.skipIf(
     });
     expect(await rows()).toEqual(before);
   });
+  /** Гость, member и moderator получают отказ без изменения filename. */
   it.each([null, "member", "moderator"] as const)(
     "refuses %s without changing filenames",
     async (actor) => {
@@ -166,6 +179,7 @@ describe.skipIf(
       expect(await rows()).toEqual(before);
     },
   );
+  /** Заблокированный администратор не запускает maintenance по старой сессии. */
   it("refuses a blocked administrator without changing filenames", async () => {
     await conn.query(
       "UPDATE users SET blockedAt=CURRENT_TIMESTAMP WHERE id=8480",
@@ -176,6 +190,7 @@ describe.skipIf(
     ).rejects.toMatchObject({ data: { httpStatus: 401 } });
     expect(await rows()).toEqual(before);
   });
+  /** Отзыв сессии, блокировка или снятие роли после capture не разрешают поздний глобальный UPDATE. */
   it.each([
     {
       change: "session revoked",

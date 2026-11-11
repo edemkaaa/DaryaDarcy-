@@ -1,3 +1,4 @@
+/** Инъекция инфраструктурного отказа scrypt: его нельзя трактовать как неверный пароль. */
 import { expect, it, vi } from "vitest";
 import type { ScryptOptions } from "node:crypto";
 
@@ -14,6 +15,7 @@ vi.mock("node:crypto", async (importOriginal) => {
 });
 import { verifyPassword } from "../apps/backend/src/_core/password";
 
+/** Подменённый callback возвращает три неожиданных отказа; verifier обязан передать исходную ошибку, а не false. */
 it.each([
   new Error("synthetic crypto failure"),
   Object.assign(new Error("synthetic allocation failure"), { code: "ENOMEM" }),

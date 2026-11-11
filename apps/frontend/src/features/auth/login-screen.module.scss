@@ -6,6 +6,7 @@
     flex: 1;
   }
 
+  /* Форма центрируется в доступном пространстве, сохраняя прокрутку и наружные отступы при низком viewport. */
   .scroll {
     flex-grow: 1;
     justify-content: center;
@@ -57,6 +58,7 @@
     margin-bottom: 12px;
   }
 
+  /* Кнопка видимости лежит поверх поля; дополнительный правый отступ защищает текст пароля от перекрытия. */
   .passwordField {
     position: relative;
     margin-bottom: 12px;
@@ -104,6 +106,7 @@
     text-align: center;
   }
 
+  /* Настоящий checkbox прозрачно накрывает согласие; видимая метка получает focus-visible для клавиатуры. */
   .consent {
     position: relative;
     display: flex;
@@ -144,6 +147,7 @@
     color: var(--muted);
   }
 
+  /* Ошибка и подтверждение отделены от полей; кнопка отправки и смена режима сохраняют разные визуальные роли. */
   .error {
     font-family: var(--font-body);
     font-size: 15px;
@@ -175,6 +179,7 @@
     margin-top: 20px;
     text-decoration-line: underline;
   }
+  /* Оформление нажатия не меняет размер кнопки и положение следующих элементов. */
   .opacityState {
     opacity: 0.85;
     --action-base-opacity: 0.85;

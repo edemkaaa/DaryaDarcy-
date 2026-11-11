@@ -282,6 +282,7 @@ export const LIGHTACADEMIA_INTERIORS = [
   { uri: "/assets/results/lightacademia/interiors/interior11.webp" },
 ];
 
+/** Передаём ширину в геометрию результата; массивы выше задают порядок исходных иллюстраций для защищённых привязок. */
 export function getQuizResultContent(viewport: ViewportSize) {
   const { width } = viewport;
   return { width };

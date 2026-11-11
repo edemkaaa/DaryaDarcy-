@@ -32,6 +32,7 @@ export type SandboxNotification =
     }
   | { status: 400 | 503; body: { error: string } };
 
+/** Принимает только явный sandbox, фиксированные test merchant/app origin и проверенные secret/order/sys; неполная или неоднозначная настройка выключает диагностику. */
 function configuration(
   env: Record<string, string | undefined>,
 ): Configuration | null {
@@ -59,11 +60,13 @@ function configuration(
 /** Только синтетическая диагностика без состояния и портов settlement, identity, БД и почты. */
 export class ProdamusSandboxService {
   private readonly config: Configuration | null;
+  /** Сохраняет неизменяемый snapshot проверенной sandbox-конфигурации без сетевых и SQL-побочных эффектов. */
   constructor(env: Record<string, string | undefined>) {
     this.config = configuration(env);
   }
 
   /** Repeated calls reuse the configured diagnostic order; they never create a purchase. */
+  /** Пересобирает один configured demo-заказ с фиксированной RUB-суммой и синтетической почтой; возврат ведёт в клуб, но доступ не выдаётся. */
   buildLink(): string {
     if (!this.config) throw new Error(unavailable);
     const payload = {
@@ -97,6 +100,7 @@ export class ProdamusSandboxService {
     return `${merchant}/?${buildProdamusQuery({ ...payload, signature: createProdamusSign(payload, key) })}`;
   }
 
+  /** Проверяет raw/signature, затем точные demo/domain/order/sum/contact/status поля и возвращает лишь диагностический статус accessGranted:false. */
   acceptNotification(raw: unknown, signature: unknown): SandboxNotification {
     if (!this.config) return { status: 503, body: { error: unavailable } };
     const invalid: SandboxNotification = {
@@ -126,6 +130,7 @@ export class ProdamusSandboxService {
       return invalid;
     }
     if (!signed) return invalid;
+    /** Читает поле диагностического тела только если оно строка; объекты и числа не приводятся неявно. */
     const scalar = (name: string) =>
       typeof body[name] === "string" ? body[name] : "";
     const status = scalar("payment_status");

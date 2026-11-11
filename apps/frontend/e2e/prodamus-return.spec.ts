@@ -15,9 +15,11 @@ const token =
   "club-test-101-00000000-0000-4000-8000-000000000001.1792000000." +
   "a".repeat(64);
 const returned = `/club?paid=1#paymentReturn=${token}`;
+/** Результат TEST-платежа имеет отдельный modal, не равный подтверждённому клубному доступу. */
 const dialog = (page: Page) =>
   page.getByRole("dialog", { name: "Результат оплаты клуба", exact: true });
 
+/** Return-proof TEST не читает и не меняет journals других payment-modes. */
 test("TEST return ignores foreign checkout journals and only reads its own result", async ({
   page,
 }) => {
@@ -44,6 +46,7 @@ test("TEST return ignores foreign checkout journals and only reads its own resul
   );
 });
 
+/** Отклоняем live или недопустимый URL из TEST-checkout до перехода провайдеру. */
 for (const url of [
   "https://payments.example.test/live",
   "javascript:alert(1)",
@@ -86,6 +89,7 @@ for (const url of [
   });
 }
 
+/** Даже guest-LIVE build-флаг не должен менять выбранный TEST endpoint или формат контактов. */
 test("Prodamus TEST keeps its checkout endpoint even when the guest LIVE build flag is set", async ({
   page,
 }) => {
@@ -137,6 +141,7 @@ test("Prodamus TEST keeps its checkout endpoint even when the guest LIVE build f
   expect(calls).toEqual(["club.createCheckout"]);
 });
 
+/** Синтетический result-read передаёт proof только POST-body без cookie; доступ аккаунта проверяется отдельно и claimPending не должен выдавать права по return-флагу. */
 async function fixture(page: Page, member = false) {
   await layoutApi(page, member);
   const state = {
@@ -203,6 +208,7 @@ async function fixture(page: Page, member = false) {
   return state;
 }
 
+/** Пока начальная сессия неизвестна, fragment не расходуется; затем результат отображается только для подходящего владельца и proof не попадает в storage. */
 for (const actor of [null, 101, 102]) {
   test(`delayed initial session preserves the payment reference for ${actor ?? "guest"}`, async ({
     page,
@@ -258,6 +264,7 @@ for (const actor of [null, 101, 102]) {
   });
 }
 
+/** Гостю подтверждается результат и точная стадия письма, но не вход в аккаунт; modal сохраняет доступное закрытие. */
 for (const width of [320, 390, 1440])
   test(`a guest gets verified setup instructions, without being signed in at ${width}px`, async ({
     page,
@@ -292,6 +299,7 @@ for (const width of [320, 390, 1440])
     expect(state.reads).toBe(1);
   });
 
+/** Очередь письма не называется доставкой или отправкой. */
 test("mail in the queue is not described as sent", async ({ page }) => {
   const state = await fixture(page);
   state.result = {
@@ -304,6 +312,7 @@ test("mail in the queue is not described as sent", async ({ page }) => {
   await expect(dialog(page)).not.toContainText("Письмо отправлено");
 });
 
+/** Неподтверждённый платёж не показывает поздравление или доступ. */
 test("unconfirmed payment is never congratulated or granted access", async ({
   page,
 }) => {
@@ -333,6 +342,7 @@ test("a signed-in paid member sees access without being sent to email", async ({
   expect(state.claims).toBe(0);
 });
 
+/** Один paid=1 не является proof и не запускает result-read. */
 test("old paid flags alone do not query the new result or show success", async ({
   page,
 }) => {
@@ -347,6 +357,7 @@ test("old paid flags alone do not query the new result or show success", async (
   expect(state.reads).toBe(0);
 });
 
+/** Неудачное письмо после принятой оплаты не должно предлагать платить заново. */
 test("failed mail delivery does not promise an email or another charge", async ({
   page,
 }) => {
@@ -362,6 +373,7 @@ test("failed mail delivery does not promise an email or another charge", async (
   await expect(dialog(page)).toContainText("повторно платить не нужно");
 });
 
+/** Закрытый modal игнорирует поздний result-ответ и не открывается повторно сам. */
 test("closing while the result is delayed discards its late reply", async ({
   page,
 }) => {
@@ -394,6 +406,7 @@ test("closing while the result is delayed discards its late reply", async ({
   await expect(dialog(page)).toHaveCount(0);
 });
 
+/** Retry-After блокирует новый status-read и скрывает техническое сообщение. */
 test("rate limiting prevents an immediate new status request", async ({
   page,
 }) => {
@@ -419,6 +432,7 @@ test("rate limiting prevents an immediate new status request", async ({
   expect(reads).toBe(1);
 });
 
+/** Чужой подписанный return-proof не выдаёт доступ текущему другому аккаунту. */
 test("another signed-in account is not granted the receipt owner's access", async ({
   page,
 }) => {

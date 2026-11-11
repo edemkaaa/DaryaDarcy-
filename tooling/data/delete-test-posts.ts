@@ -4,6 +4,8 @@ import { posts } from '../../packages/database/src/schema';
 import { isNull, eq } from 'drizzle-orm';
 
 async function deleteTestPosts() {
+  // Опасная историческая эвристика удаляет все посты без instagramId, включая ручные; запускать для очистки рабочей БД нельзя.
+
   const db = await getDb();
   if (!db) { console.log('No DB connection'); process.exit(1); }
 

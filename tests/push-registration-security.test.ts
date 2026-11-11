@@ -20,6 +20,7 @@ import * as db from "../apps/backend/src/db";
 // Real HTTP/router/validation/limiter; only session lookup and SQL write are
 // doubled. The shipped capability remains false; enabled-path tests replace
 // only that policy boundary, never add a production enable switch.
+/** Проверяет admission регистрации push через настоящий HTTP/router/validation/limiter с подменёнными session lookup и SQL write. */
 describe("push registration admission", () => {
   let app: INestApplication;
   let base: string;
@@ -28,12 +29,14 @@ describe("push registration admission", () => {
   let clock = Date.now();
   const token = "ExponentPushToken[synthetic-device_1]";
   const input = { token, platform: "ios" };
+  /** Поднимает локальный API без рабочей базы и внешних отправителей. */
   beforeAll(async () => {
     vi.stubEnv("DATABASE_URL", "");
     app = await createBackendApplication();
     await app.listen(0, "127.0.0.1");
     base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
   });
+  /** Возвращает независимое окно времени, текущего actor и capture-запись устройства. */
   beforeEach(() => {
     clock += 16 * 60_000;
     vi.spyOn(Date, "now").mockImplementation(() => clock);
@@ -46,14 +49,18 @@ describe("push registration admission", () => {
       writes.push(args);
     });
   });
+  /** Возвращает session/persistence/capability spies между сценариями. */
   afterEach(() => vi.restoreAllMocks());
+  /** Закрывает локальное приложение и возвращает окружение. */
   afterAll(async () => {
     await app?.close();
     vi.unstubAllEnvs();
   });
+  /** Разрешает только тестовую capability-границу, не добавляя production enable-флаг и не заменяя limiter. */
   function enabled() {
     vi.spyOn(capabilities, "requireCapability").mockImplementation(() => {});
   }
+  /** Отправляет настоящий JSON HTTP-запрос с управляемым forwarding-адресом. */
   function request(body: unknown = input, forwarded = "198.51.100.70") {
     return fetch(`${base}/api/trpc/notifications.registerToken`, {
       method: "POST",
@@ -64,6 +71,7 @@ describe("push registration admission", () => {
       body: JSON.stringify({ json: body }),
     });
   }
+  /** Проверяет запрет валидного устройства при выключенной функции для гостя, пользователя и staff. */
   it.each([null, { id: 98601, role: "user" }, { id: 98602, role: "admin" }])(
     "refuses a valid token while disabled, including staff (%j)",
     async (user) => {
@@ -72,18 +80,21 @@ describe("push registration admission", () => {
       expect(writes).toEqual([]);
     },
   );
+  /** Проверяет ту же закрытую capability-границу при прямом вызове сервиса. */
   it("also refuses direct service registration while disabled", async () => {
     await expect(
       app.get(NotificationsService).registerToken(input),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     expect(writes).toEqual([]);
   });
+  /** Проверяет отсутствие расходования будущей enabled-квоты выключенными попытками. */
   it("does not spend the future enabled quota on disabled attempts", async () => {
     for (let i = 0; i < 35; i++) expect((await request()).status).toBe(403);
     enabled();
     expect((await request()).status).toBe(200);
     expect(writes).toHaveLength(1);
   });
+  /** Проверяет формат токена, платформу и длины до persistence. */
   it.each([
     { token: "" },
     { token: "   " },
@@ -105,6 +116,7 @@ describe("push registration admission", () => {
       expect(writes).toEqual([]);
     },
   );
+  /** Проверяет поддержанные Expo-префиксы и невозможность назначить owner переданным userId. */
   it.each(["ExpoPushToken", "ExponentPushToken"])(
     "accepts bounded %s without accepting client ownership",
     async (prefix) => {
@@ -119,6 +131,7 @@ describe("push registration admission", () => {
       expect(writes).toEqual([[value, sessionActor, "android"]]);
     },
   );
+  /** Проверяет точный максимум 256 символов и отказ 257 без второй записи. */
   it.each(["ExpoPushToken", "ExponentPushToken"])(
     "accepts exactly 256 characters for %s and refuses 257",
     async (prefix) => {
@@ -132,11 +145,13 @@ describe("push registration admission", () => {
       expect(writes).toHaveLength(1);
     },
   );
+  /** Проверяет optional platform и анонимную регистрацию только за разрешённой capability. */
   it("retains optional platform and anonymous registration only behind the capability", async () => {
     enabled();
     expect((await request({ token })).status).toBe(200);
     expect(writes).toEqual([[token, undefined, undefined]]);
   });
+  /** Проверяет совместимость прежних UUID и opaque Expo-токенов без ослабления остальных ограничений. */
   it.each([
     "12345678-90ab-cdef-1234-567890abcdef",
     "ExpoPushToken[opaque+/value=]",
@@ -145,6 +160,7 @@ describe("push registration admission", () => {
     expect((await request({ token: value })).status).toBe(200);
     expect(writes).toEqual([[value, undefined, undefined]]);
   });
+  /** Проверяет квоту разрешённого IP, malformed-попытки и недоверие поддельному левому forwarding-адресу. */
   it("caps requests per resolved IP, including malformed attempts and spoofed leftmost forwarding", async () => {
     enabled();
     for (let i = 0; i < 30; i++)
@@ -171,6 +187,7 @@ describe("push registration admission", () => {
     clock += 999;
     expect((await request()).status).toBe(200);
   });
+  /** Проверяет account-квоту между IP без расходования квоты другого аккаунта. */
   it("caps an account across IP changes without charging another account", async () => {
     enabled();
     actor = { id: 98601 } as User;
@@ -183,6 +200,7 @@ describe("push registration admission", () => {
     actor = { id: 98602 } as User;
     expect((await request(input, "198.51.100.41")).status).toBe(200);
   });
+  /** Проверяет admission каждого элемента двух допустимых batch до асинхронной записи с общей IP-квотой. */
   it("counts every batch member before any asynchronous write", async () => {
     enabled();
     const results: Array<{
@@ -218,6 +236,7 @@ describe("push registration admission", () => {
     ).toHaveLength(10);
     expect(writes).toHaveLength(30);
   });
+  /** Проверяет запрет заблокированного actor до регистрации устройства. */
   it("refuses blocked actors before registering a device", async () => {
     enabled();
     actor = { id: 98601, blockedAt: new Date(0) } as User;

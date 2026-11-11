@@ -33,10 +33,14 @@ import { VkVideoField } from "./vk-video-field";
 import classes from "./articles-admin.module.scss";
 
 export function VkCatalogAdmin() {
+  // Монтирует редактор только владельцу интерфейса и заново создаёт его область при смене аккаунта.
+
   const { user, isOwner } = useAuth();
   return user && isOwner ? <Editor key={user.id} ownerId={user.id} /> : null;
 }
 function Editor({ ownerId }: { ownerId: number }) {
+  // Разделяет новое VK-видео, изменение по ID и проверку серверной ревизии; черновик хранится в текущей вкладке.
+
   const auth = useAuth();
   const utils = trpc.useUtils();
   const operation = useSessionOperation(
@@ -49,6 +53,8 @@ function Editor({ ownerId }: { ownerId: number }) {
   const [error, setError] = useState("");
   const thumbnailsEnabled = isVideoThumbnailsEnabled();
   const restore = () => {
+    // Повторяет чтение tab-local черновика; ошибка storage блокирует новую отправку вместо сброса введённых данных.
+
     try {
       setDraft(store.read() ?? emptyVkEditorDraft(ownerId));
       setLoaded(true);
@@ -62,6 +68,8 @@ function Editor({ ownerId }: { ownerId: number }) {
     }
   };
   useEffect(() => {
+    // Читает tab-local черновик после монтирования; закрытая область не принимает отложенный результат.
+
     let live = true;
     queueMicrotask(() => {
       if (!live) return;
@@ -81,6 +89,8 @@ function Editor({ ownerId }: { ownerId: number }) {
     };
   }, [store, ownerId]);
   const remember = (next: VkEditorDraft) => {
+    // Показывает свежий ввод, но разрешает отправку только после подтверждённой записи durable копии в storage.
+
     setDraft(next);
     try {
       store.save(next);
@@ -96,12 +106,17 @@ function Editor({ ownerId }: { ownerId: number }) {
     }
   };
   const change = (patch: Partial<VkEditorDraft>) => {
+    // Сохраняет изменение поля вместе с остальными данными и сбрасывает старое сообщение об ошибке.
+
     remember({ ...draft, ...patch });
     setError("");
   };
+  // После неизвестного сохранения поля заморожены до проверки: иначе повтор мог бы превратиться в другую запись.
   const locked = !loaded || operation.busy || draft.state !== "draft";
   const fieldsLocked = locked || (draft.editing && !draft.base);
   const reset = () => {
+    // Явный отказ очищает только черновик этой вкладки и требует согласия при наличии ввода или неопределённой записи.
+
     if (
       (draft.title || draft.base || draft.state !== "draft" || storageError) &&
       !window.confirm("Удалить черновик VK из этой вкладки и очистить форму?")
@@ -113,6 +128,8 @@ function Editor({ ownerId }: { ownerId: number }) {
     }
   };
   const read = async (savedId?: number) => {
+    // Проверяет корректный ID и тип VK; новую серверную версию сначала показывает для сверки, не подменяя базу изменения.
+
     if (
       !savedId &&
       !draft.base &&
@@ -161,6 +178,8 @@ function Editor({ ownerId }: { ownerId: number }) {
     }
   };
   const save = async () => {
+    // До отправки сохраняет неизменяемый payload; конфликт требует чтения ревизии, неизвестный ответ сохраняет исходные данные для восстановления.
+
     let payload;
     try {
       payload = vkEditorPayload(draft, thumbnailsEnabled);
@@ -195,7 +214,7 @@ function Editor({ ownerId }: { ownerId: number }) {
         utils.videos.catalog.invalidate(),
         utils.invalidate(undefined, {
           predicate: (query) =>
-            ["video-card", "video-playback"].includes(
+            /* Инвалидирует карточки и playback каталога после подтверждённого сохранения, не сбрасывая несвязанные запросы. */ ["video-card", "video-playback"].includes(
               String(query.queryKey[0]),
             ),
         }),

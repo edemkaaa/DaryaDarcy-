@@ -1,3 +1,4 @@
+/** Чистая подготовка settlement фиксирует денежные minor units и неизменяемую идентичность квитанции до SQL. */
 import { expect, it } from "vitest";
 import {
   prepareClubSettlement,
@@ -24,6 +25,7 @@ const paymentKey =
   "8abbdcc740edfd09d8689073d1b8289eb439a5e1dce52f684268f7ffc1068695";
 const payloadHash =
   "69348c0c23cb2291116762df710e5a520a77370e8e3f0ee9d517fb1945f3fd0a";
+/** Эквивалентные RUB-строки дают тот же независимо заданный paymentKey/payloadHash. */
 it.each(["790", "790.0", "790.00"])(
   "retains the live receipt fingerprint for amount %s",
   (sum) => {
@@ -36,6 +38,7 @@ it.each(["790", "790.0", "790.00"])(
     });
   },
 );
+/** Нормализация fingerprint не переписывает исходный frozen proof. */
 it("preserves RUB case normalization without changing the supplied proof", () => {
   const frozen = Object.freeze({
     ...input,
@@ -50,6 +53,7 @@ it("preserves RUB case normalization without changing the supplied proof", () =>
   });
   expect(frozen.proof.currency).toBe("RUB");
 });
+/** Recurring order выводится из идентичности списания, не произвольного caller hint. */
 it("derives renewal order and receipt from the charge, not the caller's order hint", () => {
   expect(
     prepareClubSettlement({
@@ -66,6 +70,7 @@ it("derives renewal order and receipt from the charge, not the caller's order hi
       "2324d33e65c66c0db36aafeeb72a44628d6fc7d38d1f8eb4274b2b248f35e2b7",
   });
 });
+/** Один provider payment key с другим profile меняет payloadHash и не теряет свидетельство привязки. */
 it("binds the initial receipt to the profile independently of the provider charge key", () => {
   expect(
     prepareClubSettlement({ ...input, proof: { ...proof, profileId: "145" } }),
@@ -75,6 +80,7 @@ it("binds the initial receipt to the profile independently of the provider charg
       "d3ff9df21aade62d154b9ba03cd55c71a30fa0f51897dec6aa8c7bef345ee855",
   });
 });
+/** Неполный proof, неверная сумма/валюта/период не достигают транзакции. */
 it.each<Partial<ClubSettlementInput>>([
   { proof: undefined },
   { proof: { ...proof, paymentId: "" } },
@@ -112,6 +118,7 @@ const foreignInput: ClubSettlementInput = {
   orderId: "club-test-42",
   proof: foreignProof,
 };
+/** FX currency/amount включаются в TEST fingerprint; ожидаемые SHA-256 заданы независимо. */
 it.each([
   {
     currency: "eur" as const,
@@ -146,6 +153,7 @@ it.each([
     });
   },
 );
+/** Добавление FX evidence не меняет прежние RUB receipt identities. */
 it("keeps ordinary TEST RUB receipts on their historical hash without an FX suffix", () => {
   const { testForeignPayment: _foreign, ...rubProof } = foreignProof;
   expect(
@@ -155,6 +163,7 @@ it("keeps ordinary TEST RUB receipts on their historical hash without an FX suff
       "3130c33096fd2502d2d326bcd2054ce6ed148067f3289769210e958bed6c004b",
   });
 });
+/** FX proof допустим только у конкретного TEST one-off, без recurring и subscription/profile полей. */
 it.each<Partial<ClubSettlementInput>>([
   { orderId: "club-42" },
   { recurring: true },

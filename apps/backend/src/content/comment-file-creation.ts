@@ -8,6 +8,7 @@ import type { ContentWriteActor } from "./content-write-actor";
 import { digest } from "../media/private-upload-object";
 import { assertContentRecoveryWindow } from "./recovery-window";
 
+/** Под metadata lock проверяет единственный полный PRIMARY(requestKey) и InnoDB; неполная схема даёт SERVICE_UNAVAILABLE без DDL. */
 export async function requireCommentFileSchema(tx: Pick<ContentTransaction, "select" | "execute">) {
   await tx.select().from(commentCreationRequests).limit(0);
   const [indexes] = await tx.execute(sql`SELECT s.COLUMN_NAME AS name,s.SUB_PART AS prefix,t.ENGINE AS engine FROM information_schema.STATISTICS s
@@ -16,6 +17,7 @@ export async function requireCommentFileSchema(tx: Pick<ContentTransaction, "sel
   if (!Array.isArray(indexes) || indexes.length !== 1 || indexes[0].name !== "requestKey" || indexes[0].prefix !== null || indexes[0].engine !== "InnoDB") throw new TRPCError({ code: "SERVICE_UNAVAILABLE" });
 }
 /** Фиксируем ключ создания комментария и его файлы как одно принятое намерение. */
+/** Уникальным upsert захватывает actor-bound ключ и immutable comment payload; replay проверяет окно и существование своего результата в том же посте, чужой incomplete claim не присваивает. */
 export async function claimCommentFileCreation(tx: ContentTransaction, actor: ContentWriteActor,
   data: { postId: number; text: string; parentId?: number | null; photos: string[]; idempotencyKey?: string }) {
   if (!data.idempotencyKey) throw new TRPCError({ code: "BAD_REQUEST", message: "Для закрытых фото нужен ключ создания комментария" });

@@ -1,3 +1,4 @@
+/** Журнал прохождения quiz проверяется отдельно от вычисленного результата и персонального API. */
 import { expect, it } from "vitest";
 import {
   parseQuizProgress,
@@ -14,9 +15,11 @@ const answered = quizReducer(
   { type: "ANSWER", questionIndex: 0, answerId: QUESTIONS[0].answers[0].id },
 );
 const next = quizReducer(answered, { type: "NEXT_QUESTION" });
+/** Сериализация сохраняет выбранные ответы и текущую позицию reducer. */
 it("restores selected answers with the current question", () => {
   expect(parseQuizProgress(serializeQuizProgress(next))).toEqual(next);
 });
+/** Версия, набор вопросов, индекс и ответы должны соответствовать текущему опроснику. */
 it.each([
   { version: 2 },
   { questions: "old questions" },
@@ -33,6 +36,7 @@ it.each([
   ).toBeNull();
 });
 
+/** Wire v2 содержит runId/revision, а восстановленное UI-состояние остаётся прежней формы. */
 it("restores versioned progress while retaining a unique run and monotonic revision on the wire", () => {
   const run = { runId: "11111111-1111-4111-8111-111111111111", revision: 7 };
   const serialized = serializeQuizProgress(next, run);
@@ -40,6 +44,7 @@ it("restores versioned progress while retaining a unique run and monotonic revis
   expect(parseQuizProgress(serialized)).toEqual(next);
 });
 
+/** Пустой runId и недопустимая ревизия отвергаются вместо тихой починки журнала. */
 it.each([
   { runId: "" },
   { runId: "old" },

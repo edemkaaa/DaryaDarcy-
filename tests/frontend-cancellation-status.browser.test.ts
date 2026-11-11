@@ -1,3 +1,4 @@
+/** Опциональный Chromium проверяет восстановление pending cancellation из subscription reads, без настоящей отмены/БД. */
 import { expect, it } from "vitest";
 import { chromium, expect as browserExpect } from "@playwright/test";
 import { build } from "esbuild";
@@ -7,6 +8,7 @@ import { resolve } from "node:path";
 
 // Real providers/controller/client in Chromium; controlled HTTP billing replies,
 // not live provider/SQL/payment acceptance.
+/** При paid/истёкшем доступе pending остаётся видимым, Cancel не создаёт повторную запись; явный Check читает status до confirmed, writes остаётся0. */
 it.skipIf(!process.env.PLAYWRIGHT_EXECUTABLE_PATH).each([false, true])(
   "restores pending cancellation after reload without new writes (paid=%s)",
   async (paid) => {
@@ -123,6 +125,7 @@ it.skipIf(!process.env.PLAYWRIGHT_EXECUTABLE_PATH).each([false, true])(
           : route.abort("blockedbyclient"),
       );
       page.on("dialog", (dialog) => dialog.accept());
+      /** Повторно загружаем synthetic document и настоящий provider bundle, имитируя reload с потерянным локальным состоянием. */
       const open = async () => {
         await page.goto(origin);
         await page.addScriptTag({ content: bundle.outputFiles[0].text });

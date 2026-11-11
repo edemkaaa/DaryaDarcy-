@@ -1,3 +1,4 @@
+# Устанавливает и настраивает старую PM2-ротацию логов; сам по себе не доказывает соответствие требованиям обработки данных.
 """Install pm2-logrotate on VPS for RKN compliance."""
 import pathlib
 import socket
@@ -13,6 +14,7 @@ for line in (root / ".env").read_text(encoding="utf-8").splitlines():
         k, v = line.split("=", 1)
         env[k.strip()] = v.strip()
 
+# Следующий текст — удалённая команда; её содержимое сохранено как историческое и не исполняется при чтении исходника.
 cmd = r"""
 set -e
 pm2 -v
@@ -50,6 +52,7 @@ for attempt in range(1, 4):
 if sock is None:
     raise SystemExit(str(last_error))
 
+# Подключение использует историческое автоматическое доверие неизвестному SSH host key; перед новым запуском требуется отдельная сверка хоста.
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 client.connect(

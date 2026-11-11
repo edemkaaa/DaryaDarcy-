@@ -1,10 +1,13 @@
+/** Guard MySQL-владения проверяется управляемыми promises и таймерами, без настоящего SQL. */
 import { EventEmitter } from "node:events";
 import type { PoolConnection } from "mysql2/promise";
 import { afterEach, expect, it, vi } from "vitest";
 import { runWithWorkerLock } from "../apps/backend/src/database/worker-lock-guard";
 
+/** После каждого исхода возвращаем настоящие часы. */
 afterEach(() => vi.useRealTimers());
 
+/** После конца callback ждём уже запущенный heartbeat, не возвращая соединение в пул; поздний transport failure не теряет основной исход, listeners/timers очищаются. */
 it.each(["success", "failure"])(
   "waits for a pending ownership check before returning the session after callback %s",
   async (outcome) => {

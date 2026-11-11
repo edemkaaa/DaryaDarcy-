@@ -27,6 +27,7 @@ export const penPalsRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+// Дедуплицируем интересы и сверяем со справочником до сохранения согласия и персональных данных анкеты.
       const unique = [...new Set(input.interests)];
       if (
         unique.length < 2 ||
@@ -69,6 +70,7 @@ export const penPalsRouter = router({
       );
       return { ok: true as const };
     }),
+// Отозвать анкету можно и при выключенной функции, поэтому удаление не использует capability-gate прочих операций.
   remove: protectedProcedure.mutation(async ({ ctx }) => {
     await platformDb.withdrawPenPalProfile(ctx.user);
     return { success: true as const };

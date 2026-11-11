@@ -1,3 +1,4 @@
+/** Бинарная проверка/перекодирование фото работают через настоящий router/sharp; profile/storage effects подменены. */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import sharp from "sharp";
 import { drizzle } from "drizzle-orm/mysql2";
@@ -20,17 +21,22 @@ vi.mock("../apps/backend/src/db", () => ({
 vi.mock("../apps/backend/src/profile/profile-writes", () => ({ saveProfile: async () => 1 }));
 import { appRouter } from "../apps/backend/src/routers";
 const user = { id: 7, role: "admin", blockedAt: null } as User;
+/** Admin caller использует synthetic пользователя и opaque mock DB, не настоящую сессию/БД. */
 function caller() { return appRouter.createCaller({ user, req: {}, res: {} } as TrpcContext); }
 const uploaders = [
   (input: { base64: string; filename: string; mimeType: string }) => caller().profile.uploadAvatar(input),
   (input: { base64: string; filename: string; mimeType: string }) => caller().admin.uploadPhoto({ ...input, purpose: "publicCover" }),
 ];
+/** Очищаем только список in-memory storage writes. */
 beforeEach(() => { storage.writes.length = 0; });
+/** Одни и те же input-пробы проходят avatar и explicit publicCover пути; ACL закрытого контента этим не проверяется. */
 describe("photo upload validates bytes rather than the client MIME or filename", () => {
+  /** Даже прямой sharp decode активного SVG запрещён настройкой native decoder. */
   it("disables SVG at the native decoder even if a future caller bypasses the signature gate", async () => {
     const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="2" height="3"><rect width="2" height="3" fill="red"/></svg>');
     await expect(sharp(svg).metadata()).rejects.toThrow();
   });
+  /** Реальные JPEG/PNG/WebP распознаются по bytes вопреки ложным filename/MIME и сохраняются WebP. */
   it.each(["jpeg", "png", "webp"] as const)("still uploads genuine %s after decoder hardening", async (format) => {
     const bytes = await sharp({ create: { width: 2, height: 3, channels: 3, background: "red" } }).toFormat(format).toBuffer();
     for (const upload of uploaders) {
@@ -42,14 +48,17 @@ describe("photo upload validates bytes rather than the client MIME or filename",
       expect(stored.mime).toBe("image/webp");
     }
   });
+  /** Объявленный JPEG с HTML body не вызывает storage. */
   it.each(uploaders)("rejects HTML masquerading as JPEG without storing it", async (upload) => {
     await expect(upload({ base64: Buffer.from("<html><script>alert(1)</script></html>").toString("base64"), filename: "photo.jpg", mimeType: "image/jpeg" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
     expect(storage.writes).toHaveLength(0);
   });
+  /** Фото свыше4МиБ останавливается до записи. */
   it.each(uploaders)("rejects oversized photos before storage", async (upload) => {
     await expect(upload({ base64: Buffer.alloc(4 * 1024 * 1024 + 1).toString("base64"), filename: "photo.jpg", mimeType: "image/jpeg" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
     expect(storage.writes).toHaveLength(0);
   });
+  /** Результат лишён EXIF/XMP; server-generated WebP key не наследует path-like имя. */
   it.each(uploaders)("re-encodes JPEG, removes location metadata and ignores path traversal filename", async (upload) => {
     const input = await sharp({ create: { width: 12, height: 8, channels: 3, background: "red" } })
       .withExif({ IFD0: { Artist: "private owner", ImageDescription: "private location" } }).jpeg().toBuffer();
@@ -64,20 +73,24 @@ describe("photo upload validates bytes rather than the client MIME or filename",
     expect(stored.key).not.toMatch(/\.\.|secret|html/);
     expect(stored.key.endsWith(".webp")).toBe(true);
   });
+  /** Лишний символ Base64 не допускает частичное декодирование. */
   it("rejects malformed base64 rather than silently decoding a partial file", async () => {
     const bytes = await sharp({ create: { width: 1, height: 1, channels: 3, background: "red" } }).png().toBuffer();
     await expect(caller().admin.uploadPhoto({ base64: bytes.toString("base64") + "!", filename: "a.png", purpose: "publicCover" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
     expect(storage.writes).toHaveLength(0);
   });
+  /** MIME из формы не разрешает SVG. */
   it("rejects SVG even when its MIME says JPEG", async () => {
     await expect(caller().admin.uploadPhoto({ base64: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>').toString("base64"), filename: "a.jpg", purpose: "publicCover" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
     expect(storage.writes).toHaveLength(0);
   });
+  /** Сжатый файл с25млн пикселей не проходит по одному небольшому transport-размеру. */
   it("rejects small compressed images with excessive decoded pixel dimensions", async () => {
     const bytes = await sharp({ create: { width: 5000, height: 5000, channels: 3, background: "red" } }).png().toBuffer();
     await expect(caller().admin.uploadPhoto({ base64: bytes.toString("base64"), filename: "a.png", purpose: "publicCover" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
     expect(storage.writes).toHaveLength(0);
   });
+  /** Сначала поворачиваем изображение, затем удаляем orientation, сохраняя правильные размеры. */
   it("rotates by EXIF Orientation before stripping metadata", async () => {
     const bytes = await sharp({ create: { width: 12, height: 8, channels: 3, background: "red" } }).withMetadata({ orientation: 6 }).jpeg().toBuffer();
     await caller().admin.uploadPhoto({ base64: bytes.toString("base64"), filename: "a.jpg", purpose: "publicCover" });

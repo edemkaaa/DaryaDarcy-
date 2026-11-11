@@ -1,5 +1,7 @@
 # Отдельный тестовый стенд TeamAssist
 
+> Статус на 11 ноября: это история прежнего стенда, а не подтверждение работающего сервера. По сообщению владельца Beget удалён. Старые release-пути и копии backup необходимо проверять отдельно; актуальное восстановление начинается с [порядка переноса](server-migration-ru-kz-cdn-2026-11-10.md) и [сборки](../../infrastructure/build/README.md). Датированные результаты ниже сохранены.
+
 ## Объединённый frontend: выпуск — 25 октября
 
 По явному разрешению пользователя staging fast-forward `775369f..014a780`;
@@ -2102,7 +2104,7 @@ Linux image rehearsal и release gates. Здесь нет push/deploy/мигра
 - Хост: `teamassist-dev`, каталог `/home/edem/apps/daryadarcy-staging`.
 - Собственный Compose-проект `daryadarcy-staging`: Next.js, Nest API, MySQL 8.4
   и небольшой входной nginx.
-- Конфигурация: [Dockerfile](../../infrastructure/deploy/teamassist/Dockerfile)
+- Конфигурация: [Dockerfile](../../infrastructure/build/Dockerfile)
   и [compose.yaml](../../infrastructure/deploy/teamassist/compose.yaml).
 - Снаружи только HTTPS через nginx хоста. Единственный опубликованный порт
   входного nginx — `127.0.0.1:3050`. У web/API/MySQL нет опубликованных портов;

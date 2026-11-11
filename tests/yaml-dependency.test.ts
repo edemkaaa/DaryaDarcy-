@@ -1,3 +1,4 @@
+/** Проверяем YAML-зависимость Vite на ограничении глубины и сохранении обычных конфигураций. */
 import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { expect, it } from "vitest";
@@ -5,6 +6,7 @@ import { expect, it } from "vitest";
 const toolingRequire = createRequire(require.resolve("vite/package.json"));
 const yamlPath = toolingRequire.resolve("yaml");
 
+/** Три parser API должны дать контролируемый RESOURCE_EXHAUSTION в ограниченном дочернем процессе. */
 it.each(["parse", "parseDocument", "parseAllDocuments"])(
   "%s reports a YAML error for deeply nested collections",
   (method) => {
@@ -35,6 +37,7 @@ it.each(["parse", "parseDocument", "parseAllDocuments"])(
   },
 );
 
+/** Положительные проверки сохраняют значения, несколько документов и flow-форматирование. */
 it("preserves ordinary tooling configuration, documents and flow formatting", () => {
   const yaml = toolingRequire("yaml") as typeof import("yaml");
   expect(yaml.parse("name: local\nflags: [one, two]\nenabled: true\n")).toEqual(

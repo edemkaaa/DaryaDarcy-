@@ -9,6 +9,7 @@ const text = "Фонарь для свечи\nМаршмеллоу\nКружка
 const firstUrl = "https://example.test/lantern";
 const secondUrl = "https://example.test/marshmallow";
 
+/** Устанавливаем и сообщаем выделение textarea до переноса фокуса на toolbar, чтобы проверить сохранённую цель форматирования. */
 async function select(input: Locator, start: number, end: number) {
   await input.evaluate(
     (node: HTMLTextAreaElement, range) => {
@@ -20,7 +21,9 @@ async function select(input: Locator, start: number, end: number) {
   );
 }
 
+/** Для обоих редакторов проверяем накопление нескольких ссылок при потерянном DOM-selection и сохранение форматирования после свежего серверного read. */
 for (const mode of ["full", "quick"] as const) {
+  /** После pointerdown намеренно заменяем DOM-selection старым либо пустым: вторая ссылка должна использовать ранее захваченную цель. */
   for (const lostSelection of ["previous", "collapsed"] as const) {
     test(`${mode}: links accumulate when ${lostSelection} DOM selection replaces the toolbar target`, async ({
       page,
@@ -187,6 +190,7 @@ for (const mode of ["full", "quick"] as const) {
       }
     });
     await gotoWithSession(page, mode === "full" ? "/admin" : "/feed");
+    /** Открываем текущую версию поста через полный или быстрый путь и ждём завершения проверки локального черновика. */
     const openEdit = async () => {
       if (mode === "quick")
         await page

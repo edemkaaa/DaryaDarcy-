@@ -48,7 +48,7 @@ interface PostData {
 }
 type MenuAction = "edit" | "tags" | "delete";
 const tagDraftKey = (owner: number, post: number) =>
-  `darcy:tag-draft:${owner}:${post}`;
+  /* Изолирует быстрый черновик тегов одновременно по владельцу и посту. */ `darcy:tag-draft:${owner}:${post}`;
 function ActionSheet({
   visible,
   onClose,
@@ -58,6 +58,8 @@ function ActionSheet({
   onClose: () => void;
   onSelect: (action: MenuAction) => void;
 }) {
+  // Меню выбирает намерение; редактирование и удаление затем проходят чтение и подтверждение у владельца hook.
+
   if (!visible) return null;
   return (
     <Dialog
@@ -181,6 +183,8 @@ function TagSelectionModal({
   status: ReactNode;
   acceptedRevision?: string;
 }) {
+  // Хранит локальные теги вместе с исходной ревизией; ошибка storage блокирует отправку вместо потери выбранного набора.
+
   const { user } = useAuth();
   const key = user && post ? tagDraftKey(user.id, post.id) : "";
   const [draft, setDraft] = useState<{
@@ -226,10 +230,14 @@ function TagSelectionModal({
   });
   const [storageError, setStorageError] = useState<string | null>(null);
   useEffect(() => {
+    // Только явное принятие серверной ревизии меняет базу следующего сохранения тегов.
+
     if (acceptedRevision)
       setDraft((current) => ({ ...current, revision: acceptedRevision }));
   }, [acceptedRevision]);
   useEffect(() => {
+    // Сохраняет локальный черновик с ревизией при изменении; повреждённый исходный снимок не заменяется молча.
+
     if (!key) return;
     if (draft.loadError) {
       setStorageError(draft.loadError);
@@ -246,6 +254,8 @@ function TagSelectionModal({
   }, [draft, key]);
   const selectedTags = draft.tags;
   const toggleTag = (slug: string) => {
+    // Обновляет только локальный набор slug, оставляя исходные теги для сравнения.
+
     setDraft((prev) => ({
       ...prev,
       tags: prev.tags.includes(slug)
@@ -254,6 +264,8 @@ function TagSelectionModal({
     }));
   };
   const handleSave = () => {
+    // Сначала подтверждает локальную запись черновика, затем передаёт теги и ожидаемую ревизию в mutation.
+
     if (blocked || !key || draft.loadError) return;
     try {
       requiredStorage.setItem(key, JSON.stringify(draft));
@@ -371,6 +383,8 @@ function TagSelectionModal({
   );
 }
 export function usePostManagement(onRefresh: () => void) {
+  // Общий контроль действий карточки разделяет полное редактирование, теги и удаление с восстановлением неизвестного исхода.
+
   const utils = trpc.useUtils();
   const [actionSheetVisible, setActionSheetVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -383,11 +397,15 @@ export function usePostManagement(onRefresh: () => void) {
   const active = useScreenActive();
   const actions = useConfirmedAction(isOwner && active && !editModalVisible);
   const assertReadCurrent = (signal: AbortSignal) => {
+    // Отмена или смена владельца не позволяет позднему чтению обновлять чужую карточку.
+
     signal.throwIfAborted();
     if (!user?.id || !isPersonalDataOwner(user.id))
       throw new DOMException("Операция отменена", "AbortError");
   };
   const readPost = async (id: number, signal: AbortSignal) => {
+    // Проверяет ID, теги и ревизию полного административного ответа; null означает удаление, а не ошибку сети.
+
     assertReadCurrent(signal);
     const post = await utils.client.admin.postDetail.query({ id }, { signal });
     assertReadCurrent(signal);
@@ -403,6 +421,8 @@ export function usePostManagement(onRefresh: () => void) {
     return post;
   };
   const refreshPosts = (id: number) => {
+    // Обновляет краткие страницы, агрегаты и пользовательские карточки, включая URL по ID и UUID.
+
     void utils.admin.postDetail.invalidate({ id });
     void utils.admin.postsPage.invalidate();
     void utils.admin.postCounts.invalidate();
@@ -416,6 +436,8 @@ export function usePostManagement(onRefresh: () => void) {
     onRefresh();
   };
   const closePost = () => {
+    // Закрывает относящиеся к выбранному посту диалоги после подтверждённого результата.
+
     setActivePost(null);
     setEditModalVisible(false);
     setTagModalVisible(false);
@@ -426,6 +448,8 @@ export function usePostManagement(onRefresh: () => void) {
     signal: AbortSignal,
     wanted?: string[],
   ) => {
+    // Сравнивает желаемый набор с реально прочитанными тегами; только совпадение закрывает форму и очищает локальную копию.
+
     const post = await readPost(id, signal);
     assertReadCurrent(signal);
     if (post === null) closePost();
@@ -455,19 +479,24 @@ export function usePostManagement(onRefresh: () => void) {
     refreshPosts(id);
   };
   const inspectDeletion = async (id: number, signal: AbortSignal) => {
+    // Подтверждает удаление по null полной детализации, не по исчезновению карточки из текущей страницы.
+
     if ((await readPost(id, signal)) !== null) throw invalidResponse();
     assertReadCurrent(signal);
     closePost();
     refreshPosts(id);
   };
+  // Теги сохраняются с ревизией; после таймаута читаем тот же пост и сравниваем набор, не повторяя update.
   const updateMutation = {
     isPending: actions.blocked,
     mutate: (input: { id: number; tags: string[] }) =>
-      void actions.run({
+      /* Запускает одну операцию обновления тегов с чтением исходного поста для восстановления. */ void actions.run({
         kind: "tags",
         label: "Сохранить теги",
-        read: (signal) => inspectTags(input.id, signal, input.tags),
+        read: (signal) => /* Проверяет желаемые теги исходной команды без повторного update. */ inspectTags(input.id, signal, input.tags),
         perform: async (signal) => {
+          // Отправляет теги с ревизией и проверяет существование поста; конфликт оставляет локальный ввод для сравнения.
+
           try {
             const result = await utils.client.admin.updatePost.mutate(input, {
               signal,
@@ -481,9 +510,13 @@ export function usePostManagement(onRefresh: () => void) {
           }
         },
         validate: (result) => {
+          // Квитанция update должна явно подтверждать success, иначе результат остаётся неопределённым.
+
           if (result?.success !== true) throw invalidResponse();
         },
         commit: () => {
+          // После подтверждения снимает локальный черновик и обновляет только теги выбранного поста.
+
           if (user) {
             try {
               requiredStorage.removeItem(tagDraftKey(user.id, input.id));
@@ -504,17 +537,23 @@ export function usePostManagement(onRefresh: () => void) {
   const deleteMutation = {
     isPending: actions.blocked,
     mutate: (input: { id: number }) =>
-      void actions.run({
+      /* Удаление проходит отдельный подтверждаемый путь, блокируя повтор при неизвестном ответе. */ void actions.run({
         kind: "delete",
         label: "Удалить пост",
-        read: (signal) => inspectDeletion(input.id, signal),
+        read: (signal) => /* Проверяет отсутствие исходного ID после прерванного удаления. */ inspectDeletion(input.id, signal),
         perform: async (signal) => {
+          // После delete перечитывает детализацию и требует её отсутствия.
+
           await utils.client.admin.deletePost.mutate(input, { signal });
           if ((await readPost(input.id, signal)) !== null)
             throw invalidResponse();
         },
-        validate: () => {},
+        validate: () => {
+          // Возвращаемого payload нет: подтверждение отсутствия уже выполнено внутри perform.
+},
         commit: () => {
+          // Закрывает выбранный пост и обновляет связанные списки только после проверки удаления.
+
           closePost();
           refreshPosts(input.id);
         },
@@ -522,6 +561,8 @@ export function usePostManagement(onRefresh: () => void) {
   };
   const openMenu = useCallback(
     (post: PostData) => {
+      // Не открывает новую карточку поверх неподтверждённого административного действия.
+
       if (actions.blocked) return;
       setActivePost(post);
       setActionSheetVisible(true);
@@ -529,9 +570,13 @@ export function usePostManagement(onRefresh: () => void) {
     [actions.blocked],
   );
   const closeMenu = useCallback(() => {
+    // Закрывает только меню выбора, сохраняя контекст выбранного поста.
+
     setActionSheetVisible(false);
   }, []);
   const handleAction = async (action: MenuAction) => {
+    // Для правки сначала читает полные media и ревизию; удаление отдельно требует согласия.
+
     if (actions.blocked) return;
     setActionSheetVisible(false);
     if (action === "edit" || action === "tags") {
@@ -569,12 +614,16 @@ export function usePostManagement(onRefresh: () => void) {
     }
   };
   const handleTagsSave = (tags: string[], revision?: string) => {
+    // Передаёт исходную ожидаемую ревизию вместе с тегами, не выдумывая её из краткой карточки.
+
     if (activePost) {
       const input = withExpectedRevision({ id: activePost.id, tags }, revision);
       updateMutation.mutate(input);
     }
   };
   const compareTags = async () => {
+    // Сопоставляет локальный набор с сервером и либо подтверждает совпадение, либо оставляет новую версию для явного принятия.
+
     if (!activePost) return;
     const task = actions.operation.begin("compare-tags");
     if (!task) return;
@@ -615,6 +664,7 @@ export function usePostManagement(onRefresh: () => void) {
       task.finish();
     }
   };
+  // Конфликт, неизвестный исход и выполняющееся действие отображаются раздельно; ни одно чтение не заменяет ввод без согласия.
   const status = (
     <>
       {actions.operation.busy ? (

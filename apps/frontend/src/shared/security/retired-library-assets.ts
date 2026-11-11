@@ -2,7 +2,7 @@
 import manifest from "../../../private-library-assets.json";
 const paths = new Set(manifest.paths);
 
-/** Decode before comparing, including optimizer URL parameters and encoded segments. */
+/** Декодируем ограниченное число оболочек URL и сверяем pathname с манифестом снятых материалов, включая запросы оптимизатора. */
 export function isRetiredLibraryAsset(value: string): boolean {
   try {
     let decoded = value;

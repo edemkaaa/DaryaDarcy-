@@ -1,7 +1,9 @@
+/** Настоящий tRPC клиент проверяет разбиение GET-пакетов, маршрутизацию ответов и session cancellation с fake fetch. */
 import { afterEach, expect, it, vi } from "vitest";
 import { createTRPCClient } from "../apps/frontend/src/shared/api/trpc";
 import { cancelSessionRequests } from "../apps/frontend/src/shared/api/request-lifecycle";
 
+/** Отменяем старую request generation и возвращаем fetch. */
 afterEach(() => {
   cancelSessionRequests();
   vi.unstubAllGlobals();
@@ -10,6 +12,7 @@ const groups = Array.from({ length: 20 }, (_, i) =>
   Array.from({ length: 50 }, (_, j) => 100000 + i * 50 + j),
 );
 
+/** Календарные62дня отправляются отдельно с пределом8192, не смешиваясь с обычной interactions query. */
 it("sends a full two-month calendar alone without rejecting it at the ordinary batch limit", async () => {
   const days = Array.from({ length: 62 }, (_, i) => ({
     from: new Date(Date.UTC(2026, 9, i + 1)).toISOString(),
@@ -41,6 +44,7 @@ it("sends a full two-month calendar alone without rejecting it at the ordinary b
     0: { json: { days } },
   });
 });
+/** Синтетический ответ сохраняет порядок wire inputs, чтобы обнаружить перепутанные replies после split. */
 function response(raw: RequestInfo | URL) {
   const url = new URL(String(raw), "https://app.test");
   const inputs = JSON.parse(url.searchParams.get("input")!);
@@ -58,6 +62,7 @@ function response(raw: RequestInfo | URL) {
   );
 }
 
+/** Двадцать групп по50ID разбиваются по URL bytes, сохраняя каждый input и его output. */
 it("splits real client GET batches at 2048 bytes without losing, duplicating or misrouting replies", async () => {
   const fetcher = vi.fn(async (raw: RequestInfo | URL) => response(raw));
   vi.stubGlobal("fetch", fetcher);
@@ -83,6 +88,7 @@ it("splits real client GET batches at 2048 bytes without losing, duplicating or 
   expect(sent).toEqual(groups);
 });
 
+/** Смена request generation отвергает поздние ответы всех пакетов, но допускает запрос новой сессии. */
 it("cancels all split packets from the old session even when fetch ignores abort", async () => {
   let release!: () => void;
   const gate = new Promise<void>((resolve) => {
@@ -110,6 +116,7 @@ it("cancels all split packets from the old session even when fetch ignores abort
   ).resolves.toEqual({ likedIds: [999999], savedIds: [] });
 });
 
+/** Abort одной query не отменяет другие элементы разложенного batch. */
 it("cancelling one operation does not misroute or cancel neighbouring replies", async () => {
   let release!: () => void;
   const gate = new Promise<void>((resolve) => {

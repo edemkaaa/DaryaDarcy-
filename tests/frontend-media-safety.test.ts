@@ -1,3 +1,4 @@
+/** Подменяем браузерные primitives и fetch, проверяя ранние лимиты файлов, безопасные ошибки, отмену загрузки и владение результатом операции. */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { uploadAdminVideoBlob } from "../apps/frontend/src/features/admin/media/video-upload";
 import { cancelSessionRequests } from "../apps/frontend/src/shared/api/request-lifecycle";
@@ -17,6 +18,7 @@ import {
   rememberPhotoRatio,
 } from "../apps/frontend/src/shared/media/photo-ratio-cache";
 
+/** Неверные размеры не заменяют уже известное корректное отношение сторон в кеше. */
 it("rejects invalid image dimensions without poisoning remembered proportions", () => {
   const uri = "https://images.example.test/valid-ratio";
   expect(rememberPhotoRatio(uri, 800, 400)).toBe(2);
@@ -32,6 +34,7 @@ it("rejects invalid image dimensions without poisoning remembered proportions", 
   }
 });
 
+/** После достижения лимита вытесняется давно не использованное изображение, а недавно прочитанное остаётся. */
 it("bounds the photo metadata cache and retains recently used photos", () => {
   const uri = (index: number) => `https://images.example.test/cache-${index}`;
   for (let index = 0; index < PHOTO_RATIO_CACHE_LIMIT; index++)
@@ -43,12 +46,15 @@ it("bounds the photo metadata cache and retains recently used photos", () => {
   expect(getCachedPhotoRatio(uri(PHOTO_RATIO_CACHE_LIMIT))).toBe(2);
 });
 
+/** Возвращаем настоящий clock и globals, завершая session-scoped запросы после сценария. */
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
   cancelSessionRequests();
 });
+/** Минимальный Blob используется только как тело подменённого транспорта, а не как настоящий декодируемый MP4. */
 const video = () => new Blob(["video"], { type: "video/mp4" });
+/** Пустое, HTML и JSON тело 413 одинаково дают понятный отказ размера без повторного чтения ответа. */
 it.each(["<html>too big</html>", "", '{"error":"private details"}'])(
   "handles a 413 body once: %s",
   async (body) => {
@@ -64,6 +70,7 @@ it.each(["<html>too big</html>", "", '{"error":"private details"}'])(
     });
   },
 );
+/** Внутренний текст 500 не показывается пользователю как ошибка загрузки. */
 it("does not expose raw HTML or internal messages from an upload server", async () => {
   vi.stubGlobal(
     "fetch",
@@ -76,6 +83,7 @@ it("does not expose raw HTML or internal messages from an upload server", async 
     { message: "Сервис временно недоступен. Попробуйте ещё раз." },
   );
 });
+/** Из безопасного allowlist сохраняются конкретные сообщения отказа формата и пустого файла. */
 it.each(["Некорректный видеофайл", "Пустой файл"])(
   "explains the documented video validation refusal: %s",
   async (message) => {
@@ -88,6 +96,7 @@ it.each(["Некорректный видеофайл", "Пустой файл"]
     ).rejects.toMatchObject({ status: 400, message });
   },
 );
+/** Неизвестный текст даже с 400 заменяется безопасным объяснением. */
 it("does not expose an unexpected raw upload error", async () => {
   vi.stubGlobal(
     "fetch",
@@ -99,6 +108,7 @@ it("does not expose an unexpected raw upload error", async () => {
     { message: "Не удалось загрузить видео. Проверьте формат файла." },
   );
 });
+/** GIF-сигнатура обнаруживается до bitmap/FileReader, несмотря на подменённые имя и MIME. */
 it("rejects GIF before decoding or reading it as base64", async () => {
   const reader = vi.fn();
   const bitmap = vi.fn();
@@ -110,6 +120,7 @@ it("rejects GIF before decoding or reading it as base64", async () => {
   expect(reader).not.toHaveBeenCalled();
   expect(bitmap).not.toHaveBeenCalled();
 });
+/** Ответ upload обязан содержать допустимый адрес без активной схемы, credentials или неверного типа. */
 it.each([
   "javascript:alert(1)",
   "",
@@ -124,6 +135,7 @@ it.each([
     { kind: "invalid-response" },
   );
 });
+/** Deadline охватывает чтение тела ответа, а не только момент получения заголовков. */
 it("times out even when upload headers arrive but its body hangs", async () => {
   vi.useFakeTimers();
   vi.stubGlobal(
@@ -136,6 +148,7 @@ it("times out even when upload headers arrive but its body hangs", async () => {
   await vi.advanceTimersByTimeAsync(180_001);
   await pending;
 });
+/** Смена сессии прекращает прямую загрузку даже при fetch, который сам не завершает promise. */
 it("cancels a direct upload on session change", async () => {
   vi.stubGlobal(
     "fetch",
@@ -147,6 +160,7 @@ it("cancels a direct upload on session change", async () => {
   cancelSessionRequests();
   await pending;
 });
+/** Размер вложения ограничивается до Base64 и сетевой работы, чтобы не выделять лишнюю память. */
 it("rejects a large attachment before FileReader or fetch is called", async () => {
   const fetch = vi.fn();
   const reader = vi.fn();
@@ -157,6 +171,7 @@ it("rejects a large attachment before FileReader or fetch is called", async () =
   expect(fetch).not.toHaveBeenCalled();
   expect(reader).not.toHaveBeenCalled();
 });
+/** Проверяется весь список: один слишком большой файл или превышение количества останавливают подготовку целиком. */
 it("checks the complete selection before reading any selected file", () => {
   expect(() =>
     validateFileSelection([
@@ -170,6 +185,7 @@ it("checks the complete selection before reading any selected file", () => {
     ),
   ).toThrow("20 файлов");
 });
+/** SVG не проходит как растровое фото и не передаётся в FileReader. */
 it("rejects unsupported active image content before decoding", async () => {
   const file = new File(["<svg/>"], "picture.svg", { type: "image/svg+xml" });
   const reader = vi.fn();
@@ -177,6 +193,7 @@ it("rejects unsupported active image content before decoding", async () => {
   await expect(fileToUpload(file)).rejects.toThrow("Неподдерживаемый формат");
   expect(reader).not.toHaveBeenCalled();
 });
+/** Ресурс декодирования освобождается и на ошибке canvas, не только после успешной конвертации. */
 it("closes a decoded bitmap even when creating the canvas fails", async () => {
   const close = vi.fn();
   vi.stubGlobal(
@@ -191,7 +208,9 @@ it("closes a decoded bitmap even when creating the canvas fails", async () => {
   ).rejects.toThrow("подготовить фото");
   expect(close).toHaveBeenCalledTimes(1);
 });
+/** Модель редактора допускает только одну текущую операцию и не принимает результат отменённого владельца. */
 describe("operation ownership", () => {
+  /** Старый finish не снимает блокировку новой операции после cancel и повторного открытия. */
   it("locks synchronously and prevents a late result affecting a reopened editor", () => {
     const scope = new OperationScope();
     const parent = new AbortController();
@@ -206,6 +225,7 @@ describe("operation ownership", () => {
     next.finish();
     expect(scope.getSnapshot()).toBeNull();
   });
+  /** Abort родительской сессии лишает подготовку права начинать последующую серверную запись. */
   it("cancels preparation before a server mutation can start after a session change", () => {
     const scope = new OperationScope();
     const parent = new AbortController();
@@ -217,6 +237,7 @@ describe("operation ownership", () => {
   });
 });
 
+/** 401 инициирует проверку сессии до чтения зависшего тела, после чего текущая загрузка отменяется. */
 it("checks an upload 401 immediately even when its response body stalls", async () => {
   const { subscribeSessionChecks } =
     await import("../apps/frontend/src/shared/api/session-events");

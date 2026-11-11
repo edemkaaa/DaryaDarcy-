@@ -17,6 +17,7 @@ import { createBackendApplication } from "../apps/backend/src/_core/application"
 import { sdk } from "../apps/backend/src/_core/sdk";
 import { getDb } from "../apps/backend/src/db";
 
+/** Проверяет весь цикл private content: upload receipt, атомарную привязку к посту/статье/комментарию и текущую защищённую выдачу. */
 describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL and loopback SDK wire", () => {
   let conn: Connection, app: INestApplication, base: string;
   let wire: Awaited<ReturnType<typeof openPrivateUploadWire>>;
@@ -25,7 +26,9 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
   const madeArticles = new Set<number>();
   const madeFiles = new Set<string>();
   const input = { idempotencyKey: "content-upload-intent-0001", usage: "articleDocument", filename: "article.txt", mimeType: "text/plain", base64: Buffer.from("private article document").toString("base64") };
+  /** Читает собственные SQL-привязки и журналы для независимого контроля результата HTTP. */
   async function rows(query: string, args: unknown[] = []) { return (await conn.query<RowDataPacket[]>(query, args))[0]; }
+  /** Вызывает query или mutation настоящего API выбранной сессией с deadline либо контролируемым AbortSignal. */
   async function call(method: string, data: unknown = input, who = "admin", query = false, signal = AbortSignal.timeout(20000)) {
     const encoded = superjson.stringify(data);
     const response = await fetch(`${base}/api/trpc/${method}${query ? `?input=${encodeURIComponent(encoded)}` : ""}`, {
@@ -35,37 +38,47 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     const json = await response.json();
     return { status: response.status, data: json.result ? superjson.deserialize<Record<string, unknown>>(json.result.data) : null, wire: JSON.stringify(json) };
   }
+  /** Загружает private content и записывает созданный assetId в список адресной уборки. */
   async function upload(value: unknown = input, who = "admin") {
     const result = await call("admin.uploadPrivateContentFile", value, who);
     if (result.data?.assetId) madeFiles.add(String(result.data.assetId)); return result;
   }
+  /** Читает durable status стандартного upload-key от выбранного owner. */
   const status = (who = "admin") => call("admin.privateContentFileStatus", { idempotencyKey: input.idempotencyKey }, who, true);
+  /** Создаёт synthetic прозрачный PNG и загружает с выбранными usage и ключом. */
   async function photo(usage = "postPhoto", key = "content-photo-intent-0001") {
     const png = await sharp({ create: { width: 2, height: 3, channels: 4, background: { r: 1, g: 2, b: 3, alpha: 0.5 } } }).png().toBuffer();
     const result = await upload({ ...input, idempotencyKey: key, usage, filename: "photo.png", mimeType: "image/png", base64: png.toString("base64") });
     expect(result.status).toBe(200); return result.data!;
   }
+  /** Формирует клубный черновик с явным post creation-key и private фото. */
   const postInput = (url: string) => ({ text: "Private content post", source: "cf-photos", tags: [], photos: [url], target: "club", status: "draft", idempotencyKey: "content-post-create-0001" });
+  /** Создаёт настоящий пост и регистрирует только успешно созданный ID для уборки. */
   async function makePost(data: unknown, who = "admin") {
     const result = await call("admin.createPost", data, who);
     if (result.status === 200) madePosts.add(Number(result.data)); return result;
   }
+  /** Создаёт настоящую статью и регистрирует только успешно созданный ID для уборки. */
   async function makeArticle(data: unknown, who = "admin") {
     const result = await call("admin.createArticle", data, who);
     if (result.status === 200) madeArticles.add(Number(result.data)); return result;
   }
+  /** Удаляет только созданные suite статьи, их тизеры и журналы двух авторов. */
   async function clearArticles() {
     for (const id of madeArticles) { await conn.query("DELETE FROM posts WHERE source=?", [`article:${id}`]); await conn.query("DELETE FROM articles WHERE id=?", [id]); }
     madeArticles.clear(); await conn.query("DELETE FROM article_creation_requests WHERE actorUserId IN (98150,98151)");
   }
+  /** Загружает synthetic фото участника для конкретного поста и запоминает assetId. */
   async function commentPhoto(postId: number, idempotencyKey = input.idempotencyKey) {
     const png = await sharp({ create: { width: 2, height: 2, channels: 3, background: "red" } }).png().toBuffer();
     const result = await call("club.uploadPrivateCommentPhoto", { ...input, idempotencyKey, usage: "commentPhoto", postId, filename: "photo.png", mimeType: "image/png", base64: png.toString("base64") }, "member");
     if (result.data?.assetId) madeFiles.add(String(result.data.assetId)); return result;
   }
+  /** Запрашивает stable file URL от выбранного reader с GET/HEAD и необязательным Range. */
   async function readFile(url: string, who = "guest", method = "GET", range?: string) {
     return fetch(`${base}${url}`, { method, headers: { ...(tokens[who] ? { authorization: `Bearer ${tokens[who]}` } : {}), ...(range ? { range } : {}) } });
   }
+  /** Создаёт одноразовую content-схему, loopback S3-wire, трёх участников и локальный API. */
   beforeAll(async () => {
     conn = await openContentTestDatabase();
     await conn.query("CREATE TABLE IF NOT EXISTS articles(id INT AUTO_INCREMENT PRIMARY KEY,title VARCHAR(255) NOT NULL,coverUrl TEXT,access ENUM('public','club') NOT NULL DEFAULT 'public',published BOOLEAN NOT NULL DEFAULT TRUE,sortOrder INT NOT NULL DEFAULT 0,sections JSON NOT NULL,createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP) ENGINE=InnoDB");
@@ -79,6 +92,7 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
     for (const name of ["admin", "other", "member"]) tokens[name] = await sdk.createSessionToken(`cf-${name}`, { sessionVersion: 0 });
   });
+  /** Удаляет свои asset/material/journal строки, восстанавливает права и флаги и очищает wire. */
   beforeEach(async () => {
     for (const id of madeFiles) await conn.query("DELETE FROM private_content_files WHERE assetId=?", [id]); madeFiles.clear();
     await clearArticles();
@@ -93,6 +107,7 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     vi.stubEnv("PRIVATE_CONTENT_FILES_ENABLED", "true"); vi.stubEnv("CONTENT_RECOVERY_RETENTION_ENABLED", "false");
     vi.stubEnv("S3_BUCKET", wire.bucket); wire.objects.clear(); wire.effects.length = 0; wire.rejectPolicy(false);
   });
+  /** Закрывает API, удаляет только созданные suite объекты SQL и аккаунты, закрывает пул и wire. */
   afterAll(async () => {
     await app?.close();
     if (conn) {
@@ -108,6 +123,7 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     if (app) await ((await getDb()) as unknown as { $client: { end(): Promise<void> } })?.$client.end();
     await wire?.close(); vi.unstubAllEnvs();
   });
+  /** Успешный upload сохраняет ready-evidence без parent и возвращает только stable application URL, не storage-ключ. */
   it("records a ready receipt and returns only an application URL", async () => {
     const result = await upload(); expect(result.status).toBe(200);
     expect(result.data).toMatchObject({ state: "ready", usage: "articleDocument", mimeType: "text/plain; charset=utf-8", fileSize: 24 });
@@ -116,6 +132,7 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     expect(await rows("SELECT state,parentId FROM private_content_files WHERE actorUserId=98150")).toEqual([{ state: "ready", parentId: null }]);
     expect((await status()).data).toEqual(result.data);
   });
+  /** Client abort закрывает upstream, pending сохраняется; retry сверяет уже принятые байты без второго PUT. */
   it("cancels storage on HTTP disconnect and recovers the same object on retry", async () => {
     const gate = wire.pausePut();
     const browser = new AbortController();
@@ -142,6 +159,7 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     expect((await status()).data).toEqual(result.data);
     expect(wire.effects.filter(effect => effect.startsWith("PUT "))).toHaveLength(1);
   });
+  /** Upload не держит owner/post SQL-lock во время PUT, но после ожидания отказывает скрытому посту. */
   it("does not hold the comment actor or post lock across storage and rechecks post visibility", async () => {
     const post = await makePost({ ...postInput(""), photos: [], target: "feed", status: "published", tags: ["community"] });
     expect(post.status).toBe(200);
@@ -157,6 +175,7 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     expect(await rows("SELECT state,etag FROM private_content_files WHERE actorUserId=98152")).toEqual([{ state: "pending", etag: null }]);
     expect(wire.objects.size).toBe(1);
   });
+  /** Документ ровно 32 МиБ проходит настоящий JSON-parser и сохраняет один точный объект при повторе. */
   it("accepts a full 32 MiB document over Base64 HTTP and replays one stored asset", async () => {
     const bytes = Buffer.alloc(32 * 1024 * 1024, 0x61);
     const value = { ...input, base64: bytes.toString("base64") };
@@ -170,6 +189,7 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     expect(await rows("SELECT state,fileSize FROM private_content_files WHERE actorUserId=98150"))
       .toEqual([{ state: "ready", fileSize: bytes.length }]);
   });
+  /** Реальное фото больше обычного 256 КиБ parser-limit проходит специальные upload-пути и нормализуется в WebP. */
   it.each(["postPhoto", "articlePhoto", "commentPhoto"])("accepts a real %s photo above the ordinary JSON limit", async usage => {
     const png = await sharp(randomBytes(512 * 512 * 3), { raw: { width: 512, height: 512, channels: 3 } }).png().toBuffer();
     expect(png.length).toBeGreaterThan(256 * 1024);
@@ -187,12 +207,14 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     const meta = await sharp([...wire.objects.values()][0].bytes).metadata();
     expect(meta).toMatchObject({ format: "webp", width: 512, height: 512 });
   });
+  /** Потерянный PUT-ACK восстанавливается тем же pending-intent без второго объекта. */
   it("reconciles lost storage ACK without creating another object", async () => {
     wire.dropPutAck(); expect((await upload()).status).toBe(503);
     expect((await status()).data).toMatchObject({ state: "pending" });
     expect((await upload()).data).toMatchObject({ state: "ready" });
     expect(wire.objects.size).toBe(1); expect(wire.effects.filter(value => value.startsWith("PUT "))).toHaveLength(1);
   });
+  /** Четыре повтора одного intent сходятся в один asset; изменение filename/bytes конфликтует, чужой owner не видит receipt. */
   it("serializes concurrent same-intent uploads and rejects a changed payload", async () => {
     const results = await Promise.all(Array.from({ length: 4 }, () => upload()));
     expect(results.map(value => value.status)).toEqual([200,200,200,200]);
@@ -202,16 +224,19 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     expect(wire.objects.size).toBe(1);
     expect((await status("other")).data).toEqual({ state: "notRecorded" });
   });
+  /** Выключенная функция, гость и обычный пользователь не доходят до admin-content storage. */
   it("does not write storage for disabled, unauthenticated or non-admin uploads", async () => {
     vi.stubEnv("PRIVATE_CONTENT_FILES_ENABLED", "false"); expect((await upload()).status).toBe(404);
     vi.stubEnv("PRIVATE_CONTENT_FILES_ENABLED", "true"); expect((await upload(input, "guest")).status).toBe(401);
     expect((await upload(input, "member")).status).toBe(403); expect(wire.objects.size).toBe(0);
   });
+  /** Отказ storage-policy сохраняет pending и допускает восстановление того же intent после исправления политики. */
   it("retains pending evidence on policy refusal and can resume the same intent", async () => {
     wire.rejectPolicy(true); expect((await upload()).status).toBe(503); expect(wire.objects.size).toBe(0);
     expect((await status()).data).toMatchObject({ state: "pending" });
     wire.rejectPolicy(false); expect((await upload()).data).toMatchObject({ state: "ready" });
   });
+  /** Отозванная сессия, pending-удаление и просроченное recovery запрещают продолжение загрузки. */
   it("refuses stale sessions, pending account deletion and expired recovery", async () => {
     await conn.query("UPDATE users SET sessionVersion=1 WHERE id=98150"); expect((await upload()).status).toBe(401);
     await conn.query("UPDATE users SET sessionVersion=0,accountDeletionRequestedAt=NOW() WHERE id=98150"); expect((await upload()).status).toBe(403);
@@ -219,6 +244,7 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     await conn.query("UPDATE private_content_files SET createdAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE actorUserId=98150");
     vi.stubEnv("CONTENT_RECOVERY_RETENTION_ENABLED", "true"); expect((await upload()).status).toBe(409); expect((await status()).status).toBe(409);
   });
+  /** Настоящий PNG становится WebP с alpha, поддельный SVG-body отклоняется до journal entry. */
   it("normalizes genuine photo bytes and refuses active content without creating a ledger entry", async () => {
     const png = await sharp({ create: { width: 2, height: 3, channels: 4, background: { r: 1, g: 2, b: 3, alpha: 0.5 } } }).png().toBuffer();
     const photo = { ...input, usage: "postPhoto", filename: "photo.png", mimeType: "image/png", base64: png.toString("base64") };
@@ -227,6 +253,7 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     expect((await upload({ ...photo, idempotencyKey: "content-invalid-photo-001", base64: Buffer.from("<svg/>").toString("base64") })).status).toBe(400);
     expect(await rows("SELECT assetId FROM private_content_files WHERE actorUserId=98150")).toHaveLength(1);
   });
+  /** Private-фото наследует текущие права поста, черновик и detached файл закрыты, retired asset нельзя привязать заново. */
   it("binds a post photo atomically, inherits live visibility and never exposes a draft or detached photo", async () => {
     const asset = await photo(); const url = String(asset.url);
     expect((await readFile(url, "admin")).status).toBe(404);
@@ -249,6 +276,7 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     expect((await call("admin.updatePost", { id, photos: [url] })).status).toBe(409);
     expect(wire.objects.size).toBe(1);
   });
+  /** Чужие assets, неверный usage, отсутствие creation intent и сырые private storage URL запрещают полный пост-коммит. */
   it("rejects foreign, wrong-usage and raw private storage references before post commit", async () => {
     const asset = await photo(); const url = String(asset.url);
     expect((await makePost(postInput(url), "other")).status).toBe(409);
@@ -259,6 +287,7 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     expect((await makePost(postInput(`https://other.example.test${url}`))).status).toBe(400);
     expect(await rows("SELECT id FROM posts WHERE source='cf-photos'")).toEqual([]);
   });
+  /** Статья атомарно привязывает фото, упорядоченную карусель и документ; file URL повторяет текущую публикацию и доступ. */
   it("atomically binds article image, ordered carousel and document, then follows publication and access changes", async () => {
     const image = await photo("articlePhoto"), second = await photo("articlePhoto", "article-second-photo-0001");
     const doc = (await upload()).data!;
@@ -281,6 +310,7 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     expect((await readFile(String(doc.url), "admin")).status).toBe(404);
     expect((await call("admin.updateArticle", { id, sections: data.sections })).status).toBe(409);
   });
+  /** Private cover, чужой файл и отсутствие intent не оставляют ни статью, ни тизер. */
   it("refuses private covers, foreign article files and creation without an intent before article/teaser commit", async () => {
     const doc = (await upload()).data!;
     const data = { title: "Invalid private article", published: true, idempotencyKey: "33221100-4455-4677-8899-aabbccddeef1", sections: [{ type: "link", url: doc.url }] };
@@ -291,6 +321,7 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     expect(await rows("SELECT id FROM articles WHERE title='Invalid private article'")).toEqual([]);
     expect(await rows("SELECT id FROM posts WHERE text='Invalid private article'")).toEqual([]);
   });
+  /** Комментарий с фото создаётся идемпотентно; выдача учитывает текущий post target, оплату, staff роль, epoch и удаление комментария. */
   it("keeps comment photos private, retries one comment without duplicates, and follows current discussion access", async () => {
     const saved = await makePost({ ...postInput(""), photos: [], target: "feed", status: "published", tags: ["community"] });
     const postId = Number(saved.data); const uploaded = await commentPhoto(postId); expect(uploaded.status).toBe(200);
@@ -326,6 +357,7 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     expect((await readFile(url, "member")).status).toBe(404);
     expect((await call("club.addComment", payload, "member")).status).toBe(409);
   });
+  /** Upload требует доступ к обсуждению, не переносится к другому посту и повторно учитывает закрытый deadline. */
   it("authorizes comment uploads before storage and refuses attaching them to another post", async () => {
     const saved = await makePost({ ...postInput(""), photos: [], target: "club", status: "published", tags: ["community"] }); const postId = Number(saved.data);
     expect((await commentPhoto(postId)).status).toBe(403); expect(wire.objects.size).toBe(0);
@@ -337,6 +369,7 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     expect((await commentPhoto(postId)).status).toBe(400);
     expect(await rows("SELECT id FROM post_comments WHERE userId=98152")).toEqual([]);
   });
+  /** Потерянный storage ACK восстанавливается только владельцем; другой аккаунт не читает receipt и не крадёт pending-фото. */
   it("recovers comment photo storage loss without leaking an intent to another account", async () => {
     const saved = await makePost({ ...postInput(""), photos: [], target: "feed", status: "published", tags: ["community"] }); const postId = Number(saved.data);
     wire.dropPutAck(); expect((await commentPhoto(postId)).status).toBe(503);
@@ -348,11 +381,13 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     expect((await readFile(String(asset.data!.url), "other")).status).toBe(404);
     expect(wire.objects.size).toBe(1); expect(wire.effects.filter(value => value.startsWith("PUT "))).toHaveLength(1);
   });
+  /** Loopback proxy теряет уже committed HTTP-ответ; правильный owner повтором получает исходный ID без второй строки. */
   it("retries the same committed comment after a real downstream HTTP response drop without another row", async () => {
     const saved = await makePost({ ...postInput(""), photos: [], target: "feed", status: "published", tags: ["community"] }); const postId = Number(saved.data);
     const asset = await commentPhoto(postId); expect(asset.status).toBe(200);
     const payload = { postId, text: "Lost HTTP reply", photos: [asset.data!.url], idempotencyKey: "comment-lost-http-response-001" };
     let upstreamStatus = 0;
+    // Теряем только downstream-ответ после полного чтения upstream: запись уже подтверждена настоящим API.
     const proxy = createServer(async (req) => {
       const chunks: Buffer[] = []; for await (const chunk of req) chunks.push(Buffer.from(chunk));
       const upstream = await fetch(`${base}/api/trpc/club.addComment`, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${tokens.member}` }, body: Buffer.concat(chunks) });
@@ -371,11 +406,13 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
       expect(listed.data).toMatchObject([{ id: committed[0].id, text: "Lost HTTP reply", photos: [asset.data!.url] }]);
     } finally { proxy.closeAllConnections(); await new Promise<void>(resolve => proxy.close(() => resolve())); }
   });
+  /** Чужой Origin получает 403 с private no-store до доступа к storage. */
   it("keeps ingress denial private and never contacts storage", async () => {
     const asset = await photo(); const effects = wire.effects.length;
     const response = await fetch(`${base}${asset.url}`, { headers: { Origin: "https://untrusted.example.test" } });
     expect(response.status).toBe(403); expect(response.headers.get("cache-control")).toBe("private, no-store"); expect(wire.effects).toHaveLength(effects);
   });
+  /** Персональный export ограничен безопасными receipts без assetId, filename, storage origin или чужих операций. */
   it("exports only own content recovery metadata without file URLs, names or storage capabilities", async () => {
     vi.stubEnv("CONTENT_RECOVERY_EXPORT_ENABLED", "true"); const uploaded = await upload(); expect(uploaded.status, uploaded.wire).toBe(200); const asset = uploaded.data!;
     expect((await upload({ ...input, idempotencyKey: "another-export-content-0001" })).status).toBe(200);
@@ -387,6 +424,7 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     expect(result.wire).not.toContain(String(asset.assetId)); expect(result.wire).not.toContain("article.txt"); expect(result.wire).not.toContain(wire.endpoint);
     expect((await call("profileExtras.recoveryExport", { kind: "private_content" }, "other", true)).data).toMatchObject({ items: [] });
   });
+  /** Retirement очищает owner/filename и journals под owner-lock, отзывая старый actor без удаления storage-байтов. */
   it("retires new comment/file recovery links atomically and fences the old actor without touching storage", async () => {
     vi.stubEnv("CONTENT_RECOVERY_RETIREMENT_ENABLED", "true"); vi.stubEnv("CONTENT_RECOVERY_EXPORT_ENABLED", "true");
     const post = await makePost({ ...postInput(""), photos: [], target: "feed", status: "published", tags: ["community"] }); expect(post.status, post.wire).toBe(200); const postId = Number(post.data);
@@ -409,6 +447,7 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     expect((await readFile(String(asset.url), "other")).status).toBe(200);
     expect((await call("club.privateCommentPhotoStatus", { idempotencyKey: input.idempotencyKey }, "member", true)).status).toBe(401);
   });
+  /** Pending comment-photo не завершается после epoch, блока или удаления owner и не создаёт комментарий. */
   it("refuses finishing a pending comment-photo upload after the session or account is revoked", async () => {
     const post = await makePost({ ...postInput(""), photos: [], target: "feed", status: "published", tags: ["community"] }); const postId = Number(post.data);
     wire.dropPutAck(); expect((await commentPhoto(postId)).status).toBe(503); const effects = wire.effects.length;
@@ -423,6 +462,7 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
     expect(await rows("SELECT state,parentId FROM private_content_files WHERE actorUserId=98152")).toEqual([{ state: "pending", parentId: null }]);
     expect(await rows("SELECT id FROM post_comments WHERE postId=?", [postId])).toEqual([]);
   });
+  /** Отсутствующая comment-ledger таблица откатывает retirement вместе с epoch и owner-связью файла. */
   it("rolls retirement back when the comment ledger migration is missing", async () => {
     vi.stubEnv("CONTENT_RECOVERY_RETIREMENT_ENABLED", "true"); const uploaded = await upload(); expect(uploaded.status).toBe(200);
     await conn.query("RENAME TABLE comment_creation_requests TO cf_owned_comment_ledger_missing");
@@ -436,6 +476,7 @@ describe.skipIf(!testDatabaseUrl)("new private content files on native HTTP/SQL 
       expect(await rows("SELECT actorUserId,filename FROM private_content_files WHERE assetId=?", [uploaded.data!.assetId])).toEqual([{ actorUserId: 98150, filename: "article.txt" }]);
     } finally { await conn.query("RENAME TABLE cf_owned_comment_ledger_missing TO comment_creation_requests"); }
   });
+  /** Истечение recovery запрещает повтор создания, но не лишает доступа к уже committed комментарию и фото. */
   it("expires comment recovery without expiring the committed comment photo or creating a replacement", async () => {
     const saved = await makePost({ ...postInput(""), photos: [], target: "feed", status: "published", tags: ["community"] }); const postId = Number(saved.data);
     const asset = await commentPhoto(postId); expect(asset.status).toBe(200);

@@ -1,3 +1,4 @@
+/** Архивный Vite-клиент: связывает прежние маршруты с ленивыми экранами; основной клиент находится в apps/frontend. */
 import { lazy, Suspense, type ReactNode } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./auth";
@@ -19,6 +20,7 @@ const Profile = lazy(() => import("./pages/Profile"));
 const Login = lazy(() => import("./pages/Login"));
 const Quiz = lazy(() => import("./pages/Quiz"));
 
+/** Показывает статическую заставку во время загрузки ленивого модуля; сетевые ошибки эта граница не обрабатывает. */
 function Fallback() {
   return (
     <div className="boot">
@@ -28,10 +30,12 @@ function Fallback() {
   );
 }
 
+/** Подключает провайдер запросов только к экранам, которым нужен API. */
 function withTrpc(node: ReactNode) {
   return <TrpcGate>{node}</TrpcGate>;
 }
 
+/** Собирает прежнюю оболочку, сессию и BrowserRouter; неизвестный маршрут возвращает на главную. */
 export function App() {
   return (
     <AuthProvider>

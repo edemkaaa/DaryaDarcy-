@@ -22,6 +22,8 @@ const videoData = JSON.parse(
 }>;
 
 async function main() {
+  // Добавляет отсутствующие youtubeId из исторического JSON как опубликованные; для нынешнего VK-каталога запуск не нужен.
+
   const dbUrl = process.env.DATABASE_URL;
   if (!dbUrl) {
     console.error("DATABASE_URL not set");

@@ -4,6 +4,7 @@ import { gotoWithSession } from "./layout-fixtures";
 
 test.use({ hasTouch: true });
 const endpoint = "**/api/admin/access-email/resend";
+/** Создаём получателей с различными доступом, email и блокировкой, чтобы UI не предлагал письмо неподходящему аккаунту. */
 const member = (id: number, name: string, extra = {}) => ({
   id,
   name,
@@ -16,9 +17,11 @@ const member = (id: number, name: string, extra = {}) => ({
   blockedReason: null,
   ...extra,
 });
+/** Изолируем статус и действия конкретной участницы в списке. */
 const card = (page: Page, name = "Участница для письма") =>
   page.getByText(name, { exact: true }).locator("..");
 
+/** Синтетическая action-status по умолчанию notFound, а список включает пригодных и непригодных получателей. */
 async function fixtures(page: Page) {
   await editorApi(page, (name) => {
     if (name === "admin.actionStatus") return ok({ state: "notFound" });
@@ -34,11 +37,13 @@ async function fixtures(page: Page) {
       ]);
   });
 }
+/** Открываем участниц через admin и ждём нужную карточку до действия. */
 async function openMembers(page: Page) {
   await gotoWithSession(page, "/admin");
   await page.getByRole("button", { name: "Участницы", exact: true }).click();
   await expect(card(page)).toBeVisible();
 }
+/** Подтверждаем адрес и инициируем повтор письма через реальную кнопку. */
 async function send(page: Page) {
   page.once("dialog", (dialog) => dialog.accept());
   await card(page)
@@ -46,6 +51,7 @@ async function send(page: Page) {
     .click();
 }
 
+/** 202 queued подтверждает только очередь, не доставку; проверяем точный userId/key, отмену confirm и независимость другой карточки. */
 for (const width of [320, 390, 1440]) {
   test(`cancel and confirmed enqueue use the stored account without promising delivery at ${width}px`, async ({
     page,
@@ -121,6 +127,7 @@ for (const width of [320, 390, 1440]) {
   });
 }
 
+/** Известный отказ 400/403/429 разрешает только явный повтор исходного intent, скрывая SMTP-детали. */
 for (const status of [400, 403, 429]) {
   test(`known ${status} refusal permits only an explicit retry and hides private details`, async ({
     page,
@@ -162,6 +169,7 @@ const unconfirmed = [
   { label: "HTML", status: 202, body: "<html>PRIVATE_SMTP_DETAILS</html>" },
   { label: "network loss", status: 0, body: null },
 ];
+/** Потеря сети, 500 и некорректное подтверждение оставляют неизвестный исход заблокированным после смены вкладок. */
 for (const outcome of unconfirmed) {
   test(`${outcome.label} keeps the recipient blocked across members-tab changes`, async ({
     page,
@@ -205,6 +213,7 @@ for (const outcome of unconfirmed) {
   });
 }
 
+/** Пока enqueue ожидает ответ, другие member-write заблокированы; уход со вкладки делает поздний ACK непригодным для success текущего UI. */
 test("pending request excludes duplicates and other member writes; a late reply after tab change is not success", async ({
   page,
 }) => {
@@ -245,6 +254,7 @@ test("pending request excludes duplicates and other member writes; a late reply 
   expect(writes).toBe(1);
 });
 
+/** Истечение срока не повторяет POST и сохраняет unknown-state для последующей сверки. */
 test("deadline retains an unknown outcome without retrying the request", async ({
   page,
 }) => {
@@ -276,6 +286,7 @@ test("deadline retains an unknown outcome without retrying the request", async (
   expect(writes).toBe(1);
 });
 
+/** Поздний ACK прежнего admin не публикует успех после смены личности или подтверждённого выхода. */
 for (const nextActor of [102, null]) {
   test(`late response after ${nextActor === null ? "session revocation" : "identity change"} cannot publish previous success`, async ({
     page,
@@ -343,6 +354,7 @@ for (const nextActor of [102, null]) {
   });
 }
 
+/** Модератор, пользователь и гость не получают действие отправки в admin-интерфейсе. */
 for (const role of ["moderator", "user", "guest"]) {
   test(`${role} does not get the members action or trigger email`, async ({
     page,

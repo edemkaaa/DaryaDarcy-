@@ -1,3 +1,4 @@
+// Постранично считает объекты и байты S3 только чтением; результат не подтверждает восстановимость резервной копии.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

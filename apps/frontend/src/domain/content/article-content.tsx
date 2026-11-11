@@ -14,6 +14,7 @@ import {
   type ArticleBlock,
 } from "@/domain/content/article-blocks";
 
+/** Отображаем переданные блоки и обложку без исполнения HTML; открытие изображений делегируем владельцу просмотра. */
 export function ArticleContent({
   title,
   coverUrl,
@@ -57,6 +58,7 @@ export function ArticleContent({
     </div>
   );
 }
+/** Выбираем разметку по типу блока: текстовые inlines, отдельные изображения, внешнее действие или карусель; размеры фото уточняются onLoad. */
 function ArticleBlockView({
   block,
   onOpenImage,

@@ -1,3 +1,4 @@
+/** Архивная точка запуска Vite: монтирует App в существующий root и подключает общие стили. */
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";

@@ -18,6 +18,7 @@ import { resendAccessEmail } from "../apps/frontend/src/shared/api/access-email"
 import { parseRetryAfter } from "../apps/frontend/src/shared/api/retry-after";
 import { readProdamusReturnResult } from "../apps/frontend/src/features/club/prodamus-return-api";
 
+// После каждого случая отменяются сессионные запросы и возвращаются настоящие таймеры, чтобы зависшее тело одного теста не влияло на следующий.
 afterEach(() => {
   cancelSessionRequests();
   vi.useRealTimers();
@@ -26,6 +27,8 @@ afterEach(() => {
 });
 
 const rejected = async (promise: Promise<unknown>): Promise<unknown> => {
+  // Получает отклонение Promise как значение и проверяет, что запрос действительно завершился ошибкой.
+
   const result = await promise.then(
     () => ({ failed: false as const }),
     (error: unknown) => ({ failed: true as const, error }),
@@ -33,7 +36,7 @@ const rejected = async (promise: Promise<unknown>): Promise<unknown> => {
   expect(result.failed).toBe(true);
   return result.failed ? result.error : undefined;
 };
-const rpcError = (status: number) => ({
+const rpcError = (status: number) => /* Строит tRPC-отказ с приватным маркером для проверки безопасного отображения. */ ({
   error: {
     json: {
       message: "PRIVATE_SERVER_DETAIL",
@@ -50,6 +53,8 @@ it.each(
 )(
   "preserves HTML HTTP $status through the real $transport tRPC link",
   async ({ status, transport }) => {
+    // Сценарий: Одиночный и пакетный tRPC сохраняют HTTP-код HTML-отказа, Retry-After и скрывают приватные детали.
+
     const fetcher = vi.fn(
       async () =>
         new Response("<html>PRIVATE_PROXY_DETAIL</html>", {
@@ -83,6 +88,8 @@ it.each(
 it.each(["<html>PRIVATE</html>", "", "{", "null", "{}"])(
   "classifies an invalid HTTP 200 as invalid-response (%s)",
   async (body) => {
+    // Сценарий: Неверная оболочка HTTP 200 классифицируется как invalid-response и не запускает повтор.
+
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => new Response(body)),
@@ -96,6 +103,8 @@ it.each(["<html>PRIVATE</html>", "", "{", "null", "{}"])(
 );
 
 it("preserves a normal batched profile acknowledgement and SuperJSON dates", async () => {
+  // Сценарий: Успешный batch сохраняет подтверждение обновления и даты SuperJSON.
+
   const date = new Date("2026-10-30T12:00:00.000Z");
   const fetcher = vi.fn(async () =>
     Response.json([
@@ -123,6 +132,8 @@ it("preserves a normal batched profile acknowledgement and SuperJSON dates", asy
 it.each([409, 412])(
   "preserves structured tRPC conflict data for HTTP %s",
   async (status) => {
+    // Сценарий: Конфликт 409/412 сохраняет структурированные данные текущей ревизии.
+
     const data = {
       httpStatus: status,
       code: "CONFLICT",
@@ -150,6 +161,8 @@ it.each([409, 412])(
 );
 
 it("keeps success and denial separate in the same HTTP 207 batch", async () => {
+  // Сценарий: В batch 207 успешный элемент и запрещённый элемент остаются независимыми.
+
   const fetcher = vi.fn(async () =>
     Response.json([{ result: { data: { json: [] } } }, rpcError(403)], {
       status: 207,
@@ -171,6 +184,8 @@ it("keeps success and denial separate in the same HTTP 207 batch", async () => {
 it.each([401, 403])(
   "an HTML %s triggers the existing global session check once",
   async (status) => {
+    // Сценарий: HTML 401/403 вызывает одну общую проверку сессии.
+
     const verify = vi.fn();
     const unsubscribe = subscribeSessionChecks(verify);
     const cache = createAppQueryClient();
@@ -180,7 +195,7 @@ it.each([401, 403])(
       await rejected(
         cache.fetchQuery({
           queryKey: ["protected-http-probe"],
-          queryFn: () => createTRPCClient().club.subscription.query(),
+          queryFn: () => /* Читает защищённую подписку через QueryClient, чтобы проверить общую реакцию на 401/403. */ createTRPCClient().club.subscription.query(),
         }),
       );
       expect(verify).toHaveBeenCalledExactlyOnceWith(status);
@@ -193,6 +208,8 @@ it.each([401, 403])(
 );
 
 it("does not retry a mutation after an HTML 503", async () => {
+  // Сценарий: Мутация после HTML 503 не повторяется автоматически.
+
   const cache = createAppQueryClient();
   const fetcher = vi.fn(
     async () => new Response("PRIVATE_HTML", { status: 503 }),
@@ -201,7 +218,7 @@ it("does not retry a mutation after an HTML 503", async () => {
   try {
     const mutation = cache.getMutationCache().build(cache, {
       mutationFn: () =>
-        createTRPCClient().profile.update.mutate({
+        /* Запускает мутацию профиля через MutationCache, проверяя отсутствие автоматического повтора после 503. */ createTRPCClient().profile.update.mutate({
           name: "Member",
           expectedRevision: 1,
         }),
@@ -218,6 +235,8 @@ it("does not retry a mutation after an HTML 503", async () => {
 it.each(["html", "json"])(
   "accepts HTTP-date Retry-After from a %s tRPC refusal",
   async (format) => {
+    // Сценарий: Retry-After в формате HTTP-date читается из HTML и JSON отказа.
+
     const now = new Date("2026-10-30T12:00:00.000Z");
     vi.spyOn(Date, "now").mockReturnValue(now.getTime());
     const header = new Date(now.getTime() + 120_000).toUTCString();
@@ -242,12 +261,16 @@ it.each(["html", "json"])(
 );
 
 it("retains HTTP status when an error body itself fails to download", async () => {
+  // Сценарий: Сбой скачивания ошибочного тела не теряет уже известный HTTP-статус.
+
   vi.stubGlobal(
     "fetch",
     async () =>
       new Response(
         new ReadableStream({
           start(controller) {
+            // Обрывает чтение тела после получения ошибочного HTTP-статуса.
+
             controller.error(new Error("PRIVATE_BODY_DETAIL"));
           },
         }),
@@ -260,12 +283,16 @@ it("retains HTTP status when an error body itself fails to download", async () =
 });
 
 it("keeps a network interruption of an HTTP 200 body temporary", async () => {
+  // Сценарий: Обрыв тела HTTP 200 остаётся временной сетевой ошибкой.
+
   vi.stubGlobal(
     "fetch",
     async () =>
       new Response(
         new ReadableStream({
           start(controller) {
+            // Обрывает тело HTTP 200 как сетевой сбой вместо неверного формата данных.
+
             controller.error(new TypeError("PRIVATE_NETWORK_DETAIL"));
           },
         }),
@@ -279,10 +306,14 @@ it("keeps a network interruption of an HTTP 200 body temporary", async () => {
 });
 
 it("still times out a hung tRPC response body and clears its timer", async () => {
+  // Сценарий: Зависшее тело tRPC завершается таймаутом без оставшегося таймера.
+
   vi.useFakeTimers();
   vi.stubGlobal(
     "fetch",
-    async () => new Response(new ReadableStream({ start() {} })),
+    async () => new Response(new ReadableStream({ start() {
+      // Удерживает тело открытым до срабатывания таймаута транспорта.
+} })),
   );
   const result = rejected(fetchApiResponse("/api/trpc/test"));
   await vi.advanceTimersByTimeAsync(15_001);
@@ -291,9 +322,13 @@ it("still times out a hung tRPC response body and clears its timer", async () =>
 });
 
 it("cancels a tRPC response body when its session changes", async () => {
+  // Сценарий: Смена сессии отменяет чтение тела прежнего запроса.
+
   vi.stubGlobal(
     "fetch",
-    async () => new Response(new ReadableStream({ start() {} })),
+    async () => new Response(new ReadableStream({ start() {
+      // Удерживает тело открытым до отмены запросов при смене сессии.
+} })),
   );
   const result = rejected(fetchApiResponse("/api/trpc/test"));
   cancelSessionRequests();
@@ -301,6 +336,8 @@ it("cancels a tRPC response body when its session changes", async () => {
 });
 
 it("keeps private upload size guidance for an HTML 413", async () => {
+  // Сценарий: HTML 413 сохраняет полезное пояснение о размере приватной загрузки.
+
   vi.stubGlobal(
     "fetch",
     async () => new Response("PRIVATE_HTML", { status: 413 }),
@@ -316,6 +353,8 @@ it("keeps private upload size guidance for an HTML 413", async () => {
 it.each(["1.5", "0", "-1", "2099-01-01", "invalid", "999999999999999999999"])(
   "does not accept a shorthand or overflowing REST Retry-After (%s)",
   async (header) => {
+    // Сценарий: Дробные, отрицательные, краткие и переполняющие значения Retry-After не принимаются.
+
     vi.stubGlobal(
       "fetch",
       async () =>
@@ -341,6 +380,8 @@ it.each([
 ] as const)(
   "validates Retry-After %s against a fixed clock",
   (header, expected) => {
+    // Сценарий: Формат и срок Retry-After проверяются относительно фиксированного времени.
+
     expect(parseRetryAfter(header, Date.parse("2026-10-30T12:00:00Z"))).toBe(
       expected,
     );
@@ -350,6 +391,8 @@ it.each([
 it.each(["json", "html"])(
   "keeps a valid REST HTTP-date delay for %s errors",
   async (format) => {
+    // Сценарий: REST использует корректную дату из заголовка, не доверяя неверному числу в JSON.
+
     const now = Date.parse("2026-10-30T12:00:00Z");
     vi.spyOn(Date, "now").mockReturnValue(now);
     vi.stubGlobal(
@@ -375,6 +418,8 @@ it.each(["json", "html"])(
 it.each([45, 61])(
   "parses an HTTP-date while retaining the TEST result's existing 60-second bound (%s)",
   async (seconds) => {
+    // Сценарий: Возврат TEST-оплаты сохраняет своё ограничение задержки в 60 секунд.
+
     const now = Date.parse("2026-10-30T12:00:00Z");
     vi.spyOn(Date, "now").mockReturnValue(now);
     vi.stubGlobal(
@@ -402,6 +447,8 @@ it.each([45, 61])(
 );
 
 it("preserves a valid delay for an access-email refusal without sending another request", async () => {
+  // Сценарий: Отказ отправки письма сохраняет задержку без скрытого повторного запроса.
+
   const fetcher = vi.fn(
     async () =>
       new Response("", { status: 429, headers: { "Retry-After": "45" } }),

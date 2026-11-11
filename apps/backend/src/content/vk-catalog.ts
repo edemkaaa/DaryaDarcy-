@@ -56,6 +56,7 @@ export async function currentVideoActor(tx: Reader, actor: User) {
   return current;
 }
 /** Сохраняем проверенный VK-источник и публичную обложку с контролем ревизии. */
+/** Под текущей админской сессией сохраняем разобранный VK-источник: правка сверяет ревизию и уникальность, повтор создания не меняет победившую запись и допускается лишь при полном совпадении данных. */
 export async function upsertVkVideo(actor: User, input: VkVideoInput) {
   requireVkCatalogEnabled();
   const source = parseVkEmbed(input.embedUrl);
@@ -102,6 +103,7 @@ export async function upsertVkVideo(actor: User, input: VkVideoInput) {
       await tx.update(videos).set({ ...data, editRevision: sql`${videos.editRevision} + 1` }).where(eq(videos.id, input.id));
       return { id: input.id };
     }
+// Уникальный vkSourceKey захватывается без перезаписи существующей карточки; ниже проверяется равенство принятого намерения.
     await tx
       .insert(videos)
       .values(data)
@@ -149,6 +151,7 @@ export async function adminVkVideoDetail(actor: User, id: number) {
 }
 
 /** Карточка каталога сообщает доступность; закрытый адрес плеера выдаётся отдельным запросом. */
+/** Постранично читаем опубликованные карточки по возрастающему ID, вычисляем canWatch из текущего доступа и при явном запросе фильтруем публичные обложки; embedUrl в карточку не попадает. */
 export async function videoCatalog(
   actor: User | null,
   input: { limit: number; cursor?: number; includeThumbnails?: boolean },
@@ -200,6 +203,7 @@ export async function videoCatalog(
   });
 }
 /** Перед возвратом embedUrl повторно проверяем право текущего зрителя. */
+/** Блокируем опубликованное видео, повторно проверяем сессию и клубный доступ, затем сверяем согласованность полей провайдера перед выдачей адреса плеера. */
 export async function videoPlayback(actor: User | null, id: number) {
   requireVkCatalogEnabled();
   const database = await getDb();

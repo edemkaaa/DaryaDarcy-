@@ -1,3 +1,4 @@
+/** Проверяем отдельную выгрузку API-контракта, защищая рабочий файл frontend от ошибочной перезаписи генератором. */
 import { afterAll, beforeAll, expect, it } from "vitest";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -9,15 +10,18 @@ const run = promisify(execFile);
 let directory: string, output: string;
 const frontend = resolve("apps/frontend/src/shared/api/contract.ts");
 let original: string;
+/** Создаём собственную выходную папку и запоминаем исходный клиентский контракт. */
 beforeAll(async () => {
   directory = await mkdtemp(join(tmpdir(), "daryadarcy-contract-"));
   output = join(directory, "contract.ts");
   original = await readFile(frontend, "utf8");
 });
+/** Убираем только созданный тестом contract.ts и пустую временную папку. */
 afterAll(async () => {
   await unlink(output).catch(() => {});
   await rmdir(directory);
 });
+/** Перехватываем запись в дочернем процессе: разрешён только выбранный output. Проверяем актуальный артефакт, отказ для устаревшего и сохранность frontend. */
 it("exports and checks a handoff artifact without writing the frontend contract", async () => {
   // The guard makes RED safe: the old generator ignores --output and tries
   // the frontend destination. It must never write there even in a failing test.

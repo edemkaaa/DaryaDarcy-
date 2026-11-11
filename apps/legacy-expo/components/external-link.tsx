@@ -1,3 +1,4 @@
+// Архив Expo. На web использует новую вкладку, на native отменяет router и открывает встроенный browser.
 import { Href, Link } from "expo-router";
 import { openBrowserAsync, WebBrowserPresentationStyle } from "expo-web-browser";
 import { type ComponentProps } from "react";
@@ -5,6 +6,8 @@ import { type ComponentProps } from "react";
 type Props = Omit<ComponentProps<typeof Link>, "href"> & { href: Href & string };
 
 export function ExternalLink({ href, ...rest }: Props) {
+  // На web использует новую вкладку, на native отменяет router и открывает встроенный browser.
+
   return (
     <Link
       target="_blank"

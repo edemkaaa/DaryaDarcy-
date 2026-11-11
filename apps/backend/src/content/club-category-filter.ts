@@ -23,6 +23,7 @@ export const clubCategoryInput = z
 const whitespace =
   "[\u0009-\u000d\u0020\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]";
 const trimPattern = `^${whitespace}+|${whitespace}+$`;
+/** Сравнивает нормализованные JSON-теги через коррелированный scalar COUNT JSON_TABLE, включая импортные Unicode-пробелы и binary lower-case сравнение. */
 function hasTag(values: string[]) {
   if (!values.length) return sql`FALSE`;
   // A scalar aggregate preserves per-post JSON_TABLE correlation. EXISTS gave
@@ -35,6 +36,7 @@ function hasTag(values: string[]) {
     )})) > 0`;
 }
 /** Сопоставляем рубрику с сохранёнными тегами, включая данные прежнего импорта. */
+/** Явный section-tag имеет приоритет над fallback aliases; при нескольких совпадениях выбирается более ранняя секция SECTION_ORDER. */
 export function clubCategoryCondition(category: ClubTabId) {
   const earlier = SECTION_ORDER.slice(0, SECTION_ORDER.indexOf(category));
   // Explicit section tags win over fallback aliases; earlier sections win ties.
@@ -51,5 +53,6 @@ export function clubCategoryCondition(category: ClubTabId) {
   )!;
 }
 /** Ограничиваем выборку выбранным тегом клубной подборки. */
+/** Строит SQL-условие выбранного board-тега с общими legacy aliases вместо отдельного клиентского фильтра. */
 export const clubBoardTagCondition = (tag: string) =>
   hasTag(postFilterTagAliases(tag));

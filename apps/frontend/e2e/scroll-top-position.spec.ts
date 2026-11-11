@@ -1,13 +1,16 @@
 import { expect, test, type Page } from "@playwright/test";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
 
+/** Выбираем текущий основной список для измерений и возврата наверх. */
 const scrollArea = (page: Page) =>
   page.locator("main .ui-scroll:not(.ui-scroll-horizontal):visible").first();
+/** Кнопка возврата должна появляться только после прокрутки текущего раздела. */
 const topButton = (page: Page) =>
   page.getByRole("button", { name: "Наверх", exact: true });
 
 test.use({ hasTouch: true });
 
+/** Формируем длинную синтетическую ленту/клуб и независимую роль владелицы, чтобы добавить плавающие admin-actions без настоящих записей. */
 async function fixtures(page: Page, owner: boolean) {
   await layoutApi(page, true);
   if (owner)
@@ -84,6 +87,7 @@ async function fixtures(page: Page, owner: boolean) {
   });
 }
 
+/** Достигаем реального конца после уточнения высоты виртуализированных строк, дожидаясь стабильного остатка scroll. */
 async function ending(page: Page) {
   const scroll = scrollArea(page);
   await expect(
@@ -106,9 +110,11 @@ async function ending(page: Page) {
     .toBeLessThan(2);
 }
 
+/** Сверяем плавающие кнопки с меню, последней карточкой и границами main; hit-test ловит перекрытие, которое одни rect не показывают. */
 async function clearance(page: Page, club: boolean, owner: boolean) {
   const geometry = await page.evaluate(
     ({ club, owner }) => {
+      /** Сохраняем сериализуемый снимок геометрии для сравнения за пределами browser-context. */
       const rect = (el: Element) => {
         const r = el.getBoundingClientRect();
         return {
@@ -189,6 +195,7 @@ async function clearance(page: Page, club: boolean, owner: boolean) {
   return geometry;
 }
 
+/** Матрица ширин, ориентаций, list/grid/club и ролей проверяет доступность последнего контента и реальное действие «Наверх». */
 for (const [width, height] of [
   [320, 400],
   [390, 844],
@@ -224,6 +231,7 @@ for (const [width, height] of [
 }
 
 for (const club of [false, true]) {
+  /** Изменение высоты меню сдвигает плавающие действия, а уход в другой раздел убирает кнопку текущего списка. */
   test(`${club ? "club" : "feed"} follows menu resizing without covering final actions`, async ({
     page,
   }) => {
@@ -249,6 +257,7 @@ for (const club of [false, true]) {
 }
 
 for (const club of [false, true]) {
+  /** В landscape возвращающаяся шапка не должна пересекать плавающие кнопки; редактор по-прежнему открывается касанием. */
   test(`${club ? "club" : "feed"} floating controls clear the returning header in landscape`, async ({
     page,
   }) => {

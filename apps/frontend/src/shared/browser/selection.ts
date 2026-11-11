@@ -5,6 +5,7 @@ type Selection = {
   start: number;
   end: number;
 };
+/** Упорядочиваем координаты и отклоняем пустой или выходящий за текст диапазон до применения форматирования. */
 export function normalizeSelection(
   value: string,
   sel: Selection,
@@ -14,7 +15,7 @@ export function normalizeSelection(
   if (start === end || end > value.length || start < 0) return null;
   return { start, end };
 }
-/** Trim spaces/tabs at edges; keep newlines so multi-line selections stay intact. */
+/** Убираем пробелы и табы только по краям выделения, сохраняя переносы строк внутри многострочного форматирования. */
 export function normalizeFormatRange(
   value: string,
   sel: Selection,
@@ -30,6 +31,7 @@ export function normalizeFormatRange(
 export type SelectionAnchor = Selection & {
   text: string;
 };
+/** Сохраняем нормализованный диапазон вместе с его текстом, чтобы последующая команда могла сверить актуальное выделение. */
 export function anchorSelection(
   value: string,
   sel: Selection,
@@ -41,7 +43,7 @@ export function anchorSelection(
     text: value.slice(normalized.start, normalized.end),
   };
 }
-/** Match selection by stored text if indices drifted (emoji, edits, mobile selection quirks). */
+/** Приоритет имеет живой непустой диапазон; сохранённый snapshot не должен самопроизвольно переносить форматирование на другой фрагмент. При сдвинувшихся индексах сопоставляем сохранённый текст, учитывая emoji и правки. */
 export function resolveFormatRange(
   value: string,
   sel: Selection,
@@ -75,6 +77,7 @@ export function resolveFormatRange(
   }
   return best ?? normalized;
 }
+/** Находим совместимое поле по единому ID/name; отсутствие DOM или редактора возвращает null вместо ошибки инструмента. */
 export function findRichTextInput(): HTMLTextAreaElement | null {
   if (typeof document === "undefined") return null;
   return (
@@ -89,6 +92,7 @@ export function findRichTextInput(): HTMLTextAreaElement | null {
     ) as HTMLTextAreaElement | null)
   );
 }
+/** Берём текущие DOM-координаты, если поле существует, иначе проверяем переданный fallback той же нормализацией. */
 export function readLiveSelection(
   value: string,
   fallback: Selection,
@@ -104,6 +108,7 @@ export function readLiveSelection(
   }
   return normalizeFormatRange(value, fallback);
 }
+/** После работы панели возвращаем фокус и диапазон в существующее поле; сам текст и разметку не меняем. */
 export function restoreDomSelection(start: number, end: number) {
   const node = findRichTextInput();
   if (!node) return;

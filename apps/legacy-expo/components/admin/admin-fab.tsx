@@ -1,3 +1,4 @@
+// Архив Expo. Показывает UI создания только owner; настоящая проверка роли остаётся в серверных процедурах.
 import { useState } from "react";
 import { Pressable, StyleSheet, Platform, View } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -20,6 +21,8 @@ interface AdminFABProps {
  * Shows only for the app owner. Tap to create a post; settings opens the admin panel.
  */
 export function AdminFAB({ target }: AdminFABProps) {
+  // Показывает UI создания только owner; настоящая проверка роли остаётся в серверных процедурах.
+
   const { isOwner } = useAuth();
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
@@ -27,6 +30,8 @@ export function AdminFAB({ target }: AdminFABProps) {
   if (!isOwner) return null;
 
   const handlePress = () => {
+    // Даёт native haptic и открывает форму поста с текущей целью.
+
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
@@ -34,6 +39,8 @@ export function AdminFAB({ target }: AdminFABProps) {
   };
 
   const openAdmin = () => {
+    // Открывает общую админку после native haptic без изменения контента.
+
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     }
@@ -70,6 +77,7 @@ export function AdminFAB({ target }: AdminFABProps) {
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   stack: {
     position: "absolute",

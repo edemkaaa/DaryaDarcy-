@@ -1,3 +1,4 @@
+/** Дочерний fresh CLI строит plan на копии SQL/journal без Docker/БД; рабочие файлы не изменяются. */
 import { afterEach, beforeEach, expect, it } from "vitest";
 import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
@@ -18,6 +19,7 @@ import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 let scratch: string;
+/** Копируем только нужные CLI/SQL/meta в собственную temp-папку и ссылаемся на installed dependencies. */
 beforeEach(async () => {
   scratch = await mkdtemp(join(tmpdir(), "daryadarcy-fresh-plan-"));
   await mkdir(join(scratch, "tooling/scripts"), { recursive: true });
@@ -43,9 +45,11 @@ beforeEach(async () => {
     join(scratch, "packages/database/drizzle/meta/_journal.json"),
   );
 });
+/** Удаляем только owned scratch. */
 afterEach(async () => {
   await rm(scratch, { recursive: true, force: true });
 });
+/** Child запускается с пустым PATH и явным env, возвращая bounded stdout/stderr/exit для проверки отказов. */
 function run(args = ["--plan"], extra: NodeJS.ProcessEnv = {}) {
   return new Promise<{ code: number | null; stdout: string; stderr: string }>(
     (resolve, reject) => {
@@ -71,6 +75,7 @@ function run(args = ["--plan"], extra: NodeJS.ProcessEnv = {}) {
     },
   );
 }
+/** Plan содержит52точных hash-шагов и свой fingerprint, initialized/releaseApproval false, journal остаётся прежним. */
 it("plans the complete fresh order without Docker, credentials or modifying the legacy journal", async () => {
   const journalPath = join(
     scratch,
@@ -107,6 +112,7 @@ it("plans the complete fresh order without Docker, credentials or modifying the 
   expect(result.stdout).not.toContain("CREATE TABLE");
   expect(await readFile(journalPath, "utf8")).toBe(before);
 });
+/** Локальный TCP trap доказывает отсутствие соединений, даже при inherited DB URLs. */
 it("does not open an inherited application, preflight or fixture connection or expose their credentials", async () => {
   let connections = 0;
   const trap = createServer((socket) => {
@@ -134,6 +140,7 @@ it("does not open an inherited application, preflight or fixture connection or e
     );
   }
 });
+/** Изменение только копии SQL меняет planHash, не оригинал миграции. */
 it("changes the plan fingerprint when SQL bytes change", async () => {
   const before = await run();
   expect(before.code, before.stderr).toBe(0);
@@ -151,6 +158,7 @@ it("changes the plan fingerprint when SQL bytes change", async () => {
     JSON.parse(before.stdout).planHash,
   );
 });
+/** Unknown orphan блокирует план без частичного stdout. */
 it("refuses unknown SQL rather than including it in a fresh plan", async () => {
   await writeFile(
     join(scratch, "packages/database/drizzle/0042_unknown.sql"),
@@ -160,6 +168,7 @@ it("refuses unknown SQL rather than including it in a fresh plan", async () => {
   expect(result.code).toBe(1);
   expect(result.stdout).toBe("");
 });
+/** Потерянный обязательный шаг не выдаёт пригодный partial plan. */
 it("refuses a missing SQL file without reporting a partial plan", async () => {
   await rm(
     join(scratch, "packages/database/drizzle/0018_push_consent_text.sql"),
@@ -168,6 +177,7 @@ it("refuses a missing SQL file without reporting a partial plan", async () => {
   expect(result.code).toBe(1);
   expect(result.stdout).toBe("");
 });
+/** External/non-test/production settings запрещены даже explicit initialize-local mode. */
 it.each([
   {
     FRESH_DATABASE_URL:
@@ -187,6 +197,7 @@ it.each([
   expect(result.stdout).toBe("");
   expect(result.stderr).not.toContain("private-plan-sentinel");
 });
+/** Неизвестные/смешанные/force режимы не обходят guard. */
 it.each([
   ["--plan", "--initialize-empty-local"],
   ["--initialize-empty-server"],

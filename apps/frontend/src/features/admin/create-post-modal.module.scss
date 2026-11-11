@@ -2,6 +2,7 @@
 @use "../../shared/styles/layers";
 
 @layer components {
+  /* Редактор привязан к visual viewport и app-height, чтобы клавиатура не оставляла скрытые нижние поля. */
   .editorDialog {
     top: var(--visual-viewport-top, 0px);
     bottom: auto;
@@ -20,6 +21,7 @@
     background-color: var(--paper);
   }
 
+  /* Шапка учитывает верхнюю safe-area; прокручивается форма ниже, а не весь диалог. */
   .header {
     flex-direction: row;
     align-items: center;
@@ -70,6 +72,7 @@
     flex: 1;
   }
 
+  /* Скрытая загрузочная форма сохраняет раскладку и не показывает старые данные во время смены состояния. */
   .formLoading {
     visibility: hidden;
   }
@@ -90,6 +93,7 @@
     color: var(--ink);
   }
 
+  /* Назначения публикации и рубрики переносятся внутри экрана, а не создают горизонтальный скролл. */
   .targetRow {
     flex-direction: row;
     gap: 8px;
@@ -119,6 +123,7 @@
     margin-top: 2px;
   }
 
+  /* Параметры общего редактора текста задаются CSS-переменными именно для быстрого создания поста. */
   .textArea {
     --editor-background: #fff;
     --editor-border-width: 1px;
@@ -175,6 +180,7 @@
     color: var(--paper);
   }
 
+  /* Имена вложений и удаление расположены отдельно от кнопок выбора; геометрия не зависит от загрузки файла. */
   .mediaList {
     gap: 6px;
     margin-top: 8px;
@@ -221,6 +227,7 @@
     padding-bottom: 6px;
     border-radius: 16px;
   }
+  /* Далее перечислены только визуальные варианты выбранного назначения, тега и нажатия; решение о записи остаётся в компоненте. */
   .opacityState {
     opacity: 0.6;
     --action-base-opacity: 0.6;

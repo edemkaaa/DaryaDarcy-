@@ -23,6 +23,7 @@ import {
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 
 // Captured real actors/router/SQL and actual HTTP/JWT. No external integrations.
+/** Проверяет актуального владельца и атомарное сохранение анкеты Pen Pals с согласием. */
 describe.skipIf(!testDatabaseUrl)(
   "Pen Pals profile actor and consent lifecycle",
   () => {
@@ -38,6 +39,7 @@ describe.skipIf(!testDatabaseUrl)(
       app: Awaited<ReturnType<typeof createBackendApplication>>,
       base: string,
       token: string;
+    /** Удаляет только пары, показы, анкеты, согласия и двух собственных участников. */
     async function cleanup() {
       await conn.query(
         "DELETE FROM pen_pal_matches WHERE userLowId IN (?,?) OR userHighId IN (?,?)",
@@ -57,6 +59,7 @@ describe.skipIf(!testDatabaseUrl)(
         neighbor,
       ]);
     }
+    /** Запускает локальный API на одноразовой БД с real JWT и retirement-флагом. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -73,6 +76,7 @@ describe.skipIf(!testDatabaseUrl)(
         sessionVersion: 0,
       });
     });
+    /** Снимает fault-триггер и восстанавливает анкеты двух участников и одну ожидающую пару. */
     beforeEach(async () => {
       vi.stubEnv("ENABLE_PEN_PALS", "true");
       await conn.query("DROP TRIGGER IF EXISTS pen_profile_consent_refusal");
@@ -91,10 +95,12 @@ describe.skipIf(!testDatabaseUrl)(
         [owner, neighbor, owner],
       );
     });
+    /** Возвращает mocks и гарантированно удаляет адресный consent-триггер. */
     afterEach(async () => {
       vi.restoreAllMocks();
       await conn.query("DROP TRIGGER IF EXISTS pen_profile_consent_refusal");
     });
+    /** Закрывает API, удаляет fixture и соединения и возвращает окружение. */
     afterAll(async () => {
       await app?.close();
       if (conn) await cleanup();
@@ -102,6 +108,7 @@ describe.skipIf(!testDatabaseUrl)(
       await closeDb();
       vi.unstubAllEnvs();
     });
+    /** Захватывает текущую идентичность владельца в router caller для проверки последующего отзыва. */
     async function capturedCaller() {
       return appRouter.createCaller({
         user: (await getUserByOpenId("pen-profile-lifecycle-owner"))!,
@@ -109,6 +116,7 @@ describe.skipIf(!testDatabaseUrl)(
         res: {},
       } as TrpcContext);
     }
+    /** Снимает полные users, анкеты, пары и consent events собственных участников. */
     const snapshot = async () => {
       const [users] = await conn.query<RowDataPacket[]>(
         "SELECT id,openId,email,sessionVersion,blockedAt,accountDeletionRequestedAt FROM users WHERE id IN (?,?) ORDER BY id",
@@ -128,6 +136,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       return { users, profiles, matches, consents };
     };
+    /** Отправляет upsert или remove анкеты с выбранной JWT и ограниченным ожиданием. */
     const http = (operation: "upsert" | "remove", bearer = token) =>
       fetch(base + "/api/trpc/penPals." + operation, {
         method: "POST",
@@ -138,6 +147,7 @@ describe.skipIf(!testDatabaseUrl)(
         body: JSON.stringify({ json: operation === "upsert" ? input : null }),
         signal: AbortSignal.timeout(10000),
       });
+    /** Операция ждёт owner-lock и после изменения sessionVersion отказывает без изменения анкеты или согласия. */
     it.each(["upsert", "remove"] as const)(
       "%s rechecks the actor after a real SQL owner-lock wait",
       async (operation) => {
@@ -181,6 +191,7 @@ describe.skipIf(!testDatabaseUrl)(
         }
       },
     );
+    /** Захваченный до logout контекст не может сохранить или отозвать анкету после смены epoch. */
     it.each(["upsert", "remove"] as const)(
       "%s refuses a context after session revocation",
       async (operation) => {
@@ -198,6 +209,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await snapshot()).toEqual(before);
       },
     );
+    /** Блокировка, замена openId или финальный retirement запрещают операции устаревшего актёра. */
     it.each([
       { operation: "upsert", change: "blocked", code: "FORBIDDEN" },
       { operation: "remove", change: "blocked", code: "FORBIDDEN" },
@@ -234,6 +246,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await snapshot()).toEqual(before);
       },
     );
+    /** Сбой INSERT согласия откатывает создание, редактирование или отзыв анкеты целиком и не раскрывает SQL. */
     it.each(["new", "existing", "withdrawal"] as const)(
       "rolls back the %s profile operation if recording consent fails",
       async (mode) => {
@@ -255,6 +268,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await snapshot()).toEqual(before);
       },
     );
+    /** Создание и обновление сохраняют анкету с точной версией и текстом согласия без изменения соседнего аккаунта. */
     it.each(["new", "existing"] as const)(
       "saves a current user's %s profile and matching consent through HTTP",
       async (mode) => {
@@ -310,6 +324,7 @@ describe.skipIf(!testDatabaseUrl)(
         ).toEqual(before.profiles.find((row) => row.userId === neighbor));
       },
     );
+    /** Отзыв согласия и пар доступен при выключенном discovery, включая аккаунт с pending-удалением. */
     it.each(["active", "pendingDeletion"] as const)(
       "withdraws %s consent and matches even while discovery is disabled",
       async (state) => {
@@ -335,12 +350,14 @@ describe.skipIf(!testDatabaseUrl)(
         expect((await snapshot()).matches).toEqual([]);
       },
     );
+    /** Выключенная функция запрещает сохранение новой анкеты. */
     it("does not save a profile while the feature is disabled", async () => {
       vi.stubEnv("ENABLE_PEN_PALS", "false");
       const before = await snapshot();
       expect((await http("upsert")).status).toBe(403);
       expect(await snapshot()).toEqual(before);
     });
+    /** Без сессии ни сохранение, ни отзыв не изменяют данные. */
     it.each(["upsert", "remove"] as const)(
       "rejects guest %s without changes",
       async (operation) => {

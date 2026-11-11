@@ -11,6 +11,7 @@ import {
 } from "./public-configuration";
 
 export const CLUB_APPEARANCE_KEY = PUBLIC_LAUNCH_KEY;
+/** Читаем общее оформление только активному экрану и перечитываем при возврате, восстановлении сети и московской полуночи. */
 export function useClubAppearance() {
   const active = useScreenActive();
   const query = useQuery({
@@ -21,11 +22,13 @@ export function useClubAppearance() {
   const { refetch } = query;
   useEffect(() => {
     if (!active) return;
+    /** Не отправляем принудительный повтор из фоновой страницы и не отменяем уже выполняющееся чтение. */
     const refresh = () => {
       if (document.visibilityState === "visible")
         void refetch({ cancelRefetch: false });
     };
     let timer: ReturnType<typeof setTimeout>;
+    /** После каждой полуночи заново рассчитываем следующую границу; cleanup снимает таймер и события экрана. */
     const schedule = () => {
       timer = setTimeout(() => {
         refresh();

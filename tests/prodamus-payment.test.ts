@@ -1,7 +1,10 @@
+/** Декодирование подписанного payload выделяет поля, но не авторизует сумму, пользователя или выдачу доступа. */
 import { describe, expect, it } from "vitest";
 import { readProdamusPayment } from "../apps/backend/src/billing/prodamus-payment";
 
+/** Тестируется только extraction/совместимость aliases; доверие устанавливают следующие signature/binding/settlement границы. */
 describe("Prodamus payment field decoding (not payment authorization)", () => {
+  /** Internal order, provider payment ID, canonical email/domain и nested profile остаются разными полями. */
   it("preserves the complete order, amount, recipient and nested profile binding", () => {
     expect(
       readProdamusPayment({
@@ -30,6 +33,7 @@ describe("Prodamus payment field decoding (not payment authorization)", () => {
     });
   });
 
+  /** Матрица закрепляет приоритет aliases, scalar decoding и сохранение непроверенных значений для следующего валидатора. */
   it.each([
     {
       name: "uses legacy case aliases without lowercasing currency",
@@ -117,6 +121,7 @@ describe("Prodamus payment field decoding (not payment authorization)", () => {
     expect(readProdamusPayment(input)).toMatchObject(want);
   });
 
+  /** Отсутствующие значения не заменяются удобными суммой/профилем/user ID. */
   it("leaves absent values empty rather than inventing a price or profile", () => {
     expect(
       readProdamusPayment({ sum: "", _param_userId: "invalid", userId: "7" }),
@@ -136,6 +141,7 @@ describe("Prodamus payment field decoding (not payment authorization)", () => {
     });
   });
 
+  /** Нормализация результата не переписывает исходные signed поля. */
   it("does not mutate a frozen subscription or request record", () => {
     const subscription = Object.freeze({ id: "7", profile_id: "23" });
     const input = Object.freeze({ subscription, customer_email: " A@B.TEST " });

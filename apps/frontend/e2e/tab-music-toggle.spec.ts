@@ -9,6 +9,7 @@ type MusicWindow = Window & {
   musicSpinnerSeen?: boolean;
 };
 
+/** Собираем короткий PCM WAV с корректным заголовком; настоящий Audio декодирует его без внешнего музыкального файла. */
 function silentWav() {
   const samples = 8000 * 20;
   const wav = Buffer.alloc(44 + samples, 128);
@@ -27,6 +28,7 @@ function silentWav() {
   return wav;
 }
 
+/** Наблюдаем создание настоящего Audio через Proxy, не подменяя play/pause или native-события; оформление заменено лёгким SVG. */
 async function setup(page: Page, width: number) {
   await page.setViewportSize({ width, height: 844 });
   await layoutApi(page, true);
@@ -34,6 +36,7 @@ async function setup(page: Page, width: number) {
   await page.addInitScript(() => {
     const OriginalAudio = window.Audio;
     window.Audio = new Proxy(OriginalAudio, {
+      /** Сохраняем только экземпляр клубной музыки, пропуская конструирование через нативный Audio. */
       construct(Target, [source]) {
         const audio = new Target(source);
         if (typeof source === "string" && source.includes("darcys-autumn.mp3"))
@@ -50,6 +53,7 @@ async function setup(page: Page, width: number) {
   );
 }
 
+/** Читаем реальное paused/currentTime/readyState, отделяя UI-иконку от факта воспроизведения. */
 const media = async (page: Page) =>
   page.evaluate(() => {
     const audio = (window as MusicWindow).musicAudio!;
@@ -60,6 +64,7 @@ const media = async (page: Page) =>
     };
   });
 
+/** На трёх ширинах проверяем отмену медленной загрузки, быстрый повтор без spinner и восстановление после decode-ошибки. */
 for (const width of [320, 390, 1440]) {
   test(`slow music can be cancelled and a fast restart keeps the original icon at ${width}px`, async ({
     page,
@@ -198,6 +203,7 @@ for (const width of [320, 390, 1440]) {
   });
 }
 
+/** Управляемые часы проверяют timeout старта и reduced-motion spinner; в финале gate освобождается и routes дожидаются завершения. */
 test("music loading respects reduced motion and a stalled start becomes an error", async ({
   page,
 }) => {

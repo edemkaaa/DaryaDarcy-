@@ -41,7 +41,7 @@ type State = {
   corrupt: CorruptAvatarIntentError | null;
 };
 
-/** A retry always checks the receipt and sends the original bytes with one key. */
+/** Разделяем подготовку, загрузку и факт применения аватара; каждый поздний результат проверяет владельца и scope. Повтор сначала читает квитанцию и использует исходные байты с тем же ключом. */
 export function useProfileAvatar() {
   const { user, reconcileProfile, confirmProfileUpdate } = useAuth();
   const ownerId = user?.id;
@@ -50,6 +50,7 @@ export function useProfileAvatar() {
   const [state, setState] = useState<State | null>(null);
   const current = state?.ownerId === ownerId ? state : null;
   useEffect(() => {
+    // Восстановление ждёт установки владельца сессии; cleanup не даёт старому microtask показать черновик другого аккаунта.
     let active = true;
     // Wait until the authenticated owner has been installed by the session.
     void Promise.resolve().then(() => {
@@ -85,6 +86,7 @@ export function useProfileAvatar() {
     };
   }, [ownerId]);
 
+  /** Готовая квитанция может уже не быть текущей: тогда читаем профиль вместо перезаписи более нового аватара; журнал удаляем после подтверждения. */
   const complete = async (
     intent: AvatarUploadIntent,
     value: unknown,
@@ -130,6 +132,7 @@ export function useProfileAvatar() {
     return true;
   };
 
+  /** Отличаем терминальный 409 от неизвестного исхода; сбой durable-cleanup сохраняет блокировку восстановления. */
   const failed = (
     cause: unknown,
     task: ScopedOperation,
@@ -179,6 +182,7 @@ export function useProfileAvatar() {
     );
   };
 
+  /** Сначала проверяем чужое намерение вкладки и сохраняем точные байты; повтор использует прежний key и читающий status. */
   const upload = async (uri: string): Promise<boolean> => {
     if (!ownerId || !current || current.unknown) return false;
     const task = operation.begin("upload-profile-photo");
@@ -255,6 +259,7 @@ export function useProfileAvatar() {
     }
   };
 
+  /** Проверяем статус сохранённого намерения без отправки новых байтов; отсутствие журнала позволяет повторить только оставшийся локальный черновик. */
   const check = async () => {
     if (!ownerId || !current) return;
     const task = operation.begin("check-profile-photo");
@@ -286,6 +291,7 @@ export function useProfileAvatar() {
       task.finish();
     }
   };
+  /** До удаления повреждённого журнала проверяем известные ключи и актуальный профиль; pending запрещает сброс. */
   const resetCorrupt = async () => {
     if (!ownerId || !current?.corrupt) return;
     const task = operation.begin("reset-corrupt-profile-photo");

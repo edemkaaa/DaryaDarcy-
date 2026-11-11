@@ -1,3 +1,4 @@
+// Архив Expo. Спрашивает подтверждение удаления элемента платформенным диалогом, не удаляя исходный файл.
 import { useCallback, useRef, useState } from "react";
 import {
   Alert,
@@ -22,6 +23,8 @@ import {
 } from "@/lib/moodboard/ribbon-layout";
 
 function confirmRemove(onConfirm: () => void) {
+  // Спрашивает подтверждение удаления элемента платформенным диалогом, не удаляя исходный файл.
+
   if (Platform.OS === "web") {
     if (typeof window !== "undefined" && window.confirm("Удалить фото с доски?")) onConfirm();
     return;
@@ -55,6 +58,8 @@ function DraggableThumb({
   onDragEnd: (index: number, dx: number) => void;
   onRemove: (id: string) => void;
 }) {
+  // В режиме порядка переносит миниатюру по горизонтали и передаёт финальное смещение в JS.
+
   const tx = useSharedValue(0);
   const dragging = dragIndex === index;
 
@@ -94,6 +99,8 @@ function DraggableThumb({
 }
 
 export function MoodboardRibbon({ items, onReorder, onRemove }: Props) {
+  // Хранит режим перестановки и выбирает новый индекс по ширине шага миниатюры.
+
   const [reorderMode, setReorderMode] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const itemsRef = useRef(items);
@@ -101,6 +108,8 @@ export function MoodboardRibbon({ items, onReorder, onRemove }: Props) {
 
   const swapToIndex = useCallback(
     (from: number, to: number) => {
+      // Переносит один элемент массива в допустимую позицию и уведомляет владельца доски.
+
       if (from === to || to < 0 || to >= itemsRef.current.length) return;
       const next = [...itemsRef.current];
       const [moved] = next.splice(from, 1);
@@ -111,11 +120,15 @@ export function MoodboardRibbon({ items, onReorder, onRemove }: Props) {
   );
 
   const onDragStart = useCallback((index: number) => {
+    // Отмечает активную миниатюру для поднятия её слоя.
+
     setDragIndex(index);
   }, []);
 
   const onDragEnd = useCallback(
     (index: number, dx: number) => {
+      // Округляет смещение до слота, применяет перестановку и снимает drag-состояние.
+
       const step = MOODBOARD_RIBBON_THUMB + MOODBOARD_RIBBON_GAP;
       const shift = Math.round(dx / step);
       if (shift !== 0) swapToIndex(index, index + shift);
@@ -157,6 +170,7 @@ export function MoodboardRibbon({ items, onReorder, onRemove }: Props) {
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   ribbon: {
     width: "100%",

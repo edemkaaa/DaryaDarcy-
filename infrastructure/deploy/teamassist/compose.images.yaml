@@ -2,12 +2,14 @@
 # Opt-in: public S3 previews require outbound HTTPS from web, never from api.
 # Use together with the SMTP/video overlays, not instead of them.
 services:
+# Только Next получает внешний image-egress; общая с API сеть сохраняется для same-origin запросов.
   web:
     networks: [isolated, image-egress]
     environment:
       MALLOC_ARENA_MAX: "2"
       # Sharp concurrency limits threads per image, not simultaneous images.
       UV_THREADPOOL_SIZE: "1"
+    # Кеш оптимизированных публичных превью сохраняется между контейнерами; закрытые файлы в этот том не должны попадать.
     volumes:
       - image-cache:/app/apps/frontend/.next/cache/images
 networks:

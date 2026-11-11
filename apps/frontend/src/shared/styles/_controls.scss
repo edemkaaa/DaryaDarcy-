@@ -1,6 +1,7 @@
 /* Общие состояния полей и кнопок задаются здесь; специфическая геометрия остаётся в CSS-модулях экранов. */
 @layer base {
   /* Shared HTML/CSS elements. Layout values are inherited from the original design. */
+  /* Border-box делает ширины полей/кнопок предсказуемыми вместе с padding и border. */
   *,
   *::before,
   *::after {
@@ -19,7 +20,9 @@
   .ui-clickable-card {
     -webkit-tap-highlight-color: transparent;
   }
+  /* DOM-примитивы получают общий flex/reset и min-size:0, чтобы вложенные экранные модули могли сжиматься. */
   .ui-stack,
+  /* Кнопка и ссылка используют единый reset; touch-action:manipulation не вводит отдельную логику жестов. */
   .ui-action {
     position: relative;
     z-index: 0;
@@ -33,6 +36,7 @@
     padding: 0;
     border: 0 solid;
   }
+  /* Текст наследует оформление владельца и сохраняет переносы, не создавая browser-default margins. */
   .ui-text {
     position: relative;
     display: block;
@@ -61,10 +65,12 @@
   .ui-action:disabled {
     cursor: default;
   }
+  /* Фокус клавиатуры видим даже после сброса нативной кнопки. */
   .ui-action:focus-visible {
     outline: 2px solid var(--muted);
     outline-offset: 3px;
   }
+  /* Поля сбрасывают браузерные размеры и рамки; компонент задаёт свою геометрию, фокус добавляется поздним слоем. */
   .ui-field {
     appearance: none;
     display: block;
@@ -85,6 +91,7 @@
     color: var(--placeholder-color, #888);
     opacity: 1;
   }
+  /* min-height:0 позволяет внутреннему скроллу жить в ограниченном flex-viewport, overscroll не уходит к соседнему экрану. */
   .ui-scroll {
     display: flex;
     flex-direction: column;
@@ -97,6 +104,7 @@
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
   }
+  /* Горизонтальный scroll не растёт по высоте и не блокирует вертикальный overscroll родителя. */
   .ui-scroll-horizontal {
     flex: 0 0 auto;
     overflow-x: auto;
@@ -106,6 +114,7 @@
   .ui-scroll-hide {
     scrollbar-width: none;
   }
+  /* Drag мышью блокирует выделение и меняет курсор только пока активен соответствующий data-state. */
   [data-horizontal-scroll][data-mouse-dragging] {
     cursor: grabbing;
     user-select: none;
@@ -124,6 +133,7 @@
   .ui-collection-row {
     flex-direction: row;
   }
+  /* Коллекции и обычные горизонтальные элементы используют одинаковую начальную точку snap. */
   .ui-scroll-snap > *,
   .ui-scroll-snap .ui-collection-item {
     scroll-snap-align: start;
@@ -134,6 +144,7 @@
   .ui-collection-horizontal {
     align-self: flex-start;
   }
+  /* Spinner имеет ограниченную фиксируемую геометрию, цвет кольца наследуется от контекста. */
   .ui-spinner {
     border: 2px solid rgba(107, 123, 94, 0.2);
     border-color: color-mix(in srgb, currentColor 20%, transparent);
@@ -158,6 +169,7 @@
     gap: 8px;
     padding: 16px;
   }
+  /* Текст скрывается только визуально и остаётся в дереве доступности. */
   .ui-sr-only {
     position: absolute;
     width: 1px;
@@ -172,6 +184,7 @@
     font: 14px EBGaramond-Regular;
     color: var(--muted);
   }
+  /* Диалог — fixed overlay над страницей; варианты fade/slide меняют появление, не раскладку экрана. */
   .ui-dialog {
     position: fixed;
     inset: 0;
@@ -189,6 +202,7 @@
   .ui-pointer-none {
     pointer-events: none;
   }
+  /* Общие keyframes используются несколькими примитивами; reduced motion ниже отменяет декоративное движение. */
   @keyframes ui-spin {
     to {
       transform: rotate(360deg);
@@ -216,6 +230,7 @@
       animation: none;
     }
   }
+  /* Прозрачная оболочка пропускает pointer events, но её реальные дочерние действия остаются активными. */
   .ui-pointer-children {
     pointer-events: none;
   }
@@ -229,6 +244,7 @@
     outline: 2px solid var(--muted);
     outline-offset: -2px;
   }
+  /* Анимация нажатия применяется к дочернему содержимому, не меняя область ссылки-карточки. */
   .ui-navigation-card > * {
     transition: transform 120ms ease-out;
   }
@@ -243,12 +259,14 @@
       transition: none;
     }
   }
+  /* Ссылка внутри форматированного текста сохраняет шрифт и переносы окружающей строки. */
   .ui-inline-link {
     color: inherit;
     font: inherit;
     white-space: inherit;
     text-decoration: none;
   }
+  /* Псевдоэлемент расширяет hit-area без изменения видимых размеров кнопки. */
   .ui-action[data-hit-area]::after {
     content: "";
     position: absolute;
@@ -256,6 +274,7 @@
   }
 }
 
+/* Поздний слой components возвращает рамку фокуса полям поверх base reset; порядок слоёв здесь существенен. */
 @layer components {
   .ui-field:focus {
     outline: none;

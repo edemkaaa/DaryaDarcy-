@@ -2,6 +2,7 @@
 type Range = [number, number];
 
 /** Shift formatting ranges after a single contiguous text edit. */
+/** Определяем одну непрерывную правку по общему префиксу и суффиксу, сдвигаем непересекающиеся диапазоны и удаляем затронутые вместо частичного форматирования изменённых слов. */
 export function adjustRangesOnTextChange(
   oldText: string,
   newText: string,
@@ -71,6 +72,7 @@ export function toggleRangeFormat(ranges: Range[], start: number, end: number): 
   return mergeRanges([...ranges, [start, end]]);
 }
 
+/** Вырезаем выбранный интервал из форматирования, сохраняя левую и правую части пересекающихся диапазонов. */
 function splitRange(ranges: Range[], start: number, end: number): Range[] {
   const next: Range[] = [];
   for (const [s, e] of ranges) {

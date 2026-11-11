@@ -14,10 +14,12 @@ const CODE_LEN = 6;
 
 const verifyFails = new Map<string, { n: number; start: number }>();
 
+/** Хешируем код вместе с номером и серверным секретом, не сохраняя исходный SMS-код в таблице. */
 function hashCode(phone: string, code: string): string {
   return createHash("sha256").update(`${phone}:${code}:${ENV.cookieSecret}`).digest("hex");
 }
 
+/** Сравниваем одинаковые по длине хеши через timingSafeEqual вместо обычного сравнения секретных строк. */
 function hashesEqual(a: string, b: string): boolean {
   const left = Buffer.from(a);
   const right = Buffer.from(b);
@@ -25,12 +27,14 @@ function hashesEqual(a: string, b: string): boolean {
   return timingSafeEqual(left, right);
 }
 
+/** Берём IP только из доверенной конфигурации Express или сокета, ограничивая длину; сырой forwarded-заголовок не определяет клиента. */
 export function clientIp(req: { ip?: string; headers: Record<string, unknown>; socket?: { remoteAddress?: string } }): string {
   // Express resolves req.ip through the configured trusted proxy chain. Never
   // take the first raw forwarded header, which the browser/client can supply.
   return String(req.ip || req.socket?.remoteAddress || "").slice(0, 45);
 }
 
+/** Считаем число SMS за последний час по номеру или IP с часами MySQL для локальных ограничений отправки. */
 async function countRecent(field: "phone" | "ip", value: string): Promise<number> {
   const db = await getDb();
   if (!db) return 0;
@@ -43,6 +47,7 @@ async function countRecent(field: "phone" | "ip", value: string): Promise<number
   return Number(rows[0]?.n ?? 0);
 }
 
+/** Проверяем минутный cooldown и часовые лимиты, гасим прежние коды, сохраняем новый пятиминутный хеш до отправки; при ошибке провайдера удаляем свежие записи этого номера. */
 export async function issueSmsCode(phone: string, ip: string): Promise<{ retryAfterSec: number }> {
   const db = await getDb();
   if (!db) throw new Error("База недоступна");
@@ -92,6 +97,7 @@ export async function issueSmsCode(phone: string, ip: string): Promise<{ retryAf
   return { retryAfterSec: 60 };
 }
 
+/** Проверяем локальный лимит неверных попыток, ищем неистёкший неиспользованный хеш и после успеха помечаем все оставшиеся коды номера использованными. */
 export async function consumeSmsCode(phone: string, code: string, ip: string): Promise<void> {
   const failKey = `${phone}|${ip}`;
   const fail = verifyFails.get(failKey);

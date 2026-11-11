@@ -151,7 +151,7 @@ frontend integration, mobile и target release остаются отдельны
 
 Дополнение к передаче: локальные исходники `774bbe9`, ветка
 `feature/stage-one-completion-2026-10-10`. Ниже описан уже реализованный
-[контракт LB](../../SPEC-private-files.md), а не новое задание или изменение фронта.
+[контракт LB](../specifications/SPEC-private-files.md), а не новое задание или изменение фронта.
 Выкладка, перенос настоящих материалов и включение рабочих флагов не выполнены.
 Датированные разделы ниже сохраняют результаты прежних версий.
 
@@ -353,7 +353,7 @@ staging81e8563. Ни frontend source, ни его тесты/types бэкенд�
 
 ### F-TEST-1: привести viewport fixture к реальному DOM-контракту
 
-Файл: [__tests__/web-viewport.test.ts](../../__tests__/web-viewport.test.ts).
+Файл: [tests/regression/web-viewport.test.ts](../../tests/regression/web-viewport.test.ts).
 Причина воспроизведённого `ReferenceError: document is not defined`: тест создаёт
 `window`, но не `document`. Текущий getViewport сначала читает layout viewport
 `document.documentElement.clientWidth`, затем fallback window.innerWidth.
@@ -377,7 +377,7 @@ vi.stubGlobal("document", {
 - clientWidth0 при innerWidth1000 → fallback window480/screen1000;
 - без window/document → прежний deterministic SSR480x800/scale1/fontScale1.
 
-Критерий: `pnpm exec vitest run __tests__/web-viewport.test.ts` — без fail/skip;
+Критерий: `pnpm exec vitest run tests/regression/web-viewport.test.ts` — без fail/skip;
 полный набор тоже не скрывает этот тест через exclude/skip или fake GREEN.
 
 ### F-API-1: регенерировать типы именно на объединённом бэкенде
@@ -496,7 +496,7 @@ Chromium/macOS WebKit с mocked API и настоящим IndexedDB; дизай�
    Удаление — существующий removedMediaIds; это отвязка, не удаление объекта S3.
    Новый путь принимает PDF/DOCX/TXT и detected audio MPEG/MP4/WAV/OGG/WebM,
    не legacy DOC/FLAC/AIFF. Лимит файла32MiB, HTTP JSON50MiB; квоты других путей
-   не менять. Точная семантика — AG4 ниже и [SPEC-private-files](../../SPEC-private-files.md).
+   не менять. Точная семантика — AG4 ниже и [SPEC-private-files](../specifications/SPEC-private-files.md).
 
 ### Критерии совместной приёмки и граница следующего шага
 
@@ -753,7 +753,7 @@ type ClubSubscription = {
 
 ### Создание статьи после потери ответа и reload
 
-Принятый [полный контракт](../../SPEC-article-create-recovery.md).
+Принятый [полный контракт](../specifications/SPEC-article-create-recovery.md).
 `admin.createArticle` принимает прежний payload и optional `idempotencyKey`:
 строгий lowercase UUID v4. Ответ по-прежнему положительный числовой articleId.
 Без ключа прежний запрос совместим, но не защищён от повторного создания.
@@ -784,7 +784,7 @@ Generated `apps/frontend/src/shared/api/contract.ts` отстал: сервер 
 
 ### Первая привязка email: выключенное состояние и ошибки
 
-[SPEC-email-binding](../../SPEC-email-binding.md) — точный источник HTTP-контракта.
+[SPEC-email-binding](../specifications/SPEC-email-binding.md) — точный источник HTTP-контракта.
 Backend `MEMBER_EMAIL_BINDING_ENABLED` и frontend build
 `NEXT_PUBLIC_MEMBER_EMAIL_BINDING_ENABLED` остаются выключенными по умолчанию.
 WorkerJobs подключён локально, но guard не допускает включения без нужной схемы.
@@ -806,7 +806,7 @@ WorkerJobs подключён локально, но guard не допускае
 
 ### Закрытые файлы: готов только первый read-срез
 
-[SPEC-private-files](../../SPEC-private-files.md): default-off
+[SPEC-private-files](../specifications/SPEC-private-files.md): default-off
 `PRIVATE_POST_MEDIA_DELIVERY_ENABLED`; `GET/HEAD /api/media/post-attachments/:id`.
 Запрос принимает только ID и прежнюю сессию, без URL/key/userId/query-token.
 Текущие URL в ответах API и загрузка **не переключены** на этот маршрут.
@@ -837,7 +837,7 @@ guest/expired/blocked/revoked; публичное и клубное обсужд
 
 ## AG6 — normal checkout recovery, локально 14 октября
 
-Принят и реализован [контракт](../../SPEC-normal-checkout-recovery.md):
+Принят и реализован [контракт](../specifications/SPEC-normal-checkout-recovery.md):
 локальный commit `fa8d70f`, на сервер не выкладывался.
 `club.createNormalCheckout` (protected mutation) принимает strict
 `{idempotencyKey: lowercase UUIDv4, plan?: "monthly" | "semiannual"}`;
@@ -936,7 +936,7 @@ provider union/миграции/фиктивные IDs не добавлять. 
 
 ## AG8 — принятый VK-каталог, локальная реализация 14 октября
 
-[Контракт](../../SPEC-vk-catalog-access.md) принят пользователем; новые API/schema
+[Контракт](../specifications/SPEC-vk-catalog-access.md) принят пользователем; новые API/schema
 реализованы локально, не выкладывались. Фронт и generated types не изменены.
 Backend/schema/tests: `70a5110`; anonymous worker guards: `3978691`.
 

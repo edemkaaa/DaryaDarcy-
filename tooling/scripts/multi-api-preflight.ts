@@ -3,6 +3,8 @@ import { readFile, stat } from "node:fs/promises";
 import { inspectMultiApiDeployment } from "./multi-api-policy";
 
 async function main() {
+  // Читает ограниченный приватный resolved Compose и числовую ёмкость хоста; результат не меняет настройки контейнеров.
+
   const args = process.argv.slice(2);
   if (
     args.length !== 6 ||

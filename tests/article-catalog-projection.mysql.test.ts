@@ -4,10 +4,12 @@ import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 import { getDb } from "../apps/backend/src/db";
 import { ContentReadService } from "../apps/backend/src/content/content-read.service";
 
+/** Проверяем, что публичный список статей не читает закрытые тела даже внутрь Node. */
 describe.skipIf(!testDatabaseUrl)(
   "article catalog uses a card-only SQL projection",
   () => {
     let conn: Connection;
+    /** Создаём собственную опубликованную клубную карточку с большим телом и скрытую статью на одноразовой БД. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -24,6 +26,7 @@ describe.skipIf(!testDatabaseUrl)(
         ["PRIVATE_BODY ".repeat(10000)],
       );
     });
+    /** Удаляем только два тестовых ID и закрываем SQL-пул и окружение. */
     afterAll(async () => {
       await conn?.query("DELETE FROM articles WHERE id IN (99281,99282)");
       await conn?.end();
@@ -31,6 +34,7 @@ describe.skipIf(!testDatabaseUrl)(
       await (database as unknown as { $client: Pool })?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** Сверяем точный ответ карточки и реальные SQL SELECT: столбец sections не должен попадать ни в запрос, ни в выдачу. */
     it("returns the same public cards without fetching the private sections into Node", async () => {
       const database = (await getDb())!;
       const pool = (database as unknown as { $client: Pool }).$client;

@@ -16,6 +16,7 @@ import {
 /** Защищённый адаптер передаёт actor; долговечным состоянием владеют доменные helpers. */
 @Injectable()
 export class ClubSubscriptionService {
+  /** Возвращает guest-ответ без доступа либо читает paid-период и отмену одним snapshot, затем применяет общую club-policy. */
   async subscription(actor: User | null) {
     if (!actor || actor.blockedAt) {
       return {
@@ -58,6 +59,7 @@ export class ClubSubscriptionService {
     };
   }
 
+  /** Совместимое чтение возвращает granted только для уже действующего paid-доступа; сам pending-checkout ничего не выдаёт. */
   async claimPending(userId: number) {
     const already = await db.getActiveClubSubscription(userId);
     if (already) {
@@ -67,6 +69,7 @@ export class ClubSubscriptionService {
     return { granted: false as const, orderId: null };
   }
 
+  /** Сохраняет запрос отмены, возвращает pending/confirmed и expiresAt; инфраструктурный сбой не превращается в окончательный бизнес-отказ. */
   async cancel(actor: CancellationActor): Promise<{
     ok: true;
     cancellationStatus: "pending" | "confirmed";

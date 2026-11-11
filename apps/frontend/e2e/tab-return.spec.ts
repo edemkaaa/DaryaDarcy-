@@ -1,10 +1,13 @@
 import { test, expect, type Page } from "@playwright/test";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
 
+/** Адресуем ссылку конкретного retained-раздела по его app-маршруту. */
 const tab = (page: Page, path: string) => page.locator(`nav a[href="${path}"]`);
+/** Читаем только видимый вертикальный контейнер текущей панели. */
 const scroll = (page: Page) =>
   page.locator("main .ui-scroll:not(.ui-scroll-horizontal):visible").first();
 
+/** Снимаем первый содержательный кадр после capture-click: CSS раздела должен быть готов вместе с заголовком и книжной раскладкой. */
 test("a newly opened tab has its layout styles in its first content frame", async ({
   page,
 }) => {
@@ -26,6 +29,7 @@ test("a newly opened tab has its layout styles in its first content frame", asyn
           } as Record<string, string>
         )[path || ""];
         if (!path || !title) return;
+        /** Ждём появления реального заголовка, исключая loading-copy, и сохраняем только первый подходящий кадр. */
         const sample = () => {
           const panel = document.querySelector(
             `main [data-tab-screen="${path}"]:not([hidden])`,
@@ -83,11 +87,13 @@ test("a newly opened tab has its layout styles in its first content frame", asyn
   expect(gap).toBeGreaterThan(50);
 });
 
+/** Наблюдаем нативные Element.animate и считаем входы узнаваемых заголовков, не заменяя анимации. */
 async function observeEntrances(page: Page) {
   await page.addInitScript(() => {
     const original = Element.prototype.animate;
     const counts: Record<string, number> = {};
     Object.assign(window, { tabEntrances: counts });
+    /** Пропускаем вызов в оригинальный animate после подсчёта, чтобы измерение не изменяло визуальное поведение. */
     Element.prototype.animate = function (frames, options) {
       for (const title of ["ВИДЕО", "ИНТЕРАКТИВ", "ТЕСТ-ПУТЕШЕСТВИЕ"]) {
         if (this.textContent?.includes(title))
@@ -98,6 +104,7 @@ async function observeEntrances(page: Page) {
   });
 }
 
+/** Шесть retained-вкладок сохраняют scroll/search и не повторяют анимации; detail-навигация также возвращает тот же поиск. */
 for (const width of [390, 1440]) {
   test(`all six tabs preserve scroll and search and only animate on first entry (${width}px)`, async ({
     page,
@@ -188,6 +195,7 @@ for (const width of [390, 1440]) {
   });
 }
 
+/** Задержка API не двигает статические заголовок и карточки библиотеки при замене placeholder данными. */
 test("video heading and static library cards stay in place while API requests finish", async ({
   page,
 }) => {
@@ -229,6 +237,7 @@ test("video heading and static library cards stay in place while API requests fi
   await expect.poll(() => title.boundingBox()).toEqual(beforeVideo);
 });
 
+/** Возврат к устаревшей панели обновляет данные в фоне, сохраняя поиск и подтверждённые карточки до ответа. */
 test("returning to a stale tab refreshes the API without clearing its search or cached cards", async ({
   page,
 }) => {
@@ -287,6 +296,7 @@ test("returning to a stale tab refreshes the API without clearing its search or 
   }
 });
 
+/** Скрытый клуб не обрабатывает paid-флаг другого URL; подтверждённая смена сессии сбрасывает retained-персональное состояние. */
 test("a hidden club never processes another page's paid flag and retained state clears on session change", async ({
   page,
 }) => {

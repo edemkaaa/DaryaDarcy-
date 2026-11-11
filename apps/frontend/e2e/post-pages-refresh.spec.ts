@@ -2,8 +2,10 @@ import { expect, test, type Page } from "@playwright/test";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
 import { ok, failure } from "./editor-fixtures";
 
+/** Выбираем видимый вертикальный список, а не вложенную карусель или скрытую retained-панель. */
 const list = (page: Page) =>
   page.locator("main .ui-scroll:not(.ui-scroll-horizontal):visible").first();
+/** Различимые версии текста и убывающие даты дают стабильные якоря для проверки обновления страниц. */
 const post = (id: number) => ({
   id,
   text: `PAGE_POST_${id}_v0 ${"Текст публикации для проверки прокрутки. ".repeat(10)}`,
@@ -17,6 +19,7 @@ const post = (id: number) => ({
   createdAt: new Date(Date.UTC(2026, 9, 20) - id * 60_000).toISOString(),
   publishedAt: new Date(Date.UTC(2026, 9, 20) - id * 60_000).toISOString(),
 });
+/** Выдаём offset-страницы с изменяемыми строками и точечным отказом курсора; возвращаем управляющие действия только для fixture. */
 async function setup(
   page: Page,
   club: boolean,
@@ -47,35 +50,42 @@ async function setup(
   await expect(page.getByText(/^PAGE_POST_1_v0 /).first()).toBeVisible();
   return {
     calls,
+    /** Меняем одну синтетическую строку без перестройки её адреса, чтобы увидеть обновление видимой страницы. */
     edit: (id: number) => {
       rows = rows.map((row) =>
         row.id === id ? { ...row, text: row.text.replace("_v0", "_v1") } : row,
       );
     },
+    /** Удаляем fixture-строку: сдвиг offset требует согласованного обновления уже загруженных страниц. */
     remove: (id: number) => {
       rows = rows.filter((row) => row.id !== id);
     },
+    /** Включаем или снимаем отказ только выбранной страницы, сохраняя остальные подтверждённые ответы. */
     fail: (cursor?: number) => {
       failedCursor = cursor;
     },
   };
 }
+/** Достигаем конца настоящего scroll-контейнера для запуска следующей страницы. */
 async function end(page: Page) {
   await list(page).evaluate((node) => {
     node.scrollTop = node.scrollHeight;
   });
 }
+/** Загружаем страницы по двенадцать и ждём измеряемый row-shell, не требуя монтажа текста вне окна виртуализации. */
 async function loadThrough(page: Page, endId: number) {
   for (let id = 24; id <= endId; id += 12) {
     await end(page);
     await expect(list(page).locator(`[data-item-key="${id}"]`)).toBeAttached();
   }
 }
+/** Продвигаем TTL обновления и короткие отложенные эффекты в управляемых часах. */
 async function minute(page: Page) {
   await page.clock.fastForward(61_000);
   await page.clock.runFor(200);
 }
 
+/** Лента и клуб одинаково обновляют видимые страницы, ограничивают окно восемью страницами и сохраняют позицию при ошибках/удалении. */
 for (const club of [false, true]) {
   test(`${club ? "club" : "guest feed"}: polls visible later pages, reflects edits and deletion, preserves position`, async ({
     page,
@@ -184,6 +194,7 @@ for (const club of [false, true]) {
   });
 }
 
+/** Черновик комментария сохраняется отдельно от DOM карточки и восстанавливается после вытеснения страницы и возврата к началу. */
 test("a club comment draft survives eviction of its page and return to the head", async ({
   page,
 }) => {

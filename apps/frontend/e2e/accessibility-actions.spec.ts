@@ -4,6 +4,7 @@ import { gotoWithSession, layoutApi } from "./layout-fixtures";
 
 test.setTimeout(60_000);
 test.use({ actionTimeout: 10_000 });
+/** Подменяем внешнее оформление стабильной SVG-картинкой, отделяя keyboard-flow от доступности S3. */
 async function decoration(page: Page) {
   await page.route("https://s3.twcstorage.ru/**", (route) =>
     route.fulfill({
@@ -12,10 +13,12 @@ async function decoration(page: Page) {
     }),
   );
 }
+/** Находим закрытый control напрямую, чтобы проверить невозможность фокуса даже вне видимой области. */
 const closedPanelButton = (page: Page) =>
   page.locator('[aria-label="Закрыть фильтры клуба"]');
 
 // Focus attempts reproduce the defect even when the panel is outside the viewport.
+/** Пробуем программный и последовательный keyboard-focus; закрытая панель обязана оставаться inert. */
 test("closed club filters cannot receive keyboard or programmatic focus", async ({
   page,
 }) => {
@@ -39,6 +42,7 @@ test("closed club filters cannot receive keyboard or programmatic focus", async 
   }
 });
 
+/** Выбор тегов, Escape и возврат фокуса проверяем на мобильном и широком холсте без превращения панели в модальную. */
 for (const width of [390, 1440]) {
   test(`club filters support selection, Escape and focus return at ${width}px`, async ({
     page,
@@ -97,6 +101,7 @@ for (const width of [390, 1440]) {
   });
 }
 
+/** Проверяем закрытое положение после resize и быстрых циклов, включая отмену отложенной подсказки. */
 test("closed filters remain off-screen after resizing and rapid reopening", async ({
   page,
 }) => {
@@ -126,6 +131,7 @@ test("closed filters remain off-screen after resizing and rapid reopening", asyn
   }
 });
 
+/** Проверяем безопасные ссылки, Space для лайка и цикл Tab/Escape меню с возвратом фокуса. */
 test("comment links and actions work with the keyboard and menu focus is restored", async ({
   page,
 }) => {
@@ -233,6 +239,7 @@ test("comment links and actions work with the keyboard and menu focus is restore
   await expect(menu).toBeFocused();
 });
 
+/** Проходим именованные действия основных экранов и отсутствие горизонтального overflow; поиск и переключатель вида управляются клавиатурой. */
 test("main screens expose named visible buttons without horizontal overflow", async ({
   page,
 }) => {
@@ -273,6 +280,7 @@ test("main screens expose named visible buttons without horizontal overflow", as
   await expect(grid).toHaveAttribute("aria-pressed", "false");
 });
 
+/** Визуальные ответы теста должны иметь accessible name и объявлять выбранность через aria-pressed. */
 test("visual quiz choices have a name and announce their selected state", async ({
   page,
 }) => {
@@ -295,6 +303,7 @@ test("visual quiz choices have a name and announce their selected state", async 
   );
 });
 
+/** На узкой и короткой геометрии проверяем полную видимость чипов и сброса с учётом всех clipping-предков. */
 test("the filter reset remains fully reachable by scrolling and keyboard on narrow and short screens", async ({
   page,
   browserName,

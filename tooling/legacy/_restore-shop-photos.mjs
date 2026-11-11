@@ -1,3 +1,4 @@
+// Пробует восстановить отсутствующие публичные фото по прежнему Manus CDN; ошибки HEAD не доказывают отсутствие объекта.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -38,6 +39,8 @@ const mime = {
 };
 
 async function exists(key) {
+  // Пробует HEAD с внешним таймером; любая ошибка трактуется как отсутствие, сам запрос при таймауте не отменяется.
+
   try {
     await Promise.race([
       client.send(new HeadObjectCommand({ Bucket: env.S3_BUCKET, Key: key })),
@@ -50,6 +53,8 @@ async function exists(key) {
 }
 
 async function fetchRetry(url) {
+  // Повторяет только скачивание источника с задержкой; после получения headers чтение тела не имеет отдельного дедлайна.
+
   let lastErr;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
@@ -71,6 +76,7 @@ async function fetchRetry(url) {
 let ok = 0;
 let skip = 0;
 let fail = 0;
+// Ниже начинается внешняя запись S3 по историческим фиксированным ключам; исходные объекты и ACL нужно проверить до запуска.
 for (const key of keys) {
   const name = key.split("/").pop();
   if (await exists(key)) {

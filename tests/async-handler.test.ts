@@ -1,9 +1,11 @@
+/** Проверяем адаптацию async Express-обработчиков на реальных loopback HTTP-запросах. */
 import express, { type ErrorRequestHandler } from "express";
 import { once } from "node:events";
 import type { AddressInfo } from "node:net";
 import { expect, it } from "vitest";
 import { asyncHandler } from "../apps/backend/src/_core/async-handler";
 
+/** Сверяем reject, обычный ответ, next и синхронный throw; каждое исключение попадает в middleware ровно один раз. */
 it("forwards rejected promises once and leaves successful requests intact", async () => {
   const app = express();
   const failures: unknown[] = [];
@@ -22,6 +24,7 @@ it("forwards rejected promises once and leaves successful requests intact", asyn
   }), (_req, res) => { res.sendStatus(204); });
   // Express must retain its normal synchronous-error handling as well.
   app.get("/throw", asyncHandler(() => { throw failure; }));
+  /** Фиксирует принятые ошибки и завершает запрос безопасным тестовым ответом 500. */
   const onError: ErrorRequestHandler = (error, _req, res, _next) => {
     failures.push(error);
     res.status(500).json({ error: "unavailable" });

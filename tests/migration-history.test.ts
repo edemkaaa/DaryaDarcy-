@@ -1,3 +1,4 @@
+/** Reader истории миграций проверяется с mock wire MySQL, но настоящими фиксированными metadata-запросами. */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   connect: vi.fn(),
@@ -10,7 +11,9 @@ vi.mock("mysql2/promise", () => ({
 }));
 import { readMigrationHistory } from "../tooling/scripts/migration-history";
 
+/** Проверяем read-only транзакцию, отсутствие auto-DDL и обязательное закрытие соединения. */
 describe("read-only migration history connection", () => {
+  /** Сбрасываем wire mocks и задаём ожидаемую строку журнала. */
   beforeEach(() => {
     vi.resetAllMocks();
     mocks.connect.mockResolvedValue({
@@ -25,6 +28,7 @@ describe("read-only migration history connection", () => {
       return [[{ hash: "a".repeat(64), created_at: 100 }], []];
     });
   });
+  /** Разрешены ровно START READ ONLY и два metadata SELECT, затем rollback/end. */
   it("issues only fixed metadata reads inside a read-only transaction", async () => {
     expect(
       await readMigrationHistory("mysql://test:secret@127.0.0.1/backend_test"),
@@ -41,6 +45,7 @@ describe("read-only migration history connection", () => {
     expect(mocks.rollback).toHaveBeenCalledOnce();
     expect(mocks.end).toHaveBeenCalledOnce();
   });
+  /** Отсутствие таблицы возвращается как undefined; reader не создаёт её. */
   it("does not create an absent migration journal", async () => {
     mocks.query.mockResolvedValue([[], []]);
     expect(
@@ -49,6 +54,7 @@ describe("read-only migration history connection", () => {
     expect(mocks.query).toHaveBeenCalledTimes(2);
     expect(mocks.end).toHaveBeenCalledOnce();
   });
+  /** Ошибка чтения сохраняется, а rollback/end всё равно исполняются. */
   it("closes the connection after a metadata query fails", async () => {
     mocks.query.mockRejectedValue(new Error("fixture metadata failure"));
     await expect(
@@ -57,6 +63,7 @@ describe("read-only migration history connection", () => {
     expect(mocks.rollback).toHaveBeenCalledOnce();
     expect(mocks.end).toHaveBeenCalledOnce();
   });
+  /** Даже отказ rollback не оставляет соединение открытым. */
   it("still closes the connection if rollback fails", async () => {
     mocks.rollback.mockRejectedValue(new Error("fixture rollback failure"));
     await expect(
@@ -64,6 +71,7 @@ describe("read-only migration history connection", () => {
     ).rejects.toThrow("fixture rollback failure");
     expect(mocks.end).toHaveBeenCalledOnce();
   });
+  /** Некорректный scheme/schema останавливается до createConnection. */
   it.each(["https://example.test/db", "mysql://test@127.0.0.1/"])(
     "refuses an invalid connection before opening it: %s",
     async (uri) => {

@@ -47,6 +47,8 @@ it.each([
 ])(
   "native cancellation honors the application-owned $decision decision",
   async (fixture) => {
+    // Сценарий: Ответ отмены определяется приложению принадлежащим сервисом confirmed/refused/failed, без обхода глобальным helper.
+
     vi.stubEnv("PRODAMUS_SUBSCRIPTION_ID", "7");
     const owned = vi
       .spyOn(application.get(ClubCancellationService), "confirm")
@@ -97,6 +99,8 @@ it.each([
 it.each(["missing", "acquisition failure", "durable failure"])(
   "native cancellation keeps %s as a generic failure",
   async (failure) => {
+    // Сценарий: Нет БД, отказ её получения и отказ durable-подтверждения сохраняют безопасный 500.
+
     vi.stubEnv("PRODAMUS_SUBSCRIPTION_ID", "7");
     const database = {} as NonNullable<Awaited<ReturnType<typeof db.getDb>>>;
     const acquire = vi.spyOn(db, "getDb").mockImplementation(async () => {
@@ -202,6 +206,8 @@ it.each([
     refused: true,
   },
 ])("cancellation native HTTP preserves $name", async (fixture) => {
+  // Сценарий: Отмена проверяет merchant, subscription/profile, demo-режим и соответствующий recurring-ключ до записи.
+
   vi.stubEnv("PRODAMUS_SUBSCRIPTION_ID", "7");
   vi.stubEnv("PRODAMUS_SUBSCRIPTION_SECRET", "cancellation-fixture-key");
   vi.stubEnv("PRODAMUS_SHOP_SECRET", "unrelated-shop-fixture-key");
@@ -254,6 +260,8 @@ it.each([
   }
 });
 it("rejects a normally signed demo over native HTTP without entering settlement", async () => {
+  // Сценарий: Даже корректно подписанный demo-callback не достигает боевого settlement.
+
   const settlement = vi
     .spyOn(application.get(ClubSettlementService), "settle")
     .mockResolvedValue(true);
@@ -285,6 +293,8 @@ it.each([
 ])(
   "POST $contentType keeps body precedence in the signed payload",
   async ({ contentType, raw }) => {
+    // Сценарий: При POST тело имеет приоритет над query в подписанном payload.
+
     const signature = createHmac("sha256", "nest-webhook-fixture-secret")
       .update(
         '{"note":"query","payment_status":"pending","subscription":{"profile_id":"23"}}',
@@ -306,6 +316,8 @@ it.each([
   },
 );
 it("rejects an added own JSON __proto__ field before settlement", async () => {
+  // Сценарий: Собственное JSON-поле __proto__ не проходит подпись и не достигает settlement.
+
   const settlement = vi.spyOn(db, "settleClubPayment");
   const signature = createHmac("sha256", "nest-webhook-fixture-secret")
     .update('{"payment_status":"pending"}')
@@ -322,6 +334,8 @@ it("rejects an added own JSON __proto__ field before settlement", async () => {
 it.each(["POST", "GET"])(
   "%s webhook uses its application-bound handler, not the legacy runtime global",
   async (method) => {
+    // Сценарий: GET и POST используют handler, связанный с экземпляром приложения, а не поздно заменённый global.
+
     // A late runtime-global replacement must not hijack an initialized app.
     vi.spyOn(prodamus, "handleProdamusWebhook").mockImplementation(
       async (_req, res) => {
@@ -345,6 +359,8 @@ it.each(["POST", "GET"])(
 );
 
 it("native webhook forwards original bytes beyond the ordinary JSON body limit", async () => {
+  // Сценарий: Webhook передаёт исходные UTF-8 байты свыше обычного JSON-лимита без повторного преобразования.
+
   const raw = JSON.stringify({ note: "Привет", padding: "x".repeat(300_000) });
   const handler = application.get<ProdamusWebhookHandler>(
     PRODAMUS_WEBHOOK_HANDLER,
@@ -369,6 +385,8 @@ it("native webhook forwards original bytes beyond the ordinary JSON body limit",
   expect(response.headers.get("set-cookie")).toBeNull();
 });
 it("oversized webhook is rejected before its handler without leaking bytes", async () => {
+  // Сценарий: Превышение отдельного webhook-лимита отклоняется до handler без раскрытия тела.
+
   const handler = application.get<ProdamusWebhookHandler>(
     PRODAMUS_WEBHOOK_HANDLER,
   );
@@ -383,6 +401,8 @@ it("oversized webhook is rejected before its handler without leaking bytes", asy
   expect(operation).not.toHaveBeenCalled();
 });
 it("handler bindings are isolated between application instances", async () => {
+  // Сценарий: Handler первого приложения не меняет маршрутизацию второго экземпляра.
+
   const other = await createBackendApplication();
   try {
     await other.listen(0, "127.0.0.1");
@@ -419,6 +439,7 @@ it("handler bindings are isolated between application instances", async () => {
 
 // Sorted scalar fields mirror a real semiannual callback. Canonical JSON is
 // hand-derived here, independent of the production normalizer/signing helper.
+// Порядок строковых полей выбран вручную и независимо от production-нормализатора, чтобы проверка подписи не повторяла возможную ошибку того же helper.
 const payment = {
   currency: "rub",
   customer_email: "member@example.test",
@@ -429,6 +450,8 @@ const payment = {
   sum: "4740.00",
 };
 function notify(payload = payment, key = "nest-webhook-fixture-secret") {
+  // Подписывает независимо сформированный синтетический payload и посылает его только локальному webhook.
+
   const raw = JSON.stringify(payload);
   return fetch(base + "/api/prodamus/webhook", {
     method: "POST",
@@ -442,6 +465,8 @@ function notify(payload = payment, key = "nest-webhook-fixture-secret") {
 it.each([true, false])(
   "signed callback preserves the settlement outcome %s",
   async (granted) => {
+    // Сценарий: Корректно подписанный callback сохраняет реальный ответ границы settlement, не подтверждая отказанную привязку.
+
     // The real protocol/HTTP handler remains; only the durable SQL boundary is
     // controlled. This does not claim transaction or replay acceptance on MySQL.
     vi.spyOn(db, "settleClubPayment").mockImplementation(async (input) => {
@@ -470,6 +495,8 @@ it.each([true, false])(
   },
 );
 it("signed legacy field aliases preserve the exact club settlement proof", async () => {
+  // Сценарий: Прежние имена полей нормализуются в тот же набор доказательств клубной оплаты.
+
   const raw =
     '{"Currency":"RUB","CustomerEmail":" MEMBER@EXAMPLE.TEST ","Domain":"FIXTURE.PAYFORM.RU","Order_ID":"300155","Order_Num":"club6m-7-alias","PaymentStatus":"SUCCESS","Sum":"4740.00"}';
   vi.spyOn(db, "settleClubPayment").mockImplementation(async (input) => {
@@ -505,6 +532,8 @@ it("signed legacy field aliases preserve the exact club settlement proof", async
   expect(response.headers.get("set-cookie")).toBeNull();
 });
 it("signed monthly payment preserves the nested subscription binding in settlement", async () => {
+  // Сценарий: Месячный callback сохраняет вложенные subscription/profile в settlement-доказательстве.
+
   const raw =
     '{"currency":"RUB","customer_email":" MEMBER+CLUB@EXAMPLE.TEST ","domain":"FIXTURE.PAYFORM.RU","order_id":"300156","order_num":"club-7-monthly","payment_status":"success","subscription":{"id":"7","profile_id":"23"},"sum":"790.00"}';
   vi.stubEnv("PRODAMUS_SUBSCRIPTION_ID", "7");
@@ -547,6 +576,8 @@ it("signed monthly payment preserves the nested subscription binding in settleme
   }
 });
 it("a valid signature from another merchant cannot reach settlement", async () => {
+  // Сценарий: Подпись другого merchant не разрешает settlement.
+
   const settle = vi.spyOn(db, "settleClubPayment").mockResolvedValue(true);
   const response = await notify({ ...payment, domain: "another.payform.ru" });
   expect(response.status).toBe(422);
@@ -554,6 +585,8 @@ it("a valid signature from another merchant cannot reach settlement", async () =
   expect(settle).not.toHaveBeenCalled();
 });
 it("club acknowledgement follows the application-bound settlement decision", async () => {
+  // Сценарий: Подтверждение клуба следует решению внедрённого сервиса, не обходному SQL.
+
   // A hidden/global settlement path would return success instead of this rejection.
   const database = vi.spyOn(db, "settleClubPayment").mockResolvedValue(true);
   const service = application.get(ClubSettlementService);
@@ -580,6 +613,8 @@ it("club acknowledgement follows the application-bound settlement decision", asy
   expect(database).not.toHaveBeenCalled();
 });
 it("recurring acknowledgement uses the same application-bound settlement service", async () => {
+  // Сценарий: Повторное списание использует тот же application-bound settlement с recurring-доказательством.
+
   const raw =
     '{"currency":"rub","customer_email":"member@example.test","domain":"fixture.payform.ru","order_id":"300157","payment_status":"success","subscription":{"action_code":"auto_payment","id":"7","profile_id":"23"},"sum":"790.00"}';
   vi.stubEnv("PRODAMUS_SUBSCRIPTION_ID", "7");
@@ -624,6 +659,8 @@ it("recurring acknowledgement uses the same application-bound settlement service
   }
 });
 it("settlement decisions remain isolated between native application instances", async () => {
+  // Сценарий: Решения settlement изолированы между двумя экземплярами приложения.
+
   const other = await createBackendApplication();
   const database = vi.spyOn(db, "settleClubPayment").mockResolvedValue(true);
   const firstOperation = vi
@@ -686,6 +723,8 @@ it.each([
 ])(
   "signed club payment with %s cannot reach settlement",
   async (_name, raw) => {
+    // Сценарий: Подписанный payload с неверной валютой, отсутствующим paymentId/subscription/profile не достигает settlement.
+
     // Hand-sorted string-only canonical JSON: independent of production signing.
     vi.stubEnv("PRODAMUS_SUBSCRIPTION_ID", "7");
     const settle = vi.spyOn(db, "settleClubPayment").mockResolvedValue(true);
@@ -715,6 +754,8 @@ it.each([
   },
 );
 it("invalid signatures cannot reach settlement", async () => {
+  // Сценарий: Неверная подпись отклоняется до сервиса и SQL.
+
   const settle = vi.spyOn(db, "settleClubPayment");
   const operation = vi.spyOn(application.get(ClubSettlementService), "settle");
   const response = await notify(payment, "wrong-merchant-key");
@@ -724,6 +765,8 @@ it("invalid signatures cannot reach settlement", async () => {
   expect(operation).not.toHaveBeenCalled();
 });
 it("a globally valid shop key cannot authorize a club payment", async () => {
+  // Сценарий: Действительный ключ магазина не разрешает клубную оплату.
+
   vi.stubEnv("PRODAMUS_SHOP_SECRET", "foreign-shop-fixture-key");
   const settle = vi.spyOn(db, "settleClubPayment");
   const operation = vi
@@ -741,6 +784,8 @@ it("a globally valid shop key cannot authorize a club payment", async () => {
   }
 });
 it("database failure remains a safe 500 instead of acknowledging payment", async () => {
+  // Сценарий: SQL-отказ сохраняет безопасный 500 вместо подтверждения оплаты или утечки деталей.
+
   vi.spyOn(db, "settleClubPayment").mockRejectedValue(
     new Error("PRIVATE_SQL_DETAIL"),
   );
@@ -759,6 +804,8 @@ it.each([
 ])(
   "%s webhook retains query-only parsing with a %s body",
   async (method, contentType, raw) => {
+    // Сценарий: GET/HEAD с телом продолжают подписывать только query; общий JSON-парсер не меняет прежний контракт.
+
     // fetch forbids GET bodies, but provider clients can send one. The legacy
     // ingress ignores it; generic body parsing must not change signed query data.
     const result = await new Promise<{

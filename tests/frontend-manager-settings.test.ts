@@ -1,3 +1,4 @@
+/** Один public-config query обслуживает независимые selectors оформления и адреса заказов; открытие mail client не считается отправкой. */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { QueryObserver } from "@tanstack/react-query";
 import { apiCall, ApiError } from "../apps/frontend/src/shared/api/auth";
@@ -17,6 +18,7 @@ vi.mock("../apps/frontend/src/shared/api/auth", async (original) => ({
 }));
 const read = vi.mocked(apiCall);
 const appearance = { startsOn: "11-20", backgroundUrl: null, bannerUrl: null };
+/** Синтетический полный API ответ содержит revision, appearance и email-client метод заказа. */
 const configuration = () => ({
   revision: 7,
   season: "winter",
@@ -24,9 +26,12 @@ const configuration = () => ({
   managerEmail: "daryadarcyapp@yandex.ru",
   orderMethod: "email-client",
 });
+/** Сбрасываем mock read до каждого selector/cache сценария. */
 beforeEach(() => read.mockReset());
 
+/** Recipient/method/revision валидируются строго, без hardcoded fallback. */
 describe("manager order settings", () => {
+  /** Адрес берётся из проверенного server snapshot, включая plus-address. */
   it("reads the configured recipient without a local fallback", () => {
     expect(parseManagerOrderSettings(configuration())).toEqual({
       revision: 7,
@@ -40,6 +45,7 @@ describe("manager order settings", () => {
       }).managerEmail,
     ).toBe("orders+shop@different.example.test");
   });
+  /** Повреждённый/сдвоенный/header-injection адрес запрещён. */
   it.each([
     undefined,
     null,
@@ -56,6 +62,7 @@ describe("manager order settings", () => {
       parseManagerOrderSettings({ ...configuration(), managerEmail }),
     ).toThrow(ApiError);
   });
+  /** Неизвестный способ заказа не приводится к mailto догадкой. */
   it.each([undefined, "server", "mailto", "", null])(
     "does not guess an unsupported order method %#",
     (orderMethod) => {
@@ -64,6 +71,7 @@ describe("manager order settings", () => {
       ).toThrow(ApiError);
     },
   );
+  /** Отрицательная ревизия не подтверждает актуальность settings. */
   it("requires a valid configuration revision", () => {
     expect(() =>
       parseManagerOrderSettings({ ...configuration(), revision: -1 }),
@@ -71,6 +79,7 @@ describe("manager order settings", () => {
   });
 });
 
+/** Два QueryObserver используют один pending запрос, не затирая поля другого selector. */
 it("shares one pending read between Club and order settings and retains the full response", async () => {
   const client = createAppQueryClient();
   let resolve!: (value: unknown) => void;
@@ -113,6 +122,7 @@ it("shares one pending read between Club and order settings and retains the full
   }
 });
 
+/** Ошибка email selector не блокирует валидное оформление. */
 it("keeps valid Club appearance available when manager settings are invalid", async () => {
   const client = createAppQueryClient();
   read.mockResolvedValue({ ...configuration(), managerEmail: "" });
@@ -135,6 +145,7 @@ it("keeps valid Club appearance available when manager settings are invalid", as
   }
 });
 
+/** Ошибка appearance не запрещает корректный адрес заказов. */
 it("reads order settings independently of a malformed seasonal image", async () => {
   const client = createAppQueryClient();
   read.mockResolvedValue({ ...configuration(), appearance: null });
@@ -151,6 +162,7 @@ it("reads order settings independently of a malformed seasonal image", async () 
   }
 });
 
+/** 503 видим как ошибка; только явный новый read получает revision8/новый email. */
 it("reports a failed refresh and recovers with an explicit retry without automatic repeats", async () => {
   const client = createAppQueryClient();
   read
@@ -178,6 +190,7 @@ it("reports a failed refresh and recovers with an explicit retry without automat
   }
 });
 
+/** Повреждённый новый snapshot не стирает последнее подтверждённое оформление. */
 it("keeps the last confirmed Club appearance when selection rejects a later response", async () => {
   const client = createAppQueryClient();
   read

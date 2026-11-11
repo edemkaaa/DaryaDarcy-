@@ -1,3 +1,4 @@
+/** Проверяем неизменяемый журнал создания статьи и валидацию серверного статуса. */
 import { expect, it } from "vitest";
 import {
   parseArticleCreationRecord,
@@ -27,6 +28,7 @@ const record = {
     ],
   },
 };
+/** Копия восстановления сохраняет пустые секции и порядок повторных URL и не разделяет изменяемые ссылки с исходным объектом. */
 it("restores the exact original payload including empty blocks and ordered repeated URLs", () => {
   const restored = parseArticleCreationRecord(
     JSON.parse(JSON.stringify(record)),
@@ -36,9 +38,11 @@ it("restores the exact original payload including empty blocks and ordered repea
   restored.payload.sections[0].text = "Changed form";
   expect(record.payload.sections[0].text).toBe("");
 });
+/** ownerId журнала обязан совпадать с текущим редактором. */
 it("never assigns another account's saved operation to the current editor", () => {
   expect(() => parseArticleCreationRecord(record, 102)).toThrow("повреждена");
 });
+/** Повреждённый ключ, версия или payload не становятся новым молчаливым намерением. */
 it.each([
   null,
   {},
@@ -53,6 +57,7 @@ it.each([
 ])("rejects a corrupt operation rather than replacing it (%#)", (value) => {
   expect(() => parseArticleCreationRecord(value, 101)).toThrow();
 });
+/** Разрешены только явные notRecorded/created/deleted с корректной формой. */
 it.each([
   { status: "notRecorded" },
   { status: "created", articleId: 42 },
@@ -60,6 +65,7 @@ it.each([
 ])("accepts only server-confirmed status %j", (value) => {
   expect(parseArticleCreationStatus(value)).toEqual(value);
 });
+/** Неизвестный или неполный ответ нельзя принять за разрешение повторного создания. */
 it.each([
   null,
   {},

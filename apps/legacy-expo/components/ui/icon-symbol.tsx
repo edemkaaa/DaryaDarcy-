@@ -1,3 +1,4 @@
+// Архив Expo. На Android/web переводит согласованные SF-имена в MaterialIcons через статическую таблицу.
 // Fallback for using MaterialIcons on Android and web.
 
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -35,5 +36,7 @@ export function IconSymbol({
   style?: StyleProp<TextStyle>;
   weight?: SymbolWeight;
 }) {
+  // На Android/web переводит согласованные SF-имена в MaterialIcons через статическую таблицу.
+
   return <MaterialIcons color={color} size={size} name={MAPPING[name]} style={style} />;
 }

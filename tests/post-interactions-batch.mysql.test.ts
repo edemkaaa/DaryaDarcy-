@@ -2,22 +2,28 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { testDatabaseUrl } from "./helpers/backend-mysql";
 import { openListPageFixture } from "./helpers/list-page-fixture";
 
+/** Проверяет ограниченную пакетную выдачу персональных лайков и сохранений с актуальной видимостью постов. */
 describe.skipIf(!testDatabaseUrl)(
   "bounded post interactions over HTTP/JWT/MySQL",
   () => {
     let fixture: Awaited<ReturnType<typeof openListPageFixture>>;
     const base = 943000;
+    /** Запрашивает только переданные postIds от выбранного пользователя или гостя. */
     const read = (postIds: number[], actor: number | null = 0) =>
       fixture.read("feed.interactionsForPosts", { postIds }, actor);
+    /** Создаёт изолированный HTTP/JWT стенд пакетных реакций. */
     beforeAll(async () => {
       fixture = await openListPageFixture("interaction-batch", base);
     });
+    /** Восстанавливает исходное состояние fixture перед каждым набором реакций. */
     beforeEach(async () => {
       await fixture.reset();
     });
+    /** Очищает fixture и закрывает API и БД. */
     afterAll(async () => {
       await fixture?.close();
     });
+    /** Добавляет лайк и сохранение выбранному тестовому пользователю для данного поста. */
     async function mark(id: number, actor = 0) {
       for (const table of ["likes", "saved_posts"])
         await fixture.conn.query(
@@ -25,6 +31,7 @@ describe.skipIf(!testDatabaseUrl)(
           [base + actor, id],
         );
     }
+    /** Ответ содержит только запрошенные доступные отметки текущего участника без дубликатов и чужих реакций. */
     it("returns only requested, currently readable marks belonging to the actor", async () => {
       const open = await fixture.post(0),
         closed = await fixture.post(1, "club"),
@@ -40,6 +47,7 @@ describe.skipIf(!testDatabaseUrl)(
         savedIds: [other],
       });
     });
+    /** Отзыв клубного доступа немедленно исключает отметки закрытого поста из следующего batch. */
     it("rechecks membership on each batch after a grant is revoked", async () => {
       const id = await fixture.post(0, "club");
       await mark(id);
@@ -54,6 +62,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect((await read([id])).data).toEqual({ likedIds: [], savedIds: [] });
     });
+    /** Гость отклоняется даже с пустым списком, а некорректные ID и более 50 элементов дают 400. */
     it("bounds raw input and refuses guests", async () => {
       expect((await read([], null)).status).toBe(401);
       expect((await read([])).data).toEqual({ likedIds: [], savedIds: [] });

@@ -30,6 +30,7 @@ const payment = {
 const canonical =
   '{"currency":"rub","customer_email":"native-billing@example.invalid","domain":"native-billing.payform.ru","order_id":"94301001","order_num":"club-94301-native-fixture","payment_status":"success","subscription":{"id":"99","profile_id":"144"},"sum":"790.00"}';
 
+/** Проверяет подписанные HTTP-уведомления первоначальной оплаты, продления и отмены на отдельной SQL-базе. */
 describe.skipIf(!testDatabaseUrl)(
   "signed native Prodamus ingress through disposable SQL",
   () => {
@@ -37,6 +38,7 @@ describe.skipIf(!testDatabaseUrl)(
     let app: INestApplication;
     let base: string;
     const cancellationTrigger = "native_billing_cancel_failure";
+    /** Настраивает синтетические ключи разных назначений и фиксированное время; запускает локальный API без фоновых отправителей. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -56,6 +58,7 @@ describe.skipIf(!testDatabaseUrl)(
       await app.listen(0, "127.0.0.1");
       base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
     });
+    /** Удаляет платежи, профили, квитанции и письма только двух собственных пользователей. */
     async function clearFixture() {
       for (const table of [
         "billing_receipts",
@@ -67,6 +70,7 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query(`DELETE FROM ${table} WHERE userId IN (94301,94302)`);
       await conn.query("DELETE FROM users WHERE id IN (94301,94302)");
     }
+    /** Возвращает ключ шифрования и создаёт исходный ожидающий заказ и соседний аккаунт. */
     beforeEach(async () => {
       await conn.query(`DROP TRIGGER IF EXISTS ${cancellationTrigger}`);
       vi.stubEnv("AUTH_LINK_ENCRYPTION_KEY", encryptionKey);
@@ -78,6 +82,7 @@ describe.skipIf(!testDatabaseUrl)(
         "INSERT INTO club_payments (userId,orderId,email,sum) VALUES (94301,'club-94301-native-fixture','native-billing@example.invalid','790')",
       );
     });
+    /** Удаляет собственный отказной триггер и данные, закрывает приложение и SQL-пул и возвращает время. */
     afterAll(async () => {
       await app?.close();
       if (conn) {
@@ -92,6 +97,7 @@ describe.skipIf(!testDatabaseUrl)(
       vi.useRealTimers();
       vi.unstubAllEnvs();
     });
+    /** Читает сроки заказов и количество durable-эффектов для проверки однократного settlement. */
     async function state() {
       const [orders] = await conn.query<RowDataPacket[]>(
         "SELECT orderId,status,expiresAt FROM club_payments WHERE userId=94301 ORDER BY orderId",
@@ -103,6 +109,7 @@ describe.skipIf(!testDatabaseUrl)(
       (SELECT COUNT(*) FROM password_tokens WHERE userId=94301) tokens`);
       return { orders, effects };
     }
+    /** Читает полные строки обоих пользователей и связанных таблиц, чтобы обнаружить не только добавления, но и скрытые изменения. */
     async function guardedState() {
       // Complete durable rows catch silent edits as well as extra entitlements.
       const tables = [
@@ -122,6 +129,7 @@ describe.skipIf(!testDatabaseUrl)(
       }
       return result;
     }
+    /** Подписывает уведомление независимой канонической фикстурой и отправляет его настоящим HTTP. */
     function notify(
       changes: Record<string, unknown> = {},
       key = secret,
@@ -154,6 +162,7 @@ describe.skipIf(!testDatabaseUrl)(
         body: JSON.stringify(body),
       });
     }
+    /** Проверяет один оплаченный период, письмо и контакт в пустой карточке при последовательных и конкурентных повторах webhook. */
     it("grants one paid period and one durable access mail across sequential and concurrent HTTP replays", async () => {
       await conn.query(
         "UPDATE club_payments SET contactPhone='+79991234567' WHERE orderId='club-94301-native-fixture'",
@@ -190,6 +199,7 @@ describe.skipIf(!testDatabaseUrl)(
         { id: 94302, contactPhone: null, phone: null },
       ]);
     });
+    /** Проверяет отказ неверной привязки продавца, суммы, адресата, заказа или ключа без durable-эффектов. */
     it.each([
       {
         name: "merchant",
@@ -222,11 +232,13 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await state()).toEqual(before);
       },
     );
+    /** Проверяет отклонение неподписанного уведомления до любых изменений базы. */
     it("rejects unsigned ingress without durable effects", async () => {
       const before = await state();
       expect((await notify({}, secret, true)).status).toBe(400);
       expect(await state()).toEqual(before);
     });
+    /** Проверяет границу TEST и LIVE: demo-уведомление с обычным ключом не выдаёт доступ. */
     it("rejects an ordinary-key signed demo before granting actual SQL access", async () => {
       const before = await state();
       const reply = await notify({ demo_mode: "1" });
@@ -234,6 +246,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(reply.status).toBe(400);
       expect(await reply.text()).toBe("demo payment not accepted");
     });
+    /** Проверяет полный откат settlement при невозможности создать зашифрованную ссылку и безопасный повтор после исправления конфигурации. */
     it("rolls back settlement on mail-link failure and accepts a clean HTTP retry", async () => {
       const before = await state();
       vi.stubEnv("AUTH_LINK_ENCRYPTION_KEY", "");
@@ -254,6 +267,7 @@ describe.skipIf(!testDatabaseUrl)(
         effects: [{ receipts: 1, profiles: 1, mails: 1, tokens: 1 }],
       });
     });
+    /** Проверяет отказ первоначальной оплаты заблокированному получателю и повтор после разблокировки без дублей. */
     it("refuses a blocked initial recipient without durable changes and accepts retry after unblock", async () => {
       await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=94301");
       const before = await guardedState();
@@ -280,6 +294,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await notify()).status).toBe(200);
       expect(await guardedState()).toEqual(settled);
     });
+    /** Проверяет отказ продления заблокированному получателю без изменения платёжной истории и последующий допустимый повтор. */
     it("refuses a blocked renewal without changing paid history and accepts retry after unblock", async () => {
       expect((await notify()).status).toBe(200);
       await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=94301");
@@ -304,6 +319,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await renewalNotification()).status).toBe(200);
       expect(await guardedState()).toEqual(settled);
     });
+    /** Проверяет актуальную блокировку получателя даже перед подтверждением повтора уже записанной квитанции. */
     it("refuses a blocked recipient before acknowledging an existing receipt replay", async () => {
       expect((await notify()).status).toBe(200);
       await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=94301");
@@ -319,6 +335,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await notify()).status).toBe(200);
       expect(await guardedState()).toEqual(unblocked);
     });
+    /** Проверяет невозможность присвоить сохранённый recurring-профиль с другим владельцем, адресом или суммой. */
     it.each([
       {
         name: "owner",
@@ -363,6 +380,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await guardedState()).toEqual(before);
       },
     );
+    /** Формирует независимо подписанное уведомление автопродления с отдельным recurring-ключом. */
     function renewalNotification(
       profileId = "144",
       key = "native-billing-synthetic-renewal-key",
@@ -390,6 +408,7 @@ describe.skipIf(!testDatabaseUrl)(
         body: bytes,
       });
     }
+    /** Проверяет один период продления при конкурирующих уведомлениях и более позднем повторе. */
     it("grants one renewal period across concurrent and later signed HTTP replays", async () => {
       expect((await notify()).status).toBe(200);
       const replies = await Promise.all(
@@ -425,6 +444,7 @@ describe.skipIf(!testDatabaseUrl)(
         vi.setSystemTime(new Date("2026-10-09T00:00:00Z"));
       }
     });
+    /** Проверяет отказ продления неизвестного профиля либо уведомления с ключом первоначальной оплаты. */
     it.each([
       {
         name: "unknown durable profile",
@@ -443,6 +463,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await cancellationState()).toEqual(before);
       },
     );
+    /** Проверяет откат продления при отказе ссылки доступа и сохранение возможности чистого повтора. */
     it("rolls back a renewal when its access-link write fails and accepts a clean HTTP retry", async () => {
       expect((await notify()).status).toBe(200);
       const before = await cancellationState();
@@ -465,6 +486,7 @@ describe.skipIf(!testDatabaseUrl)(
         { receipts: 2, profiles: 1, mails: 2, tokens: 2 },
       ]);
     });
+    /** Читает профили отмены и оплаченные периоды вместе с durable-эффектами. */
     async function cancellationState() {
       const [profiles] = await conn.query<RowDataPacket[]>(
         "SELECT domain,subscriptionId,profileId,cancelRequestedAt,cancelledAt,leaseId,leaseUntil FROM billing_profiles WHERE userId=94301 ORDER BY profileKey",
@@ -474,6 +496,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       return { profiles, orders, effects: (await state()).effects };
     }
+    /** Формирует независимо подписанное уведомление деактивации recurring-профиля. */
     function cancelNotification(
       profileId = "144",
       key = "native-billing-synthetic-renewal-key",
@@ -496,6 +519,7 @@ describe.skipIf(!testDatabaseUrl)(
         body: bytes,
       });
     }
+    /** Проверяет SQL-подтверждение отмены, снятие lease, сохранение оплаченного срока и безопасные повторы уведомления. */
     it("acknowledges cancellation only after SQL confirmation, preserves expiry and safely acknowledges replays", async () => {
       expect((await notify()).status).toBe(200);
       // A synthetic outstanding worker lease must not survive confirmation.
@@ -542,6 +566,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await cancelNotification()).status).toBe(200);
       expect(await cancellationState()).toEqual(confirmed);
     });
+    /** Проверяет, что закрытие старого recurring-профиля не отменяет новый не привязанный к нему заказ. */
     it("does not mark a new unbound order cancelled when an older profile closes", async () => {
       expect((await notify()).status).toBe(200);
       await conn.query(
@@ -555,6 +580,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(unbound).toEqual([{ cancelAtPeriodEnd: 0 }]);
       expect((await cancellationState()).profiles[0].cancelledAt).toBeInstanceOf(Date);
     });
+    /** Проверяет отказ отмены неизвестного профиля или неверного назначения подписи без изменения доступа. */
     it.each([
       {
         name: "unrecognized durable profile",
@@ -577,6 +603,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await cancellationState()).toEqual(before);
       },
     );
+    /** Проверяет общий откат подтверждения профиля при отказе обновления заказа и последующий чистый повтор. */
     it("rolls back profile confirmation when paid-order cancellation fails, then accepts a clean HTTP retry", async () => {
       expect((await notify()).status).toBe(200);
       const before = await cancellationState();

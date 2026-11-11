@@ -20,6 +20,8 @@ export const STAGE_CHECKOUT_HASH =
 export function hashStageTables(
   tables: Array<{ name: string; ddl: string }>,
 ): string {
+  // Нормализует только меняющийся AUTO_INCREMENT в DDL и сортирует таблицы перед отпечатком структуры.
+
   const normalized = tables
     .map(({ name, ddl }) => ({
       name,
@@ -53,6 +55,8 @@ export function inspectRestoreProof(
   mode: "apply" | "rehearse",
   now: Date,
 ): string[] {
+  // Связывает свежую независимую репетицию с UUID сервера и точными хешами backup, схемы и данных.
+
   const parsed = restoreProof.safeParse(input);
   if (!parsed.success) return ["invalid-backup-proof"];
   const proof = parsed.data;
@@ -96,6 +100,8 @@ export function inspectRehearsalReceipt(
   proofInput: unknown,
   now: Date,
 ): string[] {
+  // Проверяет, что применению предшествовала свежая репетиция того же SQL и backup на независимой восстановленной копии.
+
   const parsed = rehearsalReceipt.safeParse(input);
   const parsedProof = restoreProof.safeParse(proofInput);
   if (!parsed.success || !parsedProof.success)
@@ -131,6 +137,8 @@ export function inspectStageBaseline(snapshot: StageBaselineSnapshot): {
   state: "pending" | "applied" | "blocked";
   issues: string[];
 } {
+  // Различает pending/applied/blocked по фиксированным отпечаткам исходной схемы и checkout-таблицы, не угадывая историю по имени БД.
+
   const issues: string[] = [];
   if (snapshot.database !== "daryadarcy_staging")
     issues.push("unexpected-database");

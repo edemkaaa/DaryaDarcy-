@@ -5,7 +5,7 @@ import { runApiRequest } from "./request-lifecycle";
 import { parseRetryAfter } from "./retry-after";
 import { adminActionKey } from "@shared/admin-action";
 
-/** Acknowledges enqueueing only; this endpoint cannot prove delivery. */
+/** Повтор письма отправляем с проверенными userId и ключом, принимая только 202 queued=true как постановку в очередь. queued подтверждает очередь, а не доставку письма. */
 export function resendAccessEmail(
   userId: number,
   signal: AbortSignal,

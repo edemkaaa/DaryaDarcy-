@@ -1,3 +1,4 @@
+// Архив Expo. Связанные размеры ленты порядка и её миниатюр, чтобы drag-шаг совпадал с отрисовкой.
 /** Высота коричневой ленты «Порядок». */
 export const MOODBOARD_RIBBON_HEIGHT = 192;
 export const MOODBOARD_RIBBON_PADDING_V = 32;

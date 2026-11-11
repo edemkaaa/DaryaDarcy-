@@ -5,6 +5,8 @@ import { assertTestDatabase } from "../../tooling/scripts/test-database-policy";
 
 export const testDatabaseUrl = process.env.BACKEND_TEST_DATABASE_URL;
 export async function openTestDatabase() {
+  // До SQL требует явно одноразовый URL; создаёт тестовую схему под общей блокировкой и поднимает AUTO_INCREMENT выше зарезервированных ID других сценариев.
+
   if (!testDatabaseUrl) throw new Error("BACKEND_TEST_DATABASE_URL required");
   assertTestDatabase(testDatabaseUrl);
   const conn = await mysql.createConnection({
@@ -31,6 +33,7 @@ export async function openTestDatabase() {
     targetType VARCHAR(32) NOT NULL,targetId INT NULL,details TEXT,
     createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
   ) ENGINE=InnoDB`);
+  // Общий schema lock сериализует DDL разных SQL suites; это fixture bootstrap, а не запись production migration journal.
   await conn.query("SELECT GET_LOCK('backend_test_schema',30)");
   try {
     // Общие таблицы берём из миграций: порядок запуска файлов не задаёт схему БД.
@@ -87,6 +90,7 @@ export async function openTestDatabase() {
     await conn.query(
       "CREATE TABLE IF NOT EXISTS backend_test_migrations (name VARCHAR(100) PRIMARY KEY)",
     );
+    // Список ограничен миграциями, нужными backend fixtures; содержание SQL читается с диска без изменения исторических файлов.
     for (const name of [
       "0020_billing_identity",
       "0021_access_mail_status",

@@ -21,6 +21,7 @@ type BrokenReply = {
   headers?: Record<string, string>;
 };
 
+/** Запускает настоящий smoke CLI против собственного HTTP-double и записывает все probes; никакого обращения к рабочему стенду нет. */
 async function runSmoke(
   deployment: "closed" | "prodamus-test",
   mode?: string,
@@ -132,12 +133,14 @@ async function runSmoke(
   }
 }
 
+/** Сохраняет закрытые платежи базовым режимом smoke без дополнительных настроек. */
 it("retains the closed-payment deployment as the default baseline", async () => {
   const result = await runSmoke("closed");
   expect(result.code).toBe(0);
   expect(result.stderr).toBe("");
 });
 
+/** Проверяет ограниченное чтение одной карточки вместо снятого неограниченного списка ленты. */
 it("uses a single-card paginated read instead of the retired unbounded feed", async () => {
   const result = await runSmoke("closed");
   expect(result.code).toBe(0);
@@ -155,6 +158,7 @@ it("uses a single-card paginated read instead of the retired unbounded feed", as
   ).toEqual({ json: { limit: 1 } });
 });
 
+/** Допускает приватные загрузки и новые capabilities, сохраняя проверки остальных запретов доступа. */
 it("accepts private uploads and additive capabilities without skipping the remaining access checks", async () => {
   const result = await runSmoke("prodamus-test", "prodamus-test", undefined, {
     privateContentUploads: true,
@@ -172,6 +176,7 @@ it("accepts private uploads and additive capabilities without skipping the remai
   ).toBe(true);
 });
 
+/** По-прежнему отклоняет исключённые функции даже при включённых приватных загрузках. */
 it.each(["smsLogin", "penPals", "shopOnlinePayment", "webPush"])(
   "still rejects the excluded %s capability when private uploads are enabled",
   async (capability) => {
@@ -186,6 +191,7 @@ it.each(["smsLogin", "penPals", "shopOnlinePayment", "webPush"])(
   },
 );
 
+/** Не считает отсутствующие и неверно типизированные private capabilities готовностью выпуска. */
 it.each([
   ["privateContentUploads", undefined],
   ["privatePostMediaUploads", undefined],
@@ -204,6 +210,7 @@ it.each([
   },
 );
 
+/** В явном TEST проверяет только неподписанные пустые отказы без создания заказа и платёжного callback. */
 it("accepts the explicit TEST deployment without preparing a purchase or signed callback", async () => {
   const result = await runSmoke("prodamus-test", "prodamus-test");
   expect(result.code).toBe(0);
@@ -240,6 +247,7 @@ it("accepts the explicit TEST deployment without preparing a purchase or signed 
   ]);
 });
 
+/** Отклоняет фактический режим платежей, не совпадающий с ожидаемым smoke baseline. */
 it.each([
   { deployment: "closed" as const, mode: "prodamus-test" },
   { deployment: "prodamus-test" as const, mode: undefined },
@@ -250,12 +258,14 @@ it.each([
   },
 );
 
+/** Неизвестный платёжный режим отклоняется ещё до первого HTTP-запроса. */
 it("rejects unknown payment modes before making any request", async () => {
   const result = await runSmoke("closed", "live");
   expect(result.code).toBe(1);
   expect(result.requests).toEqual([]);
 });
 
+/** Повреждённые формы, разрешённые запрещённые маршруты, cookie и кешируемые отказы не должны завершаться smoke passed. */
 it.each<BrokenReply & { name: string }>([
   {
     name: "paginated feed returns the old array shape",
@@ -338,6 +348,7 @@ it.each<BrokenReply & { name: string }>([
   expect(result.stdout).not.toContain("smoke passed");
 });
 
+/** Не следует redirect и не обращается к его адресу при проверке webhook. */
 it("rejects a redirect without requesting the redirect destination", async () => {
   const result = await runSmoke("prodamus-test", "prodamus-test", {
     method: "GET",

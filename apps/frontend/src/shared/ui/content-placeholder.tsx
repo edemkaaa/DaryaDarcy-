@@ -3,7 +3,7 @@ import styles from "./content-placeholder.module.scss";
 
 export type PlaceholderKind = "video" | "feed" | "library" | "article";
 
-/** Quiet, noninteractive frames; no shimmer or entrance animation to replay. */
+/** Сохраняем форму ожидаемого контента статичными карточками; видимые рамки декоративны, состояние загрузки озвучивается один раз. Повторного shimmer или анимированного вступления у заглушки нет. */
 export function ContentPlaceholder({
   kind = "article",
   count = 2,

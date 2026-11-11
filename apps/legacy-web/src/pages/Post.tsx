@@ -1,7 +1,9 @@
+/** Архивная карточка поста по числовому ID. Современные UUID-маршруты и журналы редакторов здесь отсутствуют. */
 import { Link, useParams } from "react-router-dom";
 import { asPhotos, asTags, formatDate } from "../lib";
 import { trpc } from "../trpc";
 
+/** Не отправляет запрос для неположительного ID; после чтения выводит старые фото, обычный текст и теги. */
 export default function Post() {
   const { id } = useParams();
   const postId = Number(id);

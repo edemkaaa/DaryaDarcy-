@@ -21,6 +21,7 @@ PAIRS = [
 
 
 def load_paper() -> Image.Image:
+    # Берёт бумажную текстуру из собственного кеша либо публичного источника и подгоняет её к размеру промо.
     cache = ROOT / ".tmp-yandex-promo" / "app-paper.jpg"
     if not cache.exists():
         cache.parent.mkdir(parents=True, exist_ok=True)
@@ -29,6 +30,7 @@ def load_paper() -> Image.Image:
 
 
 def bake(src_name: str, dst_name: str, paper: Image.Image) -> None:
+    # Накладывает RGBA-промо на ту же текстуру и сохраняет отдельный WebP, не меняя source PNG.
     src = PROMO / src_name
     if not src.exists():
         raise SystemExit(f"Missing {src}")
@@ -43,6 +45,7 @@ def bake(src_name: str, dst_name: str, paper: Image.Image) -> None:
 
 
 def main() -> None:
+    # Обрабатывает только перечисленные три промо-пары с одной общей бумажной основой.
     paper = load_paper()
     for src, dst in PAIRS:
         bake(src, dst, paper)

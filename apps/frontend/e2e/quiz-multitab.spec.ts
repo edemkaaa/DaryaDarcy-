@@ -6,15 +6,19 @@ import { gotoWithSession } from "./layout-fixtures";
 
 const progressKey = "darcy:user:101:@darcy_quiz_progress";
 const resultKey = "darcy:user:101:@darcy_quiz_result";
+/** Читаем durable-progress текущего аккаунта, чтобы сравнить байты до и после конфликта. */
 const stored = (page: Page) =>
   page.evaluate((key) => localStorage.getItem(key), progressKey);
+/** Находим отдельное согласие принять сохранённое состояние вместо локального черновика. */
 const continueSaved = (page: Page) =>
   page.getByRole("button", {
     name: "Продолжить сохранённый тест",
     exact: true,
   });
+/** Первый вариант даёт различимый результат одновременной записи вкладок. */
 const firstAnswer = (page: Page) =>
   page.getByRole("button", { name: /^Тёплое спокойствие/ });
+/** Второй вариант позволяет определить победителя ревизии и восстановить его выбор в проигравшей вкладке. */
 const secondAnswer = (page: Page) =>
   page.getByRole("button", { name: /^Жгучее любопытство/ });
 const completedResult = {
@@ -32,10 +36,12 @@ const completedResult = {
   },
 };
 
+/** Открываем реальную quiz-страницу с одинаковой синтетической личностью для общей account-scoped записи. */
 async function openQuiz(page: Page) {
   await editorApi(page);
   await gotoWithSession(page, "/quiz");
 }
+/** Начинаем новый проход через пользовательское действие и ждём первый вопрос. */
 async function startQuiz(page: Page) {
   await openQuiz(page);
   await page
@@ -44,6 +50,7 @@ async function startQuiz(page: Page) {
   await expect(firstAnswer(page)).toBeVisible();
 }
 
+/** Старый result-screen не может сбросить новый проход другой вкладки без явного принятия её состояния. */
 test("an old result cannot restart over another tab's new progress", async ({
   page,
   context,
@@ -76,6 +83,7 @@ test("an old result cannot restart over another tab's new progress", async ({
   expect(JSON.parse((await stored(other))!).currentQuestion).toBe(1);
 });
 
+/** Одновременные ответы проверяем с Web Locks и резервной IndexedDB-координацией: остаётся одна целая ревизия, проигравший принимает её явно. */
 for (const fallback of [false, true]) {
   test(`simultaneous answers preserve one complete revision (${fallback ? "IndexedDB" : "Web Locks"})`, async ({
     page,
@@ -105,6 +113,7 @@ for (const fallback of [false, true]) {
   });
 }
 
+/** Завершение устаревшего прохода не должно заменить уже начатый новый run и его сохранённый результат. */
 test("a stale last-question tab cannot finish or overwrite a newer run", async ({
   page,
   context,
@@ -174,6 +183,7 @@ test("a late answer from a stale tab cannot replace the newer question", async (
   ).toBeVisible();
 });
 
+/** Legacy-progress повышает версию только при явном ответе; уже выбранные ответы сохраняются. */
 test("legacy progress upgrades on the next explicit answer without losing earlier answers", async ({
   page,
 }) => {

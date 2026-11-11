@@ -25,6 +25,7 @@ import { VideoDetailView } from "./video-detail-view";
 import { PAPER_TEXTURE_URI } from "./video-screen.content";
 import classes from "./video-screen.module.scss";
 
+/** Источник воспроизведения получаем отдельно от карточки; ключ user+epoch и gcTime=0 требуют новой проверки при каждом реальном возврате. */
 export function CatalogVideoDetail({ id }: { id: string }) {
   const videoId = parseContentId(id);
   const auth = useAuth();

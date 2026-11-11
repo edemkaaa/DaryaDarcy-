@@ -1,3 +1,4 @@
+// Архив Expo. Измеряет доступную ширину, листает фотографии страницами и показывает текущий индекс.
 import { useState } from "react";
 import {
   NativeScrollEvent,
@@ -18,11 +19,15 @@ export function PostPhotoCarousel({
   photos: string[];
   onPhotoPress?: (index: number) => void;
 }) {
+  // Измеряет доступную ширину, листает фотографии страницами и показывает текущий индекс.
+
   const [width, setWidth] = useState(0);
   const [index, setIndex] = useState(0);
   const aspectRatios = usePhotoAspectRatios(photos);
 
   const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    // Переводит горизонтальное смещение в номер страницы только после измерения ширины.
+
     if (width <= 0) return;
     const next = Math.round(event.nativeEvent.contentOffset.x / width);
     if (next !== index) setIndex(next);
@@ -89,6 +94,7 @@ export function PostPhotoCarousel({
   );
 }
 
+// Рамка имеет измеренную ширину и paging, а счётчик размещён поверх изображения независимо от его пропорций.
 const styles = StyleSheet.create({
   wrap: {
     width: "100%",

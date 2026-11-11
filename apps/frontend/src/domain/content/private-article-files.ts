@@ -8,8 +8,10 @@ import {
 export type PrivateArticleFile = PrivateContentFile<
   "articlePhoto" | "articleDocument"
 > & { usage: "articlePhoto" | "articleDocument" };
+/** Локальная ссылка связывает блок со стабильным ключом исходника до появления готового серверного адреса. */
 export const articleFileReference = (file: PrivateArticleFile) =>
   `local-content:${file.key}`;
+/** Обходим только файловые поля photo/png/link/carousel, сохраняя остальные блоки и их порядок. */
 function mapArticleFiles(
   blocks: ArticleBlock[],
   resolve: (url: string, usage: PrivateArticleFile["usage"]) => string,
@@ -36,6 +38,7 @@ function mapArticleFiles(
     return { ...block };
   });
 }
+/** Проверяем уникальность ключей и соответствие назначения файлу блока; возвращаем только используемые исходники. */
 export function selectArticleFiles(
   blocks: ArticleBlock[],
   files: PrivateArticleFile[],
@@ -60,6 +63,7 @@ export function selectArticleFiles(
   });
   return [...selected];
 }
+/** Заменяем локальные ссылки только готовыми квитанциями совпадающего назначения; неподтверждённый файл блокирует write. */
 export function resolveArticleFiles(
   blocks: ArticleBlock[],
   files: PrivateArticleFile[],
@@ -77,7 +81,7 @@ export function resolveArticleFiles(
   });
 }
 
-/** Keep original File objects editable when a resolved write is moved back to a draft. */
+/** При возврате write в черновик восстанавливаем local-content ссылки, сохраняя редактируемые исходные File. */
 export function restoreArticleFileReferences(
   blocks: ArticleBlock[],
   files: PrivateArticleFile[],

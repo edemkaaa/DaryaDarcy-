@@ -1,3 +1,4 @@
+// Архив Expo. Удаляет только почти чёрный фон кадра, оставляя тёмный металл и мягкую alpha-границу.
 import { useEffect, useRef, type RefObject } from "react";
 import { createElement } from "react";
 import { isAppleMobileWeb } from "@/lib/device";
@@ -21,6 +22,7 @@ const PLAY_TIMEOUT_MS = 5000;
 const READY_MIN_TIME = 0.04;
 
 /** Safari/iOS won't advance frames when video is display:none — keep it painted but invisible. */
+// Для Safari декодер остаётся в отрисовываемом DOM с opacity 0: display none может остановить продвижение кадров.
 const HIDDEN_VIDEO_STYLE: Record<string, string | number> = {
   position: "absolute",
   top: 0,
@@ -32,6 +34,8 @@ const HIDDEN_VIDEO_STYLE: Record<string, string | number> = {
 };
 
 function keyOutFrame(ctx: CanvasRenderingContext2D, bufferW: number, bufferH: number) {
+  // Удаляет только почти чёрный фон кадра, оставляя тёмный металл и мягкую alpha-границу.
+
   const imageData = ctx.getImageData(0, 0, bufferW, bufferH);
   const { data } = imageData;
   for (let i = 0; i < data.length; i += 4) {
@@ -50,6 +54,8 @@ function keyOutFrame(ctx: CanvasRenderingContext2D, bufferW: number, bufferH: nu
 }
 
 function renderScale(displayW: number, displayH: number) {
+  // Ограничивает Canvas буфер исходным разрешением и DPR не более трёх.
+
   if (typeof window === "undefined") {
     return { bufferW: displayW, bufferH: displayH };
   }
@@ -66,6 +72,8 @@ function paintFrame(
   bufferW: number,
   bufferH: number,
 ) {
+  // Зеркалит кадр, затем пробует chroma key; запрет чтения Canvas оставляет исходный кадр.
+
   ctx.clearRect(0, 0, bufferW, bufferH);
   ctx.save();
   ctx.translate(bufferW, 0);
@@ -84,6 +92,8 @@ function useBootVideoPlayback(
   onReady?: () => void,
   onFailed?: () => void,
 ) {
+  // Однократно запускает muted inline video и сообщает ready после движения времени, ограничивая autoplay retries.
+
   const readyRef = useRef(false);
   const startedRef = useRef(false);
   const onReadyRef = useRef(onReady);
@@ -93,6 +103,8 @@ function useBootVideoPlayback(
   onFailedRef.current = onFailed;
 
   useEffect(() => {
+    // Подключает readiness/play/error listeners и снимает основной таймер с pause при unmount; вложенные retry timeout исторически отдельны.
+
     const video = videoRef.current;
     if (!video) return;
 
@@ -100,12 +112,16 @@ function useBootVideoPlayback(
     let playAttempts = 0;
 
     const markReady = () => {
+      // Вызывает ready не больше одного раза для текущего mounted playback hook.
+
       if (readyRef.current) return;
       readyRef.current = true;
       onReadyRef.current?.();
     };
 
     const tryPlay = () => {
+      // Повторяет autoplay до 12 попыток, не перезапуская уже закончившееся видео.
+
       if (video.ended) return;
       playAttempts += 1;
       void video.play().catch(() => {
@@ -116,6 +132,8 @@ function useBootVideoPlayback(
     };
 
     const start = () => {
+      // Настраивает iOS inline/muted атрибуты, обнуляет кадр и ставит таймер готовности.
+
       if (startedRef.current) return;
       startedRef.current = true;
       video.loop = false;
@@ -134,9 +152,11 @@ function useBootVideoPlayback(
     };
 
     const onTimeUpdate = () => {
+      // Считает заставку готовой после фактического продвижения времени воспроизведения.
+
       if (video.currentTime >= READY_MIN_TIME) markReady();
     };
-    const onError = () => onFailedRef.current?.();
+    const onError = () => /* Передаёт media error владельцу для перехода на fallback. */ onFailedRef.current?.();
 
     video.addEventListener("loadeddata", start);
     video.addEventListener("canplay", start);
@@ -158,11 +178,15 @@ function useBootVideoPlayback(
 }
 
 function scheduleFrame(video: HTMLVideoElement, draw: () => void): () => void {
+  // Предпочитает video-frame callback, иначе requestAnimationFrame; возвращает остановку цикла.
+
   const rvfc = (video as HTMLVideoElement & { requestVideoFrameCallback?: (cb: () => void) => number })
     .requestVideoFrameCallback;
   if (rvfc) {
     let active = true;
     const tick = () => {
+      // Перерисовывает только активную подписку на декодированные video-кадры.
+
       if (!active) return;
       draw();
       rvfc.call(video, tick);
@@ -175,6 +199,8 @@ function scheduleFrame(video: HTMLVideoElement, draw: () => void): () => void {
 
   let raf = 0;
   const loop = () => {
+    // Перерисовывает Canvas через RAF при отсутствии video-frame API.
+
     draw();
     raf = requestAnimationFrame(loop);
   };
@@ -190,11 +216,15 @@ function BootLockCanvasDraw({
   onReady,
   onFailed,
 }: Props) {
+  // Содержит скрытый видеодекодер и alpha-Canvas, выбирая отдельный MP4 путь для iOS.
+
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   useBootVideoPlayback(videoRef, onReady, onFailed);
 
   useEffect(() => {
+    // Создаёт размер Canvas и цикл рисования; cleanup помечает остановку, снимает кадры и ставит video на паузу.
+
     const canvas = canvasRef.current;
     const video = videoRef.current;
     if (!canvas || !video) return;
@@ -213,9 +243,13 @@ function BootLockCanvasDraw({
 
     let stopped = false;
     let playAttempts = 0;
-    let cancelFrame = () => {};
+    let cancelFrame = () => {
+      // Начальная пустая отмена до установки настоящего планировщика кадров.
+};
 
     const tryPlay = () => {
+      // Повторяет autoplay до 12 попыток, не перезапуская уже закончившееся видео.
+
       if (stopped || video.ended) return;
       playAttempts += 1;
       void video.play().catch(() => {
@@ -224,6 +258,8 @@ function BootLockCanvasDraw({
     };
 
     const draw = () => {
+      // Рисует только готовый кадр и при паузе пробует продолжить текущую заставку.
+
       if (stopped) return;
       if (video.readyState >= 2) {
         if (video.paused && !video.ended) tryPlay();
@@ -310,6 +346,8 @@ export function BootLockPaperVideo({
   onReady?: () => void;
   onFailed?: () => void;
 }) {
+  // Показывает готовую paper-анимацию без покадрового chroma key; iOS получает прямой MP4 src.
+
   const videoRef = useRef<HTMLVideoElement | null>(null);
   useBootVideoPlayback(videoRef, onReady, onFailed);
 
@@ -373,5 +411,7 @@ export function BootLockPaperVideo({
 
 /** Lock animation — canvas chroma key; iOS uses BootLockPaperVideo instead. */
 export function BootLockCanvas(props: Props) {
+  // Публичная web-обёртка chroma-сцены с прежним контрактом props.
+
   return createElement(BootLockCanvasDraw, props);
 }

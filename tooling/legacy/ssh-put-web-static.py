@@ -1,3 +1,4 @@
+# По частям перезаписывает прежнюю Expo-статику через SFTP; размер сверяется, но атомарного переключения и проверки хеша нет.
 import os
 import pathlib
 import socket
@@ -27,6 +28,7 @@ for dirpath, _, filenames in os.walk(static):
         files.append(pathlib.Path(dirpath) / name)
 
 
+# Повторяет установление SSH-соединения, не повторяя вслепую уже выполненную удалённую запись.
 def connect():
     last_error = None
     for attempt in range(1, 4):
@@ -53,6 +55,7 @@ def connect():
     raise last_error
 
 
+# Создаёт недостающие родительские каталоги только по выбранному серверному пути.
 def ensure_dir(sftp, remote_dir):
     try:
         sftp.stat(remote_dir)
@@ -80,6 +83,7 @@ while index < len(files):
     for attempt in range(3):
         client = None
         try:
+            # Подключение использует историческое автоматическое доверие неизвестному SSH host key; перед новым запуском требуется отдельная сверка хоста.
             client = connect()
             sftp = client.open_sftp()
             for local in batch:

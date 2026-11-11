@@ -12,6 +12,8 @@ import {
 import { readEmailIdentityIssues } from "./email-identity-preflight";
 
 async function main() {
+  // Сначала проверяет локальный manifest и профиль подключения, затем при явном запросе читает историю и связанные preconditions без применения миграций.
+
   const args = process.argv.slice(2);
   if (
     args.length > 1 ||

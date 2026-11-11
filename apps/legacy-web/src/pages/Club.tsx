@@ -1,7 +1,9 @@
+/** Архивный промоэкран Клуба; это не действующая оплата или страница участницы. */
 import { CLUB_BANNER, CLUB_BENEFITS } from "../data";
 import { useAuth } from "../auth";
 import { Link } from "react-router-dom";
 
+/** Показывает старые преимущества и тестовую цену; ветка вошедшего пользователя содержит только пояснение, платёж не создаётся. */
 export default function Club() {
   const { user } = useAuth();
 

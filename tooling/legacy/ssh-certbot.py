@@ -1,3 +1,4 @@
+# Исторически получает TLS-сертификат и заменяет целиком Nginx-vhost прежнего домена; это не конфигурация текущего Compose.
 import pathlib
 import paramiko
 
@@ -108,6 +109,7 @@ server {
 }
 """
 
+# Следующий текст — удалённая команда; её содержимое сохранено как историческое и не исполняется при чтении исходника.
 cmd = r"""
 set -e
 mkdir -p /var/www/daryadarcy/web-dist/.well-known/acme-challenge
@@ -132,6 +134,7 @@ curl -sS -o /dev/null -w "http_redirect=%{http_code} loc=%{redirect_url}\n" --ma
 echo DONE
 """
 
+# Подключение использует историческое автоматическое доверие неизвестному SSH host key; перед новым запуском требуется отдельная сверка хоста.
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 client.connect(

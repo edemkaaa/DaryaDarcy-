@@ -1,3 +1,4 @@
+// Подготавливает новую локальную PNG-рамку, удаляя связанный с краями тёмный фон эвристикой flood fill.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,6 +8,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const out = path.join(root, "apps", "frontend", "assets", "images", "moodboard", "board-frame-alpha.png");
 
 function isBackground(r, g, b, a, threshold = 48) {
+  // Эвристически считает почти прозрачный или нейтрально-тёмный пиксель фоном, а не распознаёт объект изображения.
+
   if (a < 8) return true;
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
@@ -14,10 +17,14 @@ function isBackground(r, g, b, a, threshold = 48) {
 }
 
 function floodBackground(data, width, height) {
+  // Удаляет только связанный с краями тёмный фон, чтобы не вырезать внутренние детали рамки.
+
   const visited = new Uint8Array(width * height);
   const queue = [];
 
   const push = (x, y) => {
+    // Добавляет ещё не посещённый фоновый пиксель в очередь обхода, проверяя границы изображения.
+
     if (x < 0 || y < 0 || x >= width || y >= height) return;
     const p = y * width + x;
     if (visited[p]) return;

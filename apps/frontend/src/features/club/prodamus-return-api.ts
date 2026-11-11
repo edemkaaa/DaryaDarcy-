@@ -29,7 +29,7 @@ const resultSchema = z.union([
 ]);
 export type ProdamusReturnResult = z.infer<typeof resultSchema>;
 
-/** Reuse the existing club return budget: six serial checks, at most 30 seconds. */
+/** Ограничиваем проверку возврата шестью последовательными запросами и общим бюджетом; опрашиваем повторно только pending. */
 export async function pollProdamusReturnResult(
   token: string,
   caller: AbortSignal,
@@ -43,6 +43,7 @@ export async function pollProdamusReturnResult(
       signal.throwIfAborted();
       if (result.state !== "pending" || attempt === 5) return result;
       await new Promise<void>((resolve, reject) => {
+        /** При отмене общего сигнала снимаем таймер паузы и завершаем ожидание. */
         const cancel = () => {
           clearTimeout(timer);
           reject(signal.reason);
@@ -59,7 +60,7 @@ export async function pollProdamusReturnResult(
   }
 }
 
-/** Only identifies an order for a read; the server verifies signature and expiry. */
+/** Извлекаем только ограниченный по длине токен ожидаемой формы; подпись и срок проверяет сервер. */
 export function readProdamusReturnToken(hash: string): string | null {
   const prefix = "#paymentReturn=";
   if (!hash.startsWith(prefix)) return null;
@@ -69,7 +70,7 @@ export function readProdamusReturnToken(hash: string): string | null {
     : null;
 }
 
-/** No login, settlement, resend or provider request. Cookies are forbidden by this route. */
+/** Читаем результат без cookie и перенаправлений; ни вход, ни повторная отправка письма этим маршрутом не выполняются. Этот вызов не подтверждает платёж и не обращается к провайдеру. */
 export async function readProdamusReturnResult(
   token: string,
   signal: AbortSignal,

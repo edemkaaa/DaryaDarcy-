@@ -63,10 +63,12 @@ interface ClubCommentsProps {
   commentCount?: number;
 }
 type MenuAction = "edit" | "delete" | "report";
+/** Получаем первый символ отображаемого имени для аватара-заглушки, не используя приватные данные профиля. */
 function authorInitial(name: string | null | undefined): string {
   const trimmed = (name || "У").trim();
   return trimmed.slice(0, 1).toUpperCase();
 }
+/** Выбираем фото автора либо текстовый инициал; это представление уже полученных публичных полей комментария. */
 function CommentAvatar({
   name,
   avatarUrl,
@@ -95,6 +97,7 @@ function CommentAvatar({
     </div>
   );
 }
+/** Выделяем HTTP(S)/www-фрагменты, нормализуем и проверяем внешние URL; остальное остаётся безопасным React-текстом. */
 function linkify(text: string) {
   const parts = text.split(/(https?:\/\/[^\s]+|www\.[^\s]+)/gi);
   return parts.map((part, index) => {
@@ -117,6 +120,7 @@ function linkify(text: string) {
     return <Typography key={`${index}-t`}>{part}</Typography>;
   });
 }
+/** Удаление передаётся обработчику только после явного подтверждения браузера. */
 function confirmDelete(onConfirm: () => void) {
   {
     if (typeof window !== "undefined" && window.confirm("Удалить комментарий?"))
@@ -124,6 +128,7 @@ function confirmDelete(onConfirm: () => void) {
     return;
   }
 }
+/** Показываем разрешённые родителем действия владельца, модератора или жалобы; окончательную авторизацию выполняет API. */
 function CommentMenu({
   visible,
   showEdit,
@@ -202,12 +207,14 @@ function CommentMenu({
     </Dialog>
   );
 }
+/** Пересоздаём обсуждение при смене аккаунта или поста, изолируя текст, файлы, меню и незавершённые действия. */
 export function ClubComments(props: ClubCommentsProps) {
   const { user } = useAuth();
   return (
     <CommentThread key={`${user?.id ?? "guest"}:${props.postId}`} {...props} />
   );
 }
+/** Координируем страницы и ветки обсуждения с подтверждёнными действиями; свежий ввод и сохранённая keyed-отправка имеют разные жизненные циклы. */
 function CommentThread({
   postId,
   tags,
@@ -278,6 +285,7 @@ function CommentThread({
         { signal },
       ),
   });
+  /** Успешное обновление корневого списка снимает локальный отказ ранее открытой ветки. */
   useEffect(() => {
     setBranchError(null);
   }, [comments.dataUpdatedAt]);
@@ -286,6 +294,7 @@ function CommentThread({
     [401, 403, 404].includes(getHttpStatus(branchError) ?? 0);
   const cancelOperation = operation.cancel;
   const resetUploads = privateFiles.reset;
+  /** При подтверждённом отказе доступа прекращаем действия и очищаем видимое обсуждение вместе с выбранными локальными файлами. */
   useEffect(() => {
     if (!denied) return;
     cancelOperation();
@@ -306,6 +315,7 @@ function CommentThread({
   // Read the existing page containing a changed parent; head polling must not
   // leave replyCount stale on a retained second or later page.
   // Родитель ответа может находиться не на первой странице: его счётчик обновляется по фактическому месту в цепочке.
+  /** Обновляем фактическую страницу родителя; после удаления обрезаем продолжение, чьи курсоры могли стать недействительными. */
   const refreshCommentRow = async (
     id: number,
     signal?: AbortSignal,
@@ -363,6 +373,7 @@ function CommentThread({
       );
     }
   };
+  /** После изменения перечитываем корневую цепочку и активные ответы; неполное чтение не подтверждает восстановление. */
   const readComments = async (signal?: AbortSignal, parentId?: number) => {
     signal?.throwIfAborted();
     if (parentId) await refreshCommentRow(parentId, signal);
@@ -384,10 +395,12 @@ function CommentThread({
     );
     signal?.throwIfAborted();
   };
+  /** Помечаем списки клуба и детали поста для обновления счётчиков после подтверждённой записи. */
   const refreshCounts = () => {
     void utils.club.listByCategory.invalidate();
     void utils.feed.getById.invalidate();
   };
+  /** Перечитываем исчезнувшую ветку без очистки введённого текста и фото; сбрасываем лишь пропавшую цель ответа или правки. */
   const refreshMissingBranch = async (parentId: number) => {
     const task = operation.begin("refresh-comments");
     if (!task) return;
@@ -408,6 +421,7 @@ function CommentThread({
       task.finish();
     }
   };
+  /** Связываем мутацию с проверкой ответа, обновлением кэша и чтением результата; неизвестный исход не разрешает слепой повтор. */
   const runAction = (
     kind: string,
     label: string,
@@ -429,6 +443,7 @@ function CommentThread({
       read,
       keepBlocked,
     });
+  /** Совместимая неключевая отправка остаётся заблокированной при неизвестном исходе; подтверждённый ответ очищает composer даже при сбое последующего чтения. */
   const sendLegacy = (input: ApiInputs["club"]["addComment"]) => {
     runAction(
       "send",
@@ -479,6 +494,7 @@ function CommentThread({
       true,
     );
   };
+  /** Очищаем текст, фото и цель ответа после подтверждения либо явного отказа, затем обновляем внешние счётчики. */
   const clearComposer = () => {
     setText("");
     setPhotos([]);
@@ -486,6 +502,7 @@ function CommentThread({
     refreshCounts();
   };
   // Восстановление берёт сохранённую нагрузку, а свежая отправка сначала надёжно выбирает контракт сервера.
+  /** Восстановление повторяет сохранённую keyed-нагрузку; свежая отправка выбирает legacy только после актуального ответа capabilities. */
   const sendPrivate = async (
     record?: PrivateCommentRecord,
     input: ApiInputs["club"]["addComment"] = {
@@ -532,12 +549,14 @@ function CommentThread({
       if (handoff) sendLegacy(input);
     }
   };
+  /** Адаптируем общую операцию отправки к интерфейсу формы, сохраняя один владелец pending-состояния. */
   const add = {
     isPending: operation.kind === "send",
     error: actionError ? { message: actionError } : null,
     mutate: (input: ApiInputs["club"]["addComment"]) =>
       void sendPrivate(undefined, input),
   };
+  /** Разделяем чтение результата и явный локальный отказ: обновление списка само по себе не удаляет сохранённый ключ. */
   const readOrDiscardPrivate = async (discard: boolean) => {
     if (!pendingPrivate) return;
     const task = operation.begin("check-private-comment");
@@ -560,6 +579,7 @@ function CommentThread({
       task.finish();
     }
   };
+  /** После подтверждённой правки меняем текст во всех сохранённых страницах, затем перечитываем строку и обсуждение. */
   const update = {
     isPending: operation.kind === "edit",
     mutate: (
@@ -600,6 +620,7 @@ function CommentThread({
         },
       ),
   };
+  /** После удаления сбрасываем продолжения cursor-цепочек: сервер мог поднять ответы и изменить границы страниц. */
   const remove = {
     mutate: (input: { id: number }) =>
       runAction(
@@ -635,6 +656,7 @@ function CommentThread({
         },
       ),
   };
+  /** Жалоба проходит тот же контроль неизвестного результата, что остальные действия обсуждения. */
   const report = {
     mutate: (input: { id: number; reason: string }) =>
       runAction(
@@ -644,6 +666,7 @@ function CommentThread({
         () => window.alert("Жалоба отправлена. Спасибо!"),
       ),
   };
+  /** Перед и после toggle останавливаем фоновые чтения; в кэш попадает только подтверждённое состояние сервера. */
   const toggleLike = {
     isPending: operation.kind === "like",
     mutate: (input: { commentId: number }) =>
@@ -731,11 +754,13 @@ function CommentThread({
   const menuIsOwner = !!menuComment && user?.id === menuComment.userId;
   const menuIsStaffOther =
     !!menuComment && staff && user?.id !== menuComment.userId;
+  /** Сохраняем выбранный набор из двух фото и индекс перед открытием общего просмотрщика. */
   const openPhotoViewer = (photoList: string[], index: number) => {
     setViewerPhotos(photoList);
     setViewerInitialIndex(index);
     setViewerVisible(true);
   };
+  /** Закрываем меню до действия и используем id выбранной строки; правка восстанавливает актуальный текст из account-scope кэша. */
   const handleMenuSelect = (action: MenuAction) => {
     const id = menuCommentId;
     setMenuCommentId(null);
@@ -756,6 +781,7 @@ function CommentThread({
       report.mutate({ id, reason: "Нарушение правил клуба" });
     }
   };
+  /** Проверяем свободные места и блокировки до выбора, затем применяем подготовленные файлы только живой операции. */
   const pickPhotos = async () => {
     if (photos.length >= 2 || composeBlocked) return;
     const task = operation.begin("photos");
@@ -774,6 +800,7 @@ function CommentThread({
       task.finish();
     }
   };
+  /** Рекурсивно выводим строку и отдельную цепочку ответов; права меню, composer и лайки определяются текущим аккаунтом. */
   const renderComment = (item: PagedComment, depth = 0) => {
     const isEditing = editingId === item.id;
     const canOpenMenu =

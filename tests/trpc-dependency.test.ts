@@ -1,3 +1,4 @@
+/** Проверяем преобразователь FormData установленного tRPC; экспериментальный caller приложение не использует. */
 import { execFileSync } from "node:child_process";
 import { expect, it } from "vitest";
 
@@ -5,6 +6,7 @@ const corePath = require.resolve("@trpc/server/unstable-core-do-not-import");
 
 // The vulnerable experimental caller is not used by the app. Characterize its
 // upstream converter in disposable children so a RED cannot pollute our worker.
+/** Потенциальное изменение прототипа ограничено дочерним процессом; наружу возвращается только факт отсутствия marker. */
 it.each(["__proto__", "constructor.prototype"])(
   "does not write global prototype through form path %s",
   (prefix) => {
@@ -28,6 +30,7 @@ it.each(["__proto__", "constructor.prototype"])(
   },
 );
 
+/** Обычные вложенные поля и индексы массива продолжают преобразовываться в ожидаемый объект. */
 it("preserves ordinary nested form fields", () => {
   const { formDataToObject } = require(
     corePath,

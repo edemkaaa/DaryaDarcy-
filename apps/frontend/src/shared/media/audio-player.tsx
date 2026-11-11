@@ -16,6 +16,7 @@ interface AudioPlayerProps {
   duration?: number; // seconds
 }
 // Generate pseudo-random waveform bars for visual effect
+/** Строим детерминированный декоративный рисунок по URL; это не анализ звукового сигнала и не интерактивная перемотка. */
 function generateWaveform(count: number, seed: string): number[] {
   let hash = 0;
   for (let i = 0; i < seed.length; i++) {
@@ -28,6 +29,7 @@ function generateWaveform(count: number, seed: string): number[] {
   }
   return bars;
 }
+/** Показываем реальное состояние плеера и удерживаем карточку при запуске, паузе с позицией или ошибке, чтобы не потерять работу. */
 export function AudioPlayerCard({ url, filename, duration }: AudioPlayerProps) {
   const player = useAudioPlayer(url);
   const {
@@ -43,10 +45,12 @@ export function AudioPlayerCard({ url, filename, duration }: AudioPlayerProps) {
   const progress = actualDuration > 0 ? currentTime / actualDuration : 0;
   const WAVEFORM_BARS = 30;
   const waveform = useMemo(() => generateWaveform(WAVEFORM_BARS, url), [url]);
+  /** Повторное нажатие отменяет ожидающий запуск; ошибка отражается в snapshot и остаётся видимой в карточке. */
   const togglePlay = () => {
     if (isPlaying || starting) player.pause();
     else void player.play().catch(() => {}); // Player exposes the failure through its event state.
   };
+  /** Форматируем длительность и текущую позицию как минуты:секунды для единого отображения. */
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);

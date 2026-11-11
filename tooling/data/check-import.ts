@@ -5,6 +5,8 @@ import { posts } from "../../packages/database/src/schema";
 import { desc, asc, sql } from "drizzle-orm";
 
 async function check() {
+  // Считает посты и показывает крайние строки по историческому sortOrder; это диагностика БД, а не актуальной хронологии API.
+
   const db = drizzle(process.env.DATABASE_URL!);
   
   const countResult = await db.select({ count: sql<number>`COUNT(*)` }).from(posts);

@@ -17,6 +17,7 @@ import { createBackendApplication } from "../apps/backend/src/_core/application"
 import { getDb } from "../apps/backend/src/db";
 import { sdk } from "../apps/backend/src/_core/sdk";
 
+/** Проверяет optimistic concurrency VK-каталога через настоящий admin HTTP и актуальные роли. */
 describe.skipIf(!testDatabaseUrl)("VK edit revisions over native HTTP", () => {
   let conn: Connection,
     app: INestApplication,
@@ -29,10 +30,12 @@ describe.skipIf(!testDatabaseUrl)("VK edit revisions over native HTTP", () => {
     access: "club",
     published: false,
   };
+  /** Удаляет только собственные VK-карточки по title-префиксу и двух редакторов. */
   async function cleanup() {
     await conn.query("DELETE FROM videos WHERE title LIKE 'Owned revision%'");
     await conn.query("DELETE FROM users WHERE id IN (990850,990851)");
   }
+  /** Поднимает локальный API на одноразовой videos-схеме с включённым VK-каталогом. */
   beforeAll(async () => {
     conn = await openVideoTestDatabase();
     vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -42,6 +45,7 @@ describe.skipIf(!testDatabaseUrl)("VK edit revisions over native HTTP", () => {
     await app.listen(0, "127.0.0.1");
     base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
   });
+  /** Восстанавливает двух администраторов и совместимый режим необязательных expectedRevision. */
   beforeEach(async () => {
     await cleanup();
     vi.stubEnv("CONTENT_EDIT_REVISIONS_REQUIRED", "false");
@@ -54,6 +58,7 @@ describe.skipIf(!testDatabaseUrl)("VK edit revisions over native HTTP", () => {
       ),
     );
   });
+  /** Закрывает API, удаляет собственные записи и соединения и возвращает окружение. */
   afterAll(async () => {
     await app?.close();
     if (conn) {
@@ -65,6 +70,7 @@ describe.skipIf(!testDatabaseUrl)("VK edit revisions over native HTTP", () => {
     )?.$client.end();
     vi.unstubAllEnvs();
   });
+  /** Вызывает выбранную admin-процедуру чтением либо записью и извлекает tRPC-результат или код отказа. */
   async function request(
     path: string,
     value: unknown,
@@ -94,10 +100,13 @@ describe.skipIf(!testDatabaseUrl)("VK edit revisions over native HTTP", () => {
         : b.error?.json?.data?.code,
     };
   }
+  /** Отправляет upsertVkVideo выбранной сессией. */
   const write = (v: unknown, token = admin) =>
     request("upsertVkVideo", v, token, true);
+  /** Читает editable VK-detail вместе с актуальной editRevision. */
   const detail = (id: number, token = admin) =>
     request("vkVideoDetail", { id }, token);
+  /** После принятой ревизии устаревший администратор получает 409 без затирания содержимого; актуальная ревизия принимается. */
   it("exposes an editable revision and rejects the stale administrator without replacing content", async () => {
     const created = await write(input);
     expect(created.status).toBe(200);
@@ -136,6 +145,7 @@ describe.skipIf(!testDatabaseUrl)("VK edit revisions over native HTTP", () => {
     ).toBe(200);
     expect((await detail(id)).data.editRevision).toBe(2);
   });
+  /** Две конкурентные правки одной ревизии дают один успех и один конфликт. */
   it("accepts exactly one concurrent update with the same revision", async () => {
     const {
       data: { id },
@@ -150,6 +160,7 @@ describe.skipIf(!testDatabaseUrl)("VK edit revisions over native HTTP", () => {
     expect(replies.map((r) => r.status).sort()).toEqual([200, 409]);
     expect((await detail(id)).data.editRevision).toBe(1);
   });
+  /** Совместимый режим принимает запись без revision, а strict требует её с 412. */
   it("requires a revision when the existing strict switch is on, preserving legacy compatibility while off", async () => {
     const {
       data: { id },
@@ -162,6 +173,7 @@ describe.skipIf(!testDatabaseUrl)("VK edit revisions over native HTTP", () => {
     );
     expect((await detail(id)).data.editRevision).toBe(2);
   });
+  /** Повтор source возвращает ту же карточку, но detail и edit повторно учитывают отзыв роли и отсутствие сессии. */
   it("keeps source creation idempotent and checks fresh rights before revision/detail", async () => {
     const first = await write(input);
     expect(await write(input)).toEqual(first);
@@ -175,6 +187,7 @@ describe.skipIf(!testDatabaseUrl)("VK edit revisions over native HTTP", () => {
     expect((await detail(id, "")).status).toBe(401);
     expect((await detail(99999999, other)).status).toBe(404);
   });
+  /** Отрицательные, дробные, строковые и небезопасные revision дают 400 без изменения карточки. */
   it.each([-1, 1.5, "0", Number.MAX_SAFE_INTEGER + 1])(
     "rejects malformed expected revision %j",
     async (expectedRevision) => {

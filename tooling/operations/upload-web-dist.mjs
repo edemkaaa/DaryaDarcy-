@@ -17,6 +17,7 @@ const env = Object.fromEntries(
     }),
 );
 
+// Исторический путь deploy/.web-stage отличается от текущего infrastructure/deploy; сначала требуется сверка каталогов.
 const staging = path.join(root, "deploy", ".web-stage");
 const out = path.join(root, "deploy", "web-dist.tgz");
 const webDist = path.join(root, "web-dist");
@@ -30,6 +31,7 @@ const tar = spawnSync("tar", ["-czf", out, "-C", staging, "."], { stdio: "inheri
 if (tar.status !== 0) throw new Error("tar failed");
 fs.rmSync(staging, { recursive: true, force: true });
 
+// Далее начинается внешняя запись архива в S3; это не dry-run и не штатный выпуск Next.
 const client = new S3Client({
   endpoint: env.S3_ENDPOINT,
   region: "ru-1",

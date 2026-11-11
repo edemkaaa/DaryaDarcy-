@@ -11,6 +11,7 @@ export {
   setSessionToken,
   removeSessionToken,
 } from "@/shared/api/token-storage";
+/** Удаляем известные старые персональные ключи; scoped-журналы нового формата управляют своей очисткой отдельно. */
 export async function clearPersonalCache() {
   await storage.multiRemove([
     USER_INFO_KEY,

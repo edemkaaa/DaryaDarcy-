@@ -1,3 +1,4 @@
+/** Опциональный Chromium проверяет настоящий AuthProvider с собственным HTTP и синтетическим пользователем. */
 import { it, expect } from "vitest";
 import {
   chromium,
@@ -9,6 +10,7 @@ import type { AddressInfo } from "node:net";
 import { build } from "esbuild";
 import { resolve } from "node:path";
 
+/** Профиль wire-фикстуры позволяет различать владельца provider и дочернего локального состояния. */
 const member = (id: number) => ({
   id,
   openId: `provider-${id}`,
@@ -21,6 +23,7 @@ const member = (id: number) => ({
   role: "user",
   lastSignedIn: "2026-10-11T00:00:00.000Z",
 });
+/** Точный promise-барьер удерживает старый me-ответ до переключения identity. */
 function barrier() {
   let resolve!: () => void;
   const promise = new Promise<void>((done) => {
@@ -34,6 +37,7 @@ type Harness = {
   seedPrivate(): void;
 };
 
+/** После applySession(2) subtree remount и QueryClient очистка не допускают данные1; предыдущий me-fetch отменяется, а external browser requests запрещены. */
 it.skipIf(!process.env.PLAYWRIGHT_EXECUTABLE_PATH)(
   "real AuthProvider remounts private state and aborts its old session read when a new identity is applied",
   async () => {

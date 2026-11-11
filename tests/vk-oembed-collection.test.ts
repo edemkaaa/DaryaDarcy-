@@ -11,6 +11,8 @@ import { parseVkEmbed } from "../apps/backend/src/content/vk-video-input";
 
 describe("offline VK source selection", () => {
   it("reads the existing TXT shape and deduplicates by video ID", () => {
+    // Сценарий: TXT-список нормализуется и очищается от дублей по video ID.
+
     expect(
       parseSources(
         `Список роликов\n1. Весенний влог\n   https://vkvideo.ru/video-211171256_456239242\nhttps://vk.ru/video-211171256_456239242\nhttps://vk.com/video-211171256_456239241\n`,
@@ -35,12 +37,18 @@ describe("offline VK source selection", () => {
     "https://vkvideo.ru/video-211171256_456239242 extra",
     "no links here",
   ])("refuses an unsafe or unsupported input: %s", (text) => {
+    // Сценарий: Небезопасный host, протокол, параметры, чужое сообщество и неподдержанная форма отклоняются.
+
     expect(() => parseSources(text)).toThrow();
   });
   it("refuses an oversized file before parsing links", () => {
+    // Сценарий: Большой исходный файл отклоняется до разбора ссылок.
+
     expect(() => parseSources("x".repeat(1024 * 1024 + 1))).toThrow();
   });
   it("bounds a single batch at100 distinct videos", () => {
+    // Сценарий: Одна партия ограничена сотней различных видео.
+
     const text = Array.from(
       { length: 101 },
       (_, i) => `https://vkvideo.ru/video-211171256_${i + 1}`,
@@ -61,7 +69,7 @@ describe("oEmbed metadata through an isolated local HTTP provider", () => {
   allow="autoplay; encrypted-media; fullscreen; picture-in-picture; screen-wake-lock;"
   frameborder="0"
   allowfullscreen></iframe>`;
-  const good = () => ({
+  const good = () => /* Формирует минимальный синтетический VK oEmbed с корректными идентификаторами и обложкой. */ ({
     response: {
       version: "1.0",
       type: "video",
@@ -85,6 +93,8 @@ describe("oEmbed metadata through an isolated local HTTP provider", () => {
     cookie?: string;
   }> = [];
   const mappedFetch: typeof fetch = async (url, init) => {
+    // Перенаправляет внешний endpoint только на локальный HTTP-провайдер, записывая запрошенный адрес для проверки.
+
     const response = await fetch(base, init);
     requests.at(-1)!.endpoint = String(url);
     return response;
@@ -136,6 +146,8 @@ describe("oEmbed metadata through an isolated local HTTP provider", () => {
     await new Promise<void>((resolve) => server.close(() => resolve()));
   });
   it("exports only verified matching src and optional cover metadata, without HTML or credentials", async () => {
+    // Сценарий: Экспортируются проверенный src и обложка без HTML, cookie и авторизации.
+
     expect(await collectVideo(source, { fetchImpl: mappedFetch })).toEqual({
       sourceUrl: source,
       status: "ok",
@@ -156,6 +168,8 @@ describe("oEmbed metadata through an isolated local HTTP provider", () => {
     ]);
   });
   it("refuses an input outside the community before contacting any provider", async () => {
+    // Сценарий: Внешний источник вне сообщества отклоняется до обращения к провайдеру.
+
     await expect(
       collectVideo("https://evil.test/video-211171256_456239242", {
         fetchImpl: mappedFetch,
@@ -164,6 +178,8 @@ describe("oEmbed metadata through an isolated local HTTP provider", () => {
     expect(requests).toEqual([]);
   });
   it("normalizes the observed oEmbed tracking parameter before strict backend validation", async () => {
+    // Сценарий: Наблюдаемый tracking-параметр нормализуется до строгой серверной проверки embed.
+
     reply = JSON.stringify({
       response: { ...good().response, html: trackedIframe },
     });
@@ -185,6 +201,8 @@ describe("oEmbed metadata through an isolated local HTTP provider", () => {
     iframe.replace("&amp;hash=synthetic_hash", ""),
     trackedIframe.replace("&hash=synthetic_hash", ""),
   ])("accepts an exported iframe without an optional hash", async (html) => {
+    // Сценарий: Экспортированный iframe без необязательного hash остаётся допустимым.
+
     reply = JSON.stringify({ response: { ...good().response, html } });
     const result = await collectVideo(source, { fetchImpl: mappedFetch });
     expect(result).toMatchObject({ status: "ok", issues: [] });
@@ -207,6 +225,8 @@ describe("oEmbed metadata through an isolated local HTTP provider", () => {
   ])(
     "does not let tracking normalization bypass the player guards",
     async (html) => {
+      // Сценарий: Нормализация tracking не обходит ограничения идентификаторов, host и дублирующихся параметров.
+
       reply = JSON.stringify({ response: { ...good().response, html } });
       expect(
         await collectVideo(source, { fetchImpl: mappedFetch }),
@@ -226,6 +246,8 @@ describe("oEmbed metadata through an isolated local HTTP provider", () => {
     `<iframe title=' src="https://vk.ru/video_ext.php?oid=-211171256&id=456239242&hash=synthetic_hash"'></iframe>`,
     '<iframe src="https://vk.ru/video_ext.php?oid=-211171256&id=456239242&hash=synthetic_hash" src="https://evil.test"></iframe>',
   ])("does not export an unsupported or mismatched iframe", async (html) => {
+    // Сценарий: Несогласованный либо неподдержанный iframe, включая лишний script/src, не экспортируется.
+
     reply = JSON.stringify({ response: { ...good().response, html } });
     const result = await collectVideo(source, { fetchImpl: mappedFetch });
     expect(result.status).toBe("incomplete");
@@ -240,6 +262,8 @@ describe("oEmbed metadata through an isolated local HTTP provider", () => {
   ])(
     "does not treat unsafe/missing cover metadata as complete",
     async (thumbnail_url) => {
+      // Сценарий: Небезопасная либо отсутствующая обложка не считается завершённым результатом.
+
       reply = JSON.stringify({
         response: { ...good().response, thumbnail_url },
       });
@@ -251,6 +275,8 @@ describe("oEmbed metadata through an isolated local HTTP provider", () => {
     },
   );
   it("marks a missing title without inventing it", async () => {
+    // Сценарий: Пустой заголовок отмечается явно, без придумывания текста.
+
     reply = JSON.stringify({ response: { ...good().response, title: " " } });
     expect(
       await collectVideo(source, { fetchImpl: mappedFetch }),
@@ -276,6 +302,8 @@ describe("oEmbed metadata through an isolated local HTTP provider", () => {
   ])(
     "records a bounded safe failure without leaking raw responses",
     async (body, issue) => {
+      // Сценарий: Ошибки провайдера, неверный тип/JSON и большой ответ дают ограниченную безопасную диагностику.
+
       reply = body;
       const result = await collectVideo(source, { fetchImpl: mappedFetch });
       expect(result).toMatchObject({
@@ -289,12 +317,16 @@ describe("oEmbed metadata through an isolated local HTTP provider", () => {
     },
   );
   it("records HTTP refusal rather than success", async () => {
+    // Сценарий: HTTP-отказ не считается успешным сбором.
+
     status = 403;
     expect(
       await collectVideo(source, { fetchImpl: mappedFetch }),
     ).toMatchObject({ status: "failed", issues: ["http_403"] });
   });
   it("does not follow redirects", async () => {
+    // Сценарий: Редирект провайдера не выполняется.
+
     status = 302;
     expect(
       await collectVideo(source, { fetchImpl: mappedFetch }),
@@ -302,12 +334,16 @@ describe("oEmbed metadata through an isolated local HTTP provider", () => {
     expect(requests).toHaveLength(1);
   });
   it("bounds a hung provider request", async () => {
+    // Сценарий: Зависание получения ответа ограничивается deadline.
+
     wait = true;
     expect(
       await collectVideo(source, { fetchImpl: mappedFetch, timeoutMs: 25 }),
     ).toMatchObject({ status: "failed", issues: ["request_timeout"] });
   });
   it("keeps the deadline active after response headers arrive", async () => {
+    // Сценарий: Deadline остаётся активным после прихода заголовков.
+
     bodyWait = true;
     expect(
       await collectVideo(source, { fetchImpl: mappedFetch, timeoutMs: 25 }),
@@ -316,20 +352,28 @@ describe("oEmbed metadata through an isolated local HTTP provider", () => {
   it.each([0, 50])(
     "cancels a stalled response body even when its transport ignores abort (headers after %sms)",
     async (headerDelay) => {
+      // Сценарий: Зависшее тело отменяется даже при игнорировании AbortSignal транспортом и поздних заголовках.
+
       let controller!: ReadableStreamDefaultController<Uint8Array>;
       let cancelled = false;
       const body = new ReadableStream<Uint8Array>({
         start(value) {
+          // Подаёт начало JSON и оставляет тело незавершённым для проверки предельного срока чтения.
+
           controller = value;
           value.enqueue(new TextEncoder().encode('{"response":'));
         },
         cancel() {
+          // Отмечает отмену незавершённого тела, даже если транспорт игнорирует AbortSignal.
+
           cancelled = true;
         },
       });
       const pending = collectVideo(source, {
         timeoutMs: 25,
         fetchImpl: async () => {
+          // Возвращает локальное незавершённое тело сразу либо после задержки заголовков.
+
           if (headerDelay)
             await new Promise((resolve) => setTimeout(resolve, headerDelay));
           return new Response(body);
@@ -358,6 +402,7 @@ describe("oEmbed metadata through an isolated local HTTP provider", () => {
 
   describe("native CLI and private export", () => {
     let directory: string, input: string, bootstrap: string;
+    // CLI получает собственный временный каталог и bootstrap, разрешающий fetch только к локальной подмене известного oEmbed endpoint.
     beforeAll(async () => {
       directory = await mkdtemp(join(tmpdir(), "owned-vk-metadata-"));
       input = join(directory, "sources.txt");
@@ -378,7 +423,7 @@ describe("oEmbed metadata through an isolated local HTTP provider", () => {
       await rm(directory, { recursive: true });
     });
     const run = (args: string[]) =>
-      promisify(execFile)(
+      /* Запускает CLI с локальным fetch-bootstrap и минимальным окружением в собственном временном каталоге. */ promisify(execFile)(
         process.execPath,
         [
           "--import",
@@ -395,6 +440,8 @@ describe("oEmbed metadata through an isolated local HTTP provider", () => {
         },
       );
     it("defaults to an offline plan without requesting the provider", async () => {
+      // Сценарий: CLI по умолчанию строит офлайн-план без обращения к провайдеру.
+
       const result = await run(["--input", input]);
       expect(JSON.parse(result.stdout)).toMatchObject({
         mode: "plan",
@@ -404,6 +451,8 @@ describe("oEmbed metadata through an isolated local HTTP provider", () => {
       expect(requests).toEqual([]);
     });
     it("writes a new0600 report only with explicit collection and never embeds raw HTML", async () => {
+      // Сценарий: Сбор по явному флагу создаёт новый отчёт 0600 без сырого HTML и без ложной отметки готовности импорта.
+
       const output = join(directory, "collected.json");
       const result = await run([
         "--input",
@@ -429,6 +478,8 @@ describe("oEmbed metadata through an isolated local HTTP provider", () => {
       expect((await stat(output)).mode & 0o777).toBe(0o600);
     });
     it("refuses an existing output before collecting and preserves it", async () => {
+      // Сценарий: Существующий output сохраняется, отказ происходит до обращения к провайдеру.
+
       const output = join(directory, "existing.json");
       await writeFile(output, "ORIGINAL_CONTENT");
       await expect(
@@ -438,6 +489,8 @@ describe("oEmbed metadata through an isolated local HTTP provider", () => {
       expect(requests).toEqual([]);
     });
     it("writes a canonical player for the observed multiline oEmbed response", async () => {
+      // Сценарий: Многострочный oEmbed экспортируется в канонический player без tracking и HTML.
+
       reply = JSON.stringify({
         response: { ...good().response, html: trackedIframe },
       });
@@ -462,6 +515,8 @@ describe("oEmbed metadata through an isolated local HTTP provider", () => {
       expect(report).not.toContain("<iframe");
     });
     it("refuses output inside the repository before collecting", async () => {
+      // Сценарий: Output внутри репозитория запрещён до сбора данных.
+
       const output = resolve(".owned-vk-oembed-test.json");
       await expect(
         run(["--input", input, "--output", output, "--collect"]),
@@ -470,6 +525,8 @@ describe("oEmbed metadata through an isolated local HTTP provider", () => {
       expect(requests).toEqual([]);
     });
     it("saves a safe failure report and exits2 without pretending collection succeeded", async () => {
+      // Сценарий: Отказ сохраняется безопасным отчётом и кодом выхода 2 вместо ложного успеха.
+
       reply = JSON.stringify({
         error: { error_code: 15, error_msg: "PRIVATE_ERROR" },
       });
@@ -485,12 +542,16 @@ describe("oEmbed metadata through an isolated local HTTP provider", () => {
       expect(text).not.toContain("PRIVATE_ERROR");
     });
     it("rejects unknown switches before requesting the provider", async () => {
+      // Сценарий: Неизвестные CLI-флаги отклоняются до запроса.
+
       await expect(
         run(["--input", input, "--token", "not-a-real-token"]),
       ).rejects.toMatchObject({ code: 1 });
       expect(requests).toEqual([]);
     });
     it("continues the batch after a refusal and preserves separate per-video results", async () => {
+      // Сценарий: Одна ошибка не прерывает партию: каждый ролик сохраняет собственный ok/failed/incomplete результат.
+
       const second = "https://vkvideo.ru/video-211171256_456239241";
       const third = "https://vkvideo.ru/video-211171256_456239238";
       const batch = join(directory, "batch.txt"),

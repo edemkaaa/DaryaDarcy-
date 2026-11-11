@@ -16,8 +16,10 @@ export type PaymentProof = {
     amountMinor: number;
   };
 };
+/** Строит SHA-256 ключ из JSON-массива частей, сохраняя границы значений и порядок компонентов. */
 export const billingKey = (parts: string[]) =>
   createHash("sha256").update(JSON.stringify(parts)).digest("hex");
+/** Идентифицирует recurring-профиль парой subscription/profile в namespace merchant-domain. */
 export const profileKey = (
   proof: Pick<PaymentProof, "domain" | "subscriptionId" | "profileId">,
 ) =>

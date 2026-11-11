@@ -28,8 +28,10 @@ import { ensurePrivateTransferredObject } from "../media/private-transfer-object
 export type LegacyReceipt =
   | { content: true; row: typeof files.$inferSelect }
   | { content: false; row: typeof media.$inferSelect };
+/** Выбирает content-file receipt для фото/статьи и attachment receipt только для postMedia. */
 const content = (plan: LegacyMediaPlan) => plan.subject.kind !== "postMedia";
 /** Проверяем возможность переноса перед внешними и SQL-операциями. */
+/** Проверяет соответствующий приватный upload-флаг и, для postMedia, отдельный delivery-флаг до переноса. */
 export function requireLegacyEnabled(plan: LegacyMediaPlan) {
   if (content(plan)) requirePrivateContentEnabled();
   else {
@@ -38,11 +40,13 @@ export function requireLegacyEnabled(plan: LegacyMediaPlan) {
       throw new TRPCError({ code: "NOT_FOUND" });
   }
 }
+/** Проверяет ровно выбранную content либо attachment схему без runtime DDL. */
 export async function requireLegacySchema(tx: Tx, plan: LegacyMediaPlan) {
   if (content(plan)) await requirePrivateContentSchema(tx);
   else await requirePrivateAttachmentSchema(tx);
 }
 /** Читаем сохранённое свидетельство переноса по ключу операции. */
+/** Блокирует существующий receipt по requestKey в выбранной таблице, сохраняя его явный content/media вид. */
 export async function readLegacyReceipt(
   tx: Tx,
   plan: LegacyMediaPlan,
@@ -64,6 +68,7 @@ export async function readLegacyReceipt(
   return row ? { content: false, row } : undefined;
 }
 /** Регистрируем намерение переноса отдельно от последующего состояния готовности объекта. */
+/** Создаёт unbound receipt со случайным assetId и точными actor/payload/namespace/mime/size метаданными, затем перечитывает под блокировкой. */
 export async function insertLegacyReceipt(
   tx: Tx,
   plan: LegacyMediaPlan,
@@ -89,11 +94,13 @@ export async function insertLegacyReceipt(
   }
   return (await readLegacyReceipt(tx, plan, key))!;
 }
+/** Content считается отозванным по retiredAt, attachment — по orphanedAt либо recoveryCompactedAt. */
 export const retiredLegacyReceipt = (asset: LegacyReceipt) =>
   asset.content
     ? Boolean(asset.row.retiredAt)
     : Boolean(asset.row.orphanedAt || asset.row.recoveryCompactedAt);
 /** Сверяем квитанцию с исходным намерением, а не только с существованием ключа. */
+/** Требует совпадения actor/payload/storage namespace и ready ETag; при известной цели дополнительно сверяет usage/type. */
 export function checkLegacyReceipt(
   asset: LegacyReceipt,
   plan: LegacyMediaPlan,
@@ -114,6 +121,7 @@ export function checkLegacyReceipt(
     throw legacyConflict();
 }
 /** Возвращаем состояние уже привязанного результата переноса. */
+/** Отличает полностью unbound receipt от привязки к этой же цели; частичная или чужая parent/media связь даёт CONFLICT. */
 export function attachedLegacyReceipt(
   asset: LegacyReceipt,
   target: LegacyTarget,
@@ -137,11 +145,13 @@ export function attachedLegacyReceipt(
   return true;
 }
 /** Использованная или отозванная квитанция не разрешает новую привязку. */
+/** Перед новой привязкой отвергает retired/compacted receipt и истёкшее окно восстановления. */
 export function requireUnspentLegacyReceipt(asset: LegacyReceipt) {
   if (retiredLegacyReceipt(asset)) throw legacyConflict();
   assertContentRecoveryWindow(asset.row.createdAt);
 }
 /** Создаём отдельную копию объекта для согласованного переноса. */
+/** Для больших media вызывает защищённую потоковую копию, для bytes — immutable private PUT; content receipt не разрешает video-stream путь. */
 export async function uploadLegacyObject(
   asset: LegacyReceipt,
   plan: LegacyMediaPlan,
@@ -160,6 +170,7 @@ export async function uploadLegacyObject(
     : ensurePrivateUploadObject(asset.row, plan.bytes);
 }
 /** Отмечаем готовность после подтверждённой записи копии. */
+/** Сохраняет ready/ETag после внешней записи; уже ready допускается только с тем же ETag. */
 export async function markLegacyObjectReady(
   tx: Tx,
   asset: LegacyReceipt,
@@ -181,6 +192,7 @@ export async function markLegacyObjectReady(
       .where(eq(media.requestKey, asset.row.requestKey));
 }
 /** Связываем проверенную копию с текущим родительским материалом. */
+/** Под receipt/media-блокировкой запрещает чужую квитанцию на тот же mediaId и фиксирует точные postId/mediaId. */
 export async function bindLegacyMediaReceipt(
   tx: Tx,
   asset: LegacyReceipt,
@@ -200,6 +212,7 @@ export async function bindLegacyMediaReceipt(
     .where(eq(media.requestKey, asset.row.requestKey));
 }
 /** Отзываем дальнейшее использование квитанции, сохраняя историю результата. */
+/** Записывает content-retired либо attachment-orphaned с очисткой его parent IDs, сохраняя техническую историю вместо удаления S3. */
 export async function retireLegacyReceipt(tx: Tx, asset: LegacyReceipt) {
   if (asset.content)
     await tx

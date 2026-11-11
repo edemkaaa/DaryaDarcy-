@@ -1,3 +1,4 @@
+/** Аватарный journal хранит точные bytes/key в персональном scope и не скрывает повреждение/ошибки storage. */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { setPersonalDataOwner } from "../apps/frontend/src/shared/browser/storage";
 import {
@@ -18,6 +19,7 @@ const intent: AvatarUploadIntent = {
   filename: "avatar.jpg",
   mimeType: "image/jpeg",
 };
+/** Собственный Map заменяет localStorage; активен только owner101. */
 beforeEach(() => {
   values = new Map();
   vi.stubGlobal("window", {
@@ -29,10 +31,12 @@ beforeEach(() => {
   });
   setPersonalDataOwner(101);
 });
+/** Снимаем персонального owner и synthetic window. */
 afterEach(() => {
   setPersonalDataOwner(null);
   vi.unstubAllGlobals();
 });
+/** Logout/другой owner не могут читать/менять upload101; возврат владельца восстанавливает прежнее намерение. */
 it("retains exact bytes and key for the same owner across session changes", () => {
   saveAvatarIntent(intent);
   setPersonalDataOwner(null);
@@ -44,6 +48,7 @@ it("retains exact bytes and key for the same owner across session changes", () =
   setPersonalDataOwner(101);
   expect(readAvatarIntent(101)).toEqual(intent);
 });
+/** PNG/WebP metadata не приводится молча к JPEG при восстановлении. */
 it.each([
   ["avatar.png", "image/png"],
   ["avatar.webp", "image/webp"],
@@ -55,6 +60,7 @@ it.each([
     expect(readAvatarIntent(101)).toEqual(prepared);
   },
 );
+/** Неподтверждённое pending намерение нельзя заменить другими bytes/key или удалить чужим key. */
 it("does not silently replace a pending file or key in another tab", () => {
   saveAvatarIntent(intent);
   expect(() => saveAvatarIntent({ ...intent, base64: "bmV3" })).toThrow();
@@ -65,6 +71,7 @@ it("does not silently replace a pending file or key in another tab", () => {
   removeAvatarIntent({ ...intent, idempotencyKey: "another-operation-02" });
   expect(readAvatarIntent(101)).toEqual(intent);
 });
+/** QuotaExceeded не разрешает отправить файл без долговечного журнала. */
 it("propagates quota failures instead of allowing an unjournaled upload", () => {
   window.localStorage.setItem = () => {
     throw new DOMException("full", "QuotaExceededError");
@@ -72,6 +79,7 @@ it("propagates quota failures instead of allowing an unjournaled upload", () => 
   expect(() => saveAvatarIntent(intent)).toThrow("full");
   expect(readAvatarIntent(101)).toBeNull();
 });
+/** Broken JSON, другой owner и data-URL вместо Base64 отвергаются. */
 it.each([
   "{broken",
   JSON.stringify({ ...intent, ownerId: 202 }),
@@ -80,6 +88,7 @@ it.each([
   values.set("darcy:user:101:avatar-upload", raw);
   expect(() => readAvatarIntent(101)).toThrow();
 });
+/** Состояние, safe URL и avatarApplied/isCurrent должны составлять корректный receipt. */
 it.each([
   {
     state: "ready",
@@ -98,6 +107,7 @@ it.each([
 ])("rejects malformed avatar receipts: %j", (value) => {
   expect(() => requireAvatarReceipt(value)).toThrow();
 });
+/** Ready прежнего upload с isCurrent:false не обещает повторно применить аватар. */
 it("accepts a completed upload that is no longer current without implying reapplication", () => {
   expect(
     requireAvatarReceipt({
@@ -109,6 +119,7 @@ it("accepts a completed upload that is no longer current without implying reappl
   ).toMatchObject({ isCurrent: false });
 });
 
+/** Читаем намеренно повреждённую запись и возвращаем её типизированное evidence для безопасного discard. */
 function corrupt(raw: string) {
   values.set("darcy:user:101:avatar-upload", raw);
   try {
@@ -119,6 +130,7 @@ function corrupt(raw: string) {
   }
   throw new Error("Expected corrupt data");
 }
+/** Ошибка сохраняет raw и допустимый исходный key до явного discard. */
 it("preserves the original damaged bytes and a usable same-owner receipt key", () => {
   const raw = JSON.stringify({ ...intent, base64: "broken!" });
   const error = corrupt(raw);
@@ -128,10 +140,12 @@ it("preserves the original damaged bytes and a usable same-owner receipt key", (
   discardCorruptAvatarIntent(error);
   expect(readAvatarIntent(101)).toBeNull();
 });
+/** Чужая запись не отдаёт ключ восстановления текущему аккаунту. */
 it("never uses a foreign owner's receipt key", () => {
   const error = corrupt(JSON.stringify({ ...intent, ownerId: 202 }));
   expect(error.idempotencyKey).toBeNull();
 });
+/** SecurityError не становится предложением удалить нечитанную запись. */
 it("does not mistake unavailable storage for a corrupt record", () => {
   window.localStorage.getItem = () => {
     throw new DOMException("denied", "SecurityError");
@@ -143,6 +157,7 @@ it("does not mistake unavailable storage for a corrupt record", () => {
     expect(error).not.toBeInstanceOf(CorruptAvatarIntentError);
   }
 });
+/** Discard сверяет текущий raw и owner, не стирая заменённое намерение другой вкладки. */
 it("refuses to discard a replacement or another owner's data", () => {
   const error = corrupt("{bad");
   values.set("darcy:user:101:avatar-upload", JSON.stringify(intent));
@@ -154,6 +169,7 @@ it("refuses to discard a replacement or another owner's data", () => {
     JSON.stringify(intent),
   );
 });
+/** Если removeItem ничего не удалил, проверка чтением сообщает отказ. */
 it("reports failed durable removal rather than pretending recovery succeeded", () => {
   const error = corrupt("{bad");
   window.localStorage.removeItem = () => {};

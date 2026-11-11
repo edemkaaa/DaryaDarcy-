@@ -3,6 +3,7 @@ import type { ViewportSize } from "@/shared/browser/viewport";
 
 import { getProductScreenContent } from "./product-screen.content";
 
+/** Передаём размеры обложки, превью и модального просмотра одной карточке товара. */
 export function getProductScreenLayout(viewport: ViewportSize) {
   const { SCREEN_WIDTH, CAROUSEL_ITEM_WIDTH, CAROUSEL_ITEM_HEIGHT } =
     getProductScreenContent(viewport);

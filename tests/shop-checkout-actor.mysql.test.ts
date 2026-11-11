@@ -20,6 +20,7 @@ import * as capabilities from "../apps/backend/src/launch/capabilities";
 import type { AppRouter } from "../apps/backend/src/routers";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 
+/** Проверяет владельца заказа Магазина и актуальность сессии непосредственно перед записью checkout. */
 describe.skipIf(!testDatabaseUrl)(
   "shop checkout with a current session",
   () => {
@@ -33,10 +34,12 @@ describe.skipIf(!testDatabaseUrl)(
     let base: string;
     let token: string;
 
+    /** Удаляет только покупки и аккаунт собственного покупателя. */
     async function cleanup() {
       await conn.query("DELETE FROM shop_purchases WHERE userId=?", [buyer.id]);
       await conn.query("DELETE FROM users WHERE id=?", [buyer.id]);
     }
+    /** Поднимает локальный API с synthetic Shop TEST-конфигурацией без внешних платежных запросов. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -52,6 +55,7 @@ describe.skipIf(!testDatabaseUrl)(
       await app.listen(0, "127.0.0.1");
       base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
     });
+    /** Восстанавливает покупателя и токен; capability выключенной ветки подменяется только внутри процесса suite. */
     beforeEach(async () => {
       await cleanup();
       await conn.query("INSERT INTO users (id,openId,email) VALUES (?,?,?)", [
@@ -63,7 +67,9 @@ describe.skipIf(!testDatabaseUrl)(
       // Проверяем выключенную ветку только внутри тестового процесса.
       vi.spyOn(capabilities, "requireCapability").mockImplementation(() => {});
     });
+    /** Возвращает session/capability методы после каждого сценария. */
     afterEach(() => vi.restoreAllMocks());
+    /** Закрывает API, удаляет своего покупателя и заказы и закрывает DB-пул. */
     afterAll(async () => {
       await app?.close();
       if (conn) {
@@ -74,6 +80,7 @@ describe.skipIf(!testDatabaseUrl)(
       vi.unstubAllEnvs();
     });
 
+    /** Вызывает настоящий shop.createCheckout владельца для synthetic digital-товара. */
     function checkout() {
       const client = createTRPCProxyClient<AppRouter>({
         links: [
@@ -86,6 +93,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       return client.shop.createCheckout.mutate({ productId: "digital-1" });
     }
+    /** Читает только заказы собственного покупателя для сверки identity и pending-статуса. */
     async function orders() {
       const [rows] = await conn.query<RowDataPacket[]>(
         "SELECT orderId,productId,email,status FROM shop_purchases WHERE userId=?",
@@ -94,6 +102,7 @@ describe.skipIf(!testDatabaseUrl)(
       return rows;
     }
 
+    /** Сохранённый pending-заказ совпадает с order_id и email в подписанном provider URL. */
     it("creates a pending order matching the signed URL for the active buyer", async () => {
       const url = new URL((await checkout()).url);
       expect(url.hostname).toBe("fixture-shop.payform.ru");
@@ -110,6 +119,7 @@ describe.skipIf(!testDatabaseUrl)(
       ]);
     });
 
+    /** После capture сессии logout или блокировка запрещают позднее создание заказа. */
     it.each(["logout", "account block"])(
       "refuses checkout after %s",
       async (change) => {

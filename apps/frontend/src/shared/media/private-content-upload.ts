@@ -36,8 +36,10 @@ const documents = [
   "application/pdf",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ];
+/** Назначение файла определяет лимит: документ статьи допускает 32 МиБ, фотографии — 4 МиБ. */
 const limit = (usage: ContentUsage) =>
   (usage === "articleDocument" ? 32 : 4) * 1024 * 1024;
+/** Проверяем сохранённый исходник и ключ намерения до сетевой записи; MIME, имя и размер должны соответствовать назначению. */
 export function validatePrivateContentFile(
   item: PrivateContentFile,
   usage: ContentUsage,
@@ -60,6 +62,7 @@ export function validatePrivateContentFile(
     throw new Error("Не удалось проверить исходный файл в черновике");
 }
 // Квитанция обязана соответствовать выбранному файлу и назначению: одного assetId недостаточно для безопасной привязки.
+/** Сверяем полный контракт квитанции с исходником: документ сохраняет размер/MIME, фото подтверждается как WebP, готовый URL строго соответствует assetId. */
 export function requirePrivateContentReceipt<U extends ContentUsage>(
   value: unknown,
   file: File,
@@ -112,7 +115,7 @@ export function requirePrivateContentReceipt<U extends ContentUsage>(
     ...(item.url ? { url: item.url } : {}),
   };
 }
-/** Persist the entire owner's intent before any network write. Never fall back to public upload. */
+/** Сохраняем намерение и attempted до POST; после потери ответа сначала читаем статус прежнего ключа и сохраняем подтверждённую квитанцию. Публичной загрузки как fallback нет. */
 export async function uploadPrivateContentFile<U extends ContentUsage>(
   file: PrivateContentFile<U>,
   usage: U,
@@ -126,6 +129,7 @@ export async function uploadPrivateContentFile<U extends ContentUsage>(
     requirePrivateContentReceipt(file.receipt, file.file, usage);
     return;
   }
+  /** Принимаем квитанцию только текущей операции и прежнего assetId, затем checkpoint фиксирует её до продолжения сценария. */
   const accept = async (value: unknown) => {
     operation.assertCurrent();
     const receipt = requirePrivateContentReceipt(value, file.file, usage);

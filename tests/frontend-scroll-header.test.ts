@@ -1,7 +1,10 @@
+/** Гистерезис шапки проверяется числовой моделью прокрутки, включая iOS overscroll. */
 import { describe, expect, it } from "vitest";
 import { ScrollHeaderState } from "../apps/frontend/src/shared/browser/scroll-header-state";
 
+/** Модель различает пользовательское направление, дробное движение и изменение доступной высоты. */
 describe("scroll header direction", () => {
+  /** Медленные полупиксельные события накапливаются; пороги скрытия и показа различаются. */
   it("accumulates slow fractional movement and reveals sooner than it hides", () => {
     const state = new ScrollHeaderState();
     state.reveal(100);
@@ -13,6 +16,7 @@ describe("scroll header direction", () => {
     expect(state.update(104, 1000)).toBe(false);
   });
 
+  /** Небольшое колебание позиции не переключает шапку туда-сюда. */
   it("does not flicker on small reversals or repeated events", () => {
     const state = new ScrollHeaderState();
     expect(state.update(100, 1000)).toBe(true);
@@ -21,6 +25,7 @@ describe("scroll header direction", () => {
     expect(state.update(91, 1000)).toBe(false);
   });
 
+  /** Отрицательная верхняя позиция и отскок оставляют шапку видимой. */
   it("keeps the top visible through iOS negative overscroll and rebound", () => {
     const state = new ScrollHeaderState();
     expect(state.update(100, 1000)).toBe(true);
@@ -28,6 +33,7 @@ describe("scroll header direction", () => {
       expect(state.update(y, 1000)).toBe(false);
   });
 
+  /** Нижний резиновый отскок не считается прокруткой вверх. */
   it("ignores iOS bottom overscroll and rebound until content actually moves up", () => {
     const state = new ScrollHeaderState();
     expect(state.update(1000, 1000)).toBe(true);
@@ -36,6 +42,7 @@ describe("scroll header direction", () => {
     expect(state.update(992, 1000)).toBe(false);
   });
 
+  /** Изменение maxScroll само по себе не раскрывает шапку до действительного движения. */
   it("does not mistake shrinking content or viewport changes for upward scrolling", () => {
     const state = new ScrollHeaderState();
     expect(state.update(1000, 1000)).toBe(true);
@@ -44,6 +51,7 @@ describe("scroll header direction", () => {
     expect(state.update(0, 0)).toBe(false);
   });
 
+  /** Восстановленный экран начинает с видимой шапки и новой опорной позиции. */
   it("starts visible on a restored screen and measures from its current position", () => {
     const state = new ScrollHeaderState();
     state.update(300, 1000);

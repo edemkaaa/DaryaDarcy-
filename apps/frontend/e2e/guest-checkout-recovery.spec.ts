@@ -14,10 +14,13 @@ test.skip(
 );
 test.setTimeout(45_000);
 const slot = "darcy:guest:normal-checkout:v1";
+/** Читаем guest-журнал с обоими recovery-доказательствами, отдельно от account NORMAL и TEST. */
 const saved = (page: Page) =>
   page.evaluate((key) => localStorage.getItem(key), slot);
+/** Выбираем первую landing-копию нужного действия. */
 const action = (page: Page, name: string | RegExp) =>
   page.getByRole("button", { name }).first();
+/** Передаём типизированные Date в tRPC superjson, позволяя отличить корректный expiry от строки. */
 const result = (data: unknown) => ({
   result: { data: superjson.serialize(data) },
 });
@@ -29,6 +32,7 @@ const user = {
   role: "user",
   lastSignedIn: "2026-10-01T12:00:00Z",
 };
+/** Перед явным действием заполняем только пустой редактируемый contactPhone; существующее значение не заменяется тестом. */
 async function startPurchase(page: Page, name: string | RegExp) {
   await action(page, name).waitFor({ state: "visible" });
   const phone = page
@@ -43,6 +47,7 @@ async function startPurchase(page: Page, name: string | RegExp) {
   }
   await action(page, name).click();
 }
+/** Удерживаем create-response для гонок с навигацией, входом другого аккаунта и deadline. */
 const deferred = () => {
   let resolve!: () => void;
   const promise = new Promise<void>((done) => {
@@ -61,6 +66,7 @@ type Order = {
   orderId: string;
   expiresAt?: Date;
 };
+/** Ledger идентифицируется recoveryToken+key; create и status допускают только POST-body без query/secret-header и проверяют сохранение proof до запроса. */
 async function fixture(page: Page) {
   await layoutApi(page);
   const state = {
@@ -208,6 +214,7 @@ async function fixture(page: Page) {
   });
   return state;
 }
+/** Начинаем гостевой intent и теряем ACK после synthetic commit, сохраняя email и пару ключей. */
 async function loseCheckout(page: Page) {
   await gotoWithSession(page, "/club?checkout=1");
   await page
@@ -219,6 +226,7 @@ async function loseCheckout(page: Page) {
   await expect(action(page, "Восстановить ссылку оплаты")).toBeEnabled();
 }
 
+/** TEST-fragment и чужие journals не обрабатываются гостевым LIVE-режимом. */
 test("GUEST/NORMAL ignores a TEST return token and its stored journal", async ({
   page,
 }) => {
@@ -247,6 +255,7 @@ test("GUEST/NORMAL ignores a TEST return token and its stored journal", async ({
   expect(state.normal + state.legacy).toBe(0);
   expect(forbidden).toEqual([]);
 });
+/** Неверный/пустой телефон отклоняется до durable-evidence и order-create; непроверенный контакт не превращается в login-phone. */
 test("a new guest purchase requires a phone before saving evidence or creating an order", async ({
   page,
 }) => {
@@ -275,6 +284,7 @@ test("a new guest purchase requires a phone before saving evidence or creating a
   expect(state.writes[0]).not.toHaveProperty("phone");
 });
 
+/** Строковый expiry не подтверждает оплату, не выдаёт доступ и не заменяет recovery-пару. */
 test("malformed guest success retains both recovery keys and never grants access or sends a replacement", async ({
   page,
 }) => {
@@ -299,6 +309,7 @@ test("malformed guest success retains both recovery keys and never grants access
   expect(state.navigations).toEqual([]);
 });
 
+/** Reload восстанавливает исходный readonly-email и proof; status не создаёт order, replay возвращает прежний URL с точным payload. */
 test("lost response and reload preserve proof; status never creates another order; manual replay restores its URL", async ({
   page,
 }) => {
@@ -328,6 +339,7 @@ test("lost response and reload preserve proof; status never creates another orde
   expect(state.writes[1]).toEqual(state.writes[0]);
   expect(state.legacy).toBe(0);
 });
+/** Неопределённый committed-order нельзя заменить новым ключом по одному notRecorded снимку. */
 test("notRecorded cannot rotate an unknown committed purchase", async ({
   page,
 }) => {
@@ -343,6 +355,7 @@ test("notRecorded cannot rotate an unknown committed purchase", async ({
   ).toBe(true);
   expect(state.orders.size).toBe(1);
 });
+/** 409/412/500 не переключают гостевой intent на legacy или account NORMAL. */
 for (const status of [409, 412, 500])
   test(`HTTP ${status} preserves the same proof and never falls back`, async ({
     page,
@@ -357,12 +370,14 @@ for (const status of [409, 412, 500])
     expect(await saved(page)).toBe(before);
     expect(state.legacy + state.normal).toBe(0);
   });
+/** Без durable-proof не отправляются ни checkout, ни status; введённый email остаётся в форме. */
 test("storage refusal prevents every checkout/status call and retains the entered email", async ({
   page,
 }) => {
   const state = await fixture(page);
   await gotoWithSession(page, "/club");
   await page.evaluate(() => {
+    /** Синтетический полный отказ storage проверяет preflight до любого внешнего эффекта. */
     Storage.prototype.setItem = () => {
       throw new DOMException("quota", "QuotaExceededError");
     };
@@ -378,6 +393,7 @@ test("storage refusal prevents every checkout/status call and retains the entere
   ).toHaveValue(user.email);
   expect(state.writes.length + state.statuses.length + state.legacy).toBe(0);
 });
+/** Retry-After сохраняется через reload; истечение паузы лишь включает кнопку, не запускает запрос. */
 test("429 persists its pause through reload; time alone does not retry a password or purchase", async ({
   page,
 }) => {
@@ -409,6 +425,7 @@ test("429 persists its pause through reload; time alone does not retry a passwor
   await expect.poll(() => state.writes.length).toBe(2);
   expect(state.writes[1]).toEqual(state.writes[0]);
 });
+/** Вход подходящего получателя продолжает гостевой intent с прежним proof, не создавая account NORMAL замену. */
 test("login with the recipient resumes the guest purchase instead of preparing a NORMAL order", async ({
   page,
 }) => {
@@ -430,6 +447,7 @@ test("login with the recipient resumes the guest purchase instead of preparing a
   expect(state.normal + state.legacy).toBe(0);
 });
 
+/** Даже после входа notRecorded сохраняет гостевой proof и блокирует автоматический переход на новый intent. */
 test("after login a notRecorded guest result keeps its proof and never starts a NORMAL replacement", async ({
   page,
 }) => {
@@ -453,6 +471,7 @@ test("after login a notRecorded guest result keeps its proof and never starts a 
   expect(state.normal + state.legacy).toBe(0);
 });
 
+/** Переход к покупке своего аккаунта требует новой терминальной сверки гостевого order и отдельного действия. */
 test("a terminal guest purchase is retained after login until an explicit fresh check hands off to NORMAL", async ({
   page,
 }) => {
@@ -483,6 +502,7 @@ test("a terminal guest purchase is retained after login until an explicit fresh 
   expect(state.writes).toHaveLength(1);
   expect(state.legacy).toBe(0);
 });
+/** Другому account нельзя показать email получателя, отправить его proof или открыть поздний URL; его собственная покупка остаётся отдельной. */
 test("a different account cannot see the recipient, dispatch its proof, or receive a late payment URL", async ({
   page,
 }) => {
@@ -520,6 +540,7 @@ test("a different account cannot see the recipient, dispatch its proof, or recei
   expect(await saved(page)).toBe(before);
   expect(state.statuses).toHaveLength(reads);
 });
+/** Успешная гостевая покупка не создаёт сессию; новая покупка для другого email получает свежую recovery-пару после сверки. */
 test("guest success does not log in or grant access; a fresh terminal check is required for a new recipient", async ({
   page,
 }) => {
@@ -552,6 +573,7 @@ test("guest success does not log in or grant access; a fresh terminal check is r
   expect(state.writes[1].idempotencyKey).not.toBe(first.idempotencyKey);
   expect(state.writes[1].recoveryToken).not.toBe(first.recoveryToken);
 });
+/** Потеря recovery-proof не превращает известный outstanding-intent в разрешение начать новый. */
 test("missing evidence after an unknown result stays blocked, including subsequent manual checks", async ({
   page,
 }) => {
@@ -586,6 +608,7 @@ test("a return without proof never creates a purchase and requires explicit conf
   await expect(action(page, /Оплатить 790/)).toBeEnabled();
   expect(state.writes.length + state.statuses.length).toBe(0);
 });
+/** Уход отменяет только redirect-continuation, сохраняя доказательства для recovery. */
 test("leaving checkout cancels a late redirect while keeping recovery evidence", async ({
   page,
 }) => {
@@ -610,6 +633,7 @@ test("leaving checkout cancels a late redirect while keeping recovery evidence",
   expect(await saved(page)).not.toBeNull();
 });
 
+/** Вкладки разделяют один guest-intent, а no-op подтверждения журнала не создают цикл storage/status событий. */
 test("two tabs share one guest intent without a loop of status requests", async ({
   page,
   context,
@@ -660,6 +684,7 @@ test("two tabs share one guest intent without a loop of status requests", async 
   await second.close();
 });
 
+/** Timeout оставляет ключи и один order; последующая явная сверка не открывает оплату заново. */
 test("a client timeout retains the keys and checks the committed order without reopening payment", async ({
   page,
 }) => {

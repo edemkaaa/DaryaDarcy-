@@ -4,6 +4,7 @@ import { Action } from "@/shared/ui/action";
 import { MaterialIcons } from "@/shared/ui/icons";
 import classes from "./photo-navigation.module.scss";
 
+/** Предлагаем соседние индексы без собственного состояния, отключая движение за первый и последний кадр. */
 export function PhotoNavigation({
   count,
   index,

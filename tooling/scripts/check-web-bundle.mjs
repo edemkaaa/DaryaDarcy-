@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const dir = "web-dist/_expo/static/js/web";
+// Сканируются локальные JS-чанки прежней Expo-сборки; найденные строки печатаются как диагностические признаки.
 for (const f of fs.readdirSync(dir)) {
   if (!/\.js$/.test(f) || f.endsWith(".gz")) continue;
   const s = fs.readFileSync(path.join(dir, f), "utf8");

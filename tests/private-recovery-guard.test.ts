@@ -1,3 +1,4 @@
+/** Опасная maintenance-операция допускается только на канонической одноразовой локальной БД; сам SQL запрещён spy. */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { maintainPrivateRecovery } from "../apps/backend/src/content/private-recovery-maintenance";
@@ -8,6 +9,7 @@ const sql = vi.fn(() => {
   throw new Error("Unexpected SQL admission");
 });
 const database = { select: sql } as unknown as MySql2Database;
+/** Включаем три тестовых флага и локальный backend_test, сбрасывая счётчик недопустимого SQL. */
 beforeEach(() => {
   sql.mockClear();
   vi.stubEnv("NODE_ENV", "test");
@@ -16,8 +18,10 @@ beforeEach(() => {
   vi.stubEnv("CONTENT_RECOVERY_MAINTENANCE_ENABLED", "true");
   vi.stubEnv("PRIVATE_ORPHAN_CLEANUP_ENABLED", "true");
 });
+/** Возвращаем окружение после каждой проверки guard. */
 afterEach(() => vi.unstubAllEnvs());
 
+/** Параметры драйвера, fragment, другой host/schema и CI-service URL запрещены этому локальному maintenance-пути. */
 it.each([
   "mysql://fixture:fixture@127.0.0.1/backend_test?socketPath=/tmp/other-mysql.sock",
   "mysql://fixture:fixture@127.0.0.1/backend_test?%73ocketPath=%2Ftmp%2Fother-mysql.sock",
@@ -35,6 +39,7 @@ it.each([
   expect(sql).not.toHaveBeenCalled();
 });
 
+/** Production не становится безопасным только от имени backend_test. */
 it("does not permit maintenance in production even with a localhost test URI", async () => {
   vi.stubEnv("NODE_ENV", "production");
   await expect(maintainPrivateRecovery(database)).rejects.toThrow(
@@ -43,6 +48,7 @@ it("does not permit maintenance in production even with a localhost test URI", a
   expect(sql).not.toHaveBeenCalled();
 });
 
+/** Выключенная retention/maintenance возвращает нулевой отчёт до первого побочного действия. */
 it.each([
   "CONTENT_RECOVERY_RETENTION_ENABLED",
   "CONTENT_RECOVERY_MAINTENANCE_ENABLED",

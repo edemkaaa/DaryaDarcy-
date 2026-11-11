@@ -2,6 +2,7 @@
 @use "../styles/layers";
 
 @layer elements {
+  /* display:contents сохраняет DOM-обёртку обработчиков жестов без дополнительного бокса в flex/scroll-раскладке. */
   .div {
     display: contents;
   }

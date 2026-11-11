@@ -1,3 +1,4 @@
+// Архив Expo. Архивная форма поста держит ввод и загруженные URL локально; использует старые uploadPhoto/toggle API без ревизий и ключа операции.
 import { useEffect, useRef, useState } from "react";
 import {
   Text,
@@ -66,6 +67,8 @@ interface CreatePostModalProps {
 }
 
 export function CreatePostModal({ visible, onClose, defaultTarget, editingPost }: CreatePostModalProps) {
+  // Архивная форма поста держит ввод и загруженные URL локально; использует старые uploadPhoto/toggle API без ревизий и ключа операции.
+
   const [text, setText] = useState(editingPost?.text || "");
   const [photos, setPhotos] = useState<string[]>(editingPost?.photos || []);
   const [tags, setTags] = useState<string[]>(editingPost?.tags || []);
@@ -88,6 +91,8 @@ export function CreatePostModal({ visible, onClose, defaultTarget, editingPost }
   const uploadMutation = trpc.admin.uploadPhoto.useMutation();
 
   useEffect(() => {
+    // При каждом открытии или смене editingPost заполняет форму серверным снимком; локальные attachment-выборы сбрасываются.
+
     if (!visible) return;
     setText(editingPost?.text || "");
     setPhotos(editingPost?.photos || []);
@@ -112,6 +117,8 @@ export function CreatePostModal({ visible, onClose, defaultTarget, editingPost }
   }, [visible, editingPost, defaultTarget]);
 
   const notifyError = (message: string) => {
+    // Показывает ошибку через доступный платформе диалог без очистки ввода.
+
     if (Platform.OS === "web") {
       window.alert(message);
       return;
@@ -121,6 +128,8 @@ export function CreatePostModal({ visible, onClose, defaultTarget, editingPost }
 
   const createMutation = trpc.admin.createPost.useMutation({
     onSuccess: (postId) => {
+      // После создания инвалидирует выдачу, при scheduled добавляет локальное напоминание и закрывает форму.
+
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       // Schedule notification reminder if post is scheduled
       if (status === "scheduled" && scheduledAt) {
@@ -134,11 +143,13 @@ export function CreatePostModal({ visible, onClose, defaultTarget, editingPost }
       utils.club.list.invalidate();
       handleClose();
     },
-    onError: (err) => Alert.alert("Ошибка", err.message),
+    onError: (err) => /* Показывает серверную ошибку мутации, сохраняя форму открытой. */ Alert.alert("Ошибка", err.message),
   });
 
   const updateMutation = trpc.admin.updatePost.useMutation({
     onSuccess: () => {
+      // После обновления перечитывает выдачу и ставит новое локальное напоминание без отмены старого.
+
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       // Schedule notification reminder if post is scheduled
       if (status === "scheduled" && scheduledAt && editingPost) {
@@ -152,10 +163,12 @@ export function CreatePostModal({ visible, onClose, defaultTarget, editingPost }
       utils.club.list.invalidate();
       handleClose();
     },
-    onError: (err) => Alert.alert("Ошибка", err.message),
+    onError: (err) => /* Показывает серверную ошибку мутации, сохраняя форму открытой. */ Alert.alert("Ошибка", err.message),
   });
 
   const handleClose = () => {
+    // Явно очищает весь локальный ввод и remount-ключ новой формы перед внешним onClose.
+
     setText("");
     setPhotos([]);
     setTags([]);
@@ -172,11 +185,15 @@ export function CreatePostModal({ visible, onClose, defaultTarget, editingPost }
 
   // ── Media pickers ──
   const addVideoUrl = (url: string) => {
+    // Добавляет уникальный загруженный URL и метку video в локальный payload.
+
     setVideos((prev) => (prev.includes(url) ? prev : [...prev, url]));
     setTags((prev) => (prev.includes("video") ? prev : [...prev, "video"]));
   };
 
   const pickVideo = async () => {
+    // Выбирает native видео и сразу отправляет старому raw uploader до сохранения поста.
+
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["videos"],
@@ -199,6 +216,8 @@ export function CreatePostModal({ visible, onClose, defaultTarget, editingPost }
   };
 
   const onWebVideoPicked = async (event: any) => {
+    // Сбрасывает file-input и загружает выбранный Blob, сохраняя форму при ошибке.
+
     const file = event?.target?.files?.[0] as File | undefined;
     if (event?.target) event.target.value = "";
     if (!file) return;
@@ -214,6 +233,8 @@ export function CreatePostModal({ visible, onClose, defaultTarget, editingPost }
   };
 
   const pickAudio = async () => {
+    // Добавляет локальную ссылку audio в UI; этот архивный handleSubmit исторически не включает mediaAttachments в payload.
+
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: ["audio/*"],
@@ -231,6 +252,8 @@ export function CreatePostModal({ visible, onClose, defaultTarget, editingPost }
   };
 
   const pickDocument = async () => {
+    // Добавляет выбранный документ в локальный UI; его загрузка и привязка здесь исторически не завершены.
+
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "text/plain"],
@@ -248,10 +271,14 @@ export function CreatePostModal({ visible, onClose, defaultTarget, editingPost }
   };
 
   const removeMedia = (index: number) => {
+    // Удаляет только локальный выбранный attachment по индексу.
+
     setMediaAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 
   const replacePhoto = async (index: number) => {
+    // Загружает новую копию и заменяет один URL формы, не удаляя старый объект.
+
     try {
       let base64 = "";
       let filename = `photo_${Date.now()}.jpg`;
@@ -290,6 +317,8 @@ export function CreatePostModal({ visible, onClose, defaultTarget, editingPost }
   };
 
   const handleSubmit = () => {
+    // Проверяет текст/фото/видео и даты, нормализует richText и отправляет create/update; локальные audio/doc attachments сюда не включены.
+
     if (!text.trim() && photos.length === 0 && videos.length === 0) {
       notifyError("Добавьте текст, фото или видео");
       return;
@@ -331,6 +360,8 @@ export function CreatePostModal({ visible, onClose, defaultTarget, editingPost }
   };
 
   const pickPhotos = async () => {
+    // Последовательно загружает выбранные фото, сохраняет успешные URL и отдельно сообщает о частичных сбоях.
+
     try {
       const uploadedUrls: string[] = [];
       const failed: string[] = [];
@@ -397,10 +428,14 @@ export function CreatePostModal({ visible, onClose, defaultTarget, editingPost }
   };
 
   const removePhoto = (index: number) => {
+    // Убирает URL из формы без удаления исходного файла.
+
     setPhotos((prev) => prev.filter((_, i) => i !== index));
   };
 
   const movePhoto = (fromIndex: number, direction: "left" | "right") => {
+    // Меняет соседние фото в допустимых границах и даёт native haptic.
+
     setPhotos((prev) => {
       const arr = [...prev];
       const toIndex = direction === "left" ? fromIndex - 1 : fromIndex + 1;
@@ -412,6 +447,8 @@ export function CreatePostModal({ visible, onClose, defaultTarget, editingPost }
   };
 
   const reorderPhotos = (fromIndex: number, toIndex: number) => {
+    // Переносит один URL на новый индекс после проверки границ массива.
+
     setPhotos((prev) => {
       if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0) return prev;
       if (fromIndex >= prev.length || toIndex >= prev.length) return prev;
@@ -423,6 +460,8 @@ export function CreatePostModal({ visible, onClose, defaultTarget, editingPost }
   };
 
   const toggleTag = (slug: string) => {
+    // Переключает slug тега в локальном наборе формы.
+
     setTags((prev) =>
       prev.includes(slug) ? prev.filter((t) => t !== slug) : [...prev, slug]
     );
@@ -700,6 +739,7 @@ export function CreatePostModal({ visible, onClose, defaultTarget, editingPost }
 }
 
 // ── Styles ──
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: CREAM_BG },
   header: {

@@ -2,6 +2,8 @@ import { createServer, type AddressInfo, type Socket } from "node:net";
 
 /** A real SMTP wire confined to loopback; never connects to an external server. */
 export async function openLoopbackSmtp() {
+  // Принимает SMTP только на loopback и сохраняет сообщения в памяти; реальной доставки адресатам не выполняет.
+
   const sockets = new Set<Socket>();
   const messages: string[] = [];
   const recipients: string[] = [];
@@ -48,14 +50,20 @@ export async function openLoopbackSmtp() {
     messages,
     recipients,
     rejectRecipients(value: boolean) {
+      // Моделирует SMTP-отказ получателю до принятия тела письма.
+
       reject = value;
     },
     reset() {
+      // Очищает наблюдения и режим отказа между сценариями без внешнего почтового сервера.
+
       messages.length = 0;
       recipients.length = 0;
       reject = false;
     },
     async close() {
+      // Закрывает только сокеты локальной почтовой фикстуры.
+
       for (const socket of sockets) socket.destroy();
       await new Promise<void>((resolve) => server.close(() => resolve()));
     },

@@ -15,10 +15,12 @@ import { createBackendApplication } from "../apps/backend/src/_core/application"
 import { sdk } from "../apps/backend/src/_core/sdk";
 import * as db from "../apps/backend/src/db";
 
+/** Проверяем защищённую выдачу семи текстовых гидов на настоящем HTTP/JWT и текущей подписке SQL. */
 describe.skipIf(!testDatabaseUrl)(
   "protected aesthetic guides: native HTTP/JWT/SQL",
   () => {
     let app: INestApplication, conn: Connection, base: string;
+    /** Создаём paid/free/staff фикстуры и локальное Nest-приложение с синтетическим JWT. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -33,6 +35,7 @@ describe.skipIf(!testDatabaseUrl)(
       await app.listen(0, "127.0.0.1");
       base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
     });
+    /** Снимаем подмены и восстанавливаем epoch, блокировки и исходный оплаченный срок своей группы. */
     beforeEach(async () => {
       vi.restoreAllMocks();
       await conn.query(
@@ -42,6 +45,7 @@ describe.skipIf(!testDatabaseUrl)(
         "UPDATE club_payments SET expiresAt='2030-01-01',cancelAtPeriodEnd=FALSE WHERE orderId='guide-fixture'",
       );
     });
+    /** Останавливаем HTTP, удаляем только собственные оплаты и аккаунты, закрываем SQL и окружение. */
     afterAll(async () => {
       vi.restoreAllMocks();
       await app?.close();
@@ -55,6 +59,7 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** Запрашиваем выбранный гид текущим синтетическим actor, неверным токеном или гостем, поддерживая HEAD. */
     async function read(
       key = "cottagecore",
       actor = "guide-paid",
@@ -69,6 +74,7 @@ describe.skipIf(!testDatabaseUrl)(
           : {},
       });
     }
+    /** Все семь ключей дают только согласованные разделы гида и private,no-store, без дополнительных полей. */
     it.each([
       "cottagecore",
       "goblincore",
@@ -88,6 +94,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(data.key).toBe(key);
       expect(data.style.intro.length).toBeGreaterThan(30);
     });
+    /** Гость, неверный токен и бесплатный аккаунт получают одинаковый закрытый ответ без тела гида. */
     it.each(["", "invalid", "guide-free"])(
       "denies guest/invalid/unpaid %s without content",
       async (actor) => {
@@ -99,12 +106,14 @@ describe.skipIf(!testDatabaseUrl)(
         expect(response.headers.get("cache-control")).toBe("private, no-store");
       },
     );
+    /** Прототипные ключи, неизвестный материал и лишний query не проходят канонический маршрут. */
     it.each(["constructor", "__proto__", "unknown", "cottagecore?x=1"])(
       "rejects noncanonical key/query %s",
       async (key) => {
         expect((await read(key)).status).toBe(404);
       },
     );
+    /** После успешного чтения блокировка или новый epoch немедленно закрывают прежнюю сессию. */
     it.each(["blockedAt=NOW()", "sessionVersion=1"])(
       "rechecks live identity after %s",
       async (patch) => {
@@ -113,6 +122,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect((await read()).status).toBe(404);
       },
     );
+    /** Запрос отмены сохраняет оплаченный срок; истёкший срок закрывает материал, staff-доступ остаётся отдельным. */
     it("rechecks expiry, preserves paid-until-end cancellation and service access", async () => {
       await conn.query(
         "UPDATE club_payments SET cancelAtPeriodEnd=TRUE WHERE orderId='guide-fixture'",
@@ -124,6 +134,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await read()).status).toBe(404);
       expect((await read("cottagecore", "guide-staff")).status).toBe(200);
     });
+    /** Изолированно подменяем лишь ошибку читателя подписки: HTTP503 не раскрывает SQL-маркер и не выдаёт гостевой успех. */
     it("does not turn infrastructure failure into guest or disclose internals", async () => {
       vi.spyOn(db, "getActiveClubSubscription").mockRejectedValueOnce(
         new Error("private-sql-marker"),
@@ -134,6 +145,7 @@ describe.skipIf(!testDatabaseUrl)(
         error: "Материал временно недоступен.",
       });
     });
+    /** HEAD проходит ту же авторизацию, но никогда не передаёт закрытый текст. */
     it("HEAD checks access and sends no paid body", async () => {
       const response = await read("cottagecore", "guide-paid", "HEAD");
       expect(response.status).toBe(200);

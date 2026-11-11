@@ -1,3 +1,4 @@
+// Архив Expo. Принимает только внутренний относительный путь без protocol-relative URL и явной схемы.
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -30,6 +31,8 @@ const CREAM = "#FDF8F0";
 const OLIVE = "#6B7B5E";
 
 function safeNextPath(value: string | string[] | undefined): string | null {
+  // Принимает только внутренний относительный путь без protocol-relative URL и явной схемы.
+
   const raw = Array.isArray(value) ? value[0] : value;
   if (
     !raw ||
@@ -43,6 +46,8 @@ function safeNextPath(value: string | string[] | undefined): string | null {
 }
 
 export default function LoginScreen() {
+  // Переключает email login/register/recover; SMS появляется только по capability сервера.
+
   const { applySession } = useAuth();
   const params = useLocalSearchParams<{ next?: string }>();
   const capabilities = useQuery({
@@ -64,6 +69,8 @@ export default function LoginScreen() {
   const [registrationConsent, setRegistrationConsent] = useState(false);
 
   const goNext = async (user: Api.AuthUser | null) => {
+    // Применяет полученный профиль и возвращает на допустимый next либо профиль.
+
     await applySession(user);
     const next = safeNextPath(params.next);
     if (next) {
@@ -76,6 +83,8 @@ export default function LoginScreen() {
   };
 
   const submitEmail = async () => {
+    // Блокирует повтор кнопки, передаёт согласие регистрации и показывает серверный результат восстановления без локального подтверждения аккаунта.
+
     if (busy) return;
     setError(null);
     setNotice(null);
@@ -311,6 +320,7 @@ export default function LoginScreen() {
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1,

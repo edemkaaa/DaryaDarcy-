@@ -2,6 +2,7 @@
 import Screen from "@/features/home/home-screen";
 // The public landing page is cached; browser calendar state updates after hydration.
 export const revalidate = 3600;
+/** Передаём серверную дату первого кадра главной; после гидратации экран сам уточняет календарное состояние. */
 export default function Page() {
   return <Screen initialDate={new Date().toISOString()} />;
 }

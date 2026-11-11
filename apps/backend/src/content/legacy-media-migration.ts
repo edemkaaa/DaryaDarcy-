@@ -32,17 +32,21 @@ import {
   type LegacyReceipt,
 } from "./legacy-media-receipt";
 
+/** Скрывает внутренний S3/SQL-сбой переноса за безопасным SERVICE_UNAVAILABLE. */
 const unavailable = () =>
   new TRPCError({
     code: "SERVICE_UNAVAILABLE",
     message: "Перенос временно недоступен",
   });
+/** Разделяет migration receipt по admin actor и idempotencyKey в собственном namespace. */
 const keyFor = (actor: PrivateAttachmentActor, plan: LegacyMediaPlan) =>
   digest(JSON.stringify(["legacy-media:v1", actor.id, plan.idempotencyKey]));
+/** Выбирает canonical app URL результата по виду receipt: content UUID либо post-media ID текущей цели. */
 const urlFor = (asset: LegacyReceipt, target: LegacyTarget) =>
   asset.content
     ? contentFileUrl(asset.row.assetId)
     : privateMediaUrl(target.mediaId!);
+/** Распознаёт только ready receipt, привязанный к той же цели с canonical URL; retired, чужая замена oldURL и spent recovery дают CONFLICT. */
 function isCommitted(
   asset: LegacyReceipt,
   target: LegacyTarget,
@@ -63,6 +67,7 @@ function isCommitted(
 }
 
 /** Operator-only, one slot per transaction. Existing receipt tables, no DDL, source reads or deletion. */
+/** Записывает один operator-intent/slot, выполняет immutable upload вне SQL-locks, затем повторно проверяет actor/target/receipt и атомарно переключает только согласованную привязку. */
 export async function applyLegacyMedia(
   actor: PrivateAttachmentActor,
   input: unknown,
@@ -152,6 +157,7 @@ export async function applyLegacyMedia(
 }
 
 /** Откатываем только согласованные изменения данной операции переноса. */
+/** Идемпотентно восстанавливает только expectedOldUrl этой операции при неизменной связи результата, затем retires receipt, не удаляя оригинал или новую копию. */
 export async function rollbackLegacyMedia(
   actor: PrivateAttachmentActor,
   input: unknown,

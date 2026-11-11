@@ -10,6 +10,7 @@
     padding-bottom: 40px;
   }
 
+  /* Коллаж слегка выходит к шапке через отрицательное поле; его ширина оставляет небольшой симметричный зазор. */
   .collageContainer {
     align-items: center;
     justify-content: center;
@@ -24,6 +25,7 @@
     height: 100%;
   }
 
+  /* Заголовок и курсивная строка разделены разными начертаниями при общих боковых полях. */
   .title {
     font-size: 26px;
     font-family: EBGaramond_700Bold;
@@ -65,6 +67,7 @@
     color: var(--color-muted);
   }
 
+  /* Сведения о прохождении делят ряд поровну, а старт остаётся отдельной полноширинной кнопкой. */
   .infoRow {
     flex-direction: row;
     gap: 10px;

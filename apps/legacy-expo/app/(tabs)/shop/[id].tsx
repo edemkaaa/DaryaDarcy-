@@ -1,3 +1,4 @@
+// Архив Expo. Исключает известные отсутствующие shop-файлы по имени; это историческая таблица доступности, не проверка доступа.
 import { useState } from "react";
 import {
   Text,
@@ -277,6 +278,8 @@ const SHOP_MISSING_FILES = new Set([
 ]);
 
 function isPublicShopAsset(url: string): boolean {
+  // Исключает известные отсутствующие shop-файлы по имени; это историческая таблица доступности, не проверка доступа.
+
   if (!url.includes("/app-assets/shop/")) return true;
   const file = url.split("/").pop() || "";
   return !SHOP_MISSING_FILES.has(file);
@@ -285,6 +288,8 @@ function isPublicShopAsset(url: string): boolean {
 // ─── Screen Component ────────────────────────────────────────────────────────
 
 export default function ProductDetailScreen() {
+  // Архивная карточка объединяет статический каталог, внешние магазины и старый digital checkout; paid query влияет лишь на UI, не подтверждает покупку серверу.
+
   const { id: idParam, paid } = useLocalSearchParams<{ id: string; paid?: string }>();
   const id = Array.isArray(idParam) ? idParam[0] : idParam;
   const router = useRouter();
@@ -316,6 +321,8 @@ export default function ProductDetailScreen() {
   const owned = Boolean(ownedQuery.data?.owned) || (product.type === "digital" && paid === "1");
 
   const handleBuyPress = (url: string) => {
+    // Для prodamus: требует вход, создаёт checkout на сервере и открывает URL; обычную ссылку передаёт Linking.
+
     if (url.startsWith("prodamus:")) {
       void (async () => {
         setPayError(null);
@@ -340,12 +347,16 @@ export default function ProductDetailScreen() {
   };
 
   const openZoom = (uri: string, index: number) => {
+    // Открывает выбранное изображение и сохраняет индекс галереи.
+
     setZoomImageUri(uri);
     setZoomIndex(index);
     setZoomVisible(true);
   };
 
   const zoomPrev = () => {
+    // Переключает fullscreen preview на предыдущую доступную картинку.
+
     if (zoomIndex > 0) {
       const newIdx = zoomIndex - 1;
       setZoomIndex(newIdx);
@@ -354,6 +365,8 @@ export default function ProductDetailScreen() {
   };
 
   const zoomNext = () => {
+    // Переключает fullscreen preview на следующую картинку в пределах галереи.
+
     if (zoomIndex < gallery.length - 1) {
       const newIdx = zoomIndex + 1;
       setZoomIndex(newIdx);
@@ -643,6 +656,7 @@ export default function ProductDetailScreen() {
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
+// Книжная обложка contain сохраняет alpha, галерея отделяет карточки gap, полноэкранный preview использует чёрный overlay.
 const styles = StyleSheet.create({
   container: {
     flex: 1,

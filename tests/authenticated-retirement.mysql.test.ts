@@ -13,15 +13,18 @@ import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 import * as db from "../apps/backend/src/db";
 import { sdk } from "../apps/backend/src/_core/sdk";
 
+/** Проверяем, что техническая запись активности не воскрешает удалённую идентичность и не блокирует обычную аутентификацию. */
 describe.skipIf(!testDatabaseUrl)(
   "authenticated activity across final retirement",
   () => {
     let conn: Connection;
+    /** Открываем разрешённую тестовую БД и задаём синтетический JWT для собственного аккаунта. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
       vi.stubEnv("JWT_SECRET", "r6-native-activity-fixture-secret-32");
     });
+    /** Восстанавливаем только старую идентичность fixture с давней активностью и исходным epoch. */
     beforeEach(async () => {
       await conn.query(
         "DELETE FROM users WHERE id=97560 OR openId='r6-activity-fixture'",
@@ -30,6 +33,7 @@ describe.skipIf(!testDatabaseUrl)(
         "INSERT INTO users(id,openId,role,sessionVersion,lastSignedIn) VALUES (97560,'r6-activity-fixture','admin',0,'2020-01-01')",
       );
     });
+    /** Снимаем spies, удаляем свою запись и освобождаем соединения и окружение. */
     afterAll(async () => {
       vi.restoreAllMocks();
       await conn?.query(
@@ -41,6 +45,7 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** Создаём локальный Request с синтетическим JWT исходного epoch, без реального пользователя. */
     async function request() {
       return {
         headers: {
@@ -48,6 +53,7 @@ describe.skipIf(!testDatabaseUrl)(
         },
       } as Request;
     }
+    /** Несколько параллельных stale-снимков не записывают активность чаще пяти минут; точная новая граница допускается. */
     it("records activity at most once per five minutes, including stale concurrent snapshots", async () => {
       const stale = (await db.getUserByOpenId("r6-activity-fixture"))!;
       const start = new Date("2026-10-27T12:00:00Z");
@@ -59,6 +65,7 @@ describe.skipIf(!testDatabaseUrl)(
       const [later] = await conn.query<RowDataPacket[]>("SELECT lastSignedIn FROM users WHERE id=97560");
       expect(later[0].lastSignedIn.toISOString()).toBe("2026-10-27T12:05:00.000Z");
     });
+    /** Задерживаем возврат чтения сессии, меняем openId/epoch и проверяем отсутствие прежней идентичности после продолжения activity. */
     it("never recreates a retired identity between session lookup and activity recording", async () => {
       const native = db.getUserByOpenId;
       let read!: () => void, resume!: () => void;
@@ -94,6 +101,7 @@ describe.skipIf(!testDatabaseUrl)(
         spy.mockRestore();
       }
     });
+    /** Удерживаем реальный user FOR UPDATE: auth завершается без ожидания, а необязательная activity-запись пропускается. */
     it("authentication reads without waiting behind a content owner lock", async () => {
       await conn.beginTransaction();
       await conn.query("SELECT id FROM users WHERE id=97560 FOR UPDATE");

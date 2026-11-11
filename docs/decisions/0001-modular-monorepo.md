@@ -3,6 +3,10 @@
 - **Status:** Accepted
 - **Date:** 2026-10-02
 
+## Актуальность на 11 ноября 2026
+
+Монорепозиторий и доменные границы сохранены. Основной браузерный клиент теперь Next.js в `apps/frontend`, сервер — NestJS; Expo и Vite остаются архивными клиентами. Ниже сохранён исходный контекст решения, включая прежние команды и платформы.
+
 ## Context
 
 The repository contains a universal Expo frontend, an Express/tRPC backend, Drizzle schema and migrations, a second Vite frontend, deployment configuration, and many operational scripts at the same directory level. Large backend files also mix HTTP procedures, business rules, database access, and external integrations. This makes ownership unclear and increases the chance that a frontend or deployment change accidentally reaches another layer.

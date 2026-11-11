@@ -18,6 +18,7 @@ import sharp from "sharp";
 import type { NextConfigRuntime } from "next/dist/server/config-shared";
 
 // Explicit post-build operator gate. It never contacts a real upstream or SQL.
+/** После сборки запускает изолированный Next и проверяет отказ старым закрытым источникам до чтения холодного и настоящего прогретого optimizer cache. */
 it.skipIf(process.env.LEGACY_IMAGE_CACHE_ACCEPTANCE !== "true")(
   "blocks cold and real warm optimizer responses before serving bytes, preserving public controls",
   async () => {
@@ -31,6 +32,7 @@ it.skipIf(process.env.LEGACY_IMAGE_CACHE_ACCEPTANCE !== "true")(
     let base = "";
     let output = "";
     const networkLog = join(scratch, "outbound.log");
+    /** Завершает собственный Next-процесс: сначала SIGTERM, затем ограниченный по времени SIGKILL и ожидание exit. */
     const stop = async () => {
       if (!child || child.exitCode !== null || child.signalCode !== null)
         return;
@@ -52,6 +54,7 @@ it.skipIf(process.env.LEGACY_IMAGE_CACHE_ACCEPTANCE !== "true")(
     try {
       await cp(build, join(scratch, ".next"), {
         recursive: true,
+        /** Копирует build без исходного optimizer cache, чтобы все прогретые записи принадлежали только этому тесту. */
         filter: (path) => path !== join(build, "cache"),
       });
       await cp(
@@ -107,6 +110,7 @@ it.skipIf(process.env.LEGACY_IMAGE_CACHE_ACCEPTANCE !== "true")(
         distDir: join(scratch, ".next"),
         nextConfig: metadata.config as NextConfigRuntime,
       });
+      /** Получает настоящий ключ optimizer cache для конкретного URL и неизменных параметров преобразования. */
       const key = (href: string) =>
         ImageOptimizerCache.getCacheKey({
           href,
@@ -134,9 +138,11 @@ it.skipIf(process.env.LEGACY_IMAGE_CACHE_ACCEPTANCE !== "true")(
       const publicDirectory = join(scratch, "public/assets/responsive");
       await mkdir(publicDirectory, { recursive: true });
       await writeFile(join(publicDirectory, "acceptance-free.webp"), bytes);
+      /** Кодирует URL источника в путь настоящего Next image optimizer. */
       const imagePath = (source: string) =>
         "/_next/image?" +
         new URLSearchParams({ url: source, w: "640", q: "75" });
+      /** Читает статус, cache-control и байты локального optimizer для проверки запрета до выдачи содержимого. */
       const image = async (
         source: string,
         headers: Record<string, string> = {},
@@ -153,6 +159,7 @@ it.skipIf(process.env.LEGACY_IMAGE_CACHE_ACCEPTANCE !== "true")(
           body: Buffer.from(await response.arrayBuffer()),
         };
       };
+      /** Запускает собственный Next с разрешённым или выключенным guard и закреплённым хешем manifest, ожидая готовность на loopback. */
       const start = async (enabled: boolean, hash = digest) => {
         const reservation = createServer();
         await new Promise<void>((r) => reservation.listen(0, "127.0.0.1", r));
@@ -207,6 +214,7 @@ it.skipIf(process.env.LEGACY_IMAGE_CACHE_ACCEPTANCE !== "true")(
         }
         throw new Error("Owned Next process was not ready: " + output);
       };
+      // Сначала доказываем настоящий HIT закрываемого источника без guard, затем тем же прогретым кэшем проверяем запрет до чтения байтов.
       await start(false);
       const warm = await image(origin + warmKey);
       expect(warm).toMatchObject({ status: 200, cache: "HIT", body: bytes });
@@ -256,6 +264,7 @@ it.skipIf(process.env.LEGACY_IMAGE_CACHE_ACCEPTANCE !== "true")(
       expect(await image(free)).toMatchObject({ status: 200, cache: "HIT" });
       expect(await cache.get(key(origin + coldKey))).toBeNull();
       await stop();
+      // Неверный digest manifest должен закрывать выдачу с 503; отсутствие outbound-журнала доказывает, что сеть не использовалась.
       await start(true, "0".repeat(64));
       expect(await image(origin + warmKey)).toMatchObject({
         status: 503,

@@ -86,7 +86,7 @@ docker compose -f infrastructure/ci/gitlab-runner/compose.yaml ps
    создание нового pipeline. Ручной запуск не доказывает push-trigger отдельно.
 
 Runner не выполняет полную сборку production Docker images: это отдельный
-[пакет DevOps](../../deploy/teamassist/README.build.md).
+[пакет DevOps](../../build/README.md).
 Профили checkout: [описание CI](../../../docs/operations/checkout-browser-ci-2026-10-30.md).
 
 ## Остановка

@@ -8,6 +8,8 @@ import {
 
 /** Own journal loading and its retry state for the editor's mounted account. */
 export function useArticleCreationJournal(ownerId: number) {
+  // Создаёт журнал для смонтированного аккаунта и отделяет ошибку локального хранилища от отсутствия незавершённой статьи.
+
   const [journal] = useState(() => new ArticleCreationJournal(ownerId));
   const [creation, setCreation] = useState<ArticleCreationRecord | null>(null);
   const [storageStatus, setStorageStatus] = useState<
@@ -16,6 +18,8 @@ export function useArticleCreationJournal(ownerId: number) {
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [recoveryMessage, setRecoveryMessage] = useState<string | null>(null);
   useEffect(() => {
+    // Загружает сохранённую операцию; запоздалое завершение после размонтирования не меняет состояние формы.
+
     let alive = true;
     void journal
       .load()
@@ -45,6 +49,6 @@ export function useArticleCreationJournal(ownerId: number) {
     storageStatus,
     recoveryMessage,
     setRecoveryMessage,
-    retryRead: () => setLoadAttempt((value) => value + 1),
+    retryRead: () => /* Повторяет только чтение локального журнала после ошибки, не создавая статью. */ setLoadAttempt((value) => value + 1),
   };
 }

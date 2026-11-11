@@ -1,3 +1,4 @@
+// Архив Expo. Показывает серверные агрегаты и вычисляет только сравнительную динамику месяца в UI.
 import { useState } from "react";
 import {
   Text,
@@ -16,12 +17,16 @@ const BROWN_LIGHT = "#7A6B5E";
 const ACCENT = "#8B7355";
 
 export function StatsDashboard() {
+  // Показывает серверные агрегаты и вычисляет только сравнительную динамику месяца в UI.
+
   const { data: stats, isLoading, refetch } = trpc.admin.stats.useQuery(undefined, {
     retry: 1,
   });
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = async () => {
+    // Запрашивает свежие агрегаты и снимает pull-to-refresh после результата.
+
     setRefreshing(true);
     await refetch();
     setRefreshing(false);
@@ -165,6 +170,7 @@ export function StatsDashboard() {
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,

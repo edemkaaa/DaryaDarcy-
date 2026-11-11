@@ -6,6 +6,7 @@ import { postMedia } from "../../../../packages/database/src/schema";
 import { sanitizePlainPostText } from "../../../../packages/shared/src/post-text-sanitize";
 
 /** Validate the final body inside the caller's post-write transaction, after media changes. */
+/** После всех изменений вложений в транзакции убеждаемся, что остался нормализованный текст, непустой URL фото или хотя бы одно медиа; пустой итог откатывает сохранение. */
 export async function assertPostHasBody(
   writer: Pick<MySql2Database, "select">,
   postId: number,

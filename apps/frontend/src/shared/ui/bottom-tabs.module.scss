@@ -2,6 +2,7 @@
 @use "../styles/layers";
 
 @layer elements {
+  /* Панель не сжимается и включает нижнюю safe-area; её высота резервируется в flex-оболочке. */
   .tabs {
     display: flex;
     flex-shrink: 0;
@@ -12,6 +13,7 @@
       url("/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.fe3ce71852fa6634.webp")
       center/cover;
   }
+  /* Вкладки делят ширину поровну и не расширяются от подписи благодаря min-width:0. */
   .tab {
     position: relative;
     display: flex;
@@ -27,6 +29,7 @@
     font: 10px/13px "EBGaramond-Regular";
     letter-spacing: 0.3px;
   }
+  /* Текущий маршрут и переход имеют отличимый цвет; active не дублируется в touch-press режиме. */
   .tab[aria-current] {
     color: var(--brown);
   }
@@ -34,6 +37,7 @@
   .tab:has([aria-busy="true"]) {
     color: var(--brown);
   }
+  /* Описание ожидания остаётся для screen reader, но не занимает место в строке вкладок. */
   .pendingText {
     position: absolute;
     width: 1px;
@@ -42,6 +46,7 @@
     clip-path: inset(50%);
     white-space: nowrap;
   }
+  /* Иконка и подпись имеют устойчивые размеры, чтобы переключение маршрута не двигало панель. */
   .icon {
     display: block;
     width: 22px;
@@ -57,10 +62,12 @@
     text-align: center;
     white-space: nowrap;
   }
+  /* Внутренний outline сохраняется в пределах панели и виден при навигации клавиатурой. */
   .tab:focus-visible {
     outline: 2px solid var(--brown);
     outline-offset: -2px;
   }
+  /* На узких экранах уменьшаются подписи и их line box, сохраняя полный набор вкладок. */
   @media (max-width: 359px) {
     .tab {
       font-size: 8px;

@@ -10,6 +10,8 @@ import {
 } from "../../apps/backend/src/workers/worker-operations";
 
 async function main() {
+  // Связывает настоящие scheduler, shutdown и MySQL-lock с управляемой транзакцией одноразовой БД через IPC.
+
   const app = await createBackendApplication();
   await app.listen(0, "127.0.0.1");
   const production = app.get<WorkerOperations>(WORKER_OPERATIONS);
@@ -19,9 +21,13 @@ async function main() {
   const operations: WorkerOperations = {
     ...production,
     runExclusiveJob: async (name, run) => {
+      // Разрешает только publication под настоящей общей блокировкой.
+
       if (name === "publication") await production.runExclusiveJob(name, run);
     },
     publishDueScheduledPosts: async () => {
+      // Удерживает локальную SQL-транзакцию до команды release, чтобы проверить drain перед остановкой API.
+
       const conn = await createConnection(process.env.DATABASE_URL!);
       try {
         await conn.beginTransaction();
@@ -40,6 +46,7 @@ async function main() {
     },
   };
   const jobs = new WorkerJobs(operations);
+  // Shutdown должен дождаться уже удерживаемой задачи, прекратить новые запуски и закрыть API; сигнал и release задаёт родительский тест.
   registerApiShutdown(app, app.getHttpServer(), jobs);
   process.on("message", (input: { action: string }) => {
     void (async () => {

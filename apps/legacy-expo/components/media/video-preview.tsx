@@ -1,3 +1,4 @@
+// Архив Expo. Выбирает высоту по ориентации poster/reels и платформенный player без изменения источника.
 import React, { createElement, useCallback, useEffect, useState } from "react";
 import { View, Text, Pressable, StyleSheet, Dimensions, Modal, Platform, Image as RNImage } from "react-native";
 import { Image } from "expo-image";
@@ -30,6 +31,8 @@ interface VideoPreviewProps {
 }
 
 export function VideoPreviewCard({ url, thumbnailUrl, filename, duration, topAligned }: VideoPreviewProps) {
+  // Выбирает высоту по ориентации poster/reels и платформенный player без изменения источника.
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [showFullscreen, setShowFullscreen] = useState(false);
   const [isPortrait, setIsPortrait] = useState(false);
@@ -37,6 +40,8 @@ export function VideoPreviewCard({ url, thumbnailUrl, filename, duration, topAli
   const isReel = /\/reels\//i.test(url);
 
   useEffect(() => {
+    // Получает пропорции poster асинхронно; cleanup игнорирует результат предыдущего thumbnailUrl.
+
     if (!thumbnailUrl) return;
     let cancelled = false;
     RNImage.getSize(
@@ -57,6 +62,8 @@ export function VideoPreviewCard({ url, thumbnailUrl, filename, duration, topAli
   const fitMode = isPortrait ? "contain" : "cover";
 
   const formatTime = (seconds: number) => {
+    // Преобразует секунды длительности в короткую подпись m:ss.
+
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, "0")}`;
@@ -141,16 +148,22 @@ function NativeClubVideo({
   isPortrait?: boolean;
   fitMode?: "contain" | "cover";
 }) {
+  // Делит один native player между inline и fullscreen-модалкой.
+
   const player = useVideoPlayer(url, (p: any) => {
     p.loop = false;
   });
 
   const handlePlay = useCallback(() => {
+    // Запускает текущий player и переводит карточку в играющее состояние.
+
     player.play();
     setIsPlaying(true);
   }, [player, setIsPlaying]);
 
   const handlePause = useCallback(() => {
+    // Останавливает player и возвращает карточку к preview.
+
     player.pause();
     setIsPlaying(false);
   }, [player, setIsPlaying]);
@@ -228,6 +241,7 @@ function NativeClubVideo({
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   container: {
     width: "100%",

@@ -4,17 +4,25 @@ import { editorApi, failure, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
 const coverUrl = "https://cover.example.test/ready.jpg";
+/** Различаем прежние обложки двух статей, чтобы поздний upload не мог незаметно заменить чужую форму. */
 const oldCover = (id: number) => `https://cover.example.test/old-${id}.jpg`;
+/** Адресуем текущий заголовок восстановленной либо новой статьи. */
 const title = (page: Page) => page.getByPlaceholder("Что посмотреть осенью...");
+/** Проверяем текстовый блок рядом с баннером и локальными приватными файлами. */
 const body = (page: Page) =>
   page.getByPlaceholder(
     "Абзац. Пустая строка — новый абзац. Ссылка: [название](https://...)",
   );
+/** Используем точное accessible-name, различая статус, повтор, восстановление и article-save. */
 const button = (page: Page, name: string) =>
   page.getByRole("button", { name, exact: true });
+/** Status-read сверяет прежнюю загрузку и сам по себе не публикует статью. */
 const check = (page: Page) => button(page, "Проверить загрузку баннера");
+/** Повтор upload разрешается отдельным действием после проверки прежнего исхода. */
 const retry = (page: Page) => button(page, "Повторить загрузку баннера");
+/** Восстановление возвращает snapshot статьи, которому принадлежала незавершённая обложка. */
 const restore = (page: Page) => button(page, "Восстановить загрузку баннера");
+/** Gate удерживает ответ upload независимо от последующей навигации или смены аккаунта. */
 function barrier() {
   let release!: () => void;
   const promise = new Promise<void>((resolve) => {
@@ -22,6 +30,7 @@ function barrier() {
   });
   return { promise, release };
 }
+/** Разделяем public-cover, private-file и article-write; ready-ключи, ошибки и gate позволяют проверить точную привязку receipt к owner и snapshot. */
 async function fixture(page: Page) {
   const state = {
     user: {
@@ -143,10 +152,12 @@ async function fixture(page: Page) {
   );
   return { state, raster };
 }
+/** Открываем admin-статьи через текущую сессию fixture. */
 async function open(page: Page) {
   await gotoWithSession(page, "/admin");
   await button(page, "Статьи").click();
 }
+/** Выбираем конкретную статью и ждём её подтверждённый заголовок до выбора баннера. */
 async function edit(page: Page, id: number) {
   await page
     .getByText(`COVER_ARTICLE_${id}`, { exact: true })
@@ -155,6 +166,7 @@ async function edit(page: Page, id: number) {
     .click();
   await expect(title(page)).toHaveValue(`COVER_ARTICLE_${id}`);
 }
+/** Передаём синтетический raster через настоящий filechooser, сохраняя различие нового и существующего баннера. */
 async function choose(page: Page, raster: Buffer, existing = true) {
   const chooser = page.waitForEvent("filechooser");
   await button(page, existing ? "Сменить баннер" : "Выбрать баннер").click();
@@ -162,6 +174,7 @@ async function choose(page: Page, raster: Buffer, existing = true) {
     await chooser
   ).setFiles({ name: "cover.png", mimeType: "image/png", buffer: raster });
 }
+/** Читаем durable cover-intent выбранного owner из IndexedDB, включая upload, snapshot и локальные files. */
 async function stored(page: Page, ownerId = 101) {
   return page.evaluate(
     async (owner) =>
@@ -186,6 +199,7 @@ async function stored(page: Page, ownerId = 101) {
   );
 }
 
+/** Готовый upload меняет только локальную форму; ссылка становится article-update лишь по явному сохранению. */
 test("a successful cover upload changes only the editor until an explicit article save", async ({
   page,
 }) => {
@@ -206,6 +220,7 @@ test("a successful cover upload changes only the editor until an explicit articl
   });
 });
 
+/** Восстановление обложки возвращает весь snapshot и исходные приватные байты; до article-save нет private-upload или публикации. */
 test("a lost response restores the exact new article and private file after reload without another cover upload", async ({
   page,
 }) => {
@@ -261,6 +276,7 @@ test("a lost response restores the exact new article and private file after relo
   });
 });
 
+/** missing/pending разрешают отдельный replay после status-read с теми же байтами и ключом. */
 for (const mode of ["missing", "pending"] as const)
   test(`${mode} cover retries the identical bytes and key after a status read`, async ({
     page,
@@ -285,6 +301,7 @@ for (const mode of ["missing", "pending"] as const)
     expect(state.writes).toEqual([]);
   });
 
+/** Повтор сначала сверяет status; уже готовый receipt устраняет лишний upload. */
 test("ready discovered immediately before retry avoids a duplicate cover upload", async ({
   page,
 }) => {
@@ -302,6 +319,7 @@ test("ready discovered immediately before retry avoids a duplicate cover upload"
   expect(state.writes).toEqual([]);
 });
 
+/** Неудачная сверка не снимает журнал и не разрешает слепой retry. */
 test("status failure keeps the journal and does not unlock blind retry", async ({
   page,
 }) => {
@@ -321,6 +339,7 @@ test("status failure keeps the journal and does not unlock blind retry", async (
   expect(state.uploads).toHaveLength(1);
 });
 
+/** Конфликт требует явного discard прежнего intent; только новый выбор получает новый ключ. */
 test("a conflict needs explicit discard before choosing a new cover", async ({
   page,
 }) => {
@@ -343,6 +362,7 @@ test("a conflict needs explicit discard before choosing a new cover", async ({
   expect(state.writes).toEqual([]);
 });
 
+/** Receipt с avatarApplied не принимается как public-cover и не вытесняет прежнюю обложку. */
 test("an avatar receipt is not accepted as a public cover receipt", async ({
   page,
 }) => {
@@ -357,6 +377,7 @@ test("an avatar receipt is not accepted as a public cover receipt", async ({
   expect(state.writes).toEqual([]);
 });
 
+/** Поздний upload остаётся в журнале своей статьи и может примениться только после её явного восстановления. */
 test("a delayed upload cannot replace another article's cover", async ({
   page,
 }) => {
@@ -386,6 +407,7 @@ test("a delayed upload cannot replace another article's cover", async ({
   }
 });
 
+/** Два новых черновика различаются snapshot-identity, даже когда оба ещё не имеют server-id. */
 test("a cancelled new article cannot donate its banner to a different new draft", async ({
   page,
 }) => {
@@ -409,6 +431,7 @@ test("a cancelled new article cannot donate its banner to a different new draft"
   expect(state.writes).toEqual([]);
 });
 
+/** Смена владельца изолирует и журнал, и запоздавший receipt; новый аккаунт не видит восстановление старого. */
 test("another account cannot restore or apply an old upload, including a late response", async ({
   page,
 }) => {
@@ -444,6 +467,7 @@ test("another account cannot restore or apply an old upload, including a late re
   }
 });
 
+/** Ошибка durable-put запрещает отправку байтов до фиксации upload-intent. */
 test("IndexedDB write failure prevents an upload without a durable intent", async ({
   page,
 }) => {
@@ -452,6 +476,7 @@ test("IndexedDB write failure prevents an upload without a durable intent", asyn
   await edit(page, 701);
   await page.evaluate(() => {
     const put = IDBObjectStore.prototype.put;
+    /** Quota-error касается только cover-журнала; native put сохранён для остальных БД. */
     IDBObjectStore.prototype.put = function (...args) {
       if (this.transaction.db.name === "darcy-article-covers")
         throw new DOMException("full", "QuotaExceededError");
@@ -465,6 +490,7 @@ test("IndexedDB write failure prevents an upload without a durable intent", asyn
   await expect(button(page, "Сменить баннер")).toBeEnabled();
 });
 
+/** Вторая вкладка не перезаписывает незавершённый intent первой и сначала предлагает восстановить его исходную статью. */
 test("a stale second tab cannot overwrite the first tab's durable cover intent", async ({
   page,
   context,
@@ -497,6 +523,7 @@ test("a stale second tab cannot overwrite the first tab's durable cover intent",
   }
 });
 
+/** Отказ открытия cover-storage можно перепроверить без удаления и без отправленного upload. */
 test("unavailable browser storage can be rechecked before choosing a cover", async ({
   page,
 }) => {
@@ -504,12 +531,14 @@ test("unavailable browser storage can be rechecked before choosing a cover", asy
   await page.addInitScript(() => {
     const original = IDBFactory.prototype.open;
     let fail = true;
+    /** Отказываем только cover-БД до явного снятия флага, сохраняя другие IndexedDB хранилища. */
     IDBFactory.prototype.open = function (...args) {
       if (fail && args[0] === "darcy-article-covers")
         throw new DOMException("blocked", "SecurityError");
       return original.apply(this, args);
     };
     Object.assign(window, {
+      /** Снимаем тестовый отказ открытия; повторное чтение запускается отдельно через UI. */
       allowCoverStorage: () => {
         fail = false;
       },
@@ -532,6 +561,7 @@ test("unavailable browser storage can be rechecked before choosing a cover", asy
   expect(state.writes).toEqual([]);
 });
 
+/** Creation-recovery имеет приоритет над обложкой другого draft, чтобы восстановление banner не сбросило outstanding article-operation. */
 test("pending article creation is resolved before restoring a different draft's cover", async ({
   page,
 }) => {

@@ -1,3 +1,4 @@
+// Заменяет публичную обложку «Лошадки» локальным JPEG с долгим immutable cache; исходник не удаляется.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -26,6 +27,7 @@ const client = new S3Client({
   forcePathStyle: true,
 });
 
+// Ниже начинается внешняя запись S3 по историческим фиксированным ключам; исходные объекты и ACL нужно проверить до запуска.
 await client.send(
   new PutObjectCommand({
     Bucket: env.S3_BUCKET,

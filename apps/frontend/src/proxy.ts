@@ -7,7 +7,7 @@ import { legacyClubImageStatus } from "./shared/security/legacy-club-images";
 
 const loopbackHosts = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
-/** A request-specific CSP for documents; API/media retain upstream policies. */
+/** Сначала закрываем retired/legacy пути, затем разделяем API и документы; nonce переопределяем независимо от входных заголовков клиента. */
 export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const legacyStatus = legacyClubImageStatus(request.nextUrl);
@@ -48,11 +48,7 @@ export function proxy(request: NextRequest) {
   return response;
 }
 
-/** Remote development API sees the same Origin as its deployed frontend.
- * Accept only the local frontend's own browser requests; preserve cookies and
- * the upstream's authorization checks. Production and a local HTTP API keep
- * their existing behavior.
- */
+/** Только локальному dev proxy с HTTPS upstream подменяем Origin после проверки loopback и same-origin; production не переписываем. Cookie и серверные проверки авторизации сохраняются; локальный HTTP API не затрагиваем. */
 function proxyApi(request: NextRequest) {
   const target = process.env.API_PROXY_TARGET;
   if (process.env.NODE_ENV !== "development" || !target)
@@ -79,6 +75,7 @@ function proxyApi(request: NextRequest) {
   return NextResponse.next({ request: { headers } });
 }
 
+/** Отклоняем неподходящий dev-запрос без кеширования отказа. */
 function forbidden() {
   return new NextResponse("Forbidden", {
     status: 403,

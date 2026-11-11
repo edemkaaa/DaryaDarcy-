@@ -1,3 +1,4 @@
+// Архив Expo. Проигрывает тихую native заставку и сообщает о готовности либо пятисекундном сбое один раз.
 import { useEffect, useRef } from "react";
 import { Image, Platform, View } from "react-native";
 
@@ -39,6 +40,8 @@ function NativeBootLockPaperVideo({
   onReady?: () => void;
   onFailed?: () => void;
 }) {
+  // Проигрывает тихую native заставку и сообщает о готовности либо пятисекундном сбое один раз.
+
   const readyRef = useRef(false);
   const failedRef = useRef(false);
 
@@ -48,10 +51,14 @@ function NativeBootLockPaperVideo({
   });
 
   useEffect(() => {
+    // Запускает native player после его создания.
+
     player.play();
   }, [player]);
 
   useEffect(() => {
+    // Следит за ready/error/playing, ограничивает ожидание и снимает listeners с таймером.
+
     const timeout = setTimeout(() => {
       if (!readyRef.current && !failedRef.current) {
         failedRef.current = true;
@@ -108,9 +115,13 @@ export function BootLockPaperVideo({
   onReady,
   onFailed,
 }: Props & { videoWebmUri?: string }) {
+  // Выбирает MP4 прежде WebM и переключается на статичный poster при недоступном native player.
+
   const uri = (videoMp4Uri || videoWebmUri || "").trim();
 
   useEffect(() => {
+    // Сообщает fallback при пустом URI либо недоступном native видеомодуле.
+
     if (!uri || !VideoView || !useVideoPlayer) {
       onFailed?.();
     }
@@ -133,7 +144,11 @@ export function BootLockPaperVideo({
 
 /** Native chroma canvas is not available — static lock poster as fallback. */
 export function BootLockCanvas({ width, height, onFailed }: Props) {
+  // На native заменяет недоступный chroma Canvas статичным изображением замка.
+
   useEffect(() => {
+    // Объясняет владельцу, что native chroma-анимация недоступна и показан статичный poster.
+
     onFailed?.();
   }, [onFailed]);
 

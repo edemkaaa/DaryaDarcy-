@@ -12,6 +12,8 @@ afterEach(async () => {
     await rm(directory, { recursive: true, force: true });
 });
 async function directory() {
+  // Создаёт отдельный рабочий каталог команды и регистрирует его очистку после сценария.
+
   const path = await mkdtemp(join(tmpdir(), "video-prepare-test-"));
   directories.push(path);
   return path;
@@ -27,6 +29,7 @@ const metadata = {
   format: { duration: "926" },
 };
 
+// Сценарий: Фиксированный YouTube ID даёт дорожки без перекодирования с audio и faststart.
 test("downloads only the fixed YouTube source and remuxes audio plus video without transcoding", async () => {
   const path = await directory();
   await prepareVideo(
@@ -73,6 +76,7 @@ test("downloads only the fixed YouTube source and remuxes audio plus video witho
   await assert.rejects(readFile(join(path, "source.mp4")), { code: "ENOENT" });
 });
 
+// Сценарий: Ролик без аудиодорожки не признаётся готовым воспроизводимым файлом.
 test("rejects video without sound rather than caching a false playable result", async () => {
   const path = await directory();
   await assert.rejects(
@@ -97,6 +101,7 @@ test("rejects video without sound rather than caching a false playable result", 
   );
 });
 
+// Сценарий: Ошибка команды не раскрывает подписанную внешнюю ссылку.
 test("command failure never includes upstream signed URLs in the returned error", async () => {
   const path = await directory();
   await assert.rejects(
@@ -117,6 +122,7 @@ test("command failure never includes upstream signed URLs in the returned error"
   );
 });
 
+// Сценарий: Отмена действительно завершает дочерний процесс.
 test("aborting work terminates the actual child process", async () => {
   const path = await directory();
   const controller = new AbortController();
@@ -130,6 +136,7 @@ test("aborting work terminates the actual child process", async () => {
   await assert.rejects(promise, { name: "AbortError" });
 });
 
+// Сценарий: Неограниченный stdout не может заполнить память родителя.
 test("a child cannot fill memory with unbounded stdout", async () => {
   const path = await directory();
   await assert.rejects(

@@ -3,11 +3,13 @@ import { layoutApi, gotoWithSession } from "./layout-fixtures";
 import { editorApi } from "./editor-fixtures";
 
 test.setTimeout(60_000);
+/** Выбираем единственный видимый вертикальный collection-container, исключая внутренние карусели. */
 const list = (page: Page) =>
   page.locator(
     "main .ui-scroll:not(.ui-scroll-horizontal):visible:has(.ui-collection-item, .ui-collection-row)",
   );
 
+/** Готовим сотни постов разной высоты и отдельно задерживаем comments-read; optional media позволяют проверить удержание интерактивных строк. */
 async function longListApi(
   page: Page,
   path: string,
@@ -138,6 +140,7 @@ async function longListApi(
   return commentRequests;
 }
 
+/** Догружаем через конец scroll до нужного ID; при окне96 нельзя считать длину retained-массива общим количеством достигнутых записей. */
 async function loadAll(page: Page, total = 48) {
   await expect
     .poll(
@@ -165,6 +168,7 @@ async function loadAll(page: Page, total = 48) {
     .toBe(total);
 }
 
+/** В двух размерах сохраняем reply-draft, focus и раскрытый текст за пределами viewport; «Наверх» следует именно активному list/grid. */
 for (const width of [390, 1440]) {
   test(`club retains a reply draft outside the viewport and restores keyboard focus at ${width}px`, async ({
     page,
@@ -278,6 +282,7 @@ for (const width of [390, 1440]) {
   });
 }
 
+/** Для360 постов измеряем mounted rows, общий DOM, scroll stability и по возможности Chromium heap; возвращение не должно смонтировать/прочитать весь архив. */
 for (const path of ["/feed", "/club"]) {
   test(`measured windows bound heavy DOM and preserve old posts in ${path}`, async ({
     page,
@@ -422,6 +427,7 @@ for (const path of ["/feed", "/club"]) {
   });
 }
 
+/** TTL позволяет дочитать старые комментарии, сохраняя draft ответа и прежнюю высоту строки во время медленного read. */
 test("old comment caches expire while a reply draft survives", async ({
   page,
 }) => {
@@ -466,6 +472,7 @@ test("old comment caches expire while a reply draft survives", async ({
   await expect(first.getByPlaceholder("Ваш ответ...")).toBeInViewport();
 });
 
+/** Нативный ended освобождает удерживаемую offscreen-строку: fixture — короткий audio-only WAV в video, а не проверка видео-кодека. */
 test("a completed native video releases its offscreen row and can be reopened", async ({
   page,
 }) => {
@@ -485,6 +492,7 @@ test("a completed native video releases its offscreen row and can be reopened", 
   wav.writeUInt16LE(8, 34);
   wav.write("data", 36);
   wav.writeUInt32LE(samples, 40);
+  /** Локальная WAV fixture поддерживает Range/206/416, иначе seek WebKit мог бы зависнуть и исказить проверку lifecycle. */
   await page.route("https://media.example.test/**", (route) => {
     // Seeking in WebKit requests the PCM payload after the WAV header.
     // A fixture that ignores Range stalls at readyState=2 after seeking.
@@ -630,6 +638,7 @@ test("a completed native video releases its offscreen row and can be reopened", 
   ).toBeVisible();
 });
 
+/** Повтор nextCursor останавливается после одного запроса; явный refresh дедуплицирует ID и не продолжает устаревший cursor. */
 test("feed stops a repeated cursor, deduplicates posts and retries explicitly", async ({
   page,
 }) => {
@@ -705,6 +714,7 @@ test("feed stops a repeated cursor, deduplicates posts and retries explicitly", 
   ).toHaveCount(0);
 });
 
+/** Выбранный слайд и активное аудио удерживают свои строки при windowing; возврат сохраняет индекс, а явная пауза снимает активное состояние. */
 test("windowing preserves the chosen photo and audio playback", async ({
   page,
 }) => {

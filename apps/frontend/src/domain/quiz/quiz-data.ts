@@ -1,12 +1,5 @@
 "use client";
-/** Вопросы, ответы и подсчёт результата составляют общую модель теста; экран использует её вместо собственного алгоритма. */
-/**
- * Quiz Data Layer — "Тест: Какая твоя сказка?"
- *
- * 10 questions, 7 answer options each (one per aesthetic).
- * Visual questions show images without text descriptions.
- * Layout: 3 top + 4 bottom grid.
- */
+/** Вопросы, варианты и подсчёт составляют общую модель теста; конкретная сетка задаётся данными каждого вопроса. */
 // ─── Types ───────────────────────────────────────────────────────────────────
 export type AestheticKey =
   | "cottagecore"
@@ -62,6 +55,7 @@ export interface QuizResult {
   scores: Record<AestheticKey, number>;
 }
 // ─── Image Imports ───────────────────────────────────────────────────────────
+/** Статические адреса бесплатного теста сгруппированы по визуальным вопросам; соответствие ключей баллам задаётся ниже в answers. */
 const IMAGES = {
   landscapes: {
     cottagecore: { uri: "/assets/quiz/landscapes/cottagecore.webp" },
@@ -120,6 +114,7 @@ const IMAGES = {
   chest: { uri: "/assets/quiz/chest.webp" },
 };
 // ─── Questions ───────────────────────────────────────────────────────────────
+/** Порядок вопросов и ID ответов входят в fingerprint сохранённого прогресса; последний вопрос имеет повышенный вес 3 вместо 2. */
 export const QUESTIONS: Question[] = [
   // Q1: Что ты чувствуешь? (Text)
   {
@@ -613,6 +608,7 @@ export const QUESTIONS: Question[] = [
   },
 ];
 // ─── Result Descriptions ─────────────────────────────────────────────────────
+/** Открытые описания результата доступны без подписки; они отделены от закрытых материалов полноценного гайда. */
 export const AESTHETIC_RESULTS: Record<AestheticKey, AestheticResult> = {
   cottagecore: {
     key: "cottagecore",
@@ -767,6 +763,7 @@ export const AESTHETIC_RESULTS: Record<AestheticKey, AestheticResult> = {
   },
 };
 // ─── Scoring Logic ───────────────────────────────────────────────────────────
+/** Создаём независимый набор нулевых баллов для каждого расчёта, не изменяя данные вопросов или предыдущего запуска. */
 export function createEmptyScores(): Record<AestheticKey, number> {
   return {
     cottagecore: 0,
@@ -778,6 +775,7 @@ export function createEmptyScores(): Record<AestheticKey, number> {
     lightAcademia: 0,
   };
 }
+/** Суммируем только известные ответы своих вопросов; разница лидеров до трёх баллов даёт смешанный результат, равенства сохраняют порядок ключей. */
 export function calculateResult(
   selectedAnswers: (string | null)[],
 ): QuizResult {

@@ -2,9 +2,11 @@
 import type { PrivateCommentPhoto } from "@/domain/post/private-comment-save";
 
 export type CommentPhotoPreviews = Map<string, { file: File; url: string }>;
+/** Строим локальную ссылку выбора из ключа операции, не выдавая её за адрес сохранённого файла. */
 export const commentPhotoReference = (file: PrivateCommentPhoto) =>
   `local-comment:${file.key}`;
 
+/** Сохраняем object URL только пока ключ ссылается на тот же File; заменённые и удалённые фотографии освобождаем. */
 export function syncCommentPhotoPreviews(
   urls: CommentPhotoPreviews,
   files: PrivateCommentPhoto[],
@@ -21,6 +23,7 @@ export function syncCommentPhotoPreviews(
     if (!urls.has(key)) urls.set(key, { file, url: URL.createObjectURL(file) });
   }
 }
+/** Освобождаем все object URL набора при завершении его жизненного цикла. */
 export function releaseCommentPhotoPreviews(urls: CommentPhotoPreviews) {
   for (const { url } of urls.values()) URL.revokeObjectURL(url);
   urls.clear();

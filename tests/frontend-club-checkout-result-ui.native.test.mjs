@@ -70,6 +70,8 @@ before(async () => {
       {
         name: "local-decoration-assets",
         setup(build) {
+          // Подменяет только декоративческие картинки локальной заглушкой, оставляя React и платёжный контроллер настоящими.
+
           build.onLoad({ filter: /\.(png|jpe?g|webp)$/ }, () => ({
             contents: 'export default {src:"/fixture-image"};',
             loader: "js",
@@ -84,6 +86,7 @@ before(async () => {
       "process.env.NODE_ENV": '"development"',
     },
   });
+  // HTTP-подмена управляет create/status, квотами и потерянными ответами; реальные React, Web Locks и localStorage работают внутри Chromium.
   server = createServer(async (request, response) => {
     response.setHeader("Cache-Control", "no-store");
     if (request.url === "/screen.js") {
@@ -187,6 +190,8 @@ before(async () => {
 });
 
 test("a real held writer lock is canceled before reservation when the purchase screen hides", async (t) => {
+  // Сценарий: Скрытие экрана покупки отменяет ожидание настоящего Web Lock до резервирования намерения.
+
   const page = await purchaseScreen(t);
   await page.evaluate((key) => {
     window.held = navigator.locks.request(
@@ -229,6 +234,8 @@ test("a real held writer lock is canceled before reservation when the purchase s
 });
 
 test("hidden/inactive/session/unmount cancellation fences late creation navigation and never retries", async (t) => {
+  // Сценарий: Скрытие, неактивность, смена сессии/почты и unmount блокируют позднюю навигацию без автоматических повторов.
+
   for (const kind of [
     "visibility",
     "activity",
@@ -296,6 +303,8 @@ test("hidden/inactive/session/unmount cancellation fences late creation navigati
 });
 
 test("purchase cannot start while session is unresolved; an account email remains read-only", async (t) => {
+  // Сценарий: Неразрешённая сессия запрещает покупку, email вошедшего аккаунта доступен только для чтения.
+
   const page = await purchaseScreen(t);
   await page.evaluate(() => fixture.mountPurchase(true, false));
   const form = page.getByRole("form", { name: "Тестовая покупка клуба" });
@@ -320,6 +329,8 @@ test("purchase cannot start while session is unresolved; an account email remain
 });
 
 test("fresh next-purchase proof honors quota across hiding; expiry alone cannot create or retry", async (t) => {
+  // Сценарий: Cooldown свежей проверки следующей покупки переживает скрытие; истечение срока не создаёт запрос автоматически.
+
   const page = await purchaseScreen(t, { saved: true });
   mode = "canceled";
   await page.getByRole("button", { name: "Проверить статус" }).click();
@@ -360,6 +371,8 @@ test("fresh next-purchase proof honors quota across hiding; expiry alone cannot 
 });
 
 test("a real create timeout leaves one durable key and blocks purchase until an explicit check", async (t) => {
+  // Сценарий: Таймаут create сохраняет один durable-ключ и разрешает восстановление только после явной проверки.
+
   releaseCreate = null;
   const page = await purchaseScreen(t, { state: "create-held" });
   await page.clock.install({ time: new Date("2026-10-08T00:59:00Z") });
@@ -412,6 +425,8 @@ async function purchaseScreen(
     destination = "https://yoomoney.ru/checkout/payments/fixture",
   } = {},
 ) {
+  // Подготавливает экран покупки с локальным назначением провайдера и ожидаемым состоянием сохранённого намерения.
+
   paymentUrl = destination;
   const page = await screen(t, state, { saved });
   await page.context().route("https://yoomoney.ru/**", (route) =>
@@ -431,6 +446,8 @@ async function purchaseScreen(
 }
 
 test("TEST form creates only on explicit valid submit, persists before HTTP, and opens a synthetic destination", async (t) => {
+  // Сценарий: Форма создаёт заявку лишь по корректному явному submit, сохраняет ключ до HTTP и блокирует двойной клик.
+
   const page = await purchaseScreen(t);
   const submit = page.getByRole("button", {
     name: "Создать тестовую заявку",
@@ -465,6 +482,8 @@ test("TEST form creates only on explicit valid submit, persists before HTTP, and
 });
 
 test("TEST form refuses unexpected provider URLs without navigation, retry or erasing evidence", async (t) => {
+  // Сценарий: Неожиданный платёжный URL не вызывает навигацию, повтор или удаление доказательства.
+
   for (const destination of [
     "https://elsewhere.example.test/checkout/private",
     "https://yoomoney.ru.evil.example.test/checkout/private",
@@ -497,6 +516,8 @@ test("TEST form refuses unexpected provider URLs without navigation, retry or er
 });
 
 test("failed creation preserves its key, requires a status check, and restores only the same selection explicitly", async (t) => {
+  // Сценарий: Неудачный create требует сверки статуса и восстанавливает только тот же выбор с прежним ключом.
+
   const page = await purchaseScreen(t, { state: "create-failure" });
   await page.getByLabel("Почта получателя доступа").fill("buyer@example.test");
   await page
@@ -551,6 +572,8 @@ test("failed creation preserves its key, requires a status check, and restores o
 });
 
 test("new purchase rechecks terminal proof under the old key; pending cannot rotate or create", async (t) => {
+  // Сценарий: Следующая покупка заново проверяет терминальность под старым ключом; pending не создаёт новый платёж.
+
   const page = await purchaseScreen(t, { saved: true });
   mode = "canceled";
   await page.getByRole("button", { name: "Проверить статус" }).click();
@@ -586,6 +609,8 @@ async function screen(
   state,
   { saved = true, active = true, strict = false } = {},
 ) {
+  // Создаёт отдельную страницу с запретом внешней сети и монтирует реальный экран результата.
+
   mode = state;
   calls = [];
   const context = await browser.newContext();
@@ -613,6 +638,8 @@ async function screen(
   return page;
 }
 async function unchanged(page) {
+  // Проверяет неизменность сохранённого намерения, отсутствие UUID в интерфейсе и только разрешённые POST-проверки.
+
   const key = await page.evaluate(() =>
     window.prior ? JSON.parse(window.prior).idempotencyKey : null,
   );
@@ -641,6 +668,8 @@ async function unchanged(page) {
 }
 
 test("only server-checked states render; URL success flags cannot grant access", async (t) => {
+  // Сценарий: Интерфейс показывает только подтверждённые сервером состояния, не доверяя URL-флагам успеха.
+
   for (const [state, text] of [
     ["unknown", "Результат пока неизвестен"],
     ["canceled", "Тестовая оплата отменена"],
@@ -657,6 +686,8 @@ test("only server-checked states render; URL success flags cannot grant access",
   }
 });
 test("missing evidence performs no HTTP and SSR-like initial inactive screen does not start checks", async (t) => {
+  // Сценарий: Нет сохранённого намерения или экран изначально неактивен: HTTP не начинается до явного действия.
+
   const missing = await screen(t, "succeeded", { saved: false });
   await missing
     .getByRole("status")
@@ -679,6 +710,8 @@ test("missing evidence performs no HTTP and SSR-like initial inactive screen doe
   assert.equal(calls.length, 1);
 });
 test("hidden document or retained inactive tab cancels polling and never automatically resumes", async (t) => {
+  // Сценарий: Скрытие документа либо удержанная неактивная вкладка останавливает polling без автоматического возобновления.
+
   for (const kind of ["visibility", "activity"]) {
     const page = await screen(t, "pending");
     await page
@@ -713,6 +746,8 @@ test("hidden document or retained inactive tab cancels polling and never automat
   }
 });
 test("unmount and StrictMode cleanup prevent extra polls and late rendering", async (t) => {
+  // Сценарий: Unmount и StrictMode cleanup прекращают дополнительные проверки и поздний рендер.
+
   const page = await screen(t, "pending", { strict: true });
   await page
     .getByRole("status")
@@ -726,6 +761,8 @@ test("unmount and StrictMode cleanup prevent extra polls and late rendering", as
   await unchanged(page);
 });
 test("real mode/provider retains quota cooldown across tab hides; expiry only enables explicit check", async (t) => {
+  // Сценарий: Настоящие mode/provider сохраняют quota cooldown при скрытии; срок лишь включает ручную кнопку проверки.
+
   const context = await browser.newContext();
   context.setDefaultTimeout(5000);
   t.after(() => context.close());

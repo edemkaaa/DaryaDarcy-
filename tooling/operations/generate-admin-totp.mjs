@@ -13,6 +13,7 @@ let bits = 0;
 let value = 0;
 let secret = "";
 
+// Кодирование случайных 160 бит в Base32; вывод ниже содержит секрет и не предназначен для общих логов.
 for (const byte of bytes) {
   value = (value << 8) | byte;
   bits += 8;

@@ -21,12 +21,14 @@ import { sdk } from "../apps/backend/src/_core/sdk";
 import { SessionService } from "../apps/backend/src/identity/session.service";
 import type { AppRouter } from "../apps/backend/src/routers";
 
+/** Проверяет транзакционный bulk-import видеокаталога, дедупликацию и актуальные admin-права. */
 describe.skipIf(!testDatabaseUrl)(
   "bulk video import over real HTTP/JWT/MySQL",
   () => {
     let conn: Connection;
     let app: INestApplication;
     let base: string;
+    /** Открывает одноразовую videos-схему и запускает настоящий локальный API. */
     beforeAll(async () => {
       conn = await openVideoTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -35,6 +37,7 @@ describe.skipIf(!testDatabaseUrl)(
       await app.listen(0, "127.0.0.1");
       base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
     });
+    /** Удаляет адресный fault-trigger, четыре synthetic source-ID и два аккаунта suite. */
     async function cleanup() {
       await conn.query("DROP TRIGGER IF EXISTS bulk_video_import_refusal");
       await conn.query(
@@ -42,6 +45,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       await conn.query("DELETE FROM users WHERE id IN (8460,8461)");
     }
+    /** Восстанавливает администратора, участника и уже существующую скрытую карточку. */
     beforeEach(async () => {
       await cleanup();
       await conn.query(
@@ -51,10 +55,12 @@ describe.skipIf(!testDatabaseUrl)(
         "INSERT INTO videos (youtubeId,title,videoUrl,published,sortOrder) VALUES ('bulk-http-existing','Existing title','https://example.invalid/existing.mp4',FALSE,90)",
       );
     });
+    /** Возвращает session spies и снимает fault-trigger. */
     afterEach(async () => {
       vi.restoreAllMocks();
       await conn.query("DROP TRIGGER IF EXISTS bulk_video_import_refusal");
     });
+    /** Закрывает API, удаляет fixture и соединения и возвращает окружение. */
     afterAll(async () => {
       await app?.close();
       if (conn) {
@@ -66,12 +72,14 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** Создаёт HTTP-клиент выбранной роли либо гостя. */
     function client(actor: "admin" | "member" | null = "admin") {
       return createTRPCProxyClient<AppRouter>({
         links: [
           httpLink({
             url: `${base}/api/trpc`,
             transformer: superjson,
+            /** Выпускает JWT текущего выбранного fixture-аккаунта или не передаёт сессию гостю. */
             headers: async () =>
               actor
                 ? {
@@ -82,6 +90,7 @@ describe.skipIf(!testDatabaseUrl)(
         ],
       });
     }
+    /** Читает все импортируемые metadata-поля собственных карточек в стабильном порядке source-ID. */
     async function rows() {
       const [result] = await conn.query<RowDataPacket[]>(
         "SELECT youtubeId,title,duration,thumbnailUrl,videoUrl,views,publishedText,sortOrder,published FROM videos WHERE youtubeId IN ('bulk-http-existing','bulk-http-first','bulk-http-second','bulk-http-failure') ORDER BY youtubeId",
@@ -108,6 +117,7 @@ describe.skipIf(!testDatabaseUrl)(
         },
       ],
     };
+    /** Импорт сохраняет validated metadata, осмысленные пустые строки и исходный порядок, не изменяя прежние карточки. */
     it("persists validated metadata, empty strings and input order without changing existing videos", async () => {
       const existing = (await rows())[0];
       expect(await client().admin.importVideos.mutate(input)).toEqual({
@@ -139,6 +149,7 @@ describe.skipIf(!testDatabaseUrl)(
         },
       ]);
     });
+    /** Существующие source-ID пропускаются, отсутствующие optional-поля получают null, повтор не перезаписывает metadata. */
     it("skips existing IDs and repeated imports without overwriting them", async () => {
       const before = await rows();
       const batch = {
@@ -165,6 +176,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       expect(await rows()).toEqual(saved);
     });
+    /** В одном batch сохраняется первое вхождение source-ID с исходным sortOrder. */
     it("keeps the first duplicate occurrence within one batch", async () => {
       expect(
         await client().admin.importVideos.mutate({
@@ -180,6 +192,7 @@ describe.skipIf(!testDatabaseUrl)(
         { title: "Second ID", sortOrder: 2 },
       ]);
     });
+    /** Пустая партия возвращает imported=0 без SQL-изменений. */
     it("preserves an empty batch's zero count and no writes", async () => {
       const before = await rows();
       expect(await client().admin.importVideos.mutate({ videos: [] })).toEqual({
@@ -187,6 +200,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       expect(await rows()).toEqual(before);
     });
+    /** Две конкурирующие партии за общий source-ID оставляют один полный коммит, loser откатывается и явным retry добавляет только отсутствующее. */
     it("rolls back the losing competing batch and permits a non-overwriting explicit retry", async () => {
       const existing = (await rows())[0];
       const batches = [
@@ -276,6 +290,7 @@ describe.skipIf(!testDatabaseUrl)(
         retried.find((r) => r.youtubeId === batches[loser].videos[0].youtubeId),
       ).toMatchObject(batches[loser].videos[0]);
     });
+    /** Ошибка последнего INSERT откатывает ранние строки, снятие fault допускает чистый повтор. */
     it("rolls back earlier imported rows when a later insert fails, then permits a clean retry", async () => {
       const before = await rows();
       await conn.query(`CREATE TRIGGER bulk_video_import_refusal BEFORE INSERT ON videos FOR EACH ROW
@@ -293,6 +308,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       expect(await rows()).toHaveLength(3);
     });
+    /** Гость и обычный участник не меняют каталог. */
     it.each([null, "member"] as const)(
       "refuses %s without importing",
       async (actor) => {
@@ -303,6 +319,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await rows()).toEqual(before);
       },
     );
+    /** Смена epoch, блокировка и понижение роли между session-read и SQL запрещают поздний bulk-import. */
     it.each([
       {
         change: "session revoked",

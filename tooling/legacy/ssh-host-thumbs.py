@@ -1,3 +1,4 @@
+# Передаёт прежний host-video-thumbs на сервер и запускает публичную S3-запись и UPDATE обложек каталога.
 import pathlib
 import paramiko
 
@@ -8,6 +9,7 @@ for line in (root / ".env").read_text(encoding="utf-8").splitlines():
         k, v = line.split("=", 1)
         env[k.strip()] = v.strip()
 
+# Подключение использует историческое автоматическое доверие неизвестному SSH host key; перед новым запуском требуется отдельная сверка хоста.
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 client.connect(

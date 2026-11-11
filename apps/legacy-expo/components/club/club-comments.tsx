@@ -1,3 +1,4 @@
+// Архив Expo. Берёт первую букву имени для fallback-аватара комментария.
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -36,11 +37,15 @@ interface ClubCommentsProps {
 type MenuAction = "edit" | "delete" | "report";
 
 function authorInitial(name: string | null | undefined): string {
+  // Берёт первую букву имени для fallback-аватара комментария.
+
   const trimmed = (name || "У").trim();
   return trimmed.slice(0, 1).toUpperCase();
 }
 
 function CommentAvatar({ name, avatarUrl }: { name: string | null; avatarUrl: string | null }) {
+  // Предпочитает серверный аватар и иначе показывает инициал без отдельной загрузки профиля.
+
   if (avatarUrl) {
     return <Image source={{ uri: avatarUrl }} style={styles.avatar} contentFit="cover" />;
   }
@@ -52,6 +57,8 @@ function CommentAvatar({ name, avatarUrl }: { name: string | null; avatarUrl: st
 }
 
 function linkify(text: string) {
+  // Делит plain-текст по HTTP/www ссылкам и делает только распознанные части нажимаемыми.
+
   const parts = text.split(/(https?:\/\/[^\s]+|www\.[^\s]+)/gi);
   return parts.map((part, index) => {
     if (/^(https?:\/\/|www\.)/i.test(part)) {
@@ -71,6 +78,8 @@ function linkify(text: string) {
 }
 
 function confirmDelete(onConfirm: () => void) {
+  // Подтверждает удаление комментария платформенным диалогом.
+
   if (Platform.OS === "web") {
     if (typeof window !== "undefined" && window.confirm("Удалить комментарий?")) onConfirm();
     return;
@@ -96,6 +105,8 @@ function CommentMenu({
   onClose: () => void;
   onSelect: (action: MenuAction) => void;
 }) {
+  // Показывает только разрешённые UI действия; права на сервере проверяются независимо.
+
   if (!visible) return null;
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -130,6 +141,8 @@ function CommentMenu({
 }
 
 export function ClubComments({ postId, tags, createdAt, commentCount: commentCountProp }: ClubCommentsProps) {
+  // Архивная секция читает полный список комментариев и собирает дерево; использует старые публичные uploadCommentPhoto и мутации без ключа повтора.
+
   const { isAuthenticated, user } = useAuth();
   const [text, setText] = useState("");
   const [photos, setPhotos] = useState<string[]>([]);
@@ -149,6 +162,8 @@ export function ClubComments({ postId, tags, createdAt, commentCount: commentCou
   const uploadPhoto = trpc.club.uploadCommentPhoto.useMutation();
   const add = trpc.club.addComment.useMutation({
     onSuccess: () => {
+      // Очищает composer только после успешного add и перечитывает комментарии.
+
       setText("");
       setPhotos([]);
       setReplyTo(null);
@@ -157,6 +172,8 @@ export function ClubComments({ postId, tags, createdAt, commentCount: commentCou
   });
   const update = trpc.club.updateComment.useMutation({
     onSuccess: () => {
+      // После edit закрывает локальную форму и перечитывает серверный список.
+
       setEditingId(null);
       setEditText("");
       void utils.club.comments.invalidate({ postId });
@@ -164,11 +181,15 @@ export function ClubComments({ postId, tags, createdAt, commentCount: commentCou
   });
   const remove = trpc.club.deleteComment.useMutation({
     onSuccess: () => {
+      // После delete инвалидирует только комментарии текущего поста.
+
       void utils.club.comments.invalidate({ postId });
     },
   });
   const report = trpc.club.reportComment.useMutation({
     onSuccess: () => {
+      // Подтверждает получение жалобы коротким web-уведомлением.
+
       if (Platform.OS === "web" && typeof window !== "undefined") {
         window.alert("Жалоба отправлена. Спасибо!");
       }
@@ -176,11 +197,15 @@ export function ClubComments({ postId, tags, createdAt, commentCount: commentCou
   });
   const toggleLike = trpc.club.toggleCommentLike.useMutation({
     onSuccess: () => {
+      // После toggle-like перечитывает серверные счётчики.
+
       void utils.club.comments.invalidate({ postId });
     },
   });
 
   const tree = useMemo(() => {
+    // Группирует ответы по parentId, сохраняя исходный порядок корневых записей.
+
     const rows = comments.data || [];
     const roots = rows.filter((c) => !c.parentId);
     const byParent = new Map<number, typeof rows>();
@@ -206,12 +231,16 @@ export function ClubComments({ postId, tags, createdAt, commentCount: commentCou
   const menuIsStaffOther = !!menuComment && staff && user?.id !== menuComment.userId;
 
   const openPhotoViewer = (photoList: string[], index: number) => {
+    // Передаёт выбранный набор фото и индекс отдельному viewer.
+
     setViewerPhotos(photoList);
     setViewerInitialIndex(index);
     setViewerVisible(true);
   };
 
   const handleMenuSelect = (action: MenuAction) => {
+    // Закрывает меню и делегирует edit/delete/report выбранного id соответствующей процедуре.
+
     const id = menuCommentId;
     setMenuCommentId(null);
     if (!id) return;
@@ -233,6 +262,8 @@ export function ClubComments({ postId, tags, createdAt, commentCount: commentCou
   };
 
   const pickPhotos = async () => {
+    // Ограничивает локальное число фото двумя и последовательно загружает доступные слоты через исторический маршрут.
+
     if (photos.length >= 2) return;
     try {
       setUploading(true);
@@ -272,6 +303,8 @@ export function ClubComments({ postId, tags, createdAt, commentCount: commentCou
   };
 
   const renderComment = (item: (typeof tree.roots)[number], depth = 0) => {
+    // Рекурсивно рисует ветку, inline edit, фото и действия с правами UI на текущий аккаунт.
+
     const isEditing = editingId === item.id;
     const canOpenMenu =
       isAuthenticated && (user?.id === item.userId || staff || user?.id !== item.userId);
@@ -463,6 +496,7 @@ export function ClubComments({ postId, tags, createdAt, commentCount: commentCou
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   wrap: { marginTop: 8, gap: 8 },
   countHeading: { fontSize: 15, fontFamily: "EBGaramond-SemiBold", color: BROWN },

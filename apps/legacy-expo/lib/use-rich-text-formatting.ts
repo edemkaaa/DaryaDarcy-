@@ -1,3 +1,4 @@
+// Архив Expo. Считает сегменты ссылок в richText для выбора более полного снимка перед отправкой.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
@@ -13,6 +14,8 @@ import { rangesToRichText, richTextToRanges } from "@shared/rich-text-ranges";
 import { normalizeLinkUrl } from "@/lib/photo-aspect-ratios";
 
 function countLinks(blocks: RichTextBlock[] | undefined) {
+  // Считает сегменты ссылок в richText для выбора более полного снимка перед отправкой.
+
   if (!blocks?.length) return 0;
   return blocks.reduce(
     (total, block) => total + (block.children?.filter((child) => Boolean(child.link)).length ?? 0),
@@ -21,6 +24,8 @@ function countLinks(blocks: RichTextBlock[] | undefined) {
 }
 
 export function runAfterSelectionReady(run: () => void) {
+  // На web ждёт два кадра, чтобы браузер завершил изменение selection; native выполняет сразу.
+
   if (Platform.OS === "web") {
     requestAnimationFrame(() => requestAnimationFrame(run));
     return;
@@ -44,6 +49,8 @@ export function useRichTextFormatting(
   richTextSeed?: RichTextBlock[] | null,
   onRichTextChange?: (blocks: RichTextBlock[] | undefined) => void,
 ) {
+  // Связывает plain-text, диапазоны стилей и живое выделение редактора без самостоятельной серверной записи.
+
   const [boldRanges, setBoldRanges] = useState<[number, number][]>([]);
   const [italicRanges, setItalicRanges] = useState<[number, number][]>([]);
   const [linkRanges, setLinkRanges] = useState<{ start: number; end: number; url: string }[]>([]);
@@ -65,17 +72,25 @@ export function useRichTextFormatting(
   const linkRef = useRef(linkRanges);
 
   useEffect(() => {
+    // Поддерживает ref bold синхронным с последним render-состоянием.
+
     boldRef.current = boldRanges;
   }, [boldRanges]);
   useEffect(() => {
+    // Поддерживает ref italic для отложенных обработчиков.
+
     italicRef.current = italicRanges;
   }, [italicRanges]);
   useEffect(() => {
+    // Обновляет ref ссылок, используемый без устаревшего closure.
+
     linkRef.current = linkRanges;
   }, [linkRanges]);
 
   useEffect(
     () => () => {
+    // При unmount сбрасывает локальную форму ссылки; это cleanup возвращённой функции.
+
       setLinkModalVisible(false);
       setLinkUrlInput("");
     },
@@ -89,6 +104,8 @@ export function useRichTextFormatting(
       links = linkRef.current,
       text = value,
     ) => {
+      // Преобразует актуальные диапазоны в параграфы и уведомляет владельца поля.
+
       const blocks = rangesToRichText(text, bold, italic, links);
       onRichTextChange?.(blocks);
       return blocks;
@@ -97,10 +114,14 @@ export function useRichTextFormatting(
   );
 
   useEffect(() => {
+    // Синхронизирует ref активного выделения после render.
+
     activeSelectionRef.current = activeSelection;
   }, [activeSelection]);
 
   useEffect(() => {
+    // При смене seed восстанавливает стили либо очищает их и сбрасывает якорь предыдущего текста.
+
     if (richTextSeed?.length) {
       const ranges = richTextToRanges(richTextSeed);
       setBoldRanges(ranges.boldRanges);
@@ -125,6 +146,8 @@ export function useRichTextFormatting(
 
   const syncActiveSelection = useCallback(
     (next: Selection | null) => {
+      // Обновляет ref и render-состояние выделения согласованно.
+
       activeSelectionRef.current = next;
       setActiveSelection(next);
     },
@@ -133,6 +156,8 @@ export function useRichTextFormatting(
 
   const scheduleSelectionUi = useCallback(
     (next: Selection | null) => {
+      // На web обновляет выделение сразу, на native задерживает UI на 350 мс и заменяет прошлый таймер.
+
       if (selectionUiTimerRef.current) {
         clearTimeout(selectionUiTimerRef.current);
         selectionUiTimerRef.current = null;
@@ -150,6 +175,8 @@ export function useRichTextFormatting(
   );
 
   const flushSelectionUi = useCallback(() => {
+    // Отменяет ожидающий UI-таймер и показывает последнее выделение из ref.
+
     if (selectionUiTimerRef.current) {
       clearTimeout(selectionUiTimerRef.current);
       selectionUiTimerRef.current = null;
@@ -159,6 +186,8 @@ export function useRichTextFormatting(
 
   const handleSelectionChange = useCallback(
     (next: Selection) => {
+      // Запоминает текстовый якорь диапазона, игнорируя события во время применения стиля.
+
       if (applyingFormatRef.current) return;
       selectionRef.current = next;
       const normalized = normalizeSelection(value, next);
@@ -183,11 +212,15 @@ export function useRichTextFormatting(
   );
 
   const clearFormatTarget = useCallback(() => {
+    // Снимает целевое выделение без сброса уже добавленных стилей.
+
     syncActiveSelection(null);
     selectionRef.current = { start: 0, end: 0 };
   }, [syncActiveSelection]);
 
   const syncLiveSelection = useCallback(() => {
+    // Считывает реальную web-selection до потери фокуса панели форматирования.
+
     const live = readLiveSelection(value, selectionRef.current);
     if (!live) return;
     selectionRef.current = live;
@@ -196,6 +229,8 @@ export function useRichTextFormatting(
   }, [syncActiveSelection, value]);
 
   const captureSelectionForFormat = useCallback((): Selection | null => {
+    // Предпочитает live selection и фиксирует разрешённый диапазон для следующего действия.
+
     const live = readLiveSelection(value, selectionRef.current);
     const fallback = activeSelectionRef.current ?? selectionRef.current;
     const base = live ?? (fallback ? normalizeFormatRange(value, fallback) : null);
@@ -211,6 +246,8 @@ export function useRichTextFormatting(
   }, [syncActiveSelection, value]);
 
   const notifySelectText = useCallback(() => {
+    // Показывает платформенное пояснение, если диапазон для форматирования не выбран.
+
     const message = "Сначала выделите нужный фрагмент текста";
     if (Platform.OS === "web") {
       window.alert(message);
@@ -221,6 +258,8 @@ export function useRichTextFormatting(
 
   const handleTextChange = useCallback(
     (nextText: string) => {
+      // Сдвигает стили после редактирования, восстанавливает исчезнувшие ссылки по якорю без пересечений и публикует снимок.
+
       const oldText = prevTextRef.current;
       prevTextRef.current = nextText;
       const nextBold = clampRanges(nextText, adjustRangesOnTextChange(oldText, nextText, boldRef.current));
@@ -275,6 +314,8 @@ export function useRichTextFormatting(
   );
 
   const beginToggleBold = useCallback(() => {
+    // Переключает bold в зафиксированном диапазоне и возвращает DOM-selection после публикации.
+
     flushSelectionUi();
     syncLiveSelection();
     const sel = captureSelectionForFormat();
@@ -297,10 +338,14 @@ export function useRichTextFormatting(
   }, [captureSelectionForFormat, flushSelectionUi, notifySelectText, publishRichText, syncActiveSelection, syncLiveSelection, value]);
 
   const toggleBold = useCallback(() => {
+    // Откладывает bold до готовности браузерного выделения.
+
     runAfterSelectionReady(beginToggleBold);
   }, [beginToggleBold]);
 
   const beginToggleItalic = useCallback(() => {
+    // Переключает italic в текущем диапазоне, сохраняя ссылки и позицию выделения.
+
     flushSelectionUi();
     syncLiveSelection();
     const sel = captureSelectionForFormat();
@@ -323,16 +368,22 @@ export function useRichTextFormatting(
   }, [captureSelectionForFormat, flushSelectionUi, notifySelectText, publishRichText, syncActiveSelection, syncLiveSelection, value]);
 
   const toggleItalic = useCallback(() => {
+    // Откладывает italic до готовности браузерного выделения.
+
     runAfterSelectionReady(beginToggleItalic);
   }, [beginToggleItalic]);
 
   const resolvePendingLinkRange = useCallback((): Selection | null => {
+    // Восстанавливает выделенный фрагмент ссылки по тексту и номеру его повторного вхождения.
+
     const snapshot = pendingLinkSnapshotRef.current;
     if (!snapshot) return null;
     return rangeForOccurrence(value, snapshot, pendingLinkOccurrenceRef.current);
   }, [value]);
 
   const notifyLinkOverlap = useCallback(() => {
+    // Объясняет запрет частичного пересечения новой ссылки с существующей.
+
     const message = "Новая ссылка пересекается с уже добавленной. Выделите другой фрагмент.";
     if (Platform.OS === "web") {
       window.alert(message);
@@ -343,6 +394,8 @@ export function useRichTextFormatting(
 
   const applyLink = useCallback(
     (url: string) => {
+      // Нормализует URL, проверяет пересечения и заменяет ссылку ровно разрешённого диапазона.
+
       const trimmed = url.trim();
       if (!trimmed) return;
       const normalized = normalizeLinkUrl(trimmed);
@@ -379,6 +432,8 @@ export function useRichTextFormatting(
   );
 
   const beginAddLink = useCallback(() => {
+    // Сохраняет якорь до открытия iOS prompt либо общей формы ввода URL.
+
     flushSelectionUi();
     syncLiveSelection();
     const sel = captureSelectionForFormat();
@@ -402,10 +457,14 @@ export function useRichTextFormatting(
   }, [applyLink, captureSelectionForFormat, flushSelectionUi, notifySelectText, syncLiveSelection, value]);
 
   const addLink = useCallback(() => {
+    // Запускает создание ссылки после завершения selection событий.
+
     runAfterSelectionReady(beginAddLink);
   }, [beginAddLink]);
 
   const resetFormatting = useCallback(() => {
+    // Сбрасывает диапазоны, модалку и refs, уведомляя владельца пустым richText.
+
     setBoldRanges([]);
     setItalicRanges([]);
     setLinkRanges([]);
@@ -441,6 +500,8 @@ export function useRichTextFormatting(
   const hasFormatting = Boolean(formatPreview);
 
   const syncRangesToValue = useCallback(() => {
+    // Перед чтением сдвигает refs к последнему plain-text, если callback изменения не успел синхронизировать их.
+
     const sourceText = value;
     const oldText = prevTextRef.current;
     if (oldText === sourceText) return;
@@ -469,11 +530,15 @@ export function useRichTextFormatting(
   }, [value]);
 
   const getRichTextBlocks = useCallback(() => {
+    // Возвращает richText из синхронизированных refs без изменения серверных данных.
+
     syncRangesToValue();
     return rangesToRichText(value, boldRef.current, italicRef.current, linkRef.current);
   }, [syncRangesToValue, value]);
 
   const getRichTextBlocksForSubmit = useCallback(() => {
+    // Сравнивает снимки refs/state по числу ссылок и выбирает более полный для отправки.
+
     syncRangesToValue();
     const fromRefs = rangesToRichText(value, boldRef.current, italicRef.current, linkRef.current);
     const fromState = rangesToRichText(value, boldRanges, italicRanges, linkRanges);

@@ -1,3 +1,4 @@
+/** Изолированный demo-listener проверяется настоящим локальным HTTP без сессии и выдачи клубного доступа. */
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { createHmac } from "node:crypto";
 import type { AddressInfo } from "node:net";
@@ -13,6 +14,7 @@ let disabled: INestApplication;
 let base: string;
 let offBase: string;
 
+/** Создаём enabled/disabled app с независимым snapshot настроек и синтетической HMAC-подписью. */
 beforeAll(async () => {
   vi.stubEnv("NODE_ENV", "production");
   vi.stubEnv("PUBLIC_APP_URL", "https://daryadarcy.dev.reeskeen.ru");
@@ -34,11 +36,13 @@ beforeAll(async () => {
   await disabled.listen(0, "127.0.0.1");
   offBase = `http://127.0.0.1:${(disabled.getHttpServer().address() as AddressInfo).port}`;
 });
+/** Закрываем оба приложения и возвращаем env. */
 afterAll(async () => {
   await enabled?.close();
   await disabled?.close();
   vi.unstubAllEnvs();
 });
+/** Одиночный POST позволяет менять raw body/headers/маршрут для проверки узкой boundary. */
 function notify(body = raw, headers = {}, origin = base, route = path) {
   return fetch(origin + route, {
     method: "POST",
@@ -47,6 +51,7 @@ function notify(body = raw, headers = {}, origin = base, route = path) {
   });
 }
 
+/** Корректный demo webhook подтверждает только проверку уведомления, accessGranted остаётся false. */
 it("verifies a raw notification without a session or access claim", async () => {
   const response = await notify();
   expect(response.status).toBe(200);
@@ -63,12 +68,14 @@ it("verifies a raw notification without a session or access claim", async () => 
     "default-src 'none'",
   );
 });
+/** Создание disabled app не выключает ранее настроенный enabled app. */
 it("keeps disabled composition independent of the enabled instance", async () => {
   const response = await notify(raw, {}, offBase);
   expect(response.status).toBe(503);
   expect(await response.text()).not.toContain("a".repeat(64));
   expect((await notify()).status).toBe(200);
 });
+/** Form body сохраняет поля, необходимые для той же проверенной HMAC. */
 it("preserves signed form bytes through standalone composition", async () => {
   const form =
     "currency=rub&customer_email=prodamus-demo%40example.test&demo_mode=1&domain=testpage1.payform.ru&order_id=300155&order_num=dd-demo-83be933e-a277-41f3-801d-45771c12b051&payment_status=success&sum=790.00";
@@ -80,9 +87,11 @@ it("preserves signed form bytes through standalone composition", async () => {
     ).status,
   ).toBe(200);
 });
+/** Изменённая сумма со старой подписью отвергается. */
 it("does not acknowledge a modified notification", async () => {
   expect((await notify(raw.replace("790.00", "1.00"))).status).toBe(400);
 });
+/** Body сверх64КиБ даёт413 без echo содержимого. */
 it("rejects oversized input with a generic response", async () => {
   const response = await notify("PRIVATE_BODY" + "x".repeat(65_536));
   expect(response.status).toBe(413);
@@ -90,6 +99,7 @@ it("rejects oversized input with a generic response", async () => {
     '{"error":"Invalid sandbox notification"}',
   );
 });
+/** Обычные API и похожие пути отсутствуют у ограниченного sandbox listener. */
 it.each([
   "/api/prodamus/webhook",
   "/api/prodamus/return",
@@ -104,14 +114,17 @@ it.each([
   expect(response.status).toBe(404);
   expect(response.headers.get("set-cookie")).toBeNull();
 });
+/** Подпись в GET не делает его допустимым webhook. */
 it("rejects GET as proof even with a signature", async () => {
   expect((await fetch(base + path, { headers: { Sign: sign } })).status).toBe(
     404,
   );
 });
+/** Чужой browser Origin остаётся запрещён. */
 it("preserves browser-origin rejection", async () => {
   expect((await notify(raw, { Origin: "https://evil.test" })).status).toBe(403);
 });
+/** Sandbox proof не принимает session cookie или дополнительные paid query. */
 it("rejects browser cookies and query additions", async () => {
   expect((await notify(raw, { Cookie: "session=synthetic" })).status).toBe(400);
   expect((await notify(raw, {}, base, path + "?paid=1")).status).toBe(400);

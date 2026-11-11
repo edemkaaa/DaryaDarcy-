@@ -20,6 +20,7 @@ export function getCapabilities(): LaunchCapabilities {
   } as const;
 }
 
+/** Отказываем на API-границе, если серверная возможность выключена, независимо от клиентской кнопки. */
 export function requireCapability(
   name: keyof ReturnType<typeof getCapabilities>,
 ): void {
@@ -31,6 +32,7 @@ export function requireCapability(
   }
 }
 
+/** Публикуем актуальные флаги возможностей без кеширования через совместимый Express-маршрут. */
 export function registerCapabilityRoutes(app: Express): void {
   app.get("/api/capabilities", (_req, res) => {
     res.setHeader("Cache-Control", "no-store");

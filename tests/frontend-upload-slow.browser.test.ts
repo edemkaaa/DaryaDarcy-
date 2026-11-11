@@ -75,6 +75,7 @@ beforeAll(async () => {
       },
     })
   ).outputFiles[0].text;
+  // Локальная wire-граница считает фактические байты и SHA-256 до обрыва ответа; этот прогон проверяет браузерную передачу, а не настоящее S3.
   server = createServer(async (request, response) => {
     const started = performance.now();
     const url = new URL(request.url!, "http://fixture.invalid");
@@ -176,6 +177,8 @@ afterAll(async () => {
 });
 
 async function open(context: BrowserContext) {
+  // Открывает страницу локального стенда и подключает собранный реальный транспорт загрузки.
+
   const page = await context.newPage();
   await page.goto(origin);
   await page.addScriptTag({ url: `${origin}/fixture.js` });
@@ -185,6 +188,8 @@ async function open(context: BrowserContext) {
 native(
   "32 MiB original File uploads at 10 Mbit/s and retains its receipt and exact bytes",
   async () => {
+    // Сценарий: Исходный файл 32 МиБ при 10 Мбит/с передаётся один раз, сохраняет байты и durable-квитанцию.
+
     const context = await browser!.newContext();
     try {
       uploads.length = 0;
@@ -233,9 +238,9 @@ native(
           journal,
           {
             upload: (input, signal) =>
-              client.admin.uploadPrivateContentFile.mutate(input, { signal }),
+              /* Передаёт частную загрузку из браузерного координатора в настоящий tRPC-клиент. */ client.admin.uploadPrivateContentFile.mutate(input, { signal }),
             status: (input, signal) =>
-              client.admin.privateContentFileStatus.query(input, { signal }),
+              /* Читает статус частной загрузки через тот же tRPC-клиент. */ client.admin.privateContentFileStatus.query(input, { signal }),
           },
           task,
           () => {},
@@ -294,6 +299,8 @@ for (const fault of ["before-headers", "body"] as const)
   native(
     `a lost acknowledgement (${fault}) survives reload and recovers by status without a new upload`,
     async () => {
+      // Сценарий: Обрыв до заголовков либо внутри тела восстанавливается после reload чтением статуса без нового намерения.
+
       const context = await browser!.newContext();
       try {
         uploads.length = 0;
@@ -336,11 +343,11 @@ for (const fault of ["before-headers", "body"] as const)
               journal,
               {
                 upload: (input, signal) =>
-                  client.admin.uploadPrivateContentFile.mutate(input, {
+                  /* Передаёт первичную попытку, ответ которой локальный сервер намеренно оборвёт. */ client.admin.uploadPrivateContentFile.mutate(input, {
                     signal,
                   }),
                 status: (input, signal) =>
-                  client.admin.privateContentFileStatus.query(input, {
+                  /* Читает квитанцию первичной попытки через tRPC. */ client.admin.privateContentFileStatus.query(input, {
                     signal,
                   }),
               },
@@ -392,9 +399,9 @@ for (const fault of ["before-headers", "body"] as const)
             journal,
             {
               upload: (input, signal) =>
-                client.admin.uploadPrivateContentFile.mutate(input, { signal }),
+                /* Передаёт повторную загрузку только если алгоритм восстановления явно её разрешит. */ client.admin.uploadPrivateContentFile.mutate(input, { signal }),
               status: (input, signal) =>
-                client.admin.privateContentFileStatus.query(input, { signal }),
+                /* Читает сохранённый статус после reload для восстановления без новой передачи файла. */ client.admin.privateContentFileStatus.query(input, { signal }),
             },
             task,
             () => {},

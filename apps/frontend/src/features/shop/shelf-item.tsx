@@ -16,6 +16,7 @@ import { pressableProps } from "@/shared/browser/press";
 
 import { getShopScreenContent } from "./shop-screen.content";
 import type { Product } from "./shop-screen.content";
+/** Представляем товар как отдельное действие полки; выбранные размеры могут переопределить стандартные размеры книги. */
 export function ShelfItem({
   product,
   onClick,
@@ -36,10 +37,12 @@ export function ShelfItem({
   const animatedStyle = useAnimatedStyle(() => ({
     transform: cssTransform([{ scale: scale.value }]),
   }));
+  /** Нажатие мыши слегка уменьшает иллюстрацию; touch оставляем без этой анимации, чтобы не мешать прокрутке. */
   const handlePressIn = (event: PointerEvent<HTMLButtonElement>) => {
     if (event.pointerType === "touch") return;
     scale.value = withTiming(0.93, { duration: 100 });
   };
+  /** Отпускание, отмена и выход указателя возвращают иллюстрацию к исходному масштабу. */
   const handlePressOut = () => {
     scale.value = withTiming(1, { duration: 150 });
   };

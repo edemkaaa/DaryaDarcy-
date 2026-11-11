@@ -2,6 +2,7 @@
 @use "../styles/layers";
 
 @layer elements {
+  /* Общая рамка задаёт скругление и clip, не привязывая исходный ролик к жёсткой высоте. */
   .portraitFrame {
     width: 100%;
     border-radius: 12px;
@@ -11,6 +12,7 @@
     width: 100%;
     height: 100%;
   }
+  /* Встроенный вариант карточки может сохранять только верхние углы; это отдельные классы оформления. */
   .borderTopLeftRadiusState {
     border-top-left-radius: 16px;
   }
@@ -27,6 +29,7 @@
     border-bottom-right-radius: 0;
   }
 
+  /* Варианты отступа и подложки согласуют медиаблок с текстом поста до и после запуска. */
   .marginTopState {
     margin-top: 0;
   }

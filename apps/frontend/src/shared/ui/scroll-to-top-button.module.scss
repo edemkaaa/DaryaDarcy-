@@ -2,6 +2,7 @@
 @use "../styles/layers";
 
 @layer elements {
+  /* Кнопка закреплена над нижним меню и служебным notice, используя общие токены clearance. */
   .div {
     position: absolute;
     bottom: calc(
@@ -12,6 +13,7 @@
     z-index: 99;
   }
 
+  /* Постоянный круг 44px сохраняет область нажатия; масштаб и opacity ниже не меняют layout. */
   .btnPressed {
     width: 44px;
     height: 44px;

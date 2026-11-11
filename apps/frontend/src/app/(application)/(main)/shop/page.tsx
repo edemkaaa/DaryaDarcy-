@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import Screen from "@/features/shop/shop-screen";
 export const metadata: Metadata = { title: "Магазин" };
+/** Показываем статическую витрину; оформление заказа делегируется карточке выбранного товара. */
 export default function Page() {
   return <Screen />;
 }

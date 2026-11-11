@@ -3,6 +3,7 @@ import type { ViewportSize } from "@/shared/browser/viewport";
 
 import { getClubSubscribedContent } from "./club-subscribed.content";
 
+/** Сохраняем пропорции уже подготовленного баннера; до известных размеров используем прежнюю высоту-запас. */
 export function getClubSubscribedLayout(
   viewport: ViewportSize,
   bannerSize?: { width: number; height: number } | null,

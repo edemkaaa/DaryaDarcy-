@@ -1,3 +1,4 @@
+/** Клиентский TEST return-check использует только dedicated fragment и строгий state DTO; fetch/часы управляются локально. */
 import { afterEach, expect, it, vi } from "vitest";
 import {
   readProdamusReturnToken,
@@ -14,14 +15,17 @@ const succeeded = {
   nextAction: "setup",
   emailStatus: "pending",
 };
+/** Возвращаем fetch и реальные таймеры. */
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.useRealTimers();
 });
 
+/** Принимаем только отдельный paymentReturn fragment заданного формата. */
 it("extracts the order reference only from its dedicated return fragment", () => {
   expect(readProdamusReturnToken(`#paymentReturn=${token}`)).toBe(token);
 });
+/** Paid/token/query/дубли/посторонний префикс не становятся proof. */
 it.each([
   "",
   "#paid=1",
@@ -39,6 +43,7 @@ it.each([
   },
 );
 
+/** Проверяем POST body/key и omit/error/no-store/no-referrer параметры целиком. */
 it("reads the exact result endpoint without cookies, redirects or caching", async () => {
   const fetcher = vi.fn(async () => new Response(JSON.stringify(pending)));
   vi.stubGlobal("fetch", fetcher);
@@ -62,6 +67,7 @@ it("reads the exact result endpoint without cookies, redirects or caching", asyn
     }),
   );
 });
+/** Unknown/pending/succeeded и отдельный emailStatus не подменяются локальной догадкой. */
 it.each([
   pending,
   { state: "unknown", nextAction: null, emailStatus: null },
@@ -77,6 +83,7 @@ it.each([
     ).resolves.toEqual(value);
   },
 );
+/** Ответ с user, лишними полями или недопустимыми state/mail/action отвергается. */
 it.each([
   null,
   {},
@@ -92,6 +99,7 @@ it.each([
     readProdamusReturnResult(token, new AbortController().signal),
   ).rejects.toMatchObject({ kind: "invalid-response" });
 });
+/** 503 сохраняется как безопасная ошибка после одной попытки без private body. */
 it("does not expose a server error body or retry a refused request", async () => {
   const fetcher = vi.fn(
     async () => new Response("PRIVATE_DETAIL", { status: 503 }),
@@ -105,6 +113,7 @@ it("does not expose a server error body or retry a refused request", async () =>
   });
   expect(fetcher).toHaveBeenCalledTimes(1);
 });
+/** Повреждённый proof останавливается до fetch. */
 it("refuses an invalid reference before any request", async () => {
   const fetcher = vi.fn();
   vi.stubGlobal("fetch", fetcher);
@@ -113,6 +122,7 @@ it("refuses an invalid reference before any request", async () => {
   ).rejects.toMatchObject({ kind: "invalid-response" });
   expect(fetcher).not.toHaveBeenCalled();
 });
+/** Общий15сек deadline распространяется и на зависший json(), освобождая timer. */
 it("bounds reading a hung response body", async () => {
   vi.useFakeTimers();
   vi.stubGlobal("fetch", async () => ({
@@ -126,6 +136,7 @@ it("bounds reading a hung response body", async () => {
   await rejected;
   expect(vi.getTimerCount()).toBe(0);
 });
+/** Abort caller прекращает ожидание fetch, даже если transport не отвечает. */
 it("cancels without accepting a late payment response", async () => {
   vi.stubGlobal("fetch", () => new Promise(() => {}));
   const controller = new AbortController();
@@ -136,6 +147,7 @@ it("cancels without accepting a late payment response", async () => {
   await rejected;
 });
 
+/** Succeeded заканчивает polling после одного status read, не создаёт новый checkout. */
 it("stops after a verified order rather than requesting another payment", async () => {
   const fetcher = vi.fn(async () => new Response(JSON.stringify(succeeded)));
   vi.stubGlobal("fetch", fetcher);
@@ -144,6 +156,7 @@ it("stops after a verified order rather than requesting another payment", async 
   ).resolves.toEqual(succeeded);
   expect(fetcher).toHaveBeenCalledTimes(1);
 });
+/** Finite campaign делает максимум6serial reads за30сек и сохраняет pending, не выдумывая успех. */
 it("stops pending polling within six serial reads", async () => {
   vi.useFakeTimers();
   const fetcher = vi.fn(async () => new Response(JSON.stringify(pending)));
@@ -154,6 +167,7 @@ it("stops pending polling within six serial reads", async () => {
   expect(fetcher).toHaveBeenCalledTimes(6);
   expect(vi.getTimerCount()).toBe(0);
 });
+/** 429 останавливает campaign, сохраняя Retry-After для явного действия пользователя. */
 it("does not poll errors, including rate limiting", async () => {
   const fetcher = vi.fn(
     async () =>

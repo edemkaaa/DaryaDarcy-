@@ -2,6 +2,7 @@
 @use "../../shared/styles/layers";
 
 @layer components {
+  /* Выступающий декор шапки остаётся ниже карточек; минимальная высота удерживает место при загрузке и ошибке. */
   .headerSection {
     align-items: center;
     padding-top: 4px;
@@ -41,6 +42,7 @@
     z-index: 3;
   }
 
+  /* Ветви позиционируются внутри шапки, левая зеркалируется без изменения исходного ресурса. */
   .roseLeft {
     position: absolute;
     left: -20px;
@@ -60,6 +62,7 @@
     z-index: 1;
   }
 
+  /* Карточка ограничивает обложку скруглением и отделяет подпись от слоя изображения. */
   .action {
     margin-left: 20px;
     margin-right: 20px;
@@ -77,6 +80,7 @@
     border-top-right-radius: 16px;
   }
 
+  /* Дозагрузка имеет мобильную область нажатия и ограничение ширины относительно списка. */
   .loadMore {
     align-self: center;
     width: fit-content;
@@ -99,6 +103,7 @@
     height: 100%;
   }
 
+  /* Сообщение о недоступной обложке лежит поверх превью и не блокирует открытие ролика. */
   .thumbnailUnavailable {
     position: absolute;
     bottom: 8px;
@@ -108,6 +113,7 @@
     pointer-events: none;
   }
 
+  /* Длительность закреплена в углу; табличные цифры предотвращают скачок ширины чисел. */
   .durationBadge {
     position: absolute;
     bottom: 8px;
@@ -127,6 +133,7 @@
     font-variant-numeric: tabular-nums;
   }
 
+  /* Иконка запуска центрируется поверх картинки, не меняя размер самой карточки. */
   .playOverlay {
     position: absolute;
     top: 0;
@@ -172,6 +179,7 @@
     padding: clamp(8px, 3dvh, 24px) 24px;
   }
 
+  /* Состояние запроса заполняет остаток viewport при той же шапке; технический spacer убирается из высоты. */
   .collectioncontent {
     padding-top: 4px;
     margin-top: -16px;

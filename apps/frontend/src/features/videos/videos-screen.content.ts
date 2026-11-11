@@ -14,6 +14,7 @@ export const ROSE_TOP = 18;
 export const ROSE_INSET = -20;
 export const HEADER_MIN_HEIGHT = ROSE_TOP + ROSE_H - 16;
 
+/** Вычисляем ширину карточки после горизонтальных отступов и высоту её постера 16:9. */
 export function getVideosScreenContent(viewport: ViewportSize) {
   const { width: SCREEN_WIDTH } = viewport;
   const CARD_WIDTH = SCREEN_WIDTH - CARD_H_PADDING * 2;

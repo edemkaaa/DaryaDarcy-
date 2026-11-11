@@ -46,11 +46,13 @@ const legacy = [
   "videos",
 ];
 
+/** Репетирует перенос synthetic legacy29 в отдельную fresh-кандидат БД с сохранением identity и истории миграций. */
 describe.skipIf(!sourceUrl || !targetUrl || !sourceId || !targetId)(
   "candidate transfer with native fresh42 and a synthetic legacy29 source",
   () => {
     let source: Connection, target: Connection, sourceAdmin: Connection;
     let passwordHash: string;
+    /** Проверяет loopback-порт, полный container ID, owner-label, tmpfs и отсутствие mounts до доступа к rehearsal БД. */
     async function guard(id: string, uri: string) {
       const url = assertTestDatabase(uri);
       expect(url.hostname).toBe("127.0.0.1");
@@ -72,9 +74,11 @@ describe.skipIf(!sourceUrl || !targetUrl || !sourceId || !targetId)(
         { HostIp: "127.0.0.1", HostPort: url.port },
       ]);
     }
+    /** Читает выбранный source или target с точными датами, JSON и большими числами для сравнения переноса. */
     async function rows(c: Connection, sql: string, values: unknown[] = []) {
       return (await c.query<RowDataPacket[]>(sql, values))[0];
     }
+    /** Считает все прикладные строки legacy-набора в target для проверки полного rollback. */
     async function applicationCount() {
       let count = 0;
       for (const name of legacy)
@@ -83,6 +87,7 @@ describe.skipIf(!sourceUrl || !targetUrl || !sourceId || !targetId)(
         );
       return count;
     }
+    /** Проверяет разные пустые owned-контейнеры, мигрирует target и строит synthetic legacy-source с прежними колонками. */
     beforeAll(async () => {
       expect(sourceId).not.toBe(targetId);
       expect(sourceUrl).not.toBe(targetUrl);
@@ -158,9 +163,11 @@ describe.skipIf(!sourceUrl || !targetUrl || !sourceId || !targetId)(
         "INSERT INTO access_email_outbox(id,eventKey,userId,email,kind,payload) VALUES(8,'synthetic-transfer',1,'native-admin@example.test','password-reset',JSON_OBJECT('encrypted','opaque-fixture-not-real-ciphertext'))",
       );
     }, 60000);
+    /** Закрывает source, target и отдельное административное fixture-соединение. */
     afterAll(async () => {
       await Promise.all([source?.end(), target?.end(), sourceAdmin?.end()]);
     });
+    /** Перенос не стартует в непустой candidate и сохраняет sentinel-аккаунт target. */
     it("refuses a nonempty target without changing an existing account", async () => {
       await target.query(
         "INSERT INTO users(id,openId,role) VALUES(999,'target-existing','user')",
@@ -179,6 +186,7 @@ describe.skipIf(!sourceUrl || !targetUrl || !sourceId || !targetId)(
         await target.query("DELETE FROM users WHERE id=999");
       }
     });
+    /** Нормализованный identity-конфликт откатывает всю копию без password/hash/email в ошибке. */
     it("rolls back all copied rows on a target identity conflict without leaking row values", async () => {
       await sourceAdmin.query(
         "INSERT INTO users(id,openId,email) VALUES(2,'duplicate-fixture','NATIVE-ADMIN@example.test')",
@@ -197,6 +205,7 @@ describe.skipIf(!sourceUrl || !targetUrl || !sourceId || !targetId)(
         await sourceAdmin.query("DELETE FROM users WHERE id=2");
       }
     });
+    /** Копия сохраняет hash пароля, sessionVersion, подписку, тексты и journals, добавляя новые default-колонки без подмены истории. */
     it("copies legacy rows, preserves password/session/subscription fields and keeps migration history", async () => {
       const result = await transfer.copyCandidateData?.(source, target);
       expect(
@@ -260,6 +269,7 @@ describe.skipIf(!sourceUrl || !targetUrl || !sourceId || !targetId)(
         ),
       ).toBeGreaterThanOrEqual(950);
     });
+    /** Source остаётся read-only, а повторный перенос в заполненный target отклоняется без изменения обоих наборов. */
     it("leaves the source connection read-only and refuses replay into the populated candidate", async () => {
       await expect(
         source.query("UPDATE users SET name=name WHERE id=-1"),

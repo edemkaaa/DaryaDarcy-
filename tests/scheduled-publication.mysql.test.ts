@@ -13,10 +13,12 @@ import { openContentTestDatabase } from "./helpers/content-mysql";
 import { getDb, publishDueScheduledPosts } from "../apps/backend/src/db";
 
 type Publications = Awaited<ReturnType<typeof publishDueScheduledPosts>>;
+/** Проверяет единственного владельца перехода scheduled в published при параллельных worker и rollback партии. */
 describe.skipIf(!testDatabaseUrl)(
   "scheduled publication ownership on disposable MySQL",
   () => {
     let conn: Connection;
+    /** Открывает content-схему и получает общий lock фикстур ручной и отложенной публикации. */
     beforeAll(async () => {
       conn = await openContentTestDatabase();
       // Share fixture ownership with manual publication tests, not worker locks.
@@ -26,9 +28,11 @@ describe.skipIf(!testDatabaseUrl)(
       expect(locks[0].acquired).toBe(1);
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
     }, 35_000);
+    /** Удаляет только шесть постов собственного публикационного диапазона. */
     async function cleanup() {
       await conn.query("DELETE FROM posts WHERE id BETWEEN 11201 AND 11206");
     }
+    /** Восстанавливает due, future, draft, scheduled без даты и уже опубликованные варианты. */
     beforeEach(async () => {
       await cleanup();
       await conn.query(`INSERT INTO posts
@@ -40,6 +44,7 @@ describe.skipIf(!testDatabaseUrl)(
       (11205,'Unscheduled',JSON_ARRAY(),JSON_ARRAY(),'scheduled',FALSE,'feed',NULL,NULL),
       (11206,'Already public',JSON_ARRAY(),JSON_ARRAY(),'published',TRUE,'feed','2026-01-01 00:00:00',NULL)`);
     });
+    /** Удаляет собственные посты, закрывает соединения и возвращает окружение. */
     afterAll(async () => {
       await cleanup();
       await conn?.end();
@@ -49,6 +54,7 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** Читает сохранённый статус, published и точную строковую дату собственной партии. */
     async function snapshot() {
       const [rows] = await conn.query<
         RowDataPacket[]
@@ -57,6 +63,7 @@ describe.skipIf(!testDatabaseUrl)(
       FROM posts WHERE id BETWEEN 11201 AND 11206 ORDER BY id`);
       return rows;
     }
+    /** Считает реальные ожидания блокировки строк posts через performance_schema. */
     async function waitingWorkers() {
       const [rows] = await conn.query<RowDataPacket[]>(`SELECT COUNT(*) n
       FROM performance_schema.data_lock_waits w
@@ -64,6 +71,7 @@ describe.skipIf(!testDatabaseUrl)(
       WHERE b.OBJECT_SCHEMA=DATABASE() AND b.OBJECT_NAME='posts'`);
       return Number(rows[0].n);
     }
+    /** Возвращаются только новые due-переходы с правильными target и датами; повторный tick пуст. */
     it("returns only due transitions and preserves publication dates and target", async () => {
       expect(
         (await publishDueScheduledPosts()).sort((a, b) => a.id - b.id),
@@ -91,6 +99,7 @@ describe.skipIf(!testDatabaseUrl)(
       ]);
       expect(await publishDueScheduledPosts()).toEqual([]);
     });
+    /** Два worker и дополнительный tick объявляют каждый переход единожды, в том числе при занятой строке. */
     it("two workers and the next tick return each publication only once", async () => {
       const guard = await openTestDatabase();
       const finished = [false, false];
@@ -134,6 +143,7 @@ describe.skipIf(!testDatabaseUrl)(
         await guard.end();
       }
     });
+    /** Снятый под блокировкой scheduled-пост не публикуется и не попадает в возвращаемую партию уведомлений. */
     it("does not announce a draft withdrawn while its row is locked", async () => {
       await conn.query("UPDATE posts SET status='draft' WHERE id=11202");
       const guard = await openTestDatabase();
@@ -169,6 +179,7 @@ describe.skipIf(!testDatabaseUrl)(
         await guard.end();
       }
     });
+    /** Сбой второй строки откатывает всю claimed-партию, а после удаления триггера повтор публикует обе. */
     it("rolls back the entire claimed batch when publication fails, then retries", async () => {
       const before = await snapshot();
       await conn.query(`CREATE TRIGGER backend_test_scheduled_failure BEFORE UPDATE ON posts FOR EACH ROW

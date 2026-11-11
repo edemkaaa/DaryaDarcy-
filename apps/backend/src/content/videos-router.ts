@@ -5,6 +5,7 @@ import type { ContentReadService } from "./content-read.service";
 import { videoCatalog, videoPlayback } from "./vk-catalog";
 const id = z.number().int().positive().safe();
 
+/** Связываем строгие tRPC-контракты карточек и отдельного воспроизведения с серверной проверкой доступа; обложки включаются явно для совместимости, старые YouTube-процедуры сохраняются. */
 export const createVideosRouter = (content: ContentReadService) =>
   router({
     publicYoutubeState: publicProcedure

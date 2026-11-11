@@ -1,3 +1,4 @@
+// Создаёт прежнюю схему комментариев из SQL-файла без актуального preflight.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,6 +13,7 @@ for (const line of fs.readFileSync(path.join(root, ".env"), "utf8").split(/\r?\n
 }
 
 const sql = fs.readFileSync(path.join(root, "drizzle", "0011_post_comments.sql"), "utf8");
+// С этого места выбранная БД реально изменяется; текущая история и рабочее назначение автоматически не проверены.
 const conn = await mysql.createConnection(env.DATABASE_URL.replace(/\r/g, "").trim());
 await conn.query(sql);
 console.log("post_comments table ready");

@@ -1,3 +1,4 @@
+// Архив Expo. Удаляет последнюю описательную часть после известного разделителя, оставляя название.
 const DESCRIPTION_SEPARATORS = [" — ", " – ", " - "] as const;
 
 /**
@@ -5,6 +6,8 @@ const DESCRIPTION_SEPARATORS = [" — ", " – ", " - "] as const;
  * a trailing description after an em/en dash (e.g. films, books).
  */
 export function stripInspirationDescription(entry: string): string {
+  // Удаляет последнюю описательную часть после известного разделителя, оставляя название.
+
   const trimmed = entry.trim();
   if (!trimmed) return trimmed;
 
@@ -26,5 +29,7 @@ export function stripInspirationDescription(entry: string): string {
 }
 
 export function formatInspirationList(items: string[]): string {
+  // Нормализует названия и соединяет список в строку без описаний.
+
   return items.map(stripInspirationDescription).join(", ");
 }

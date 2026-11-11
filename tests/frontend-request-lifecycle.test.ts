@@ -13,12 +13,14 @@ import {
   shouldRetryQuery,
 } from "../apps/frontend/src/shared/api/errors";
 
+/** Возвращает таймеры и globals и отменяет запросы текущего поколения сессии после сценария. */
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
   cancelSessionRequests();
 });
 
+/** Не отправляет cookie при явно sessionless запросе результата оплаты. */
 it("omits credentials for a sessionless payment-result request", async () => {
   const fetcher = vi.fn(async () => new Response("pending"));
   vi.stubGlobal("fetch", fetcher);
@@ -35,6 +37,7 @@ it("omits credentials for a sessionless payment-result request", async () => {
   );
 });
 
+/** По умолчанию сохраняет отправку сессионных cookie для обычного API. */
 it("still includes session cookies by default", async () => {
   const fetcher = vi.fn(async () => new Response("member"));
   vi.stubGlobal("fetch", fetcher);
@@ -45,6 +48,7 @@ it("still includes session cookies by default", async () => {
   );
 });
 
+/** Сохраняет общий дедлайн запроса при наличии пользовательского сигнала отмены. */
 it("times out even when the caller supplies a cancellation signal", async () => {
   vi.useFakeTimers();
   vi.stubGlobal(
@@ -63,6 +67,7 @@ it("times out even when the caller supplies a cancellation signal", async () => 
   expect(vi.getTimerCount()).toBe(0);
 });
 
+/** Отменяет запросы старой сессии даже при fetch, игнорирующем abort. */
 it("cancels requests from an old session even if fetch ignores abort", async () => {
   vi.stubGlobal(
     "fetch",
@@ -74,11 +79,12 @@ it("cancels requests from an old session even if fetch ignores abort", async () 
   await rejected;
 });
 
+/** Не снимает дедлайн после получения заголовков, пока чтение body ещё зависло. */
 it("keeps the deadline active while reading a response body", async () => {
   vi.useFakeTimers();
   vi.stubGlobal(
     "fetch",
-    vi.fn(async () => ({ text: () => new Promise(() => {}) })),
+    vi.fn(async () => ({ /** Имитирует бесконечно ожидающее чтение body отдельно от уже завершившегося fetch. */ text: () => new Promise(() => {}) })),
   );
   const rejected = expect(
     runApiRequest("/api/test", {}, (r) => r.text(), 25),
@@ -87,6 +93,7 @@ it("keeps the deadline active while reading a response body", async () => {
   await rejected;
 });
 
+/** Заменяет внутреннее сообщение ошибки сервера безопасным пользовательским пояснением. */
 it("does not expose internal messages on server errors", async () => {
   vi.stubGlobal(
     "fetch",
@@ -103,6 +110,7 @@ it("does not expose internal messages on server errors", async () => {
   });
 });
 
+/** Не превращает повреждённый ответ сессии в подтверждённого гостя или пользователя. */
 it.each([null, {}, { user: { id: 1 } }, { user: { id: -1 } }])(
   "rejects malformed session data: %j",
   async (data) => {
@@ -114,6 +122,7 @@ it.each([null, {}, { user: { id: 1 } }, { user: { id: -1 } }])(
   },
 );
 
+/** Не принимает ok:false регистрации за успешное завершение. */
 it("does not treat an unsuccessful registration body as success", async () => {
   vi.stubGlobal(
     "fetch",
@@ -127,6 +136,7 @@ it("does not treat an unsuccessful registration body as success", async () => {
   });
 });
 
+/** Извлекает Retry-After из 429 без повторной отправки mutation. */
 it("reads Retry-After without retrying a mutation", async () => {
   const fetcher = vi.fn(
     async () =>
@@ -140,6 +150,7 @@ it("reads Retry-After without retrying a mutation", async () => {
   expect(fetcher).toHaveBeenCalledTimes(1);
 });
 
+/** Сохраняет статус настоящей tRPC-ошибки транспорта и скрывает внутренние детали. */
 it("normalizes real tRPC transport errors without discarding their status", async () => {
   const { createTRPCClient } =
     await import("../apps/frontend/src/shared/api/trpc");
@@ -179,6 +190,7 @@ const privateUploadCalls = [
   ["query", "club.privateCommentPhotoStatus"],
 ] as const;
 
+/** Для приватной загрузки и status объясняет 404/413 без повторов и раскрытия внутренней диагностики. */
 it.each(
   privateUploadCalls.flatMap(([method, path]) =>
     [404, 413].map((status) => ({ method, path, status })),
@@ -225,6 +237,7 @@ it.each(
   },
 );
 
+/** Сохраняет исходный HTTP 404/413, даже когда body не имеет формата tRPC. */
 it.each([404, 413])(
   "preserves a plain HTTP %s refusal before tRPC parsing",
   async (status) => {
@@ -251,6 +264,7 @@ it.each([404, 413])(
   },
 );
 
+/** Не подменяет обычный 404 материала сообщением о доступности загрузок. */
 it("keeps ordinary content 404 responses separate from upload availability", async () => {
   const { createTRPCClient } =
     await import("../apps/frontend/src/shared/api/trpc");
@@ -281,6 +295,7 @@ it("keeps ordinary content 404 responses separate from upload availability", asy
   });
 });
 
+/** Принимает только допустимую целую задержку Retry-After и не переносит приватные заголовки провайдера. */
 it.each(["45", "0", "-1", "1.5", "invalid", "99999999999999999999"])(
   "tRPC preserves only valid Retry-After delay, without provider response metadata (%s)",
   async (header) => {
@@ -323,6 +338,7 @@ it.each(["45", "0", "-1", "1.5", "invalid", "99999999999999999999"])(
   },
 );
 
+/** Уже отменённый caller не запускает fetch и получает признак отмены. */
 it("preserves cancellation from an already-aborted caller", async () => {
   const controller = new AbortController();
   controller.abort();
@@ -334,6 +350,7 @@ it("preserves cancellation from an already-aborted caller", async () => {
   expect(fetcher).not.toHaveBeenCalled();
 });
 
+/** Не подтверждает выход, если сервер явно вернул ok:false. */
 it("does not confirm logout when the response explicitly rejects it", async () => {
   const { logout } = await import("../apps/frontend/src/shared/api/auth");
   vi.stubGlobal(

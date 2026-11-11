@@ -1,7 +1,7 @@
 /** Ошибки закрытых загрузок преобразуем в понятные сообщения без перехода на публичный маршрут. */
 import { getHttpStatus } from "./errors";
 
-/** A rejected upload is not evidence that an earlier attempt did not commit. */
+/** Специальные 404/413 объясняют текущий отказ загрузки; они не отменяют ранее отправленную попытку с тем же ключом. */
 export function privateUploadRejectionMessage(error: unknown): string | null {
   switch (getHttpStatus(error)) {
     case 404:

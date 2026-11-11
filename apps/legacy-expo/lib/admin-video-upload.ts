@@ -1,3 +1,4 @@
+// Архив Expo. Получает Blob web-источника либо целиком декодирует native Base64; не является потоковой загрузкой.
 import { Platform } from "react-native";
 import { getApiBaseUrl } from "@/constants/oauth";
 import * as Auth from "@/lib/_core/auth";
@@ -6,6 +7,8 @@ const MAX_VIDEO_BYTES = 80 * 1024 * 1024;
 const UPLOAD_TIMEOUT_MS = 3 * 60 * 1000;
 
 async function uriToBlob(uri: string, mimeType?: string): Promise<Blob> {
+  // Получает Blob web-источника либо целиком декодирует native Base64; не является потоковой загрузкой.
+
   if (Platform.OS === "web" || /^(blob:|data:|https?:)/i.test(uri)) {
     const response = await fetch(uri);
     if (!response.ok) throw new Error("Не удалось прочитать видеофайл");
@@ -26,6 +29,8 @@ async function uriToBlob(uri: string, mimeType?: string): Promise<Blob> {
 }
 
 export async function uploadAdminVideoBlob(blob: Blob, filename: string): Promise<string> {
+  // Проверяет 80 МиБ и отправляет raw body старому upload-video с таймаутом; ключа идемпотентности здесь нет.
+
   if (blob.size > MAX_VIDEO_BYTES) {
     throw new Error("Видео больше 80 МБ. Сожмите ролик или загрузите более короткий файл.");
   }
@@ -83,6 +88,8 @@ export async function uploadAdminVideoFromUri(
   filename: string,
   mimeType?: string,
 ): Promise<string> {
+  // Читает URI, уточняет MIME при необходимости и передаёт Blob общему uploader.
+
   const blob = await uriToBlob(uri, mimeType);
   const typed = mimeType && (!blob.type || blob.type === "application/octet-stream")
     ? new Blob([blob], { type: mimeType })

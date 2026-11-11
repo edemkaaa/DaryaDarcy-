@@ -25,6 +25,7 @@ import {
   BROWN_TEXT,
   SWIPE_QUESTION_IDS,
 } from "./quiz-question.content";
+/** Разбираем только локальные маркеры жирного и курсива в тексте ответа; фрагменты остаются React-текстом без вставки HTML. */
 function RichAnswerText({
   text,
   color,
@@ -84,6 +85,7 @@ function RichAnswerText({
     </Typography>
   );
 }
+/** Выбираем визуальный слайдер, сетку или текст по данным вопроса; сохранение и последовательность переходов делегированы потоку. */
 export function QuizQuestion() {
   const viewport = useViewport();
   const { stylesLayout } = getQuizQuestionLayout(viewport);
@@ -98,6 +100,7 @@ export function QuizQuestion() {
     question.type === "visual" && SWIPE_QUESTION_IDS.includes(question.id);
   const isGridQuestion =
     question.type === "visual" && !SWIPE_QUESTION_IDS.includes(question.id);
+  /** Прикрепляем индекс вопроса к ответу, чтобы очередь смогла отклонить запоздалое нажатие. */
   const handleSelect = useCallback(
     (answerId: string) => {
       dispatch({
@@ -108,13 +111,16 @@ export function QuizQuestion() {
     },
     [state.currentQuestion, dispatch],
   );
+  /** Просим поток применить следующий шаг после проверки сохранённого ответа. */
   const handleNext = useCallback(() => {
     dispatch({ type: "NEXT_QUESTION" });
   }, [dispatch]);
+  /** Возвращаемся к предыдущему вопросу через ту же последовательную очередь действий. */
   const handlePrev = useCallback(() => {
     dispatch({ type: "PREV_QUESTION" });
   }, [dispatch]);
   const progress = (state.currentQuestion + 1) / QUESTIONS.length;
+  /** Запоминаем видимый индекс карусели; выбор ответа выполняется отдельным нажатием, а не самим листанием. */
   const onVisibleItemsChange = useCallback(
     ({ visibleItems }: { visibleItems: VisibleItem[] }) => {
       if (visibleItems.length > 0 && visibleItems[0].index != null) {

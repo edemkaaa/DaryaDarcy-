@@ -56,6 +56,7 @@ export default {
     imgOptSequentialRead: true,
     imgOptTimeoutInSeconds: 10,
   },
+  /** Версионированным responsive-ассетам задаём долгий HTTP-кеш; для HTML и API эта политика не применяется. */
   async headers() {
     return [
       {
@@ -69,6 +70,7 @@ export default {
       },
     ];
   },
+  /** При заданной внутренней цели сохраняем публичные пути /api и /media на origin фронта; пустая цель не добавляет прокси. */
   async rewrites() {
     if (!target) return [];
     return [

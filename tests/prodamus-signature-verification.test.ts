@@ -1,3 +1,4 @@
+/** HMAC проверяется на независимо заданной канонической строке и синтетических merchant keys. */
 import { createHmac } from "node:crypto";
 import { afterEach, expect, it, vi } from "vitest";
 import { verifyProdamusSignature } from "../apps/backend/src/billing/prodamus-signature";
@@ -8,8 +9,10 @@ const canonical = '{"order_num":"club-7-fixture","sum":"790"}';
 const key = "verification-fixture-only";
 const signature = createHmac("sha256", key).update(canonical).digest("hex");
 
+/** Не оставляем подстановки merchant-настроек между сценариями. */
 afterEach(() => vi.unstubAllEnvs());
 
+/** Таблица различает допустимый hex-регистр, ротацию ключей и все повреждённые digest/пустые ключи; секрет не нормализуется самим verifier. */
 it.each([
   { name: "exact signature", received: signature, secrets: [key], want: true },
   {
@@ -95,17 +98,20 @@ it.each([
   );
 });
 
+/** Изменение подписанной суммы делает прежнюю подпись недействительной. */
 it("rejects changed signed fields", () => {
   expect(verifyProdamusSignature({ ...body, sum: 791 }, signature, [key])).toBe(
     false,
   );
 });
 
+/** Следующий вызов использует только переданный ему набор ключей. */
 it("does not retain keys across verification calls", () => {
   expect(verifyProdamusSignature(body, signature, [key])).toBe(true);
   expect(verifyProdamusSignature(body, signature, ["foreign"])).toBe(false);
 });
 
+/** Совместимый env-фасад перечитывает и обрезает конфигурационные ключи без process-cache прежнего значения. */
 it("legacy facade reads and trims the current merchant keys on each call", () => {
   vi.stubEnv("PRODAMUS_SECRET", "");
   vi.stubEnv("PRODAMUS_SHOP_SECRET", " " + key + " ");

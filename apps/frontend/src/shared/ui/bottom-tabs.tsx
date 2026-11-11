@@ -15,6 +15,7 @@ const tabs = [
   ["/shop", "Магазин", "shopping-bag"],
 ] as const;
 
+/** Читаем pending внутри конкретной ссылки Next: индикатор и доступная подпись относятся к выбранному переходу. */
 function TabContents({
   label,
   icon,
@@ -40,6 +41,7 @@ function TabContents({
   );
 }
 
+/** Подсвечиваем родительский раздел деталей поста, видео и теста; ссылки остаются обычными маршрутами Next. */
 export function BottomTabs() {
   const path = usePathname();
   const section =

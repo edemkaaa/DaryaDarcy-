@@ -1,3 +1,4 @@
+/** Настоящий локальный HTTP проверяет quota до выключенного TEST provider и без SQL. */
 import {
   afterAll,
   afterEach,
@@ -16,6 +17,7 @@ import { createBackendApplication } from "../apps/backend/src/_core/application"
 let app: INestApplication;
 let base: string;
 let windowIndex = 0;
+/** Запускаем Nest с пустой БД и disabled ЮKassa: разрешённый check заканчивается412, не платёжным эффектом. */
 beforeAll(async () => {
   vi.stubEnv("DATABASE_URL", "");
   vi.stubEnv("YOOKASSA_TEST_ENABLED", "false");
@@ -23,16 +25,20 @@ beforeAll(async () => {
   await app.listen(0, "127.0.0.1");
   base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
 });
+/** Передвигаем Date за прежнее окно, не добавляя production reset-методов лимитера. */
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"] });
   // Move beyond every preceding window without test-only limiter reset methods.
   vi.setSystemTime(new Date(Date.UTC(2026, 10, 1) + ++windowIndex * 120_000));
 });
+/** Возвращаем настоящие часы. */
 afterEach(() => vi.useRealTimers());
+/** Закрываем app/env. */
 afterAll(async () => {
   await app?.close();
   vi.unstubAllEnvs();
 });
+/** Отправляем один reconcile POST с UUID header и управляемым body/forwarded-IP. */
 function check(
   key: string | null,
   headers: Record<string, string> = {},
@@ -49,6 +55,7 @@ function check(
   });
 }
 
+/** 13-я попытка даёт429/no-store/Retry-After без UUID и cookie; другой intent ещё разрешён. */
 it("allows twelve checks of one intent then refuses without exposing its key", async () => {
   const key = randomUUID();
   for (let attempt = 0; attempt < 12; attempt++)
@@ -66,6 +73,7 @@ it("allows twelve checks of one intent then refuses without exposing its key", a
   expect((await check(randomUUID())).status).toBe(412);
 });
 
+/** Регистр UUID не создаёт новый bucket. */
 it("normalizes intent UUID casing so uppercase cannot reset the quota", async () => {
   const key = "abcdefab-1234-4123-8123-abcdefabcdef";
   for (let attempt = 0; attempt < 12; attempt++)
@@ -73,6 +81,7 @@ it("normalizes intent UUID casing so uppercase cannot reset the quota", async ()
   expect((await check(key.toUpperCase())).status).toBe(429);
 });
 
+/** Смена IP не снимает квоту одного intent. */
 it("shares the intent budget across resolved IPs", async () => {
   const key = randomUUID();
   for (let attempt = 0; attempt < 12; attempt++) {
@@ -86,6 +95,7 @@ it("shares the intent budget across resolved IPs", async () => {
   );
 });
 
+/** Учитывается доверенно resolved remote IP, не произвольный leftmost/X-Real-IP. */
 it("allows sixty distinct intents per resolved IP despite forged leftmost forwarded headers", async () => {
   for (let attempt = 0; attempt < 60; attempt++) {
     expect(
@@ -108,6 +118,7 @@ it("allows sixty distinct intents per resolved IP despite forged leftmost forwar
   ).toBe(412);
 });
 
+/** Отказ IP не истощает intent, который затем приходит с разрешённого адреса. */
 it("does not spend an intent budget when its IP is already blocked", async () => {
   for (let attempt = 0; attempt < 60; attempt++) await check(randomUUID());
   const key = randomUUID();
@@ -123,6 +134,7 @@ it("does not spend an intent budget when its IP is already blocked", async () =>
   );
 });
 
+/** Невалидный header не даёт бесконечные бесплатные попытки с одного IP. */
 it("counts malformed and missing intent headers in the IP budget", async () => {
   for (let attempt = 0; attempt < 60; attempt++) {
     expect((await check(attempt % 2 ? null : "not-a-uuid")).status).toBe(400);
@@ -130,6 +142,7 @@ it("counts malformed and missing intent headers in the IP budget", async () => {
   expect((await check(randomUUID())).status).toBe(429);
 });
 
+/** Ошибочный parsed input расходует квоту, но не вызывает оплату. */
 it("counts invalid bodies without allowing them to invoke payment storage", async () => {
   const key = randomUUID();
   for (let attempt = 0; attempt < 12; attempt++)
@@ -137,6 +150,7 @@ it("counts invalid bodies without allowing them to invoke payment storage", asyn
   expect((await check(key)).status).toBe(429);
 });
 
+/** Отказ на59-йсекунде не продлевает60сек окно. */
 it("does not extend the window on refusal and resumes only at expiry", async () => {
   const key = randomUUID();
   for (let attempt = 0; attempt < 12; attempt++) await check(key);
@@ -150,6 +164,7 @@ it("does not extend the window on refusal and resumes only at expiry", async () 
   expect(allowed.headers.get("retry-after")).toBeNull();
 });
 
+/** 20parallel HTTP дают ровно12допусков и8отказов. */
 it("concurrent requests cannot exceed the per-intent budget", async () => {
   const key = randomUUID();
   const responses = await Promise.all(
@@ -163,6 +178,7 @@ it("concurrent requests cannot exceed the per-intent budget", async () => {
   );
 });
 
+/** Обычные subscription reads используют отдельную политику. */
 it("does not spend the payment-check budget on unrelated subscription queries", async () => {
   for (let attempt = 0; attempt < 65; attempt++) {
     expect((await fetch(`${base}/api/trpc/club.subscription`)).status).toBe(

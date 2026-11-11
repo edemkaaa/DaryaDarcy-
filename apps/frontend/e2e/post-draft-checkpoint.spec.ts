@@ -13,6 +13,7 @@ declare global {
   }
 }
 
+/** В полном и быстром редакторе задерживаем два разных этапа автосохранения, чтобы поздний commit старой версии не пометил новый ввод сохранённым. */
 for (const mode of ["full", "quick"] as const) {
   test(`${mode}: an older completed checkpoint cannot mark newer text saved`, async ({
     page,
@@ -30,9 +31,11 @@ for (const mode of ["full", "quick"] as const) {
       )!;
       Object.defineProperty(IDBTransaction.prototype, "oncomplete", {
         ...descriptor,
+        /** Перехватываем только уведомление завершения readwrite-транзакции, сохраняя настоящую запись IndexedDB. */
         set(handler: ((this: IDBTransaction, event: Event) => unknown) | null) {
           const transaction = this as IDBTransaction;
           descriptor.set!.call(transaction, function (event: Event) {
+            /** Сохраняем исходный обработчик и его transaction-this для управляемого позднего завершения. */
             const complete = () => handler?.call(transaction, event);
             if (transaction.mode === "readwrite" && controls.holdCommit) {
               controls.holdCommit = false;
@@ -101,6 +104,7 @@ for (const mode of ["full", "quick"] as const) {
     await page.evaluate(() => window.draftCheckpointTest.releaseCommit!());
     // Reading IndexedDB yields past the completion callback/React update and
     // proves the durable version still differs from the visible editor.
+    /** Читаем фактически зафиксированный текст отдельной readonly-транзакцией и закрываем соединение по её завершении. */
     const storedText = async () =>
       page.evaluate(
         (key) =>

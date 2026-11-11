@@ -6,6 +6,7 @@ import { publicCatalogThumbnail } from "./video-thumbnail";
 // Compatible with the staging player; reject unknown/duplicate parameters rather
 // than fetching share links or inventing a private VK hash. VK exports may omit
 // hash; when present it must remain intact. No external requests.
+/** Без сетевых запросов принимаем только HTTPS video_ext.php известных хостов с уникальными разрешёнными параметрами; сохраняем предоставленный hash, выключаем autoplay и выводим sourceKey лишь из owner/id. */
 export function parseVkEmbed(raw: string) {
   if (!raw || raw.length > 2048) return null;
   try {

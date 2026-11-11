@@ -1,3 +1,4 @@
+# Копирует широкий список локальных секретов и подключений в серверный env с последующим PM2-рестартом; не подходит для слепой синхронизации окружений.
 import pathlib
 import socket
 import paramiko
@@ -31,6 +32,7 @@ SYNC_KEYS = [
     "CLUB_PRICE",
 ]
 
+# Подключение использует историческое автоматическое доверие неизвестному SSH host key; перед новым запуском требуется отдельная сверка хоста.
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 sock = socket.create_connection((local_env["DEPLOY_HOST"], 22), 45)
@@ -44,6 +46,7 @@ client.connect(
     look_for_keys=False,
 )
 
+# Далее читается и переписывается удалённый env; резервная копия и разрешение на переключение должны быть отдельными шагами.
 remote_path = "/var/www/daryadarcy/.env"
 sftp = client.open_sftp()
 try:
@@ -86,6 +89,7 @@ with sftp.open(remote_path, "w") as handle:
 sftp.close()
 print("synced env keys:", ", ".join(k for k in SYNC_KEYS if k in local_env))
 
+# Следующий текст — удалённая команда; её содержимое сохранено как историческое и не исполняется при чтении исходника.
 cmd = r"""
 set -e
 cd /var/www/daryadarcy

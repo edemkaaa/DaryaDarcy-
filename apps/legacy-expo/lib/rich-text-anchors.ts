@@ -1,6 +1,9 @@
+// Архив Expo. Считает номер вхождения выделенного текста до его позиции для повторяющихся фрагментов.
 type Selection = { start: number; end: number };
 
 export function selectionOccurrence(text: string, start: number, end: number): number {
+  // Считает номер вхождения выделенного текста до его позиции для повторяющихся фрагментов.
+
   const anchor = text.slice(start, end);
   if (!anchor) return 0;
   let occurrence = 0;
@@ -15,6 +18,8 @@ export function selectionOccurrence(text: string, start: number, end: number): n
 }
 
 export function rangeForOccurrence(text: string, anchor: string, occurrence: number): Selection | null {
+  // Восстанавливает диапазон по текстовому якорю и номеру вхождения, включая перекрывающиеся совпадения.
+
   if (!anchor) return null;
   let from = 0;
   let seen = 0;
@@ -31,5 +36,7 @@ export function rangeForOccurrence(text: string, anchor: string, occurrence: num
 }
 
 export function rangesOverlap(a: Selection, b: Selection): boolean {
+  // Проверяет реальное пересечение полуоткрытых диапазонов без совпадения по одной границе.
+
   return a.start < b.end && b.start < a.end;
 }

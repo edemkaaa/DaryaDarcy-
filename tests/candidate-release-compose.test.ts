@@ -1,9 +1,11 @@
+/** Опциональный Docker Compose config-прогон сравнивает candidate overlay офлайн, не запускает контейнеры. */
 import { execFileSync } from "node:child_process";
 import { copyFileSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { expect, it } from "vitest";
 
+/** В собственной temp-папке overlay меняет ровно API image/DATABASE_URL, сохраняя web и весь baseline; снятие overlay восстанавливает исходную конфигурацию. */
 it.skipIf(process.env.CANDIDATE_COMPOSE_ACCEPTANCE !== "true")(
   "changes only API image/DB connection and restores the exact baseline offline",
   () => {
@@ -29,6 +31,7 @@ it.skipIf(process.env.CANDIDATE_COMPOSE_ACCEPTANCE !== "true")(
         `DATABASE_URL=${candidateUri}\n`,
         { mode: 0o600 },
       );
+      /** CLI только рендерит JSON выбранных Compose-файлов с синтетическим env; daemon/БД не используются. */
       const config = (candidate: boolean) =>
         JSON.parse(
           execFileSync(

@@ -40,24 +40,32 @@ let fixture: Fixture;
 let connection: Connection;
 let forbidden: string[];
 const extraContexts: BrowserContext[] = [];
+/** NORMAL и GUEST используют разные durable-journal; guest-proof не помещается в account-slot. */
 const slot = (mode: Mode) =>
   mode === "NORMAL"
     ? "darcy:user:503:normal-checkout:v1"
     : "darcy:guest:normal-checkout:v1";
+/** Сопоставляем режим ровно его create-процедуре, не подменяя provider-ответ. */
 const endpoint = (mode: Mode) =>
   mode === "NORMAL"
     ? "club.createNormalCheckout"
     : "club.createGuestNormalCheckout";
+/** Сверяем реальные SQL-эффекты только через заранее проверенную loopback fixture. */
 const rows = async (sql: string, values: unknown[] = []) =>
   (await connection.query<RowDataPacket[]>(sql, values))[0];
+/** Читаем сохранённый intent и сравниваем ключи до/после transport-loss. */
 const stored = (page: Page, mode: Mode): Promise<Intent> =>
   page.evaluate((key) => JSON.parse(localStorage.getItem(key)!), slot(mode));
+/** Берём первое действие оплаты текущей landing-копии. */
 const pay = (page: Page, label = "Оплатить 790 ₽") =>
   page.getByRole("button", { name: label, exact: true }).first();
+/** Отделяем статус конкретной покупки от наличия старого доступа. */
 const notice = (page: Page, text: string) =>
   page.getByRole("status").filter({ hasText: text }).first();
+/** Recovery вызывает явное восстановление исходного order, а не новую покупку. */
 const restore = (page: Page) => pay(page, "Восстановить ссылку оплаты");
 
+/** Файл должен принадлежать checkout-fixture runner, а API и backend_test быть loopback; guard выполняется до соединения и любых DELETE. */
 test.beforeAll(async () => {
   if (!file || !basename(dirname(file)).startsWith("darcy-editor-acceptance-"))
     throw new Error("Owned fixture required");
@@ -78,6 +86,7 @@ test.beforeAll(async () => {
     timezone: "Z",
   });
 });
+/** Сбрасываем только платёжные таблицы одноразовой fixture перед сценарием; старый доступ добавляется отдельно там, где нужен. */
 test.beforeEach(async ({ context }) => {
   forbidden = [];
   for (const table of [
@@ -91,14 +100,17 @@ test.beforeEach(async ({ context }) => {
     await connection.query(`DELETE FROM ${table}`);
   await prepare(context);
 });
+/** Закрываем дополнительные contexts и проверяем, что не было TEST/legacy/proof-in-query обращений. */
 test.afterEach(async () => {
   for (const context of extraContexts.splice(0)) await context.close();
   expect(forbidden).toEqual([]);
 });
+/** Освобождаем SQL-соединение после opt-in suite. */
 test.afterAll(async () => {
   await connection?.end();
 });
 
+/** Разрешаем только fixture-origin и проверяем транспорт guest-proof: POST без batch/input query; provider никогда не открывается наружу. */
 async function prepare(context: BrowserContext) {
   await context.setExtraHTTPHeaders({ Origin: fixture.origin });
   await context.addInitScript(() => {
@@ -135,6 +147,7 @@ async function prepare(context: BrowserContext) {
   });
   context.on("page", (page) => page.on("dialog", (dialog) => dialog.accept()));
 }
+/** Получаем реальную cookie-сессию подготовленного buyer-account через локальный auth. */
 async function login(context: BrowserContext, id = 503) {
   const result = await context.request.post(
     `${fixture.origin}/api/auth/login`,
@@ -145,6 +158,7 @@ async function login(context: BrowserContext, id = 503) {
   );
   expect(result.status()).toBe(200);
 }
+/** Выбираем guest или member вход и заполняем обязательный непроверенный contactPhone перед реальным create. */
 async function open(page: Page, mode: Mode) {
   if (mode === "NORMAL") await login(page.context());
   await page.goto("/club?checkout=1");
@@ -159,6 +173,7 @@ async function open(page: Page, mode: Mode) {
     .first()
     .fill("+79991234567");
 }
+/** Извлекаем нужный payload из batch либо одиночного tRPC-body, сохраняя его для сравнения replay. */
 function input(request: Request, name: string): Record<string, unknown> {
   const url = new URL(request.url());
   const names = url.pathname.split("/api/trpc/")[1].split(",");
@@ -167,6 +182,7 @@ function input(request: Request, name: string): Record<string, unknown> {
     ? values[names.indexOf(name)].json
     : values.json;
 }
+/** До доставки либо после настоящего Nest/SQL commit обрываем transport; при commit проверяем pending-order и fixture.payform URL, не подделывая ACK. */
 async function loseReply(
   page: Page,
   mode: Mode,
@@ -206,9 +222,11 @@ async function loseReply(
     await route.abort("failed");
   });
 }
+/** Дожидаемся recovery-состояния после потерянного ответа. */
 async function pending(page: Page) {
   await expect(restore(page)).toBeEnabled();
 }
+/** Сверяем по одной записи request-ledger и pending-payment, а не только count UI. */
 async function exactlyOneOrder() {
   expect(
     await rows("SELECT orderId FROM normal_checkout_requests"),
@@ -218,6 +236,7 @@ async function exactlyOneOrder() {
   ).toHaveLength(1);
 }
 
+/** NORMAL/GUEST проходят реальные local потерю ACK, две вкладки, notRecorded replay и смену владельца с сохранением исходного proof. */
 for (const mode of ["NORMAL", "GUEST"] as const) {
   test(`${mode}: lost committed reply and reload reuse the original order and keys`, async ({
     page,
@@ -361,6 +380,7 @@ test("GUEST: login recovers its existing order without starting a NORMAL purchas
   await exactlyOneOrder();
 });
 
+/** Канонизируем synthetic webhook payload в порядке ключей и строковом формате, требуемом локальной подписью merchant-fixture. */
 function ordered(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(ordered);
   if (value && typeof value === "object")
@@ -371,6 +391,7 @@ function ordered(value: unknown): unknown {
     );
   return value == null ? "" : String(value);
 }
+/** Действующий старый доступ не подтверждает новый order; два одинаковых подписанных local webhook дают один receipt и одну outbox-запись без доставки письма. */
 for (const mode of ["NORMAL", "GUEST"] as const) {
   test(`${mode}: subscription access alone cannot confirm the new order; a signed local receipt confirms it once`, async ({
     page,

@@ -50,6 +50,7 @@ import { registerClubServiceAccessBrowserCases } from "./helpers/club-service-ac
 // Opt in with a separately started, enabled production frontend build. API
 // forwarding below is a transport proxy, never a mock response or fake session.
 const frontend = process.env.BINDING_BROWSER_FRONTEND_URL;
+/** Проверяет настоящую форму привязки почты через разрешённый локальный production-фронт, API, SQL и loopback SMTP. */
 describe.skipIf(!testDatabaseUrl || !frontend)(
   "member email form with native API and disposable SQL",
   () => {
@@ -59,9 +60,11 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
     const actorId = 91401,
       memberId = 91402;
     let proxy: ReturnType<typeof trackRouteHandler>;
+    /** Читает контрольные SQL-строки собственной fixture-базы. */
     async function rows(sql: string, args: unknown[] = []) {
       return (await connection.query<RowDataPacket[]>(sql, args))[0];
     }
+    /** Удаляет только операции администратора и связанные данные двух собственных аккаунтов. */
     async function cleanup() {
       await connection.query(
         "DELETE FROM admin_action_operations WHERE actorUserId=?",
@@ -93,6 +96,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
         [actorId, memberId],
       );
     }
+    /** Проверяет loopback origin фронта, поднимает локальные API и SMTP и запускает browser с синтетической сессией администратора. */
     beforeAll(async () => {
       const url = new URL(frontend!);
       if (
@@ -134,6 +138,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
         executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH,
       });
     }, 30_000);
+    /** Пересоздаёт свои аккаунты и отдельный мобильный context; проксирует API настоящему Nest и блокирует любой внешний origin. */
     beforeEach(async () => {
       await cleanup();
       smtp.reset();
@@ -174,10 +179,12 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       });
       await context.route("**/*", proxy.handler);
     });
+    /** Дожидается завершения отслеживаемых browser-route handlers перед закрытием context. */
     afterEach(async () => {
       if (context) await drainBrowserRoutes(context, proxy);
       await context?.close();
     });
+    /** Закрывает browser, API и SMTP, удаляет свои записи и освобождает SQL-пул и окружение. */
     afterAll(async () => {
       await browser?.close();
       await application?.close();
@@ -191,6 +198,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       }
       vi.unstubAllEnvs();
     });
+    /** Открывает настоящую форму первой привязки почты в разделе участниц. */
     async function open(page: Page) {
       await page.goto(frontend! + "admin");
       await browserExpect(
@@ -204,6 +212,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
         .click();
       return page.getByRole("form", { name: "Первая привязка почты" });
     }
+    /** Заполняет адрес и отправляет подтверждение, дожидаясь доступного чтения статуса заявки. */
     async function send(page: Page) {
       const form = await open(page);
       await form
@@ -258,6 +267,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       frontend: frontend!,
     }));
     registerClubSetupBrowserCases(() => ({
+      /** Снимает только page-level routes после дренирования общего proxy для сценариев настройки клуба. */
       removePageRoutes: (page) => removePageRoutes(page, proxy),
       rows,
       connection,
@@ -267,6 +277,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       frontend: frontend!,
     }));
     registerProfileBrowserCases(() => ({
+      /** Снимает только page-level routes после дренирования общего proxy для сценариев профиля. */
       removePageRoutes: (page) => removePageRoutes(page, proxy),
       rows,
       connection,
@@ -276,6 +287,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       frontend: frontend!,
     }));
     registerProfileOrderBrowserCases(() => ({
+      /** Снимает только page-level routes после дренирования общего proxy для сценариев истории заказов профиля. */
       removePageRoutes: (page) => removePageRoutes(page, proxy),
       rows,
       connection,
@@ -327,6 +339,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       base,
       frontend: frontend!,
     }));
+    /** Расшифровывает доказательство собственной синтетической заявки с тем же AAD и тестовым ключом. */
     async function proof(requestKey: string) {
       const [binding] = await rows(
         "SELECT b.payloadHash,o.tokenCipher FROM member_email_bindings b JOIN member_email_binding_outbox o USING(requestKey) WHERE b.requestKey=?",
@@ -359,6 +372,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
       smtp,
       send,
     }));
+    /** Проверяет одну queued-заявку без изменения идентичности участницы и её восстановление после перезагрузки. */
     it("commits one queued intent without changing the member identity and recovers it after reload", async () => {
       const page = await context.newPage();
       let form = await open(page);
@@ -412,6 +426,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
         ),
       ).toEqual([{ requestKey: intent.requestKey }]);
     }, 30_000);
+    /** Теряет настоящий committed HTTP-ответ и проверяет повтор того же ключа без второго outbox и аудита. */
     it("replays a committed request after a lost HTTP reply without another outbox or audit row", async () => {
       const page = await context.newPage();
       let loseReply = true;
@@ -465,6 +480,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
         ]),
       ).toHaveLength(1);
     }, 30_000);
+    /** Проверяет подготовку нового пустого черновика только после серверного expiry и новую заявку только по явной отправке. */
     it("prepares a fresh draft only after native expiry and sends a new intent only on explicit submit", async () => {
       const page = await context.newPage();
       const form = await send(page);
@@ -531,6 +547,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
         await rows("SELECT email FROM users WHERE id=?", [memberId]),
       ).toEqual([{ email: null }]);
     }, 30_000);
+    /** Подтверждает доказательство через настоящий API и проверяет обновление канонической карточки без изменения доступа и пароля. */
     it("refreshes canonical member data after native proof confirmation while preserving existing access and credentials", async () => {
       await connection.query(
         "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'binding-browser-existing-access','paid','0','2030-01-01')",
@@ -584,6 +601,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
         ),
       ).toEqual([{ state: "confirmed", email: null, proofHash: null }]);
     }, 30_000);
+    /** Проверяет явное действие на странице получателя без cookie/referer, смены браузерной идентичности, пароля и оплаченного доступа. */
     it("confirms from the recipient page only after explicit action without changing credentials, access or browser identity", async () => {
       await connection.query(
         "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'binding-browser-existing-access','paid','0','2030-01-01')",
@@ -651,6 +669,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
         ),
       ).toEqual([{ state: "confirmed", email: null, proofHash: null }]);
     }, 30_000);
+    /** Проверяет отсутствие ложного подтверждения и изменений пользователя при отправке просроченного доказательства. */
     it("does not show confirmation or change SQL when the recipient submits an expired proof", async () => {
       const administrator = await context.newPage();
       await send(administrator);
@@ -684,6 +703,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
         ]),
       ).toEqual([{ action: "request_member_email_binding" }]);
     }, 30_000);
+    /** Теряет успешный confirm-ответ и проверяет честную неопределённость и отказ расходованной ссылки без дублирования аудита. */
     it("keeps the committed result ambiguous after a lost confirmation reply and a consumed-proof reopen without duplicating audit", async () => {
       const administrator = await context.newPage();
       await send(administrator);
@@ -757,6 +777,7 @@ describe.skipIf(!testDatabaseUrl || !frontend)(
         { action: "confirm_member_email_binding" },
       ]);
     }, 30_000);
+    /** Меняет роль открытой административной формы и проверяет актуальный отказ request/status без изменений SQL. */
     it.each(
       ["moderator", "user"].flatMap((role) =>
         ["request", "status"].map((operation) => ({ role, operation })),

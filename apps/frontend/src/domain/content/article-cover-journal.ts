@@ -56,6 +56,7 @@ export type ArticleCoverRecord = Omit<z.infer<typeof packedSchema>, "files"> & {
   files: PrivateArticleFile[];
 };
 
+/** Восстанавливаем исходные File и snapshot обложки только своего владельца, проверяя соответствие локальным ссылкам статьи. */
 function restoreRecord(value: unknown, ownerId: number): ArticleCoverRecord {
   const stored = packedSchema.parse(value);
   if (stored.ownerId !== ownerId) throw storageError();
@@ -72,6 +73,7 @@ function restoreRecord(value: unknown, ownerId: number): ArticleCoverRecord {
     throw storageError();
   return { ...stored, files };
 }
+/** Публичная cover-квитанция не может применять аватар: ready требует avatarApplied=false и isCurrent=null. */
 export function requirePublicCoverReceipt(value: unknown) {
   const result = z
     .union([
@@ -92,6 +94,7 @@ export function requirePublicCoverReceipt(value: unknown) {
   if (!result.success) throw invalidResponse();
   return result.data;
 }
+/** Сбой durable-журнала загрузки сохраняет необходимость проверки вместо отправки нового баннера. */
 const storageError = () =>
   new Error(
     "Не удалось сохранить или прочитать загрузку баннера на этом устройстве. Проверьте доступность хранилища браузера.",
@@ -99,11 +102,14 @@ const storageError = () =>
 
 /** One immutable cover intent per account, separate from article publication. */
 export class ArticleCoverJournal {
+  /** Один слот обложки принадлежит аккаунту и живёт отдельно от публикации статьи. */
   constructor(readonly ownerId: number) {}
+  /** Смена персонального владельца блокирует продолжение старой cover-операции. */
   private assertOwner() {
     if (!isPersonalDataOwner(this.ownerId))
       throw new Error("Аккаунт редактора изменился. Откройте статьи заново.");
   }
+  /** Ограничиваем IndexedDB-операцию дедлайном и ждём commit, проверяя владельца до работы и после завершения. */
   private transaction<T>(
     mode: IDBTransactionMode,
     work: (
@@ -118,6 +124,7 @@ export class ArticleCoverJournal {
       let tx: IDBTransaction | undefined;
       let result: T;
       let settled = false;
+      /** Abort и закрытие БД завершаются один раз независимо от числа событий ошибки. */
       const fail = (error: unknown = storageError()) => {
         if (settled) return;
         settled = true;
@@ -185,11 +192,13 @@ export class ArticleCoverJournal {
       }
     });
   }
+  /** Читаем и валидируем текущий immutable cover intent, не выполняя сетевой upload. */
   load(): Promise<ArticleCoverRecord | null> {
     return this.transaction("readonly", (_store, value, finish) =>
       finish(value === undefined ? null : restoreRecord(value, this.ownerId)),
     );
   }
+  /** До сети сохраняем точный upload-payload, snapshot и байты вложений; занятый слот возвращаем без замены. */
   async prepare(
     snapshot: ArticleCoverSnapshot,
     upload: Omit<ArticleCoverUpload, "mimeType"> & { mimeType: string },
@@ -231,6 +240,7 @@ export class ArticleCoverJournal {
       },
     );
   }
+  /** Перечитываем durable-ключ перед продолжением, чтобы другая вкладка не была незаметно вытеснена. */
   async requireCurrent(record: ArticleCoverRecord) {
     const current = await this.load();
     if (
@@ -241,6 +251,7 @@ export class ArticleCoverJournal {
         "Загрузка баннера изменилась в другой вкладке. Откройте статьи заново.",
       );
   }
+  /** Удаляем только тот же owner/key после завершения, сохраняя отличающийся intent другой вкладки. */
   clear(record: ArticleCoverRecord): Promise<void> {
     return this.transaction("readwrite", (store, value, finish) => {
       const current =

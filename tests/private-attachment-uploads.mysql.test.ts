@@ -22,6 +22,7 @@ import { drizzle } from "drizzle-orm/mysql2";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { runPrivateRecoveryProcess } from "./helpers/private-recovery-process";
 
+/** Проверяет durable-приватные загрузки и их lifecycle через настоящий HTTP/SQL и локальный S3 wire. */
 describe.skipIf(!testDatabaseUrl)(
   "private upload native HTTP/SQL and SDK wire",
   () => {
@@ -34,6 +35,7 @@ describe.skipIf(!testDatabaseUrl)(
       mimeType: "text/plain",
       base64: Buffer.from("0123456789").toString("base64"),
     };
+    /** Отправляет настоящий admin HTTP-запрос с управляемым JWT и разбирает superjson вместе со статусом. */
     async function request(
       method: string,
       value: unknown = input,
@@ -61,9 +63,11 @@ describe.skipIf(!testDatabaseUrl)(
           : json.error?.json?.data?.code,
       };
     }
+    /** Читает контрольные записи отдельной базы. */
     async function rows(sql: string, args: unknown[] = []) {
       return (await conn.query<RowDataPacket[]>(sql, args))[0];
     }
+    /** Удаляет только посты своего source и их requests, вложения и recovery-маркеры по собственным ID. */
     async function cleanupPosts() {
       const ids = (
         await rows("SELECT id FROM posts WHERE source='ag4-upload-suite'")
@@ -79,6 +83,7 @@ describe.skipIf(!testDatabaseUrl)(
         "DELETE FROM content_recovery_markers WHERE actorUserId IN (97330,97331)",
       );
     }
+    /** Формирует закрытый черновик, привязывающий конкретную приватную квитанцию. */
     const postInput = (assetId: string) => ({
       text: "Private attachment fixture",
       photos: [],
@@ -89,6 +94,7 @@ describe.skipIf(!testDatabaseUrl)(
       idempotencyKey: "private-post-intent-0001",
       privateAssetIds: [assetId],
     });
+    /** Явно включает тестовую retention/maintenance-политику и вызывает maintenance с ограниченным batch и управляемым cleanup-флагом. */
     async function maintain(
       database: MySql2Database = drizzle(conn),
       cleanup = true,
@@ -101,6 +107,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(module.maintainPrivateRecovery).toBeTypeOf("function");
       return module.maintainPrivateRecovery(database, { limit: 10 });
     }
+    /** Поднимает отдельный SQL, локальный SDK wire и API с тремя синтетическими ролями без внешнего push-транспорта. */
     beforeAll(async () => {
       conn = await openContentTestDatabase();
       // Native notification selector finds no recipients; no external push transport.
@@ -123,6 +130,7 @@ describe.skipIf(!testDatabaseUrl)(
       base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
       token = await sdk.createSessionToken("ag4-admin", { sessionVersion: 0 });
     });
+    /** Очищает свои посты, квитанции и wire-объекты и возвращает исходные роль, эпоху, флаги и storage policy. */
     beforeEach(async () => {
       await cleanupPosts();
       if ((await rows("SHOW TABLES LIKE 'private_attachment_uploads'")).length)
@@ -138,6 +146,7 @@ describe.skipIf(!testDatabaseUrl)(
         "UPDATE users SET role='admin',blockedAt=NULL,sessionVersion=0 WHERE id=97330",
       );
     });
+    /** Закрывает API и wire, удаляет свои записи и аккаунты и освобождает SQL-пул. */
     afterAll(async () => {
       await app?.close();
       if (conn) {
@@ -158,6 +167,7 @@ describe.skipIf(!testDatabaseUrl)(
       await wire?.close();
       vi.unstubAllEnvs();
     });
+    /** Проверяет однократное удаление просроченной непривязанной загрузки и запрет её воскрешения durable-маркером. */
     it("expired never-bound upload is deleted once and cannot be resurrected", async () => {
       expect((await request("uploadPrivateAttachment")).status).toBe(200);
       await conn.query(
@@ -190,6 +200,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).toBe(409);
       expect(wire.effects).toHaveLength(effects);
     });
+    /** Проверяет сжатие старой живой квитанции с сохранением объекта и доказательств чтения и последующего редактирования. */
     it("compacts a live bound receipt without deleting its object or read evidence", async () => {
       const uploaded = await request("uploadPrivateAttachment");
       const assetId = String(uploaded.data.assetId);
@@ -232,6 +243,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(response.status).toBe(200);
       expect(await response.text()).toBe("0123456789");
     });
+    /** Проверяет начало срока orphan после обнаружения отвязки, а не по старой дате upload. */
     it("starts a detached receipt clock at observation, not its old upload date", async () => {
       const uploaded = await request("uploadPrivateAttachment");
       const assetId = String(uploaded.data.assetId);
@@ -257,6 +269,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await maintain()).deleted).toBe(1);
       expect(wire.objects.size).toBe(0);
     });
+    /** Проверяет сохранение durable-доказательства после потерянного DELETE ACK и подтверждение отсутствия новым процессом без второго DELETE. */
     it("keeps durable evidence after lost DELETE ACK and confirms absence on retry", async () => {
       await request("uploadPrivateAttachment");
       await conn.query(
@@ -286,6 +299,7 @@ describe.skipIf(!testDatabaseUrl)(
         ),
       ).toEqual([]);
     });
+    /** Проверяет сверку и удаление просроченного pending-объекта без повторного PUT. */
     it("reconciles an expired pending upload without performing another PUT", async () => {
       wire.dropPutAck();
       expect((await request("uploadPrivateAttachment")).status).toBe(503);
@@ -298,6 +312,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).toHaveLength(1);
       expect(wire.objects.size).toBe(0);
     });
+    /** Проверяет отказ удаления объекта с чужим intent-hash и сохранение квитанции для расследования. */
     it("refuses a foreign object and retains its receipt for investigation", async () => {
       await request("uploadPrivateAttachment");
       await conn.query(
@@ -318,6 +333,7 @@ describe.skipIf(!testDatabaseUrl)(
         ),
       ).toHaveLength(1);
     });
+    /** Проверяет отсутствие ложных счётчиков compaction и observation при SQL-откате. */
     it("never reports compaction when the SQL transaction was rolled back", async () => {
       await request("uploadPrivateAttachment");
       await conn.query(
@@ -347,6 +363,7 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query("DROP TRIGGER backend_test_ag5_rollback");
       }
     });
+    /** Проверяет сжатие orphan-доказательства без обращения к S3 при выключенной автоочистке. */
     it("keeps compacted orphan evidence without contacting S3 while cleanup is disabled", async () => {
       await request("uploadPrivateAttachment");
       await conn.query(
@@ -359,6 +376,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(wire.effects).toEqual([]);
       expect(wire.objects.size).toBe(1);
     });
+    /** Проверяет запрет maintenance-запросов к non-loopback endpoint тестовой среды без storage-эффектов. */
     it("refuses a non-loopback S3 endpoint without any storage request", async () => {
       await request("uploadPrivateAttachment");
       await conn.query(
@@ -376,6 +394,7 @@ describe.skipIf(!testDatabaseUrl)(
         vi.stubEnv("S3_ENDPOINT", wire.endpoint);
       }
     });
+    /** Удерживает DELETE и проверяет сериализацию поздней привязки после durable spent-маркера без возобновления просроченной операции. */
     it("serializes cleanup against a late binding without deleting a newly bound object", async () => {
       const upload = await request("uploadPrivateAttachment");
       const assetId = String(upload.data.assetId);
@@ -411,6 +430,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).toEqual([]);
       expect(wire.objects.size).toBe(0);
     });
+    /** Проверяет единственную приватную квитанцию документа и устойчивые upload/status-повторы без раскрытия object URL. */
     it("uploads a private document and replays the same server receipt", async () => {
       const first = await request("uploadPrivateAttachment");
       expect(first.status).toBe(200);
@@ -440,6 +460,7 @@ describe.skipIf(!testDatabaseUrl)(
         ),
       ).toEqual(first);
     });
+    /** Проверяет восстановление потерянного storage ACK по тому же объекту без второго PUT. */
     it("recovers a lost storage ACK using the same object, never a second PUT", async () => {
       wire.dropPutAck();
       expect((await request("uploadPrivateAttachment")).status).toBe(503);
@@ -461,6 +482,7 @@ describe.skipIf(!testDatabaseUrl)(
         wire.effects.filter((value) => value.startsWith("PUT")),
       ).toHaveLength(1);
     });
+    /** Проверяет конфликт изменённых байтов исходного намерения без нового объекта и storage-запроса. */
     it("rejects a changed payload under the same intent without another object", async () => {
       expect((await request("uploadPrivateAttachment")).status).toBe(200);
       wire.effects.length = 0;
@@ -475,22 +497,26 @@ describe.skipIf(!testDatabaseUrl)(
       expect(wire.objects.size).toBe(1);
       expect(wire.effects).toEqual([]);
     });
+    /** Проверяет отказ отсутствующей prefix policy до записи объекта. */
     it("refuses storage without the prefix policy before PUT", async () => {
       wire.rejectPolicy(true);
       expect((await request("uploadPrivateAttachment")).status).toBe(503);
       expect(wire.objects.size).toBe(0);
     });
+    /** Проверяет ранний отказ выключенной upload-функции без storage-запроса. */
     it("disabled upload rejects before receiving a large body or contacting S3", async () => {
       vi.stubEnv("PRIVATE_POST_MEDIA_UPLOAD_ENABLED", "false");
       expect((await request("uploadPrivateAttachment")).status).toBe(404);
       expect(wire.effects).toEqual([]);
     });
+    /** Проверяет отказ гостевой загрузки до обращения к хранилищу. */
     it("guest is refused before storage", async () => {
       expect(
         (await request("uploadPrivateAttachment", input, null)).status,
       ).toBe(401);
       expect(wire.effects).toEqual([]);
     });
+    /** Проверяет один durable-intent и один объект при четырёх конкурентных повторах. */
     it("parallel retries commit one intent and one object", async () => {
       const results = await Promise.all(
         Array.from({ length: 4 }, () => request("uploadPrivateAttachment")),
@@ -507,6 +533,7 @@ describe.skipIf(!testDatabaseUrl)(
       // Concurrent conditional writes may race; only one object can win.
       expect(wire.objects.size).toBe(1);
     });
+    /** Приостанавливает PUT и проверяет освобождение SQL-lock и повторную валидацию отозванной сессии перед ready-финализацией. */
     it("releases SQL locks while storage waits and refuses finalization after revocation", async () => {
       const gate = wire.pausePut();
       const pending = request("uploadPrivateAttachment");
@@ -521,6 +548,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await rows("SELECT state,etag FROM private_attachment_uploads WHERE actorUserId=97330")).toEqual([{ state: "pending", etag: null }]);
       expect(wire.objects.size).toBe(1);
     });
+    /** Проверяет отказ восстановления квитанции после смены storage namespace без обращения к новому бакету. */
     it("changed storage namespace cannot replay or report a ready receipt", async () => {
       expect((await request("uploadPrivateAttachment")).status).toBe(200);
       wire.effects.length = 0;
@@ -542,6 +570,7 @@ describe.skipIf(!testDatabaseUrl)(
         vi.stubEnv("S3_BUCKET", wire.bucket);
       }
     });
+    /** Временно убирает unique asset guard и проверяет ранний отказ до S3, возвращая индекс в finally. */
     it("a missing uniqueness guard refuses upload before any storage request", async () => {
       await conn.query(
         "ALTER TABLE private_attachment_uploads DROP INDEX private_attachment_asset_unique",
@@ -555,6 +584,7 @@ describe.skipIf(!testDatabaseUrl)(
         );
       }
     });
+    /** Проверяет актуальную административную роль перед восстановлением уже готовой квитанции. */
     it("revoked admin cannot recover a committed receipt", async () => {
       expect((await request("uploadPrivateAttachment")).status).toBe(200);
       await conn.query("UPDATE users SET role='user' WHERE id=97330");
@@ -562,6 +592,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await request("uploadPrivateAttachment")).status).toBe(403);
       expect(wire.effects).toEqual([]);
     });
+    /** Проверяет атомарную привязку ready-квитанции при создании поста и выдачу только канонического API URL после публикации. */
     it("binds a ready receipt in post creation without exposing the object URL", async () => {
       const receipt = (await request("uploadPrivateAttachment")).data;
       const created = await request("createPost", postInput(receipt.assetId));
@@ -607,6 +638,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await authorized.text()).toBe("0123456789");
       expect((await fetch(`${base}${media[0].url}`)).status).toBe(404);
     });
+    /** Проверяет отказ чужой квитанции с общим откатом создания поста. */
     it("rejects a foreign receipt and rolls back post creation", async () => {
       const receipt = (await request("uploadPrivateAttachment")).data;
       const other = await sdk.createSessionToken("ag4-other-admin", {
@@ -619,6 +651,7 @@ describe.skipIf(!testDatabaseUrl)(
         await rows("SELECT id FROM posts WHERE source='ag4-upload-suite'"),
       ).toHaveLength(0);
     });
+    /** Проверяет отзыв чтения после удаления вложения и запрет поздней повторной привязки исторической квитанции. */
     it("removal revokes read and late attachment retry cannot resurrect it", async () => {
       const receipt = (await request("uploadPrivateAttachment")).data;
       const created = await request("createPost", postInput(receipt.assetId));
@@ -664,6 +697,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).toHaveLength(0);
       expect(wire.objects.size).toBe(1);
     });
+    /** Проверяет rollback legacy-delete последнего содержимого опубликованного поста и durable-fence против воскрешения удалённого вложения. */
     it("legacy deleteMedia rolls back removal of the final post body", async () => {
       const asset = (await request("uploadPrivateAttachment")).data;
       const created = await request("createPost", postInput(asset.assetId));
@@ -678,6 +712,7 @@ describe.skipIf(!testDatabaseUrl)(
       // The historical binding is a fence against resurrection, not a live URL.
       expect((await fetch(`${base}/api/media/post-attachments/${media.id}`)).status).toBe(404);
     });
+    /** Проверяет невозможность обойти владение приватным объектом через legacy URL-вложение. */
     it("legacy URL attachment cannot bypass ownership for a private-v1 object", async () => {
       await request("uploadPrivateAttachment");
       const url = `${wire.endpoint}/${wire.bucket}/${[...wire.objects.keys()][0]}`;
@@ -699,6 +734,7 @@ describe.skipIf(!testDatabaseUrl)(
         await rows("SELECT id FROM posts WHERE source='ag4-upload-suite'"),
       ).toHaveLength(0);
     });
+    /** Проверяет общий откат текста, media и receipt-binding при отказе вставки вложения триггером. */
     it("failed media insertion rolls back the post edit and receipt binding", async () => {
       const receipt = (await request("uploadPrivateAttachment")).data;
       const created = await request("createPost", {
@@ -739,6 +775,7 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query("DROP TRIGGER ag4_fixture_media_abort");
       }
     });
+    /** Проверяет запрет привязки pending-квитанции и создания поста до доказанной готовности. */
     it("pending receipt cannot be attached or treated as a completed post", async () => {
       wire.dropPutAck();
       await request("uploadPrivateAttachment");
@@ -757,6 +794,7 @@ describe.skipIf(!testDatabaseUrl)(
         await rows("SELECT id FROM posts WHERE source='ag4-upload-suite'"),
       ).toHaveLength(0);
     });
+    /** Проверяет запрет повторной привязки ready-квитанции другому посту. */
     it("a receipt cannot be rebound to another post", async () => {
       const receipt = (await request("uploadPrivateAttachment")).data;
       expect(
@@ -774,6 +812,7 @@ describe.skipIf(!testDatabaseUrl)(
         await rows("SELECT id FROM posts WHERE source='ag4-upload-suite'"),
       ).toHaveLength(1);
     });
+    /** Проверяет отказ выдачи объекта с изменившимся ETag по прежней committed-квитанции. */
     it("changed object ETag is not served under a previously committed receipt", async () => {
       const receipt = (await request("uploadPrivateAttachment")).data;
       const created = await request("createPost", postInput(receipt.assetId));
@@ -792,6 +831,7 @@ describe.skipIf(!testDatabaseUrl)(
           .status,
       ).toBe(503);
     });
+    /** Проверяет отсутствие ложного ready-успеха без сохранённого ETag и без новых storage-эффектов. */
     it("ready receipt without committed storage evidence never reports success", async () => {
       expect((await request("uploadPrivateAttachment")).status).toBe(200);
       await conn.query(
@@ -811,6 +851,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).toBe(503);
       expect(wire.effects).toEqual([]);
     });
+    /** Проверяет обнаруженный FLAC и загрузку его исходных байтов в приватное хранилище. */
     it("accepts detected FLAC and preserves its bytes for closed delivery", async () => {
       const bytes = Buffer.from(flacFixtureBase64, "base64");
       expect(
@@ -826,6 +867,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).toBe(200);
       expect(wire.effects.some(effect => effect.startsWith("PUT"))).toBe(true);
     });
+    /** Проверяет отказ повтора и статуса просроченного ready-намерения без нового storage-эффекта. */
     it("expired upload intent refuses replay and status without another storage effect", async () => {
       const original = await request("uploadPrivateAttachment");
       expect(original.status).toBe(200);
@@ -859,6 +901,7 @@ describe.skipIf(!testDatabaseUrl)(
         }),
       ]);
     });
+    /** Проверяет, что просроченный неопределённый PUT не разрешает повторную внешнюю запись. */
     it("expired unknown storage outcome cannot retry the external write", async () => {
       wire.dropPutAck();
       expect((await request("uploadPrivateAttachment")).status).toBe(503);
@@ -878,6 +921,7 @@ describe.skipIf(!testDatabaseUrl)(
         )[0].state,
       ).toBe("pending");
     });
+    /** Проверяет запрет создания поста и media-binding по просроченной непривязанной квитанции. */
     it("expired unbound receipt cannot create a post or media binding", async () => {
       const receipt = (await request("uploadPrivateAttachment")).data;
       await conn.query(
@@ -898,6 +942,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).toEqual([{ postId: null, mediaId: null }]);
       expect(wire.effects).toEqual([]);
     });
+    /** Фиксирует восстановление старого upload/status при выключенной retention-политике. */
     it("disabled retention preserves aged upload and status recovery", async () => {
       const first = await request("uploadPrivateAttachment");
       expect(first.status).toBe(200);
@@ -916,6 +961,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).toEqual(first);
       expect(wire.effects).toEqual([]);
     });
+    /** Проверяет чтение и редактирование уже привязанной старой квитанции без повторной привязки, несмотря на recovery-маркер. */
     it("aged bound receipt remains readable and editable without reattachment", async () => {
       const receipt = (await request("uploadPrivateAttachment")).data;
       const post = await request("createPost", postInput(receipt.assetId));
@@ -946,6 +992,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(response.status).toBe(200);
       expect(await response.text()).toBe("0123456789");
     });
+    /** Проверяет, что сжатый durable-intent не превращается в notRecorded и не допускает новый PUT. */
     it("a compacted private intent cannot upload again or report notRecorded", async () => {
       const first = await request("uploadPrivateAttachment");
       expect(first.status).toBe(200);
@@ -975,6 +1022,7 @@ describe.skipIf(!testDatabaseUrl)(
         ),
       ).toEqual([]);
     });
+    /** Проверяет запрет поздней привязки сохранённой orphan-квитанции после закрывающего recovery-маркера. */
     it("a retained orphan receipt cannot bind after its marker closes recovery", async () => {
       const first = await request("uploadPrivateAttachment");
       expect(first.status).toBe(200);

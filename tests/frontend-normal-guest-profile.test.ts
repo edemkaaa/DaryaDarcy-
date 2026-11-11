@@ -1,3 +1,4 @@
+/** Проверяем изолированный сборочный wrapper NORMAL/GUEST на подставленном pnpm, без настоящей Next-сборки. */
 import { afterEach, expect, it } from "vitest";
 import {
   mkdtempSync,
@@ -11,10 +12,12 @@ import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 
 const directories: string[] = [];
+/** Удаляем только временные каталоги, созданные текущими сценариями. */
 afterEach(() => {
   for (const directory of directories.splice(0))
     rmSync(directory, { recursive: true, force: true });
 });
+/** Создаёт собственный исполняемый pnpm-recorder и synthetic manifest, затем запускает настоящий wrapper с конфликтующим внешним окружением. */
 function build(
   mode: "valid" | "wrong-profile" | "missing-manifest" | "build-failure",
 ) {
@@ -53,6 +56,7 @@ if(${JSON.stringify(mode)}!=='missing-manifest'){fs.mkdirSync('apps/frontend/.ne
   );
   return { child, observed: JSON.parse(readFileSync(output, "utf8")) };
 }
+/** Wrapper должен задать согласованный профиль, не наследуя TEST-флаги терминала. */
 it("selects NORMAL/GUEST even when the invoking shell enables TEST and disables recovery", () => {
   const { child, observed } = build("valid");
   expect(child.status).toBe(0);
@@ -64,12 +68,14 @@ it("selects NORMAL/GUEST even when the invoking shell enables TEST and disables 
     NEXT_PUBLIC_GUEST_CHECKOUT_RECOVERY_ENABLED: "true",
   });
 });
+/** Код ноль сборки недостаточен: неверный профиль или отсутствующий manifest обязаны дать отказ. */
 it.each(["wrong-profile", "missing-manifest"] as const)(
   "rejects a successful build with %s",
   (mode) => {
     expect(build(mode).child.status).not.toBe(0);
   },
 );
+/** Ошибка дочерней сборки сохраняет свой код завершения и не становится успешной приёмкой. */
 it("preserves a failing build exit instead of declaring the profile accepted", () => {
   expect(build("build-failure").child.status).toBe(9);
 });

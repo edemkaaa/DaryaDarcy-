@@ -2,6 +2,7 @@
 @use "../../shared/styles/layers";
 
 @layer components {
+  /* Обзор документов имеет собственные отступы и нижний запас, общий с текстовыми юридическими страницами. */
   .scroll {
     padding-left: 24px;
     padding-right: 24px;
@@ -9,6 +10,7 @@
     padding-top: 8px;
   }
 
+  /* Шапка и вводная отделяют список ссылок от навигации приложения. */
   .kicker {
     letter-spacing: 2px;
     text-align: center;
@@ -38,6 +40,7 @@
     margin-bottom: 24px;
   }
 
+  /* Текст занимает доступную часть строки, стрелка остаётся справа; разделитель помогает различать документы. */
   .linkRow {
     flex-direction: row;
     align-items: center;

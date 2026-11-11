@@ -13,9 +13,13 @@ export function registerClubServiceAccessBrowserCases(
     memberId: number;
   },
 ) {
+  // Проверяет мобильную и широкую раскладку служебного доступа: роль модератора открывает Клуб, но не изображается оплаченной подпиской.
+
   it.each([390, 1440])(
     "moderator opens the native club without portraying service access as payment (%s)",
     async (width) => {
+    // Сценарий: На узком и широком viewport модератор видит служебный доступ без фиктивных списаний; реальная синтетическая подписка и её удаление переключают состояние отдельно.
+
       const { connection, rows, context, frontend, memberId } = fixture();
       await connection.query("UPDATE users SET role='moderator' WHERE id=?", [
         memberId,

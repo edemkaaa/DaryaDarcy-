@@ -12,6 +12,7 @@ for (const line of fs.readFileSync(path.join(root, ".env"), "utf8").split(/\r?\n
   env[line.slice(0, i).trim()] = line.slice(i + 1).trim();
 }
 
+// Получается публичный HTML прежнего канала, затем ID сравниваются с выбранной БД без записи.
 const html = await fetch("https://www.youtube.com/@daryadarcy/videos", {
   headers: {
     "user-agent":

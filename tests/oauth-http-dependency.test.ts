@@ -1,3 +1,4 @@
+/** Совместимость legacy OAuth SDK/Axios проверяется только настоящим локальным HTTP и synthetic credentials. */
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import axios from "axios";
@@ -5,12 +6,14 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 // Real SDK and installed Axios, with synthetic credentials and owned loopback
 // HTTP only. This checks compatibility, not an external OAuth acceptance run.
+/** Здесь проверяется installed transport и wire-контракт, не готовность внешнего OAuth. */
 describe("legacy OAuth HTTP dependency compatibility", () => {
   let server: Server;
   let sdk: typeof import("../apps/backend/src/_core/sdk").sdk;
   const requests: Array<{ path: string; method: string; body: unknown }> = [];
   let refuse = false;
 
+  /** Loopback server отвечает тремя JSON-методами; proxy-env очищен, чтобы локальные данные не ушли через VPN/proxy. */
   beforeAll(async () => {
     server = createServer((req, res) => {
       let body = "";
@@ -73,6 +76,7 @@ describe("legacy OAuth HTTP dependency compatibility", () => {
     ({ sdk } = await import("../apps/backend/src/_core/sdk"));
   });
 
+  /** Закрываем server sockets и возвращаем env. */
   afterAll(async () => {
     server?.closeAllConnections();
     if (server)
@@ -82,6 +86,7 @@ describe("legacy OAuth HTTP dependency compatibility", () => {
     vi.unstubAllEnvs();
   });
 
+  /** Проверяем полные ExchangeToken/GetUserInfo/JWT POST payload и нормализацию platform/email. */
   it("preserves the three JSON POST contracts and normalized login method", async () => {
     const token = await sdk.exchangeCodeForToken(
       "fixture-code",
@@ -130,6 +135,7 @@ describe("legacy OAuth HTTP dependency compatibility", () => {
     ]);
   });
 
+  /** 502 локального upstream сохраняется как отказ, не как успешный профиль. */
   it("rejects an upstream HTTP failure instead of returning a user", async () => {
     refuse = true;
     try {
@@ -142,6 +148,7 @@ describe("legacy OAuth HTTP dependency compatibility", () => {
   });
 });
 
+/** 64-байтовый data URI превышает явный maxContentLength16; regression не делает внешнего HTTP. */
 it("enforces the explicit fetch response limit on a bounded data URI", async () => {
   // GHSA-777c-7fjr-54vf characterization: default SDK uses HTTP, not fetch.
   // Downgrading Axios silently accepts 64 bytes despite this 16-byte limit.

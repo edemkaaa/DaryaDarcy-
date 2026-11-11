@@ -113,6 +113,7 @@ export const HORIZONTAL_PADDING = 16;
 
 export const CARD_META_HEIGHT = 78;
 
+/** Вычисляем ширину двух колонок из доступного viewport с теми же полями и зазором, которые использует витрина. */
 export function getLibraryScreenContent(viewport: ViewportSize) {
   const screenWidth = viewport.width;
   const COLUMN_WIDTH = (screenWidth - HORIZONTAL_PADDING * 2 - GRID_GAP) / 2;

@@ -1,3 +1,4 @@
+/** Проверяем установленный Babel из styled-jsx на синтетических source maps, не читая пользовательские файлы. */
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { expect, it } from "vitest";
@@ -26,6 +27,7 @@ const fixtureRoot = resolve("tests/fixtures/babel-source-map/project");
 
 // Narrow characterization of Next/styled-jsx's installed compiler dependency.
 // Only committed synthetic maps are read; no secrets, temp files or mocks.
+/** Компилирует фиксированный JS без внешней Babel-конфигурации и с заданной ссылкой на карту тестового пакета. */
 function compileWithMap(mapReference: string) {
   return babel.transformSync(
     `const value = 1;\n//# sourceMappingURL=${mapReference}`,
@@ -39,6 +41,7 @@ function compileWithMap(mapReference: string) {
   );
 }
 
+/** Относительный или абсолютный выход за fixture package не должен раскрывать marker соседней карты. */
 it.each(["../outside.map", resolve(fixtureRoot, "../outside.map")])(
   "does not disclose another package's map through %s",
   (mapReference) => {
@@ -48,6 +51,7 @@ it.each(["../outside.map", resolve(fixtureRoot, "../outside.map")])(
   },
 );
 
+/** Положительный контроль сохраняет допустимую соседнюю карту и её sourcesContent. */
 it("preserves an adjacent map within the compiled package", () => {
   expect(compileWithMap("adjacent.map")?.map?.sourcesContent).toEqual([
     "const adjacentFixture = 'adjacent-package-marker';",

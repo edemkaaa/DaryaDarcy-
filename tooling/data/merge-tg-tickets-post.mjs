@@ -25,6 +25,8 @@ const DOC_SIBLING = "tg-2697";
 const DRY_RUN = process.argv.includes("--dry-run");
 
 function parseJson(value) {
+  // Разбирает старое JSON-поле; некорректное значение трактуется как пустой список.
+
   if (!value) return [];
   if (typeof value === "string") {
     try {
@@ -37,10 +39,14 @@ function parseJson(value) {
 }
 
 function urlBasename(url) {
+  // Сравнивает имя последнего сегмента URL без параметров; это сопоставление имени, а не проверка байтов.
+
   return decodeURIComponent(String(url).split("/").pop()?.split("?")[0] || "");
 }
 
 async function main() {
+  // Объединяет только заранее выбранные сообщения 2695–2697 и удаляет два дубля; это одноразовый сценарий, не универсальная очистка.
+
   const conn = await mysql.createConnection(env.DATABASE_URL);
 
   const [rows] = await conn.query(

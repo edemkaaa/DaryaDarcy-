@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import AsyncStorage from "@/shared/browser/storage";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { SEEN_KEY, BROWN } from "./install-guide.content";
+/** Распознаём установленный режим браузера через iOS standalone либо display-mode; при SSR отвечаем false. */
 function isStandaloneWeb(): boolean {
   if (typeof window === "undefined") return false;
   const nav = window.navigator as Navigator & {
@@ -16,10 +17,12 @@ function isStandaloneWeb(): boolean {
     window.matchMedia("(display-mode: standalone)").matches
   );
 }
+/** Выбираем текст инструкции для iOS по доступному userAgent; это подсказка установки, не проверка поддержки офлайн. */
 function isIosWeb(): boolean {
   if (typeof navigator === "undefined") return false;
   return /iPad|iPhone|iPod/i.test(navigator.userAgent);
 }
+/** Оформляем один статический шаг инструкции с декоративным значком. */
 function Step({
   icon,
   text,
@@ -38,6 +41,7 @@ function Step({
     </div>
   );
 }
+/** Не показываем инструкцию установленному приложению или после отметки seen; позднее чтение storage отменяется при уходе. */
 export function InstallGuide() {
   const [visible, setVisible] = useState(false);
   const ios = isIosWeb();
@@ -51,6 +55,7 @@ export function InstallGuide() {
       cancelled = true;
     };
   }, []);
+  /** Сначала скрываем диалог, затем сохраняем необязательное предпочтение, не блокируя остальное приложение. */
   const dismiss = async () => {
     setVisible(false);
     await AsyncStorage.setItem(SEEN_KEY, "1");

@@ -1,6 +1,9 @@
+// Архив Expo. Запускает ограниченную четырьмя повторами декларативную анимацию приветствия.
 import Animated from "react-native-reanimated";
 
 export function HelloWave() {
+  // Запускает ограниченную четырьмя повторами декларативную анимацию приветствия.
+
   return (
     <Animated.Text
       style={{

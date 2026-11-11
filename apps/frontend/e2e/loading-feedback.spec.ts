@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
 
+/** Задерживаем код и данные раздельно: placeholder обязан сохранить структуру баннера и не дублировать общий route-loader. */
 for (const width of [390, 1440]) {
   test(`slow tab code and API use placeholders and preserve the video banner (${width}px)`, async ({
     page,
@@ -28,6 +29,7 @@ for (const width of [390, 1440]) {
       await gotoWithSession(page, "/");
       await page.evaluate(() => {
         Object.assign(window, { maxNavigationSpinners: 0 });
+        /** Наблюдаем число видимых навигационных spinner на каждом кадре, не исправляя состояние страницы со стороны теста. */
         const sample = () => {
           const visible = [
             ...document.querySelectorAll("main .ui-spinner"),
@@ -93,6 +95,7 @@ for (const width of [390, 1440]) {
   });
 }
 
+/** Проверка сессии и подготовка оплаты имеют разные локальные индикаторы; завершение и ошибка должны убрать каждый из них. */
 test("access checks have one centered indicator and checkout has one small indicator inside its button", async ({
   page,
 }) => {

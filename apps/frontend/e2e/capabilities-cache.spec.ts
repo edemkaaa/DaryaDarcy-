@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { editorApi } from "./editor-fixtures";
 
+/** Создаём различимые аккаунты, чтобы смена личности была видна независимо от публичных возможностей. */
 const member = (id: number) => ({
   id,
   openId: `capabilities-member-${id}`,
@@ -20,6 +21,7 @@ const capabilities = {
   privatePostMediaUploads: true,
   privatePostVideoUploads: true,
 };
+/** Даём тесту независимо отпускать ответы сессии и capabilities и проверять запоздавший результат. */
 function deferred() {
   let resolve!: () => void;
   const promise = new Promise<void>((done) => {
@@ -27,6 +29,7 @@ function deferred() {
   });
   return { promise, resolve };
 }
+/** Снимок ответа делаем до ожидания gate: поздний ответ действительно несёт старые возможности, а не новое состояние fixture. */
 async function fixture(page: Page) {
   await editorApi(page);
   const state = {
@@ -55,8 +58,10 @@ async function fixture(page: Page) {
   });
   return state;
 }
+/** Отдельно выбираем предложение SMS-привязки, которое политика клиента не должна включать по одному серверному флагу. */
 const phoneOffer = (page: Page) =>
   page.getByText("Привяжите телефон, чтобы входить по SMS", { exact: true });
+/** Сначала завершаем публичный read при ожидающей сессии, затем подтверждаем личность; проверяем перенос свежести без повторного чтения. */
 async function startWithCompletedCapabilities(
   page: Page,
   state: Awaited<ReturnType<typeof fixture>>,
@@ -89,6 +94,7 @@ async function startWithCompletedCapabilities(
   }
   await page.clock.runFor(200);
 }
+/** Эмулируем событие возврата/сети и даём запланированному обновлению завершить короткую задержку. */
 async function resume(page: Page, event = "visibilitychange") {
   await page.evaluate((event) => {
     if (event === "visibilitychange")
@@ -121,6 +127,7 @@ test("capabilities: the guest keeps the same completed public read", async ({
   ).toHaveCount(0);
 });
 
+/** Смена аккаунта не продлевает исходный TTL публичного кеша: после оставшихся 16 секунд требуется новый read. */
 test("capabilities: switching accounts preserves public freshness without extending its lifetime", async ({
   page,
 }) => {
@@ -175,6 +182,7 @@ test("capabilities: an error with previously cached data is not restored as succ
   await expect(phoneOffer(page)).toHaveCount(0);
 });
 
+/** Подтверждение личности отменяет незавершённый read; ответ старого поколения не должен вернуть устаревшее состояние. */
 test("capabilities: identity confirmation cancels an unfinished read and ignores its late response", async ({
   page,
 }) => {

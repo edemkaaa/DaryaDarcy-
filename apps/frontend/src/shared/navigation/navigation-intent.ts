@@ -1,5 +1,6 @@
 /** Возврат после входа и намерение оплаты храним отдельно от обычной истории переходов и проверяем допустимость пути. */
 import { safeNextPath } from "./paths";
+import { parsePostAddress } from "./post-address";
 
 const loginKey = "darcy:login-return:v1";
 const clubKey = "darcy:club-navigation:v1";
@@ -37,6 +38,7 @@ const secretParameters = new Set([
   "id_token",
 ]);
 
+/** Удаляем служебные query и секреты из hash перед сохранением адреса в истории; не переносим их как навигационные данные. */
 function cleanParameters(url: URL) {
   for (const key of [...url.searchParams.keys()]) {
     if (unusedParameters.has(key.toLowerCase())) url.searchParams.delete(key);
@@ -66,10 +68,12 @@ const pages = new Set([
   "/legal",
   "/privacy",
 ]);
+/** Этот локальный allowlist определяет допустимые адреса возврата, отдельно от списка реально существующих маршрутов Next. */
 function appPage(path: string) {
   return (
     pages.has(path) ||
-    /^\/(?:post|video)\/[1-9]\d*$/.test(path) ||
+    (path.startsWith("/post/") && parsePostAddress(path.slice(6)) !== null) ||
+    /^\/video\/[1-9]\d*$/.test(path) ||
     /^\/library\/article\/[1-9]\d*$/.test(path) ||
     /^\/shop\/(?:book-[123]|digital-[12])$/.test(path) ||
     /^\/legal\/(?:offer|personal-data|personal-data-consent|user-agreement|payment-refund|cookies|requisites|music-license)$/.test(
@@ -77,6 +81,7 @@ function appPage(path: string) {
     )
   );
 }
+/** Из query берём только два булевых hint; они меняют экран ожидания, но не подтверждают платёж или доступ. */
 function clubFlags(params: URLSearchParams): ClubNavigation {
   return {
     checkout: params.get("checkout") === "1",
@@ -84,7 +89,7 @@ function clubFlags(params: URLSearchParams): ClubNavigation {
   };
 }
 
-/** Only existing app pages and non-sensitive navigation flags may be retained. */
+/** Проверяем форму, нормализацию и разрешённый путь, сохраняя только безопасное назначение возврата без исходных секретных параметров. */
 export function loginDestination(value: unknown): LoginDestination | null {
   const input = typeof value === "string" ? { pathname: value } : value;
   if (
@@ -115,6 +120,7 @@ export function loginDestination(value: unknown): LoginDestination | null {
   return destination;
 }
 
+/** Пытаемся сохранить intent в sessionStorage; при запрете хранилища оставляем только in-memory вариант этой вкладки. */
 function write(key: string, value: unknown) {
   if (typeof window === "undefined") return;
   const encoded = JSON.stringify(value);
@@ -126,6 +132,7 @@ function write(key: string, value: unknown) {
     /* In-tab navigation still works without storage. */
   }
 }
+/** Читаем сохранённое значение как unknown: JSON-разбор не подтверждает его срок, маршрут или структуру. */
 function read(key: string): unknown {
   if (typeof window === "undefined") return null;
   let encoded: string | null | undefined = memory.get(key);
@@ -141,6 +148,7 @@ function read(key: string): unknown {
     return null;
   }
 }
+/** Помечаем намерение потреблённым и при недоступном storage, чтобы fallback-память не возвращала прежнее значение. */
 function remove(key: string) {
   try {
     window.sessionStorage.removeItem(key);
@@ -150,6 +158,7 @@ function remove(key: string) {
     /* Optional browser storage. */
   }
 }
+/** Срок должен быть будущим и укладываться в допустимое время хранения; произвольная дальняя дата не продлевает hint. */
 function unexpired(value: unknown): value is { expiresAt: number } {
   return Boolean(
     value &&
@@ -160,12 +169,14 @@ function unexpired(value: unknown): value is { expiresAt: number } {
     value.expiresAt <= Date.now() + lifetime,
   );
 }
+/** Повторно проверяем и срок, и маршрут прочитанного намерения, даже если оно записывалось нашей функцией раньше. */
 function savedDestination(value: unknown): SavedDestination | null {
   if (!unexpired(value) || !("destination" in value)) return null;
   const destination = loginDestination(value.destination);
   return destination ? { destination, expiresAt: value.expiresAt } : null;
 }
 
+/** Сохраняем допустимое назначение с новым сроком; неподходящий адрес очищает прежний return intent. */
 export function rememberLoginReturn(value: string | LoginDestination) {
   const destination = loginDestination(value);
   if (destination)
@@ -173,7 +184,7 @@ export function rememberLoginReturn(value: string | LoginDestination) {
   else remove(loginKey);
 }
 
-/** Capture old links once, then remove their query/hash without a new history entry. */
+/** Однократно переносим старый next в проверенное состояние и очищаем адрес без создания дополнительной записи истории. */
 export function prepareLoginPage(legacyNext?: string | string[]) {
   if (typeof window === "undefined" || window.location.pathname !== "/login")
     return;
@@ -192,6 +203,7 @@ export function prepareLoginPage(legacyNext?: string | string[]) {
   window.history.replaceState(state, "", "/login");
 }
 
+/** Извлекаем действующий return intent из storage или своей записи истории и удаляем его; без него возвращаем профиль. */
 export function consumeLoginReturn(): LoginDestination {
   const saved =
     savedDestination(read(loginKey)) ??
@@ -207,6 +219,7 @@ export function consumeLoginReturn(): LoginDestination {
   return saved?.destination ?? { pathname: "/profile" };
 }
 
+/** Новое клубное намерение получает собственный ключ для отслеживания смены и сообщает активному экрану о записи. */
 export function rememberClubNavigation(flags: ClubNavigation) {
   write(clubKey, {
     ...flags,
@@ -215,6 +228,7 @@ export function rememberClubNavigation(flags: ClubNavigation) {
   });
   window.dispatchEvent(new Event(navigationIntentEvent));
 }
+/** Проверяем два флага, срок и ключ прочитанного hint; остальные произвольные поля не переносятся в результат. */
 function savedClubNavigation(value: unknown): SavedClubNavigation | null {
   if (
     !unexpired(value) ||
@@ -234,7 +248,7 @@ function savedClubNavigation(value: unknown): SavedClubNavigation | null {
   };
 }
 
-/** A return hint cannot grant access. Keep it in this entry so reload/back remain usable. */
+/** Выбираем явные query-флаги раньше сохранённого hint, фиксируем результат в текущей записи и очищаем служебные параметры URL. Hint возврата не выдаёт доступ. */
 export function captureClubNavigation(): SavedClubNavigation | null {
   if (window.location.pathname !== "/club") return null;
   const url = new URL(window.location.href);
@@ -262,7 +276,7 @@ export function captureClubNavigation(): SavedClubNavigation | null {
   return saved;
 }
 
-/** Next may carry custom history state forward; hints belong only to their page. */
+/** Служебные флаги принадлежат своей странице; копирование history.state механизмом Next не должно переносить оплату на другой раздел. */
 export function clearOtherPageIntents() {
   const state = { ...window.history.state };
   const url = new URL(window.location.href);

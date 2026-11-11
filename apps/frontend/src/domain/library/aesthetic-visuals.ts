@@ -2,10 +2,11 @@
 import type { AestheticGuideKey } from "@shared/aesthetic-guide";
 import { invalidResponse } from "@/shared/api/errors";
 
+/** Приводим ключ эстетики к согласованному namespace закрытого материала. */
 export const aestheticMaterialKey = (key: AestheticGuideKey) =>
   `aesthetic-${key.toLowerCase()}` as `aesthetic-${Lowercase<AestheticGuideKey>}`;
 
-/** Resolve approved slots against authenticated bindings; never expose a public fallback. */
+/** Сопоставляем разрешённые слоты картинок только с аутентифицированными привязками своего материала; публичного fallback нет. */
 export function resolveAestheticImages(
   key: AestheticGuideKey,
   files: readonly { fileKey: string; url: string }[],

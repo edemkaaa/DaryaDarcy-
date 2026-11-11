@@ -3,6 +3,7 @@ import { editorApi, failure, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
 const stamp = "2026-10-30T12:00:00Z";
+/** Строим одиннадцать синтетических страниц для пяти списков: окно хранит максимум восемь, а удалённая предыдущая страница возвращается по исходному курсору с сохранением scroll-anchor. */
 for (const mode of [
   "saved",
   "articles",
@@ -121,6 +122,7 @@ for (const mode of [
     const titles = page
       .getByRole("main")
       .getByText(/^WINDOW_\d+$/, { exact: true });
+    /** Догружаем настоящими действиями списка: кнопкой для сохранённого/участниц и прокруткой для остальных; считаем видимые строки на каждом шаге. */
     for (let index = 0; index <= 10; index++) {
       await expect(
         page.getByText(`WINDOW_${(index + 1) * 20}`, { exact: true }),
@@ -147,6 +149,7 @@ for (const mode of [
     }
     await expect(titles).toHaveCount(160);
     await expect(page.getByText("WINDOW_1", { exact: true })).toHaveCount(0);
+    /** Возврат за начало окна проверяем также через 503 и явный повтор: подтверждённые 160 строк должны оставаться до успеха. */
     const previous = page.getByRole("button", {
       name: previousLabels[mode],
       exact: true,

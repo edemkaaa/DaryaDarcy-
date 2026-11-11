@@ -1,3 +1,4 @@
+/** Серверная схема VK принимает экспорт без hash, сохраняя строгую идентичность источника. */
 import { describe, expect, it } from "vitest";
 import {
   parseVkEmbed,
@@ -7,7 +8,9 @@ import {
 const identity = "oid=-211171256&id=456239238";
 const bare = `https://vk.ru/video_ext.php?${identity}`;
 
+/** Проверяем parse и входную Zod-схему одинаковой матрицей, без загрузки VK. */
 describe("VK exports with an optional access hash", () => {
+  /** Публичный export разрешён на трёх VK host; сервер не придумывает hash и отключает autoplay. */
   it.each(["vk.ru", "vk.com", "vkvideo.ru"])(
     "accepts an exported player without inventing a hash on %s",
     (host) => {
@@ -26,6 +29,7 @@ describe("VK exports with an optional access hash", () => {
       ).toBe(true);
     },
   );
+  /** Изменение hash/hd не создаёт другую sourceKey для тех же oid/id. */
   it("keeps source identity stable with or without a valid hash", () => {
     const withHash = parseVkEmbed(`${bare}&hash=synthetic_hash`);
     const withoutHash = parseVkEmbed(`${bare}&hd=2`);
@@ -34,6 +38,7 @@ describe("VK exports with an optional access hash", () => {
     expect(withHash?.embedUrl).toBe(`${bare}&hash=synthetic_hash&autoplay=0`);
     expect(withoutHash?.embedUrl).toBe(`${bare}&hd=2&autoplay=0`);
   });
+  /** Повторы query, неверные значения, чужие origin, credentials и iframe HTML не принимаются. */
   it.each([
     `${bare}&hash=`,
     `${bare}&hash=x`,

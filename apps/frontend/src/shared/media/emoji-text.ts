@@ -1,12 +1,12 @@
 "use client";
-/** Текст делим на обычные и emoji-фрагменты для совместимого отображения шрифтами, не интерпретируя его как разметку. */
-/** Split plain text so emoji render with system fonts (EBGaramond has no emoji glyphs). */
+/** Текст делим на обычные и emoji-фрагменты для совместимого отображения шрифтами, не интерпретируя его как разметку. Emoji выводятся системным шрифтом, поскольку EB Garamond не содержит этих глифов. */
 const EMOJI_SEGMENT_RE =
   /(\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*)/gu;
 export type TextEmojiSegment = {
   value: string;
   isEmoji: boolean;
 };
+/** Сохраняем исходный текст и порядок символов, выделяя распознанные emoji для системного шрифта без интерпретации HTML. */
 export function splitForEmojiRendering(text: string): TextEmojiSegment[] {
   if (!text) return [];
   const parts: TextEmojiSegment[] = [];

@@ -1,3 +1,4 @@
+// Архив Expo. Размещает home/profile и необязательную музыку поверх баннера либо в обычном потоке с SafeArea.
 import { View, Pressable, StyleSheet } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -20,6 +21,8 @@ interface TabHeaderProps {
 }
 
 export function TabHeader({ transparent = true, musicUrl }: TabHeaderProps) {
+  // Размещает home/profile и необязательную музыку поверх баннера либо в обычном потоке с SafeArea.
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -51,6 +54,7 @@ export function TabHeader({ transparent = true, musicUrl }: TabHeaderProps) {
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   containerAbsolute: {
     position: "absolute",

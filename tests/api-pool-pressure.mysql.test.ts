@@ -16,6 +16,7 @@ import { hashPassword } from "../apps/backend/src/_core/password";
 import { sdk } from "../apps/backend/src/_core/sdk";
 import { ContentWriteService } from "../apps/backend/src/content/content-write.service";
 
+/** Проверяем HTTP-контракты при настоящем переполнении конечного MySQL-пула и восстановление после освобождения. */
 describe.skipIf(!testDatabaseUrl)(
   "HTTP failures and recovery with a saturated application pool",
   () => {
@@ -26,6 +27,7 @@ describe.skipIf(!testDatabaseUrl)(
       token: string;
     const email = "pool-pressure@example.test",
       password = "owned-pressure-password";
+    /** Создаём явный барьер для паузы после аутентификации без произвольных sleep или подмены SQL. */
     const deferred = () => {
       let resolve!: () => void;
       const promise = new Promise<void>((done) => {
@@ -33,6 +35,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       return { promise, resolve };
     };
+    /** Собираем локальный API с обычной очередью 10, своим администратором и опубликованным исходным постом. */
     beforeAll(async () => {
       vi.stubEnv("API_DB_BURST_QUEUE_ENABLED", "false");
       conn = await openContentTestDatabase();
@@ -56,6 +59,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       pool = ((await getDb()) as unknown as { $client: Pool }).$client;
     });
+    /** Снимаем spies, удаляем только свои намерения/посты/аккаунт и закрываем общий пул. */
     afterAll(async () => {
       vi.restoreAllMocks();
       await app?.close();
@@ -72,6 +76,7 @@ describe.skipIf(!testDatabaseUrl)(
       await closeDb();
       vi.unstubAllEnvs();
     });
+    /** Занимаем все десять соединений и очередь десяти ожидающих, возвращая обязательную функцию полного освобождения. */
     async function saturate() {
       const held: PoolConnection[] = [];
       try {
@@ -88,7 +93,9 @@ describe.skipIf(!testDatabaseUrl)(
         await Promise.all(queued);
       };
     }
+    /** Формируем синтетический Bearer текущего тестового администратора. */
     const headers = () => ({ authorization: `Bearer ${token}` });
+    /** Отправляем настоящий tRPC GET/POST с SuperJSON и конечным ожиданием, без mocked transport. */
     const rpc = (
       method: string,
       input?: unknown,
@@ -107,6 +114,7 @@ describe.skipIf(!testDatabaseUrl)(
           signal: AbortSignal.timeout(4000),
         },
       );
+    /** Требуем безопасный HTTP503 без cookie, user:null и SQL/stack; tRPC должен сохранить SERVICE_UNAVAILABLE. */
     async function expectUnavailable(response: Response, trpc: boolean) {
       expect(response.headers.get("set-cookie")).toBeNull();
       const body = await response.text();
@@ -119,6 +127,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(body).not.toContain('"user":null');
     }
 
+    /** Переполнение не разлогинивает REST-клиент; после освобождения тот же токен снова читает профиль. */
     it("keeps REST session failure distinct from guest and recovers the same token", async () => {
       const release = await saturate();
       try {
@@ -138,6 +147,7 @@ describe.skipIf(!testDatabaseUrl)(
         ).json(),
       ).toMatchObject({ user: { id: 98840 } });
     });
+    /** Переполнение tRPC-проверки сессии остаётся временной ошибкой, после чего прежний токен работает. */
     it("keeps tRPC session failure distinct from guest and recovers the same token", async () => {
       const release = await saturate();
       try {
@@ -147,10 +157,12 @@ describe.skipIf(!testDatabaseUrl)(
       }
       expect((await rpc("auth.me", undefined, true)).status).toBe(200);
     });
+    /** В local/mysql координации временный отказ входа не выдаёт cookie, а восстановившийся пул допускает тот же логин. */
     it.each(["local", "mysql"])(
       "reports temporary login failure with %s coordination without issuing cookies",
       async (mode) => {
         vi.stubEnv("API_COORDINATION_MODE", mode);
+        /** Посылаем реальные email/password на локальный login с ограниченным ожиданием. */
         const login = () =>
           fetch(base + "/api/auth/login", {
             method: "POST",
@@ -171,6 +183,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(recovered.headers.get("set-cookie")).toContain("HttpOnly");
       },
     );
+    /** Публичный каталог при переполнении даёт 503, после освобождения возвращает сохранённую карточку. */
     it("does not turn failed public list reads into a successful empty page", async () => {
       const release = await saturate();
       try {
@@ -187,6 +200,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(result.posts.some((post) => post.id === 98840)).toBe(true);
     });
+    /** Задерживаем writer после auth, заполняем пул и проверяем отсутствие частичных строк; тот же ключ после восстановления создаёт ровно один пост, сохраняя прежний. */
     it("fails a write after authentication without success or partial rows, then safely replays the same intent", async () => {
       const service = app.get(ContentWriteService);
       const original = service.createPost.bind(service);

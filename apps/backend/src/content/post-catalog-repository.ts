@@ -104,6 +104,7 @@ const postListColumns = {
     ),
 };
 
+/** Собираем обязательные признаки опубликованной Ленты, затем точный JSON-тег и поиск по нормализованному тексту; SQL-параметры отделены от запроса. */
 function feedFilterConditions(options: {
   tagFilter?: string;
   search?: string;
@@ -161,6 +162,7 @@ export async function getPostsPaginated(
 }
 
 /** Восстанавливаем ограниченный набор карточек по известным ID через общий путь чтения медиа. */
+/** Возвращаем опубликованные карточки в порядке запрошенных ID вместе с медиа из одного снимка; клубную видимость дополнительно ограничивает вызывающий сервис. */
 export async function getPostsByIds(
   db: Database,
   ids: number[],
@@ -190,6 +192,7 @@ export async function getPostsByIds(
 }
 
 /** Фильтруем назначение Лента/Клуб до пагинации и гидратации вложений. */
+/** Применяем назначение, рубрику и теги до чтения страницы; Лента и Клуб сохраняют разные правила сортировки, числовой cursor остаётся offset между отдельными снимками. */
 export async function getPostsForTarget(
   db: Database,
   target: "feed" | "club",

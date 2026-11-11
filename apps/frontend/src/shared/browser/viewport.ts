@@ -18,6 +18,7 @@ const serverViewport: ViewportSize = {
 let browserViewport = serverViewport;
 let browserScreenViewport = serverViewport;
 const listeners = new Set<() => void>();
+/** Отдельный CSS-offset учитывает iOS-панорамирование visualViewport над клавиатурой даже без нового resize. */
 function measureViewportOffset() {
   // iOS can pan the visual viewport above its keyboard without resizing again.
   document.documentElement.style.setProperty(
@@ -25,6 +26,7 @@ function measureViewportOffset() {
     `${window.visualViewport?.offsetTop ?? 0}px`,
   );
 }
+/** Обновляем app-height, измерения окна и safe-area согласованно; одинаковые значения не вызывают лишних уведомлений подписчиков. */
 function measureViewport() {
   measureViewportOffset();
   const nextScreen = getViewport("screen");
@@ -58,6 +60,7 @@ function measureViewport() {
   browserInsets = nextInsets;
   listeners.forEach((listener) => listener());
 }
+/** Глобальные resize/visualViewport listeners существуют, пока есть хотя бы один потребитель; последний cleanup удаляет их. */
 function subscribeViewport(listener: () => void) {
   listeners.add(listener);
   if (listeners.size === 1) {
@@ -78,6 +81,7 @@ function subscribeViewport(listener: () => void) {
     }
   };
 }
+/** Window-scope ограничен макетом 480px, screen-scope нужен полноэкранному медиа; layout viewport помогает пережить iOS rotation overflow. */
 export function getViewport(scope: "window" | "screen" = "window") {
   // Mobile WebKit can keep innerWidth enlarged by old, overflowing content
   // after rotation. Use the layout viewport so that content can shrink again.
@@ -96,6 +100,7 @@ export function getViewport(scope: "window" | "screen" = "window") {
     fontScale: 1,
   };
 }
+/** Возвращаем стабильный external-store snapshot с единым SSR-значением, не измеряя DOM прямо во время hydration-рендера. */
 export function useViewport(scope: "window" | "screen" = "window") {
   return useSyncExternalStore(
     subscribeViewport,
@@ -105,6 +110,7 @@ export function useViewport(scope: "window" | "screen" = "window") {
 }
 const serverInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 let browserInsets = serverInsets;
+/** Safe-area использует тот же цикл измерения, что viewport, и нулевой серверный snapshot. */
 export function useBrowserSafeAreaInsets() {
   return useSyncExternalStore(
     subscribeViewport,
@@ -112,14 +118,17 @@ export function useBrowserSafeAreaInsets() {
     () => serverInsets,
   );
 }
+/** Постоянный невидимый подписчик поддерживает CSS app-height и safe-area даже когда конкретный экран не читает размеры. */
 export function ViewportSync() {
   useViewport();
   return null;
 }
+/** После монтирования читаем prefers-color-scheme и подписываемся на смену; начальное light сохраняет согласованный SSR. */
 export function useSystemColorScheme() {
   const [scheme, setScheme] = useState<"light" | "dark">("light");
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
+    /** MediaQueryList — источник текущего предпочтения; cleanup эффекта снимает ровно этот обработчик change. */
     const change = () => setScheme(media.matches ? "dark" : "light");
     change();
     media.addEventListener("change", change);

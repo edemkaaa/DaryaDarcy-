@@ -1,3 +1,4 @@
+// Архив Expo. Масштабирует alpha-рамку и ограничивает drag-элементы внутренней областью доски.
 import { View, StyleSheet, type ViewStyle } from "react-native";
 import { Image } from "expo-image";
 import { boardLayout } from "@/lib/moodboard/board-geometry";
@@ -13,6 +14,8 @@ type Props = {
 };
 
 export function MoodboardBoardCanvas({ width, items, onItemChange, style }: Props) {
+  // Масштабирует alpha-рамку и ограничивает drag-элементы внутренней областью доски.
+
   const layout = boardLayout(width);
 
   return (
@@ -37,6 +40,7 @@ export function MoodboardBoardCanvas({ width, items, onItemChange, style }: Prop
   );
 }
 
+// Рамка выходит наружу, но внутренняя область режет перемещаемые фото по границам льняного холста.
 const styles = StyleSheet.create({
   wrap: {
     position: "relative",

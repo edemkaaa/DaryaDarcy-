@@ -21,6 +21,7 @@ import { getDb } from "../apps/backend/src/db";
 const key = "c".repeat(64); // Synthetic, never a provider credential.
 const order = "club-test-94321-83be933e-a277-41f3-801d-45771c12b051";
 const email = "test-club@example.invalid";
+/** Проверяет отдельную демонстрационную оплату клуба через настоящий HTTP и SQL без реальных списаний. */
 describe.skipIf(!testDatabaseUrl)(
   "dev-only Prodamus club through native HTTP and SQL",
   () => {
@@ -28,10 +29,12 @@ describe.skipIf(!testDatabaseUrl)(
     let app: INestApplication;
     let base: string;
     let returnIntent: string;
+    /** Создаёт tRPC-клиент локального API без пользовательской сессии. */
     const client = () =>
       createTRPCProxyClient<AppRouter>({
         links: [httpLink({ url: base + "/api/trpc", transformer: superjson })],
       });
+    /** Поднимает отдельную базу и локальное приложение с фиксированной датой и синтетическим ключом ссылок. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -49,6 +52,7 @@ describe.skipIf(!testDatabaseUrl)(
       await app.listen(0, "127.0.0.1");
       base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
     });
+    /** Удаляет только durable-эффекты и аккаунт демонстрационной фикстуры. */
     async function cleanup() {
       for (const table of [
         "billing_receipts",
@@ -60,6 +64,7 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query(`DELETE FROM ${table} WHERE userId=94321`);
       await conn.query("DELETE FROM users WHERE id=94321");
     }
+    /** Возвращает разрешённую dev-конфигурацию и создаёт ожидающий демонстрационный заказ. */
     beforeEach(async () => {
       returnIntent = randomUUID();
       vi.stubEnv("YOOKASSA_TEST_ENABLED", "false");
@@ -78,6 +83,7 @@ describe.skipIf(!testDatabaseUrl)(
         [order, email],
       );
     });
+    /** Закрывает приложение и SQL-пул, удаляет фикстуру и возвращает окружение и реальные часы. */
     afterAll(async () => {
       await app?.close();
       if (conn) await cleanup();
@@ -89,6 +95,7 @@ describe.skipIf(!testDatabaseUrl)(
       vi.useRealTimers();
       vi.unstubAllEnvs();
     });
+    /** Читает заказы и числа квитанций, recurring-профилей и писем пользователя. */
     async function state() {
       const [payments] = await conn.query<RowDataPacket[]>(
         "SELECT orderId,status,expiresAt FROM club_payments WHERE userId=94321 ORDER BY orderId",
@@ -99,6 +106,7 @@ describe.skipIf(!testDatabaseUrl)(
       (SELECT COUNT(*) FROM access_email_outbox WHERE userId=94321) mails`);
       return { payments, effects };
     }
+    /** Отправляет демонстрационный webhook с независимо рассчитанной подписью и управляемыми изменениями полей. */
     function notification(
       changes: Record<string, unknown> = {},
       secret = key,
@@ -116,6 +124,7 @@ describe.skipIf(!testDatabaseUrl)(
         ...changes,
       };
       // Independent provider encoder; never uses production signing helpers.
+      /** Рекурсивно сортирует поля и приводит скаляры к строкам по независимому протоколу тестового провайдера. */
       function ordered(value: unknown): unknown {
         if (Array.isArray(value)) return value.map(ordered);
         if (value && typeof value === "object")
@@ -136,10 +145,12 @@ describe.skipIf(!testDatabaseUrl)(
         },
       });
     }
+    /** Создаёт синтетическое подписанное доказательство возврата с ограниченным временем действия. */
     function returnProof(id = order, expires = "1791590400", secret = key) {
       const payload = `${id}.${expires}`;
       return `${payload}.${createHmac("sha256", secret).update(`prodamus-test-return:v1:${payload}`).digest("hex")}`;
     }
+    /** Отправляет доказательство возврата с ключом операции без пользовательской сессии. */
     function checkReturn(token = returnProof()) {
       return fetch(base + "/api/prodamus/test/result", {
         method: "POST",
@@ -150,6 +161,7 @@ describe.skipIf(!testDatabaseUrl)(
         body: JSON.stringify({ token }),
       });
     }
+    /** Проверяет заполнение пустого контактного номера только подтверждённым success и сохранность уже записанного номера. */
     it.each([null, "+447700900123"])(
       "only a verified success can fill an empty user contact, preserving an existing one (%j)",
       async (existingPhone) => {
@@ -160,6 +172,7 @@ describe.skipIf(!testDatabaseUrl)(
           "UPDATE club_payments SET contactPhone='+79991234567' WHERE orderId=?",
           [order],
         );
+        /** Читает оба телефонных поля, отделяя неподтверждённый контакт от legacy-идентификатора входа. */
         const contact = async () =>
           (
             await conn.query<RowDataPacket[]>(
@@ -186,6 +199,7 @@ describe.skipIf(!testDatabaseUrl)(
         });
       },
     );
+    /** Проверяет pending неоплаченного заказа без сессии, писем и новых SQL-эффектов. */
     it("keeps an unpaid guest order pending without creating a session or mail", async () => {
       const before = await state();
       const response = await checkReturn();
@@ -199,6 +213,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(response.headers.get("cache-control")).toContain("no-store");
       expect(await state()).toEqual(before);
     });
+    /** Проверяет подтверждение только точной durable-квитанции и статуса setup-письма без повторного settlement. */
     it("confirms the exact durable guest receipt and queued setup mail without replaying settlement", async () => {
       expect((await notification()).status).toBe(200);
       const before = await state();
@@ -214,6 +229,7 @@ describe.skipIf(!testDatabaseUrl)(
       }
       expect(await state()).toEqual(before);
     });
+    /** Проверяет предложение обычного входа существующему аккаунту без сброса пароля и лишнего токена. */
     it("offers login, not another account or password reset, for a confirmed existing account", async () => {
       await conn.query(
         "UPDATE users SET passwordHash='synthetic-existing-hash' WHERE id=94321",
@@ -237,6 +253,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(tokens).toEqual([{ total: 0 }]);
       expect(await state()).toEqual(before);
     });
+    /** Проверяет честный статус недоступного письма без утверждения о доставке во входящие и повторной отправки. */
     it("reports a discarded mail without pretending it reached the inbox or resending it", async () => {
       expect((await notification()).status).toBe(200);
       await conn.query(
@@ -251,6 +268,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       expect(await state()).toEqual(before);
     });
+    /** Проверяет нейтральный unknown для недостоверного, просроченного или неоднозначного доказательства без новых эффектов. */
     it.each([
       [
         "wrong signature",
@@ -284,6 +302,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await state()).toEqual(before);
       },
     );
+    /** Проверяет привязку квитанции, суммы, владельца и письма; paid-строка сама по себе не подтверждает результат. */
     it.each([
       "DELETE FROM billing_receipts WHERE userId=94321",
       "UPDATE billing_receipts SET amountMinor=1 WHERE userId=94321",
@@ -309,6 +328,7 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query("DELETE FROM billing_receipts WHERE userId=94322");
       },
     );
+    /** Проверяет сохранённый разовый месячный demo-заказ и подписанный возврат без сессии, доступа и автопродления. */
     it("creates only a saved monthly demo order and a signed one-off redirect, never a session or access", async () => {
       const response = await client().club.createCheckout.mutate({ email, contactPhone: "+79991234567" });
       expect(response.user).toBeNull();
@@ -376,6 +396,7 @@ describe.skipIf(!testDatabaseUrl)(
       commission: "10",
       commission_sum: "79.00",
     };
+    /** Проверяет подписанный RUB-заказ с иностранной валютой оплаты без выдуманного пересчёта курса. */
     it.each([
       ["eur", "10.01", "Open banking EU"],
       ["usd", "11.20", "International card"],
@@ -417,6 +438,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await state()).toEqual(paid);
       },
     );
+    /** Проверяет принятие полной подписанной RUB-суммы независимо от наименования способа оплаты. */
     it.each(["Карта РФ", "СБП", "Т-Банк", "Оплата по счёту", "Рассрочка"])(
       "accepts a full signed RUB order regardless of method %s",
       async (payment_type) => {
@@ -426,6 +448,7 @@ describe.skipIf(!testDatabaseUrl)(
         ]);
       },
     );
+    /** Проверяет отказ некорректной иностранной суммы, состава товара и несовпадающих реквизитов без выдачи доступа. */
     it.each<Record<string, unknown>>([
       { currency: "btc" },
       { currency_sum: undefined },
@@ -456,6 +479,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await state()).toEqual(before);
       },
     );
+    /** Проверяет невозможность повторно использовать квитанцию с иной валютой либо иностранной суммой. */
     it("rejects reuse of a foreign receipt with another currency or foreign amount", async () => {
       expect((await notification(foreign)).status).toBe(200);
       const paid = await state();
@@ -469,6 +493,7 @@ describe.skipIf(!testDatabaseUrl)(
         );
       expect(await state()).toEqual(paid);
     });
+    /** Проверяет допустимые JSON-числа денежных полей при сохранении строгой формы и точности суммы. */
     it("accepts signed JSON numeric monetary fields without accepting structured or imprecise amounts", async () => {
       expect(
         (
@@ -483,6 +508,7 @@ describe.skipIf(!testDatabaseUrl)(
         { receipts: 1, profiles: 0, mails: 1 },
       ]);
     });
+    /** Проверяет ровно один период на тридцать дней и одно durable-письмо при параллельных повторах webhook. */
     it("grants exactly 30 days through the saved order, with durable access mail and idempotent HTTP replay", async () => {
       const first = await notification();
       expect(first.status).toBe(200);
@@ -503,6 +529,7 @@ describe.skipIf(!testDatabaseUrl)(
         effects: [{ receipts: 1, profiles: 0, mails: 1 }],
       });
     });
+    /** Проверяет отказ недемонстрационных, recurring и несовпадающих уведомлений без выдачи доступа. */
     it.each<Record<string, string>>([
       { demo_mode: "0" },
       { domain: "live.payform.ru" },
@@ -519,6 +546,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await state()).toEqual(before);
       },
     );
+    /** Проверяет неверный ключ и невозможность направить demo-платёж в production-обработчик. */
     it("refuses a wrong key and retains the production demo boundary", async () => {
       const before = await state();
       expect((await notification({}, "d".repeat(64))).status).toBe(400);
@@ -528,6 +556,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).toBe(400);
       expect(await state()).toEqual(before);
     });
+    /** Проверяет отказ небезопасной dev-конфигурации без создания нового заказа. */
     it.each([
       ["PRODAMUS_TEST_ENABLED", "false"],
       ["PRODAMUS_TEST_ENABLED", "yes"],
@@ -549,6 +578,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await state()).toEqual(before);
       },
     );
+    /** Проверяет отказ полугодового тарифа в месячной demo-ветке без автопродления и изменения цены. */
     it("refuses six-month checkout rather than enabling subscription or charging a different price", async () => {
       const before = await state();
       await expect(
@@ -556,6 +586,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).rejects.toMatchObject({ data: { code: "PRECONDITION_FAILED" } });
       expect(await state()).toEqual(before);
     });
+    /** Проверяет, что durable-намерение YooKassa не переключает провайдера и не создаёт demo-заказ. */
     it("refuses a durable YooKassa intent without a provider switch or new test order", async () => {
       const before = await state();
       const response = await fetch(base + "/api/trpc/club.createCheckout", {
@@ -569,6 +600,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(response.status).toBe(412);
       expect(await state()).toEqual(before);
     });
+    /** Проверяет PHP-form подпись с demo-суффиксом и единственный период доступа. */
     it("accepts a demo-suffixed signed PHP form and still grants just one period", async () => {
       const fields = {
         currency: "rub",
@@ -600,6 +632,7 @@ describe.skipIf(!testDatabaseUrl)(
         },
       ]);
     });
+    /** Проверяет общий откат квитанции и доступа при отказе durable-письма и чистый повтор после восстановления ключа. */
     it("rolls back access and receipt on outbox failure, then accepts a clean provider retry", async () => {
       const before = await state();
       vi.stubEnv("AUTH_LINK_ENCRYPTION_KEY", "");

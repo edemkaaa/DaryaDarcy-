@@ -1,3 +1,4 @@
+/** Опциональный Chromium проверяет настоящий Field и browser keyboard/IME/form события в own loopback UI. */
 import { afterAll, beforeAll, describe, it } from "vitest";
 import {
   chromium,
@@ -9,6 +10,7 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { resolve } from "node:path";
 
+/** Синтетическая Probe-форма считает Field onSubmit, native form submit и пользовательские keydown handlers отдельно. */
 describe.skipIf(!process.env.PLAYWRIGHT_EXECUTABLE_PATH)(
   "Field keyboard submission in Chromium",
   () => {
@@ -16,6 +18,7 @@ describe.skipIf(!process.env.PLAYWRIGHT_EXECUTABLE_PATH)(
     let server: Server | undefined;
     let origin: string;
 
+    /** Собираем Field in-memory и поднимаем собственные HTML/JS routes; внешняя сеть не нужна. */
     beforeAll(async () => {
       const bundle = await build({
         stdin: {
@@ -78,6 +81,7 @@ describe.skipIf(!process.env.PLAYWRIGHT_EXECUTABLE_PATH)(
       });
     });
 
+    /** Закрываем browser и локальный server. */
     afterAll(async () => {
       await browser?.close();
       if (server?.listening)
@@ -96,6 +100,7 @@ describe.skipIf(!process.env.PLAYWRIGHT_EXECUTABLE_PATH)(
       "native form submission",
     ] as const;
 
+    /** Обычный Enter отправляет ровно раз; IME/229, preventDefault, multiline и другая клавиша не отправляют; без Field onSubmit сохраняется native form behavior. */
     it.each(cases)(
       "handles %s",
       async (scenario) => {

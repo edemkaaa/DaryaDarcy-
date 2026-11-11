@@ -35,6 +35,8 @@ const snapshotSchema = z
   .strict();
 
 function identify(value: string) {
+  // Классифицирует ссылку как защищённую, известную старую S3, внешнюю или неоднозначную; неизвестное не считается безопасным.
+
   const fingerprint = createHash("sha256").update(value).digest("hex");
   // A protected reference is not evidence that its DB binding/object is ready.
   if (
@@ -81,6 +83,8 @@ function identify(value: string) {
 
 /** Metadata only: no DB/S3 client, network requests, mutation mode or deletion approval. */
 export function inventoryLegacyMedia(input: unknown) {
+  // Группирует точные слоты привязок и отмечает общие публичные файлы; отчёт сам не разрешает закрытие URL.
+
   const snapshot = snapshotSchema.parse(input);
   const slots = new Set<string>();
   const groups = new Map<
@@ -136,6 +140,8 @@ export function inventoryLegacyMedia(input: unknown) {
 }
 
 async function main(args: string[]) {
+  // Читает только ограниченный файл метаданных и создаёт новый отчёт без доступа к БД, S3 или ACL.
+
   if (
     ![4, 5].includes(args.length) ||
     (args.length === 5 && args[4] !== "--plan") ||

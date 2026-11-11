@@ -8,6 +8,7 @@ import { gotoWithSession } from "../apps/frontend/e2e/layout-fixtures";
 
 const native = process.env.DARYADARCY_LOCAL_BROWSER === "1" ? it : it.skip;
 let app: Awaited<ReturnType<typeof privateFilesBrowser>>, png: Buffer;
+/** В явном browser-режиме проверяет запас диска, создаёт маленький PNG и собственный стенд с недоступным upstream API. */
 beforeAll(async () => {
   if (process.env.DARYADARCY_LOCAL_BROWSER !== "1") return;
   const disk = await statfs(process.cwd());
@@ -22,9 +23,11 @@ beforeAll(async () => {
     .toBuffer();
   app = await privateFilesBrowser("http://127.0.0.1:1");
 }, 60000);
+/** Закрывает только ресурсы собственного browser-стенда. */
 afterAll(async () => {
   await app?.close();
 });
+/** Создаёт отдельный browser context с запретом внешних origin и автоматическим подтверждением тестовых диалогов. */
 async function ownPage() {
   const context = await app.context.browser()!.newContext();
   await context.route("**/*", (route) =>
@@ -38,6 +41,7 @@ async function ownPage() {
   page.on("dialog", (dialog) => dialog.accept());
   return page;
 }
+/** Открывает полный или быстрый редактор в тестовой сессии, дожидаясь проверки журнала; при сбое добавляет диагностику страницы. */
 async function open(page: Page, mode: "full" | "quick") {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -62,6 +66,7 @@ async function open(page: Page, mode: "full" | "quick") {
   return form;
 }
 for (const mode of ["full", "quick"] as const) {
+  /** При отсутствующих capabilities отключает файловые действия, сохраняя возможность текстовой публикации в обоих редакторах. */
   native(
     `${mode}: unavailable uploads disable only file actions and still allow a text post`,
     async () => {
@@ -108,6 +113,7 @@ for (const mode of ["full", "quick"] as const) {
     },
     120000,
   );
+  /** Если загрузки отключились после выбора, сохраняет File и текст через reload без отправки байтов и создания поста. */
   native(
     `${mode}: disabling uploads after selection preserves the file without sending it or creating a post`,
     async () => {
@@ -191,6 +197,7 @@ for (const mode of ["full", "quick"] as const) {
     120000,
   );
 }
+/** Недоступность фото комментариев не блокирует отправку чисто текстового комментария. */
 native(
   "comment photos stay disabled without blocking a text-only comment",
   async () => {
@@ -258,6 +265,7 @@ native(
   },
   120000,
 );
+/** Отсутствующие приватные capabilities отключают фото и документы статьи, сохраняя отдельную публичную обложку и текст. */
 native(
   "article private file actions stay disabled while public banner and text editing remain available",
   async () => {
@@ -296,6 +304,7 @@ native(
   120000,
 );
 
+/** Ошибка refresh capabilities снимает прежний разрешающий hint вместо сохранения устаревшего доступа к загрузке. */
 native(
   "a failed refresh does not retain an earlier enabled upload hint",
   async () => {

@@ -2,6 +2,7 @@
 import { ENV } from "../_core/env";
 
 /** User guidance only; storage-origin validation below is the acceptance boundary. */
+/** Подсказываем человеку причину неподходящей страницы провайдера; эта эвристика сообщений не является разрешением URL для серверного чтения. */
 export function blockedVideoPageReason(url: string): string | null {
   let host = "";
   try {
@@ -29,6 +30,7 @@ export function blockedVideoPageReason(url: string): string | null {
 }
 
 /** Matching a configured location proves neither object existence nor ownership. */
+/** Сверяем HTTPS origin и префикс настроенного бакета без credentials; совпадение местоположения ещё не подтверждает наличие объекта или владельца. */
 export function isOurStorageUrl(url: string): boolean {
   try {
     if (!ENV.s3Endpoint || !ENV.s3Bucket) return false;

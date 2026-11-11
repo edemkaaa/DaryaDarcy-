@@ -1,4 +1,5 @@
 /** Compatibility exports only. Each feature owns its SQL and transaction helpers. */
+// Совместимые экспорты сохраняют прежние импорты; SQL, блокировки и транзакционные границы принадлежат профильным модулям ниже.
 export {
   isModeratorAccount,
   isStaffAccount,

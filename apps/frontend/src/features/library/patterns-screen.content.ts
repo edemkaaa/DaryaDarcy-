@@ -41,6 +41,7 @@ export const CHRISTMAS_PATTERNS: PatternItem[] = [
 export const LOSHADKA_COVER_URL =
   "/assets/responsive/f8a919017d4c-WDRmWxjeWyXWNrto.w900.ea6d6770802512b5.webp";
 
+/** Передаём размеры viewport в расчёт карточек и полноэкранного просмотра без повторного чтения окна. */
 export function getPatternsScreenContent(viewport: ViewportSize) {
   const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = viewport;
   return { SCREEN_WIDTH, SCREEN_HEIGHT };

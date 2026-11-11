@@ -14,6 +14,8 @@ const manifest = await fs.readFile(path.join(frontend, "image-variants.json"), "
     throw error;
   });
 async function walk(dir) {
+  // Собирает исходники потребителей, пропуская собственный сгенерированный каталог на этапе поиска ссылок.
+
   const entries = await fs.readdir(dir, { withFileTypes: true });
   const groups = await Promise.all(entries.map((entry) => {
     const file = path.join(dir, entry.name);

@@ -1,7 +1,10 @@
-const token =
-  "bWFpbgEAAA4wAAABoDL2vfkAAAGgM9NiWWv79fj2TrdklOX0rChamI9n48-1ksfFrPDyt2FATDAKzWr7xY5sxhnOFWRaq9p6cwurx7OikgWMaWluiPRl1cCXK4Uq108O2KN42f-BtjKKcYVkHh4PuHGNAJxJM81XlmSaqw";
-const resourceUrl =
-  "https://office-online.disk.yandex.net/v1/disk/wopi/files/Y2ViOJGjaUJtmlIid8xNsl5IUzNzmhWbdSlSAuTi5MAf7Itm82p0wKQTL54ZZOLCj_oND1DmKqKS3xKgbzjc-Q2EFAAmhNsSGYxJ3ghuR1oj3oJ6moc5u9rNKqCM_nCo";
+// Диагностирует временные ссылки Яндекс-документа только с доступом из закрытого окружения; байты и сетевые ответы не подтверждают перенос материала.
+// Историческая диагностика документа: временный доступ задаётся только закрытым окружением вне Git.
+const token = process.env.YANDEX_DISK_DOWNLOAD_TOKEN;
+const resourceUrl = process.env.YANDEX_DISK_RESOURCE_URL;
+if (!token || !resourceUrl) {
+  throw new Error("Set YANDEX_DISK_DOWNLOAD_TOKEN and YANDEX_DISK_RESOURCE_URL outside Git before running this diagnostic");
+}
 
 const candidates = [
   `${resourceUrl}/contents?access_token=${encodeURIComponent(token)}`,

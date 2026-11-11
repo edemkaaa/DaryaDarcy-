@@ -1,9 +1,11 @@
+/** Проверяем структурный справочник на синтетических источниках без выполнения описываемого кода. */
 import { expect, it } from "vitest";
 import {
   buildFileGuide,
   summarizeSource,
 } from "../tooling/scripts/source-file-guide";
 
+/** Извлекаем JSDoc и метод класса, но исключаем sentinel-значение из тела функции. */
 it("documents declared blocks and their comments without publishing function bodies", () => {
   const result = summarizeSource(
     "module.ts",
@@ -31,6 +33,7 @@ export class Worker { /** Ожидаем завершения текущей з�
   expect(JSON.stringify(result)).not.toContain("NOT_FOR_DOCUMENTATION");
 });
 
+/** Проверяем единственность пути, URL-кодирование скобок/пробела и явный статус исторического материала. */
 it("gives every file one entry, keeps history explicit and escapes Markdown paths", () => {
   const pages = buildFileGuide([
     {
@@ -50,6 +53,7 @@ it("gives every file one entry, keeps history explicit and escapes Markdown path
   expect(pages.get("index.md")).toContain("не подтверждает ручной разбор");
 });
 
+/** Сценарий внутри describe и именованные DDL-шаги должны попасть в карту; INSERT-данные в неё не копируются. */
 it("indexes nested test scenarios and immutable migration operations as blocks", () => {
   expect(
     summarizeSource(
@@ -73,6 +77,7 @@ it("indexes nested test scenarios and immutable migration operations as blocks",
   );
 });
 
+/** Читаем описания стилей и имя Python-функции даже при опасном top-level коде; длинное описание не оставляет trailing whitespace. */
 it("reads style purpose and Python block names without executing scripts", () => {
   const pages = buildFileGuide([
     {
@@ -93,4 +98,17 @@ it("reads style purpose and Python block names without executing scripts", () =>
   );
   expect(pages.get("tools-infrastructure.md")).toContain("`prepare`");
   expect([...pages.values()].join("\n")).not.toMatch(/[\t ]+$/m);
+});
+
+/** Проверяем именно строку назначения перед таблицей: описание внутри списка функций не должно маскировать потерянный заголовок файла. */
+it("keeps reviewed legacy explanations instead of replacing them with a generic archive label", () => {
+  const pages = buildFileGuide([
+    {
+      path: "apps/legacy-web/src/auth.tsx",
+      text: "/** Архивная сессия; сетевой сбой очищает пользователя. */\nexport function useAuth() {}",
+    },
+  ]);
+  expect(pages.get("assets-history.md")).toContain(
+    "\n\nАрхивная сессия; сетевой сбой очищает пользователя.\n",
+  );
 });

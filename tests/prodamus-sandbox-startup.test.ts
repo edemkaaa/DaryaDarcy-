@@ -1,7 +1,9 @@
+/** Изолированный дочерний запуск sandbox проверяет отказ при неполных/смешанных настройках. */
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 import { expect, it } from "vitest";
 
+/** Ожидаем ненулевой выход и только общую ошибку: значения тестовых секретов не должны попасть в stdout/stderr. */
 it.each([
   {
     PRODAMUS_SANDBOX_ENABLED: "false",

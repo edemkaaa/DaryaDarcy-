@@ -1,3 +1,4 @@
+/** Архивная форма входа и регистрации Vite с прежним ожиданием немедленного профиля в ответе. */
 import { FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth";
@@ -6,6 +7,7 @@ import {
   EMAIL_REGISTER_CONSENT_VERSION,
 } from "../../../../packages/shared/src/consent-texts";
 
+/** Разделяет режимы формы, хранит ввод и выводит прежние ошибки; после успеха возвращает только в профиль. */
 export default function Login() {
   const { login, register } = useAuth();
   const navigate = useNavigate();
@@ -17,6 +19,7 @@ export default function Login() {
   const [busy, setBusy] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
 
+  /** Проверяет согласие только в режиме регистрации, удерживает busy до завершения запроса и показывает ошибку без очистки введённых полей. */
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);

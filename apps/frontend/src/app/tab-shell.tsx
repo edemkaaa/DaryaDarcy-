@@ -14,6 +14,7 @@ import { useClub } from "@/domain/subscription/subscription-context";
 import { BackgroundNoticeSlot } from "@/shared/ui/background-notice";
 import { useClubNavigation } from "@/shared/navigation/use-club-navigation";
 import { getClubPaymentMode } from "@/features/club/payment-mode";
+/** Выбираем оболочку по маршруту и клубным правам; отмена подписки живёт выше профиля, чтобы переход не терял неизвестный результат. */
 export default function TabShell({
   children,
   initialHomeDate,

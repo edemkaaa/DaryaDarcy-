@@ -1,17 +1,21 @@
+/** CI SQL setup проверяется настоящими локальными TCP-байтами, подменяя только адрес разрешённого service-host. */
 import { afterEach, expect, it, vi } from "vitest";
 import net from "node:net";
 import { once } from "node:events";
 import type { TestProject } from "vitest/node";
 import setup from "../tooling/scripts/sql-test-setup";
 
+/** Снимаем net spies и CI/env после сценария. */
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
 });
+/** Минимальный TestProject принимает вычисленный URL для изолированных workers. */
 function project() {
   return { config: { env: {} } } as TestProject;
 }
 
+/** Локальный/пустой URL не требует CI-туннеля или нового listener. */
 it("leaves local connection settings untouched and creates no listener", async () => {
   const createServer = vi.spyOn(net, "createServer");
   const target = project();
@@ -23,6 +27,7 @@ it("leaves local connection settings untouched and creates no listener", async (
   expect(target.config.env).toEqual({});
 });
 
+/** Malformed/external/non-test/options URL отвергаются до сокетов и без утечки пароля. */
 it.each([
   "not a URL containing a password",
   "mysql://fixture:test@production.example/backend_test",
@@ -42,6 +47,7 @@ it.each([
   expect(connect).not.toHaveBeenCalled();
 });
 
+/** Имя CI service требует одновременно CI и явное разрешение. */
 it.each([
   ["false", "true"],
   ["true", "false"],
@@ -55,6 +61,7 @@ it.each([
   await expect(setup(project())).rejects.toThrow();
 });
 
+/** Echo fixture подтверждает прозрачность bytes/encoded password; cleanup закрывает активный socket и дальнейший доступ к listener. */
 it("forwards the allowed CI service over loopback and closes listeners and active sockets", async () => {
   const originalConnect = net.createConnection.bind(net);
   const echo = net.createServer((socket) => socket.pipe(socket));

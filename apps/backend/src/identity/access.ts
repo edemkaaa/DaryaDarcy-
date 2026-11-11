@@ -40,8 +40,10 @@ export type Mail = {
   html?: string;
   messageId: string;
 };
+/** Хешируем одноразовое доказательство или eventKey: исходный токен не используется как индекс открытым текстом. */
 const digest = (value: string) =>
   createHash("sha256").update(value).digest("hex");
+/** Требуем отдельный канонический Base64 ключ ровно 32 байта для шифрования ссылок outbox; некорректная настройка не получает fallback. */
 function encryptionKey() {
   const raw = process.env.AUTH_LINK_ENCRYPTION_KEY || "";
   const key = Buffer.from(raw, "base64");
@@ -51,6 +53,7 @@ function encryptionKey() {
     );
   return key;
 }
+/** Шифруем токен AES-256-GCM со случайным nonce и тегом целостности перед сохранением в outbox. */
 function encrypt(token: string) {
   const iv = randomBytes(12),
     cipher = createCipheriv("aes-256-gcm", encryptionKey(), iv);
@@ -61,6 +64,7 @@ function encrypt(token: string) {
     cipher.getAuthTag(),
   ]).toString("base64");
 }
+/** Восстанавливаем токен только после проверки GCM-тега отдельным ключом отправки писем. */
 function decrypt(value: string) {
   const data = Buffer.from(value, "base64"),
     decipher = createDecipheriv(
@@ -273,6 +277,7 @@ export async function completePassword(
     return true;
   });
 }
+/** В одной транзакции проверяем текущие права менеджера на целевой аккаунт и ставим повтор письма доступа, не меняя срок подписки. */
 export async function resendClubAccess(
   database: MySql2Database,
   actor: User,
@@ -337,6 +342,7 @@ export async function processAccessEmails(
 ): Promise<void> {
   for (let batch = 0; batch < 20; batch++) {
     const leaseId = randomUUID();
+// Короткая транзакция захватывает одно готовое задание через SKIP LOCKED и lease; медленная отправка идёт уже без SQL-блокировок.
     const mail = await database.transaction(async (tx) => {
       const [row] = await tx
         .select()
@@ -458,6 +464,7 @@ export async function processAccessEmails(
     } // Never log encrypted links, plaintext tokens or SMTP payloads.
     if (!success && !discard && mail.attempts >= 11)
       discard = "delivery_attempts_exhausted";
+// Подтверждение либо backoff применяются только к своему lease; принятый SMTP ответ не доказывает доставку во входящие, авария между эффектом и отметкой допускает повтор.
     await database
       .update(accessEmailOutbox)
       .set(

@@ -25,11 +25,15 @@ export const privateCommentPhotoInput = privateContentInput.extend({
   usage: z.literal("commentPhoto"), postId: z.number().int().positive(),
 });
 export const privateContentStatusInput = z.object({ idempotencyKey: privateUploadKey }).strict();
+/** Возвращаем относительный защищённый маршрут assetId вместо прямой ссылки на объект хранилища. */
 export const contentFileUrl = (assetId: string) => `/api/media/content-files/${assetId}`;
+/** Скрываем контракт закрытых фото и документов, пока серверный флаг выключен. */
 export function requirePrivateContentEnabled() {
   if (process.env.PRIVATE_CONTENT_FILES_ENABLED !== "true") throw new TRPCError({ code: "NOT_FOUND" });
 }
+/** Преобразуем внутренний сбой схемы или хранилища в временную ошибку файла без технических подробностей. */
 const unavailable = () => new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Файл временно недоступен" });
+/** Проверяем полные одиночные уникальные ключи requestKey и assetId в InnoDB до идемпотентной записи. */
 export async function requirePrivateContentSchema(tx: Pick<PrivateAttachmentTransaction, "select" | "execute">) {
   await tx.select().from(privateContentFiles).limit(0);
   const [rows] = await tx.execute(sql`SELECT s.INDEX_NAME AS name,s.COLUMN_NAME AS columnName,s.SUB_PART AS prefix,t.ENGINE AS engine
@@ -39,6 +43,7 @@ export async function requirePrivateContentSchema(tx: Pick<PrivateAttachmentTran
   for (const column of ["requestKey", "assetId"]) if (!rows.some(row => row.columnName === column && row.prefix === null && row.engine === "InnoDB" && (column !== "requestKey" || row.name === "PRIMARY") && rows.filter(other => other.name === row.name).length === 1)) throw unavailable();
 }
 type FileRow = typeof privateContentFiles.$inferSelect;
+/** Проверяем срок, отзыв и ETag редакторской квитанции; библиотечный импорт не выдаём за загрузку редактора, URL появляется только у ready. */
 function receipt(row: FileRow) {
   // Library imports have a separate operator contract, never an editor receipt.
   if (row.usage === "libraryPhoto" || row.usage === "libraryDocument") throw unavailable();
@@ -48,7 +53,9 @@ function receipt(row: FileRow) {
   return { state: row.state, assetId: row.assetId, usage: row.usage, filename: row.filename, mimeType: row.mimeType, fileSize: row.fileSize,
     ...(row.state === "ready" ? { url: contentFileUrl(row.assetId) } : {}) };
 }
+/** Изолируем повтор загрузки пользователя по версии приватного контракта и исходному ключу. */
 const requestKey = (actor: PrivateAttachmentActor, key: string) => digest(JSON.stringify(["private.content:v1", actor.id, key]));
+/** Проверяем доступ комментария до тяжёлой обработки, нормализуем фото либо проверяем документ, коммитим намерение до S3 и повторно проверяем текущие права перед ready. */
 export async function uploadPrivateContentFile(
   actor: PrivateAttachmentActor,
   input: z.output<typeof privateContentInput> | z.output<typeof privateCommentPhotoInput>,
@@ -76,11 +83,13 @@ export async function uploadPrivateContentFile(
     signal?.throwIfAborted();
     const namespace = privateStorageNamespace();
     const database = await getDb(); if (!database) throw unavailable();
+    /** Сверяем исполнителя, отпечаток исходных и готовых байтов, пространство, срок и отзыв при каждом чтении квитанции. */
     const check = (row: FileRow | undefined): FileRow => {
       if (!row || row.actorUserId !== actor.id || row.payloadHash !== hash) throw new TRPCError({ code: "CONFLICT", message: "Ключ загрузки уже использован" });
       if (row.namespaceHash !== namespace.hash) throw unavailable();
       receipt(row); return row;
     };
+// Сохранённое намерение закрепляет assetId до внешнего эффекта, поэтому сетевой повтор не создаёт другой объект.
     const intent = await database.transaction(async tx => {
       if (input.usage === "commentPhoto") await requireCommentFilePost(tx, actor, input.postId);
       else await lockPrivateAttachmentActor(tx, actor);
@@ -95,6 +104,7 @@ export async function uploadPrivateContentFile(
     // lock. The final transaction rechecks the actor, post and recovery window.
     const etag = await ensurePrivateUploadObject({ ...intent, type: "document", scope: "content" }, bytes, signal);
     signal?.throwIfAborted();
+// После S3 заново проверяем пользователя и доступный пост; SQL-блокировки не удерживаются во время передачи файла.
     return await database.transaction(async tx => {
       if (input.usage === "commentPhoto") await requireCommentFilePost(tx, actor, input.postId);
       else await lockPrivateAttachmentActor(tx, actor);
@@ -108,6 +118,7 @@ export async function uploadPrivateContentFile(
     });
   } catch (error) { if (error instanceof TRPCError) throw error; throw unavailable(); }
 }
+/** Читаем исходный ключ под текущими правами владельца; не смешиваем загрузки комментариев с админскими и возвращаем notRecorded без сетевой записи. */
 export async function privateContentFileStatus(actor: PrivateAttachmentActor, key: string, comment = false) {
   requirePrivateContentEnabled();
   try {

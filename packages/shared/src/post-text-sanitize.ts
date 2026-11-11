@@ -3,6 +3,7 @@ import type { RichTextBlock } from "./rich-text-types";
 import { preparePostRichTextForSave } from "./rich-text-save";
 
 /** Remove control chars / broken glyphs that break mobile web text layout. */
+/** Нормализуем переносы и убираем управляющие/повреждённые символы, хвостовые пробелы и чрезмерные пустые строки перед хранением текста. */
 export function sanitizePlainPostText(text: string): string {
   return text
     .replace(/\r\n?/g, "\n")
@@ -15,6 +16,7 @@ export function sanitizePlainPostText(text: string): string {
 }
 
 /** Clean inline segment without trimming internal spaces. */
+/** Очищаем управляющие и повреждённые символы внутри форматированного фрагмента, сохраняя значимые внутренние пробелы. */
 function cleanInlineSegment(text: string): string {
   return text
     .replace(/\r\n?/g, "\n")
@@ -23,11 +25,13 @@ function cleanInlineSegment(text: string): string {
     .replace(/\uFFFD/g, "");
 }
 
+/** Разделяем форматированный блок на строки, сохраняя bold/italic/link каждого фрагмента и не создавая пустых блоков. */
 function splitBlockOnNewlines(block: RichTextBlock): RichTextBlock[] {
   const children = block.children || [];
   const parts: RichTextBlock[] = [];
   let bucket: RichTextBlock["children"] = [];
 
+  /** Переносим накопленные фрагменты в отдельный блок того же типа и сбрасываем накопитель на границе строки. */
   const flush = () => {
     if (!bucket.length) return;
     parts.push({ type: block.type, children: bucket });
@@ -55,6 +59,7 @@ function splitBlockOnNewlines(block: RichTextBlock): RichTextBlock[] {
 }
 
 /** Normalize rich text for safe feed/club rendering on mobile Safari. */
+/** Из произвольного JSON выбираем поддерживаемые блоки и фрагменты, очищаем текст и переносы; ссылки остаются данными и требуют отдельной безопасной обработки в renderer. */
 export function sanitizeRichTextForDisplay(
   value: unknown,
 ): RichTextBlock[] | null {
@@ -82,6 +87,7 @@ export function sanitizeRichTextForDisplay(
 }
 
 /** Normalize before saving to DB (admin + import). */
+/** Согласуем форматированное содержимое с окончательным plainText через общий путь подготовки, чтобы старые диапазоны не привязывались к другому тексту. */
 export function normalizeRichTextForStorage(
   value: unknown,
   plainText: string,

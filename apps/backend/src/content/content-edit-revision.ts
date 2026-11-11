@@ -14,6 +14,7 @@ export const editRevisionInput = z
   .optional();
 export type ContentEditPrecondition = { expectedRevision?: string };
 
+/** Канонизирует ключи объектов перед SHA-256, сохраняя порядок массивов и значения редактируемого состояния. */
 function fingerprint(value: unknown): string {
   return createHash("sha256")
     .update(
@@ -31,6 +32,7 @@ function fingerprint(value: unknown): string {
 }
 
 /** Include persisted content and attachments, never reaction counters or derived DTO fields. */
+/** Хеширует persisted post-поля и media в порядке ID; derived DTO и счётчики реакций не создают ложные конфликты редактора. */
 export function postEditRevision(post: Post, media: PostMedia[]): string {
   const fields = [
     "id",
@@ -62,6 +64,7 @@ export function articleEditRevision(article: Article): string {
 }
 
 /** Undefined options identify internal current-state commands, not a client edit. */
+/** Отличает внутренний current-state вызов без condition от клиентского edit; strict true требует версию, неверный flag даёт503, неверный hash даёт400. */
 export function expectedEditRevision(
   condition?: ContentEditPrecondition,
 ): string | undefined {

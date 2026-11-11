@@ -23,6 +23,7 @@ import { sendTransactionalEmail } from "../apps/backend/src/_core/email";
 import { EMAIL_REGISTER_CONSENT_VERSION } from "../packages/shared/src/consent-texts";
 
 // Native HTTP + real MySQL + Nodemailer over a loopback SMTP wire, no mail mocks.
+/** Проверяет повтор публичной незавершённой регистрации через настоящий HTTP, SQL и локальный SMTP-протокол. */
 describe.skipIf(!testDatabaseUrl)("pending public registration retry", () => {
   let conn: Connection,
     app: INestApplication,
@@ -71,10 +72,13 @@ describe.skipIf(!testDatabaseUrl)("pending public registration retry", () => {
       }
     });
   });
+  /** Читает контрольные записи отдельной базы для текущей синтетической почты. */
   async function rows(sql: string, values: unknown[] = []) {
     return (await conn.query<RowDataPacket[]>(sql, values))[0];
   }
+  /** Выдаёт уникальный адрес сценария для независимого состояния и квоты. */
   const email = () => `${prefix}${fixture}@example.test`;
+  /** Отправляет JSON по HTTP с отдельным синтетическим IP текущего сценария. */
   async function post(path: string, body: unknown) {
     return fetch(base + path, {
       method: "POST",
@@ -85,24 +89,29 @@ describe.skipIf(!testDatabaseUrl)("pending public registration retry", () => {
       body: JSON.stringify(body),
     });
   }
+  /** Отправляет повтор регистрации с управляемым именем и версией согласия. */
   const register = (
     name = "Original name",
     consentVersion = EMAIL_REGISTER_CONSENT_VERSION,
   ) => post("/api/auth/register", { email: email(), name, consentVersion });
+  /** Читает единственный аккаунт текущего адреса. */
   async function user() {
     return (await rows("SELECT * FROM users WHERE email=?", [email()]))[0];
   }
+  /** Читает упорядоченный outbox текущего пользователя для проверки повторов и отката. */
   async function mails() {
     return rows(
       "SELECT * FROM access_email_outbox WHERE userId=? ORDER BY id",
       [(await user()).id],
     );
   }
+  /** Читает все setup-токены текущего пользователя для проверки сохранения ранее выданной ссылки. */
   async function tokens() {
     return rows("SELECT * FROM password_tokens WHERE userId=? ORDER BY id", [
       (await user()).id,
     ]);
   }
+  /** Проверяет нейтральный ответ 202 без пользователя, токена сессии и cookie. */
   async function accepted(response: Response) {
     expect(response.status).toBe(202);
     expect(response.headers.get("set-cookie")).toBeNull();
@@ -111,6 +120,7 @@ describe.skipIf(!testDatabaseUrl)("pending public registration retry", () => {
     expect(data).not.toHaveProperty("user");
     expect(data).not.toHaveProperty("sessionToken");
   }
+  /** Удаляет только аккаунты префикса сценария и связанные платежи, письма, токены и согласия. */
   async function cleanup() {
     const ids = (
       await rows("SELECT id FROM users WHERE email LIKE ?", [prefix + "%"])
@@ -125,6 +135,7 @@ describe.skipIf(!testDatabaseUrl)("pending public registration retry", () => {
       await conn.query(`DELETE FROM ${table} WHERE userId IN (?)`, [ids]);
     await conn.query("DELETE FROM users WHERE id IN (?)", [ids]);
   }
+  /** Запускает отдельную SQL-базу, локальный API и SMTP-сервер для настоящего Nodemailer без внешней почты. */
   beforeAll(async () => {
     conn = await openTestDatabase();
     await conn.query(
@@ -148,6 +159,7 @@ describe.skipIf(!testDatabaseUrl)("pending public registration retry", () => {
     vi.stubEnv("SMTP_PASS", "fixture-only-smtp-password");
     vi.stubEnv("SMTP_FROM", "sender@example.test");
   });
+  /** Очищает свои записи и сбрасывает захваченные SMTP-сообщения и режим отказа получателя. */
   beforeEach(async () => {
     await cleanup();
     fixture++;
@@ -155,6 +167,7 @@ describe.skipIf(!testDatabaseUrl)("pending public registration retry", () => {
     recipients.length = 0;
     rejectRecipient = false;
   });
+  /** Закрывает приложение, SMTP-сокеты и SQL-пул и удаляет собственные записи. */
   afterAll(async () => {
     await app?.close();
     for (const socket of sockets) socket.destroy();
@@ -169,6 +182,7 @@ describe.skipIf(!testDatabaseUrl)("pending public registration retry", () => {
     )?.$client.end();
     vi.unstubAllEnvs();
   });
+  /** Обрабатывает outbox до отсутствия ожидающих писем через настоящий локальный SMTP-транспорт. */
   async function deliver() {
     const id = (await user()).id;
     await vi.waitFor(
@@ -182,6 +196,7 @@ describe.skipIf(!testDatabaseUrl)("pending public registration retry", () => {
       { timeout: 3000, interval: 20 },
     );
   }
+  /** Декодирует MIME-текст принятого локальным SMTP письма и извлекает setup-доказательство из fragment ссылки. */
   function receivedToken(index = messages.length - 1) {
     const plainPart = messages[index]
       .split(/\r\n--[^\r\n]+(?:\r\n|$)/)
@@ -200,6 +215,7 @@ describe.skipIf(!testDatabaseUrl)("pending public registration retry", () => {
     expect(url).toBeDefined();
     return new URL(url!).hash.slice("#token=".length);
   }
+  /** Завершает установку пароля по доказательству и проверяет отсутствие автоматической сессии. */
   async function complete(token: string) {
     const response = await post("/api/auth/password/complete", {
       token,
@@ -209,6 +225,7 @@ describe.skipIf(!testDatabaseUrl)("pending public registration retry", () => {
     expect(response.headers.get("set-cookie")).toBeNull();
   }
 
+  /** Проверяет повтор pending-регистрации без изменения имени, согласия, токенов и выдачи сессии. */
   it("accepts a pending retry without overwriting identity, consent or issuing a session", async () => {
     await accepted(await register());
     const original = await user(),
@@ -236,6 +253,7 @@ describe.skipIf(!testDatabaseUrl)("pending public registration retry", () => {
       ).status,
     ).toBe(401);
   });
+  /** Проверяет повторную отправку после SMTP-приёма без отзыва первой ещё пригодной setup-ссылки. */
   it("resends after SMTP acceptance without invalidating the first emailed link", async () => {
     await accepted(await register());
     await deliver();
@@ -257,6 +275,7 @@ describe.skipIf(!testDatabaseUrl)("pending public registration retry", () => {
     expect(login.status).toBe(200);
     expect(login.headers.get("set-cookie")).not.toBeNull();
   });
+  /** Проверяет сохранение pending-письма при отказе RCPT и использование той же очереди на публичном повторе. */
   it("keeps SMTP rejection pending and reuses the queued link on a public retry", async () => {
     await accepted(await register());
     rejectRecipient = true;
@@ -282,6 +301,7 @@ describe.skipIf(!testDatabaseUrl)("pending public registration retry", () => {
     expect(messages).toHaveLength(1);
     await complete(receivedToken());
   });
+  /** Проверяет замену просроченного setup-токена без присвоения аккаунта вызывающим запросом. */
   it("replaces an expired queued setup without claiming the account", async () => {
     await accepted(await register());
     await conn.query(
@@ -295,6 +315,7 @@ describe.skipIf(!testDatabaseUrl)("pending public registration retry", () => {
     expect(messages).toHaveLength(1);
     await complete(receivedToken());
   });
+  /** Проверяет откат нового токена, если собственный триггер запрещает durable-запись письма. */
   it("rolls a retry's new token back when durable mail insertion fails", async () => {
     await accepted(await register());
     await deliver();
@@ -316,6 +337,7 @@ describe.skipIf(!testDatabaseUrl)("pending public registration retry", () => {
     }
     await complete(receivedToken());
   });
+  /** Проверяет сериализацию конкурирующих повторов и не более трёх setup-писем на адрес за скользящий час. */
   it("bounds concurrent retries to three setup mails per recipient per rolling hour", async () => {
     await accepted(await register());
     await deliver();
@@ -333,6 +355,7 @@ describe.skipIf(!testDatabaseUrl)("pending public registration retry", () => {
     expect(messages).toHaveLength(3);
     await complete(first);
   });
+  /** Проверяет доступность нового setup-письма после выхода прежних записей из часового окна. */
   it("permits another setup once earlier deliveries leave the rolling hour", async () => {
     await accepted(await register());
     await deliver();
@@ -349,6 +372,7 @@ describe.skipIf(!testDatabaseUrl)("pending public registration retry", () => {
     expect(await mails()).toHaveLength(4);
     expect(messages).toHaveLength(4);
   });
+  /** Проверяет, что восстановление пароля не обходит setup-квоту и не отзывает пригодную прежнюю ссылку. */
   it("does not bypass the setup quota or revoke a valid link through password recovery", async () => {
     await accepted(await register());
     await deliver();
@@ -365,6 +389,7 @@ describe.skipIf(!testDatabaseUrl)("pending public registration retry", () => {
     expect(await tokens()).toEqual(originalTokens);
     await complete(first);
   });
+  /** Проверяет нейтральный ответ без возобновления активного, привилегированного или заблокированного аккаунта. */
   it.each([
     "passwordHash='existing-hash'",
     "role='admin'",
@@ -384,6 +409,7 @@ describe.skipIf(!testDatabaseUrl)("pending public registration retry", () => {
       expect(await mails()).toEqual(originalMails);
     },
   );
+  /** Проверяет отсутствие присвоения постороннего беспарольного checkout-аккаунта публичной регистрацией. */
   it("does not turn an unrelated passwordless checkout account into public registration", async () => {
     await conn.query(
       "INSERT INTO users (openId,email,name,loginMethod) VALUES (?,?,'Checkout identity','email')",
@@ -395,6 +421,7 @@ describe.skipIf(!testDatabaseUrl)("pending public registration retry", () => {
     expect(await mails()).toEqual([]);
     expect(await tokens()).toEqual([]);
   });
+  /** Создаёт беспарольного получателя и ожидающий заказ, которые позволяют проверить допустимое продолжение регистрации. */
   async function pendingCheckoutUser() {
     await conn.query(
       "INSERT INTO users (openId,email,loginMethod) VALUES (?,?,'email')",
@@ -407,6 +434,7 @@ describe.skipIf(!testDatabaseUrl)("pending public registration retry", () => {
     );
     return account;
   }
+  /** Проверяет одно setup-письмо и актуальное согласие для аккаунта с ожидающей оплатой без замены его идентичности. */
   it("queues one registration link and records consent for a pending checkout account", async () => {
     const original = await pendingCheckoutUser();
     await accepted(await register());
@@ -425,6 +453,7 @@ describe.skipIf(!testDatabaseUrl)("pending public registration retry", () => {
     await complete(receivedToken());
     expect((await user()).passwordHash).toBeTruthy();
   });
+  /** Проверяет использование пригодного setup-письма, уже поставленного восстановлением пароля. */
   it("keeps a usable setup link already queued by password recovery", async () => {
     await pendingCheckoutUser();
     await accepted(await post("/api/auth/password/request", { email: email() }));
@@ -435,12 +464,14 @@ describe.skipIf(!testDatabaseUrl)("pending public registration retry", () => {
     expect(await mails()).toEqual(originalMails);
     expect(await tokens()).toEqual(originalTokens);
   });
+  /** Проверяет обязательность актуального согласия даже на повторе pending-регистрации. */
   it("still requires current consent on a pending retry", async () => {
     await accepted(await register());
     const originalTokens = await tokens();
     expect((await register("Replacement", "not-current")).status).toBe(400);
     expect(await tokens()).toEqual(originalTokens);
   });
+  /** Проверяет сохранение IP-квоты для повторов без размножения писем и токенов. */
   it("retains the existing IP quota instead of bypassing it on pending retries", async () => {
     for (let attempt = 0; attempt < 15; attempt++)
       await accepted(await register());
@@ -448,6 +479,7 @@ describe.skipIf(!testDatabaseUrl)("pending public registration retry", () => {
     expect(await mails()).toHaveLength(1);
     expect(await tokens()).toHaveLength(1);
   });
+  /** Собирает production ESM-вход и проверяет повтор без пароля, замены имени, cookie и второго письма. */
   it("keeps pending registration retry passwordless in compiled production ESM", async () => {
     const directory = mkdtempSync(resolve(".tmp-registration-retry-"));
     const entry = join(directory, "application.mjs");

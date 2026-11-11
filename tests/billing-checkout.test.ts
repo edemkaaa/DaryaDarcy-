@@ -1,7 +1,9 @@
+/** Через настоящий tRPC caller и подменённые репозитории проверяем, что checkout не подтверждает личность или оплату и не записывает заявку при неверной конфигурации. */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { User } from "../packages/database/src/schema";
 import type { TrpcContext } from "../apps/backend/src/_core/context";
 
+/** Управляем возвращаемыми SQL-fixtures и отдельно учитываем создание заявок, пользователя, сессии и активацию. */
 const state = vi.hoisted(() => ({
   orders: [] as string[],
   issued: false,
@@ -64,12 +66,14 @@ vi.mock("../apps/backend/src/_core/sdk", () => ({
 }));
 import { appRouter } from "../apps/backend/src/routers";
 import * as prodamus from "../apps/backend/src/prodamus";
+/** Создаём tRPC-контекст с заданной личностью и необязательным ключом повторной операции; HTTP/cookie здесь не моделируются. */
 function caller(user: User | null = null, intentKey?: string) {
   const context = { user, req: {}, res: {} } as TrpcContext;
   context.req.headers = { "idempotency-key": intentKey };
   return appRouter.createCaller(context);
 }
 let checkoutClock = 1790940000000;
+/** Разводим rate-limit окна синтетическими часами и сбрасываем provider config и счётчики каждой проверки. */
 beforeEach(() => {
   checkoutClock += 16 * 60_000;
   vi.spyOn(Date, "now").mockImplementation(() => checkoutClock);
@@ -87,11 +91,14 @@ beforeEach(() => {
   state.existing = true;
   state.created = 0;
 });
+/** Снимаем spies и окружение, не оставляя synthetic платёжную конфигурацию другим наборам. */
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
 });
+/** Проверяем границу создания ссылки: право доступа выдаётся отдельным подтверждённым settlement, не ответом checkout. */
 describe("checkout cannot establish identity or payment", () => {
+  /** Отключённый TEST-сценарий с ключом не переключается молча на другого провайдера и не создаёт получателя. */
   it.each(["", "false"])(
     "a keyed test intent cannot fall back to Prodamus when YooKassa mode is %j",
     async (enabled) => {
@@ -113,6 +120,7 @@ describe("checkout cannot establish identity or payment", () => {
     },
   );
 
+  /** Ошибка построения URL предшествует записи заявки; частично созданный заказ и новая сессия недопустимы. */
   it("does not persist an order if building its payment link fails", async () => {
     vi.spyOn(prodamus, "buildCheckoutUrl").mockImplementation(() => {
       throw new Error("synthetic checkout failure");
@@ -123,6 +131,7 @@ describe("checkout cannot establish identity or payment", () => {
     expect(state.orders).toEqual([]);
     expect(state.issued).toBe(false);
   });
+  /** Для существующего и нового email неверный секрет, URL или ID подписки дают одинаковый безопасный отказ до записи. */
   it.each([
     ["PRODAMUS_SECRET", ""],
     ["PRODAMUS_PAYFORM_URL", ""],
@@ -149,6 +158,7 @@ describe("checkout cannot establish identity or payment", () => {
       expect(state.issued).toBe(false);
     },
   );
+  /** Полугодовая одноразовая оплата обходится без месячного subscription ID, создавая только собственную заявку. */
   it("keeps the semiannual one-off checkout independent of a monthly subscription ID", async () => {
     vi.stubEnv("PRODAMUS_SUBSCRIPTION_ID", "");
     state.existing = false;
@@ -161,6 +171,7 @@ describe("checkout cannot establish identity or payment", () => {
     expect(state.created).toBe(1);
     expect(result.user).toBeNull();
   });
+  /** Без общего intent каждый параллельный запрос получает свой order ID и согласованную ссылку, даже при одинаковых часах. */
   it.each(["monthly", "semiannual"] as const)(
     "creates distinct %s orders for concurrent requests in the same millisecond",
     async (plan) => {
@@ -186,18 +197,21 @@ describe("checkout cannot establish identity or payment", () => {
       ).toEqual([...state.orders].sort());
     },
   );
+  /** Ссылка для существующего аккаунта без пароля не является основанием для выпуска session token. */
   it("creates checkout without logging into a passwordless existing account", async () => {
     const result = await caller().club.createCheckout({ contactPhone: "+79991234567", email: member.email! });
     expect(result.url).toContain("order_id=club-7-");
     expect(result.user).toBeNull();
     expect(state.issued).toBe(false);
   });
+  /** Наличие пароля у получателя не изменяет анонимную природу checkout и не позволяет войти в его аккаунт. */
   it("can pay for an existing account without changing its password or authenticating", async () => {
     state.password = true;
     const result = await caller().club.createCheckout({ contactPhone: "+79991234567", email: member.email! });
     expect(result.user).toBeNull();
     expect(state.issued).toBe(false);
   });
+  /** Заблокированный получатель не получает новую заявку, даже если checkout вызван без пользовательской сессии. */
   it("rejects a blocked checkout email", async () => {
     state.blocked = true;
     await expect(
@@ -205,23 +219,27 @@ describe("checkout cannot establish identity or payment", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     expect(state.orders).toEqual([]);
   });
+  /** Блокировка текущей личности проверяется до создания платёжной записи. */
   it("rejects checkout from a blocked session", async () => {
     await expect(
       caller({ ...member, blockedAt: new Date() }).club.createCheckout(),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     expect(state.orders).toEqual([]);
   });
+  /** Авторизованный пользователь не может подменить email получателя собственной заявки. */
   it("does not bind another email to the logged-in account's payment", async () => {
     await expect(
       caller(member).club.createCheckout({ email: "other@example.test" }),
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     expect(state.orders).toEqual([]);
   });
+  /** Совместимый claim не активирует ожидающую оплату и не вызывает старый shortcut выдачи доступа. */
   it("claimPending never grants an unpaid order", async () => {
     const result = await caller(member).club.claimPending();
     expect(result).toEqual({ granted: false, orderId: null });
     expect(state.activated).toBe(false);
   });
+  /** При существующем подтверждённом доступе возвращается его order ID без дополнительной активации. */
   it("claimPending reports access already verified by the server", async () => {
     state.paid = true;
     expect(await caller(member).club.claimPending()).toEqual({

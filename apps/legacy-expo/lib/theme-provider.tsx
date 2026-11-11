@@ -1,3 +1,4 @@
+// Архив Expo. Согласует RN Appearance, NativeWind и DOM-переменные старой темы.
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Appearance, View, useColorScheme as useSystemColorScheme } from "react-native";
 import { colorScheme as nativewindColorScheme, vars } from "nativewind";
@@ -12,10 +13,14 @@ type ThemeContextValue = {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  // Согласует RN Appearance, NativeWind и DOM-переменные старой темы.
+
   const systemScheme = useSystemColorScheme() ?? "light";
   const [colorScheme, setColorSchemeState] = useState<ColorScheme>(systemScheme);
 
   const applyScheme = useCallback((scheme: ColorScheme) => {
+    // Применяет одну схему одновременно к native теме и web root/CSS-токенам.
+
     nativewindColorScheme.set(scheme);
     Appearance.setColorScheme?.(scheme);
     if (typeof document !== "undefined") {
@@ -30,17 +35,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setColorScheme = useCallback((scheme: ColorScheme) => {
+    // Меняет состояние и немедленно применяет выбранную схему.
+
     setColorSchemeState(scheme);
     applyScheme(scheme);
   }, [applyScheme]);
 
   useEffect(() => {
+    // Повторно применяет схему при изменении состояния или обработчика применения.
+
     applyScheme(colorScheme);
   }, [applyScheme, colorScheme]);
 
   const themeVariables = useMemo(
     () =>
-      vars({
+      /* Строит NativeWind vars для текущей палитры контейнера. */ vars({
         "color-primary": SchemeColors[colorScheme].primary,
         "color-background": SchemeColors[colorScheme].background,
         "color-surface": SchemeColors[colorScheme].surface,
@@ -55,7 +64,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({
+    () => /* Мемоизирует схему и setter для потребителей контекста. */ ({
       colorScheme,
       setColorScheme,
     }),
@@ -69,6 +78,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useThemeContext(): ThemeContextValue {
+  // Требует ThemeProvider и возвращает его схему без отдельного системного listener.
+
   const ctx = useContext(ThemeContext);
   if (!ctx) {
     throw new Error("useThemeContext must be used within ThemeProvider");

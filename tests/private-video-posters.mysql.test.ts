@@ -20,6 +20,7 @@ import { createBackendApplication } from "../apps/backend/src/_core/application"
 import { sdk } from "../apps/backend/src/_core/sdk";
 import { getDb } from "../apps/backend/src/db";
 
+/** Проверяет атомарную привязку закрытого poster к private-видео и отзыв poster вместе с исходным media. */
 describe.skipIf(!testDatabaseUrl)(
   "private video poster association HTTP/SQL",
   () => {
@@ -29,6 +30,7 @@ describe.skipIf(!testDatabaseUrl)(
       token: string,
       other: string;
     let wire: Awaited<ReturnType<typeof openPrivateUploadWire>>;
+    /** Отправляет настоящий admin tRPC query или mutation с выбранной сессией. */
     async function call(
       method: string,
       input: unknown,
@@ -55,6 +57,7 @@ describe.skipIf(!testDatabaseUrl)(
           : undefined,
       };
     }
+    /** Загружает synthetic MP4 по raw-private маршруту с постоянным ключом операции. */
     async function video() {
       const response = await fetch(
         `${base}/api/admin/private-video-uploads?filename=video.mp4`,
@@ -71,6 +74,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(response.status).toBe(200);
       return response.json();
     }
+    /** Создаёт маленький PNG и загружает private content с выбранным usage, owner и ключом. */
     async function photo(
       key = "vu2b-poster-original-key",
       usage = "postPhoto",
@@ -96,6 +100,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(result.status).toBe(200);
       return result.data;
     }
+    /** Формирует черновик клубного поста с явной парой videoAssetId/posterAssetId. */
     const input = (videoAssetId: string, posterAssetId: string) => ({
       text: "VU2 private poster",
       photos: [],
@@ -107,6 +112,7 @@ describe.skipIf(!testDatabaseUrl)(
       privateAssetIds: [videoAssetId],
       privateVideoPosters: [{ videoAssetId, posterAssetId }],
     });
+    /** Удаляет только посты source suite, их media и журналы двух тестовых администраторов. */
     async function clear() {
       await conn.query(
         "DELETE m FROM post_media m JOIN posts p ON p.id=m.postId WHERE p.source='vu2b-video-suite'",
@@ -121,6 +127,7 @@ describe.skipIf(!testDatabaseUrl)(
           `DELETE FROM ${table} WHERE actorUserId IN (97690,97691)`,
         );
     }
+    /** Поднимает одноразовую content-схему, loopback storage и API с private-флагами. */
     beforeAll(async () => {
       conn = await openContentTestDatabase();
       wire = await openPrivateUploadWire({ content: true });
@@ -146,11 +153,13 @@ describe.skipIf(!testDatabaseUrl)(
       token = await sdk.createSessionToken("vu2b-admin", { sessionVersion: 0 });
       other = await sdk.createSessionToken("vu2b-other", { sessionVersion: 0 });
     });
+    /** Очищает собственные SQL-строки и loopback objects/effects. */
     beforeEach(async () => {
       await clear();
       wire.objects.clear();
       wire.effects.length = 0;
     });
+    /** Закрывает API, удаляет fixture и пользователей, закрывает соединения и wire. */
     afterAll(async () => {
       await app?.close();
       if (conn) {
@@ -165,6 +174,7 @@ describe.skipIf(!testDatabaseUrl)(
       await wire?.close();
       vi.unstubAllEnvs();
     });
+    /** Poster получает права своего поста, переживает несвязанную правку и становится retired после удаления видео без доступа к storage. */
     it("binds an explicit private poster atomically, retains it on unrelated edits and revokes it with the video", async () => {
       const v = await video(),
         p = await photo();
@@ -232,6 +242,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(poster.parentId).toBe(made.data);
       expect(poster.retiredAt).toBeInstanceOf(Date);
     });
+    /** Замена poster сохраняет gallery-фото и запрещает повторную привязку retired старого poster. */
     it("replaces a poster atomically without losing a gallery photo or reviving the old poster", async () => {
       const v = await video(),
         p = await photo(),
@@ -279,6 +290,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(post.photos).toEqual([gallery.url]);
     });
+    /** Чужой owner, wrong usage или несвязанное видео запрещают всю запись без частичных bindings. */
     it.each(["foreign", "wrong-usage", "unrelated-video"])(
       "rejects %s poster association without partial post/media/file binding",
       async (mode) => {

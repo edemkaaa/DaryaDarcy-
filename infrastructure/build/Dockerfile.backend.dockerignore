@@ -1,0 +1,29 @@
+# Разрешает только исходники и manifest-файлы, необходимые API-образу. Локальные ключи, frontend assets и рабочие данные не должны попадать в контекст.
+# По умолчанию исключён весь контекст; ниже открывается минимальный набор manifest и backend/shared-исходников.
+**
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!.npmrc
+!tsconfig.json
+!apps/
+!apps/backend/
+!apps/backend/package.json
+!apps/backend/src/
+!apps/backend/src/**
+!apps/frontend/
+!apps/frontend/package.json
+!packages/
+!packages/database/
+!packages/database/package.json
+!packages/database/src/
+!packages/database/src/**
+!packages/shared/
+!packages/shared/package.json
+!packages/shared/src/
+!packages/shared/src/**
+**/.env*
+**/*.env
+**/*.pem
+**/*.key
+**/node_modules

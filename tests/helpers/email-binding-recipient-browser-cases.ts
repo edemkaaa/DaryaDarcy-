@@ -32,7 +32,11 @@ interface EmailBindingRecipientBrowserFixture {
 export function registerEmailBindingRecipientBrowserCases(
   fixture: () => EmailBindingRecipientBrowserFixture,
 ) {
+  // Использует родительскую одноразовую БД и loopback SMTP для полного пути получателя; настоящие адресаты и внешняя почта не вызываются.
+
   async function deliveredLink() {
+    // Разбирает фактически принятое локальным SMTP письмо, проверяет единственного адресата и same-origin fragment-ссылку.
+
     const { smtp, frontend } = fixture();
     const database = await getDb();
     if (!database) throw new Error("Disposable database unavailable");
@@ -63,6 +67,8 @@ export function registerEmailBindingRecipientBrowserCases(
     return link;
   }
   it("opens the delivered GET from a webmail document without changing SQL or leaking proof", async () => {
+    // Сценарий: Входной GET из синтетического webmail не меняет пользователя; proof остаётся во fragment и удаляется из адреса до явного подтверждения.
+
     const { rows, context, actorId, memberId, base, application, send } =
       fixture();
     await send(await context.newPage());
@@ -89,6 +95,8 @@ export function registerEmailBindingRecipientBrowserCases(
     await recipient.goto("https://webmail.example.test/inbox");
     let entryHeaders: import("node:http").IncomingHttpHeaders = {};
     const observe = (request: import("node:http").IncomingMessage) => {
+      // Снимает Fetch Metadata только входного GET фикстуры, чтобы доказать переход из webmail без изменения SQL.
+
       if (request.url === link.pathname) entryHeaders = request.headers;
     };
     const server = application.getHttpServer();
@@ -122,6 +130,8 @@ export function registerEmailBindingRecipientBrowserCases(
     ).toEqual([{ state: "pending" }]);
   }, 30_000);
   it("confirms the actual SMTP-delivered link through the read-only redirect and explicit native POST", async () => {
+    // Сценарий: Фактическая loopback SMTP-ссылка проходит read-only redirect и явный POST; меняется только email, cookie и оплаченный доступ сохранены.
+
     const { rows, connection, context, actorId, memberId, smtp, send } =
       fixture();
     await connection.query(
@@ -175,6 +185,8 @@ export function registerEmailBindingRecipientBrowserCases(
     expect(smtp.messages).toHaveLength(1);
   }, 30_000);
   it("logs in through the existing email form after binding with the old password and paid account", async () => {
+    // Сценарий: После привязки старый пароль входит в тот же оплаченный аккаунт; новый пользователь или password token не создаются.
+
     const { rows, connection, context, memberId, base, smtp, send } = fixture();
     const password = "synthetic-binding-existing-password-123";
     const passwordHash = await hashPassword(password);

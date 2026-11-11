@@ -2,11 +2,13 @@
 @use "../styles/layers";
 
 @layer elements {
+  /* Наследованный плеер заполняет родительскую рамку с чёрной подложкой. */
   .frame {
     width: 100%;
     height: 100%;
     background-color: #000;
   }
+  /* object-fit:contain сохраняет кадр полностью; поля допустимы при несовпадающих пропорциях рамки и источника. */
   .videoElement {
     width: 100%;
     height: 100%;

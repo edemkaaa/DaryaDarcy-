@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "Вход",
   robots: { index: false, follow: false },
 };
+/** Читаем асинхронные searchParams и передаём намерение возврата вместе с признаком догидратационной отправки формы. */
 export default async function Page({
   searchParams,
 }: {

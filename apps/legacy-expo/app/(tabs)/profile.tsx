@@ -1,3 +1,4 @@
+// Архив Expo. Выводит дату подписки в локальном русском календарном формате.
 import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Text,
@@ -46,16 +47,22 @@ const PROFILE_AVATAR_KEY = "@darcy_club_profile_avatar";
 type SavedTab = "feed" | "club";
 
 function formatRuDate(date: Date): string {
+  // Выводит дату подписки в локальном русском календарном формате.
+
   return date.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
 }
 
 const SUPPORT_EMAIL = "daryadarcy19@gmail.com";
 
 function openSupportMail(subject: string) {
+  // Открывает почтовый клиент с темой; не подтверждает отправку обращения.
+
   void Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}`);
 }
 
 async function uriToBase64(uri: string): Promise<string> {
+  // Читает data URL либо весь Blob через FileReader; старый helper не выполняет ресайз и повторяет данные в памяти.
+
   if (uri.startsWith("data:")) {
     return uri.split(",")[1] || "";
   }
@@ -78,6 +85,8 @@ interface CropperImage {
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export default function ProfileScreen() {
+  // Архивный профиль совмещает локальный общий кеш и серверный savedPosts; старый UI полностью закрывает профиль без подписки.
+
   const { user, logout, isAuthenticated, loading: authLoading, refresh, isOwner: isAuthOwner, applySession } = useAuth();
   const { isSubscribed, expiresAt, cancelAtPeriodEnd, isOwner, monthlyPrice, refreshSubscription } = useClub();
   const cancelSub = trpc.club.cancel.useMutation();
@@ -106,6 +115,8 @@ export default function ProfileScreen() {
 
   // Reload profile data every time this tab gains focus
   const loadProfileData = useCallback(() => {
+    // Восстанавливает имя, аватар, результат теста и закладки из общих ключей устройства без account namespace.
+
     Promise.all([
       AsyncStorage.getItem(PROFILE_NAME_KEY),
       AsyncStorage.getItem(PROFILE_AVATAR_KEY),
@@ -132,6 +143,8 @@ export default function ProfileScreen() {
 
   useFocusEffect(
     useCallback(() => {
+    // При фокусе восстанавливает локальные данные и перечитывает серверные закладки текущей сессии.
+
       loadProfileData();
       if (isAuthenticated) {
         void savedFromApi.refetch();
@@ -144,12 +157,17 @@ export default function ProfileScreen() {
   const displayAvatar = avatarUri || serverAvatar;
 
   useEffect(() => {
+    // При появлении serverAvatar обновляет preview и общий локальный avatar-кеш.
+
     if (!serverAvatar) return;
     setAvatarUri((current) => (current === serverAvatar ? current : serverAvatar));
     void AsyncStorage.setItem(PROFILE_AVATAR_KEY, serverAvatar);
   }, [serverAvatar]);
 
-  const savedPosts = useMemo(() => {
+  // Исторические fallbacks пустых вкладок и subscription gate описаны ниже; активный web-профиль использует исправленный контракт отдельно.
+const savedPosts = useMemo(() => {
+    // Разделяет сохранённые по target, но при пустой вкладке исторически возвращает общий список.
+
     const rows = savedFromApi.data || [];
     const feedRows = rows.filter((p: any) => p.target !== "club");
     const clubRows = rows.filter((p: any) => p.target === "club" || p.target === "both");
@@ -162,6 +180,8 @@ export default function ProfileScreen() {
   const isLoadingSaved = savedFromApi.isLoading;
 
   const pickImage = async () => {
+    // Открывает галерею и передаёт оригинальные размеры отдельному cropper.
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: false,
@@ -179,6 +199,8 @@ export default function ProfileScreen() {
   };
 
   const handleCropComplete = async (croppedUri: string) => {
+    // Сразу показывает локальный crop, затем загружает avatar и перечитывает профиль; ошибка исторически оставляет только локальный preview.
+
     setAvatarUri(croppedUri);
     setCropperImage(null);
     try {
@@ -197,6 +219,8 @@ export default function ProfileScreen() {
   };
 
   const handleCropCancel = () => {
+    // Закрывает cropper без сохранения новой картинки.
+
     setCropperImage(null);
   };
 
@@ -217,6 +241,8 @@ export default function ProfileScreen() {
 
   // Render saved post card
   const handlePostPress = (post: any) => {
+    // Открывает saved-feed в деталях, а saved-club ведёт к общему Клубу.
+
     if (savedTab === "feed" && post.id) {
       // Navigate to feed post detail
       router.push(`/post/${post.id}` as any);
@@ -226,7 +252,7 @@ export default function ProfileScreen() {
     }
   };
 
-  const renderSavedPost = ({ item }: { item: any }) => (
+  const renderSavedPost = ({ item }: { item: any }) => /* Показывает первую картинку закладки либо короткую текстовую карточку. */ (
     <Pressable
       style={({ pressed }) => [
         styles.savedPostCard,
@@ -749,6 +775,7 @@ export default function ProfileScreen() {
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   cropperContainer: {
     flex: 1,

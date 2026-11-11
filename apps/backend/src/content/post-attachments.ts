@@ -44,6 +44,7 @@ export type PostAttachmentChanges = PrivateAttachmentChanges & {
 type AttachmentWriter = Pick<MySql2Database, "select" | "insert" | "delete" | "update" | "execute">;
 
 /** Caller holds the post lock; attachment changes share its save transaction. */
+/** В транзакции заблокированного поста проверяем принадлежность удаляемых вложений и квитанции приватных видео, дописываем новые аудио/документы по порядку и связываем готовые приватные assetId. */
 export async function savePostAttachments(
   writer: AttachmentWriter,
   postId: number,
@@ -51,6 +52,7 @@ export async function savePostAttachments(
 ): Promise<void> {
   const { attachments = [], removedMediaIds = [] } = changes;
   const ids = [...new Set(removedMediaIds)];
+// Удаление проверяется по полному набору уникальных ID: чужое, отсутствующее или неоднозначное старое видео отклоняет всю правку.
   if (ids.length) {
     const rows = await writer
       .select({ id: postMedia.id, type: postMedia.type, url: postMedia.url })
@@ -87,6 +89,7 @@ export async function savePostAttachments(
       .delete(postMedia)
       .where(and(eq(postMedia.postId, postId), inArray(postMedia.id, ids)));
   }
+// Публичные URL здесь лишь сохраняются, сервер их не скачивает; новый sortOrder начинается после текущего максимума.
   if (attachments.length) {
     const [last] = await writer
       .select({ order: max(postMedia.sortOrder) })

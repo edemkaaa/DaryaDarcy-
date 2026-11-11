@@ -21,15 +21,18 @@ const payload = serializePostDraft({
   publishedAt: new Date("2026-10-04T09:00:00Z"),
   sortOrder: 0,
 });
+/** Создаёт новый File аудиовложения для проверки повторов и сохранения канонических метаданных. */
 const attachment = () => ({
   type: "audio" as const,
   file: new File(["audio"], "test.mp3", { type: "audio/mpeg" }),
   name: "test.mp3",
   mimeType: "audio/mpeg",
 });
+/** Создаёт отдельную действующую область операции для одного сохранения. */
 const scope = () =>
   new OperationScope().begin("save", new AbortController().signal, () => true)!;
 let api: { [K in keyof PostSaveApi]: Mock<NonNullable<PostSaveApi[K]>> };
+/** Сбрасывает API-double создания, обновления и загрузки перед каждым сценарием. */
 beforeEach(() => {
   api = {
     create: vi.fn(async () => 42),
@@ -42,6 +45,7 @@ beforeEach(() => {
     })),
   };
 });
+/** Проверяет фактический порядок: сначала подтверждение вложения, затем единственное создание опубликованного поста. */
 it("keeps a post unpublished until all attachments are confirmed", async () => {
   const order: string[] = [];
   api.create.mockImplementation(async (input) => {
@@ -70,6 +74,7 @@ it("keeps a post unpublished until all attachments are confirmed", async () => {
   );
   expect(order).toEqual(["upload", "create:published"]);
 });
+/** Передаёт расписание только после подготовки вложений без промежуточного update. */
 it("saves the requested schedule only after preparing attachments", async () => {
   await new PostSaveCoordinator().save(
     {
@@ -90,6 +95,7 @@ it("saves the requested schedule only after preparing attachments", async () => 
   });
   expect(api.update).not.toHaveBeenCalled();
 });
+/** Не создаёт частичный пост после определённого отказа загрузки и повторно использует уже подтверждённые файлы. */
 it("an explicit upload rejection cannot create a partial post; retry reuses confirmed files", async () => {
   const coordinator = new PostSaveCoordinator();
   const files = [attachment(), attachment()];
@@ -113,6 +119,7 @@ it("an explicit upload rejection cannot create a partial post; retry reuses conf
     status: "published",
   });
 });
+/** Блокирует слепой повтор create и закрытие редактора после потерянного ответа сервера. */
 it("does not repeat a create after the server response was lost", async () => {
   const coordinator = new PostSaveCoordinator();
   api.create.mockRejectedValueOnce(
@@ -127,6 +134,7 @@ it("does not repeat a create after the server response was lost", async () => {
   expect(api.create).toHaveBeenCalledTimes(1);
   expect(() => coordinator.assertCanClose()).toThrow("не подтверждён");
 });
+/** Запрещает покидать редактор во время финальной записи и освобождает запрет после подтверждения. */
 it("blocks abandonment only during the final write, then releases after confirmation", async () => {
   const coordinator = new PostSaveCoordinator();
   let release!: (id: number) => void;
@@ -145,6 +153,7 @@ it("blocks abandonment only during the final write, then releases after confirma
   await expect(saving).resolves.toBe(42);
   expect(() => coordinator.assertCanClose()).not.toThrow();
 });
+/** Разрешает закрыть редактор после определённого 404 без выдачи отказа за успешное сохранение. */
 it("a definite 404 rejection allows closing without pretending the post was saved", async () => {
   const coordinator = new PostSaveCoordinator(42);
   api.update.mockRejectedValue(new ApiError("Публикация не найдена", 404));
@@ -153,6 +162,7 @@ it("a definite 404 rejection allows closing without pretending the post was save
   ).rejects.toMatchObject({ uncertain: false });
   expect(() => coordinator.assertCanClose()).not.toThrow();
 });
+/** Не повторяет загрузку вложения с неопределённым результатом и не приступает к публикации. */
 it("does not repeat an unconfirmed attachment upload", async () => {
   const coordinator = new PostSaveCoordinator();
   const file = attachment();
@@ -166,12 +176,14 @@ it("does not repeat an unconfirmed attachment upload", async () => {
   expect(api.upload).toHaveBeenCalledTimes(1);
   expect(api.update).not.toHaveBeenCalled();
 });
+/** Не принимает success:false за подтверждённую запись поста. */
 it("a malformed update success is not treated as a published post", async () => {
   api.update.mockResolvedValue({ success: false });
   await expect(
     new PostSaveCoordinator(42).save(payload, [], [], api, scope()),
   ).rejects.toMatchObject({ uncertain: true });
 });
+/** Отмена операции до сохранения не запускает загрузки и обновления. */
 it("cancelling before saving cannot start an attachment upload", async () => {
   const local = new OperationScope();
   const task = local.begin("save", new AbortController().signal, () => true)!;
@@ -182,6 +194,7 @@ it("cancelling before saving cannot start an attachment upload", async () => {
   expect(api.upload).not.toHaveBeenCalled();
   expect(api.update).not.toHaveBeenCalled();
 });
+/** Передаёт явное удаление существующего media в финальной записи публикации. */
 it("existing media removal is explicit and completes before publication", async () => {
   const order: string[] = [];
   api.update.mockImplementation(async (_id, input) => {
@@ -193,6 +206,7 @@ it("existing media removal is explicit and completes before publication", async 
   expect(api.update.mock.calls[0][1]).toMatchObject({ removedMediaIds: [9] });
 });
 
+/** Использует канонические mimeType и fileSize ответа сервера для аудио и документов при create/update. */
 it.each([null, 42])(
   "post %s uses canonical server metadata for audio and documents",
   async (id) => {
@@ -244,6 +258,7 @@ it.each([null, 42])(
   },
 );
 
+/** Сохраняет подтверждённые канонические метаданные после определённого отказа записи и смены набора файлов. */
 it.each([null, 42])(
   "post %s retains canonical metadata on an explicit save retry",
   async (id) => {
@@ -315,6 +330,7 @@ const malformedUploads: unknown[] = [
   ].map((fileSize) => ({ ...confirmed, fileSize })),
 ];
 for (const id of [null, 42]) {
+  /** Отклоняет повреждённый ответ загрузки как неопределённый и блокирует повтор загрузки и записи. */
   it.each(malformedUploads.map((result, index) => ({ result, index })))(
     `post ${id} rejects malformed upload $index without replaying writes`,
     async ({ result }) => {

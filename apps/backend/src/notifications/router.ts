@@ -10,6 +10,7 @@ import { TRPCError } from "@trpc/server";
 import { requireCapability } from "../launch/capabilities";
 import { enforcePushRegistrationLimit } from "./registration-limit";
 
+/** Требуем серверный webPush-флаг и квоты до валидации каждой регистрации, включая batch и гостей; согласия доступны только текущему пользователю, уведомление latest проходит политику контента. */
 export const createNotificationsRouter = (
   notifications: NotificationsService,
   content: ContentReadService,

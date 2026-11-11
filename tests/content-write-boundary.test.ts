@@ -1,6 +1,8 @@
+/** Проверяем импортные границы транзакционных writers настоящей esbuild-сборкой в памяти. */
 import { build } from "esbuild";
 import { expect, it } from "vitest";
 
+/** Подключение db.ts из writer запрещено plugin guard: иначе возникнет цикл через композирующий фасад и пул. */
 it("content persistence compiles without importing the aggregate database facade", async () => {
   // Writers receive a transaction. Importing them must not load the facade
   // which itself composes those writers, pool, billing and unrelated features.
@@ -23,6 +25,7 @@ it("content persistence compiles without importing the aggregate database facade
     plugins: [
       {
         name: "forbid-aggregate-db-in-content-writer",
+        /** Прерывает resolve агрегатного db из content writer; остальные зависимости собираются штатно. */
         setup(builder) {
           builder.onResolve({ filter: /^\.\.\/db(?:\.js)?$/ }, () => ({
             errors: [

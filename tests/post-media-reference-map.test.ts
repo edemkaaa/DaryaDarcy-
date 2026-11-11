@@ -3,6 +3,7 @@ import { expect, it } from "vitest";
 import { collectPostReferences as collect } from "../tooling/lib/media-reference-map";
 
 const url = "https://storage.example.test/club/comments/shared.webp";
+/** Создаёт опубликованный пост ленты с возможностью явно переопределить свойства для конкретной ссылки. */
 const post = (id: number, extra = {}) => ({
   id,
   published: 1,
@@ -11,6 +12,7 @@ const post = (id: number, extra = {}) => ({
   photos: [url],
   ...extra,
 });
+/** Группирует фотографии и вложения по одному объекту, учитывая видимость родителей вместо догадок по префиксу URL. */
 it("groups feed/both photos with club/draft attachments without using URL prefixes", () => {
   const report = collect({
     posts: [
@@ -35,6 +37,7 @@ it("groups feed/both photos with club/draft attachments without using URL prefix
     },
   ]);
 });
+/** Не считает карту полной при повреждённых фотографиях или вложениях без найденного родителя. */
 it("does not approve unmatched attachments or malformed photos as a complete map", () => {
   const report = collect({
     posts: [post(1, { photos: "not-json" })],
@@ -52,6 +55,7 @@ it("does not approve unmatched attachments or malformed photos as a complete map
     "post_media:7.parent-not-in-snapshot",
   ]);
 });
+/** Сохраняет закрытый статус ссылок из черновиков и отложенных публикаций. */
 it("keeps scheduled and unpublished references restricted", () => {
   const report = collect({
     posts: [post(1, { status: "scheduled" }), post(2, { published: 0 })],
@@ -59,12 +63,14 @@ it("keeps scheduled and unpublished references restricted", () => {
   });
   expect(report.groups[0].visibility).toBe("restricted");
 });
+/** Отклоняет неоднозначные сведения о целевом хранилище без отражения входных данных в ошибке. */
 it("rejects ambiguous target metadata without echoing input", () => {
   expect(() =>
     collect({ posts: [post(1, { target: "PRIVATE_FIXTURE" })], media: [] }),
   ).toThrow("Invalid post snapshot");
 });
 
+/** Учитывает совместное использование обложки статьи, rich-text ссылок и фото комментариев. */
 it("groups an article cover with club rich-text links and comment photos across sources", () => {
   const report = collect({
     articles: [
@@ -97,6 +103,7 @@ it("groups an article cover with club rich-text links and comment photos across 
   expect(report.issues).toEqual([]);
   expect(report.scope).toBe("content-references-partial-no-object-inventory");
 });
+/** Сохраняет текстовый кандидат URL с диагностикой, что это ещё не отображаемая ссылка. */
 it("retains raw text URL candidates with an explicit non-rendered-link diagnostic", () => {
   const report = collect({
     posts: [post(1, { photos: [], text: `Download ${url}`, richText: null })],
@@ -108,6 +115,7 @@ it("retains raw text URL candidates with an explicit non-rendered-link diagnosti
   });
   expect(report.issues).toEqual(["posts:1.text.candidates-not-rendered-links"]);
 });
+/** Не выводит публичную доступность из неподдерживаемой структуры rich-text блоков. */
 it("does not infer public visibility for links in unsupported rich-text block shapes", () => {
   const report = collect({
     posts: [
@@ -131,6 +139,7 @@ it("does not infer public visibility for links in unsupported rich-text block sh
   ]);
   expect(report.issues).toEqual(["posts:1.richText:0.unknown-shape"]);
 });
+/** Проверяет диагностику повреждённого rich-text и комментария без родителя без раскрытия приватного содержимого. */
 it("preserves malformed rich-text and unmatched comment diagnostics without disclosing input", () => {
   const report = collect({
     posts: [
@@ -158,6 +167,7 @@ it("preserves malformed rich-text and unmatched comment diagnostics without disc
   expect(JSON.stringify(report)).not.toContain("PRIVATE_VALUE");
 });
 
+/** Считает фото комментариев закрытыми даже у открытого поста и допускает SQL JSON/null без потери ссылок. */
 it("keeps comments on feed posts restricted and accepts nullable or SQL JSON photos", () => {
   const report = collect({
     posts: [post(1, { photos: [] })],
@@ -176,6 +186,7 @@ it("keeps comments on feed posts restricted and accepts nullable or SQL JSON pho
   ]);
   expect(report.issues).toEqual([]);
 });
+/** Отклоняет повторяющиеся идентификаторы комментариев вместо тихого объединения расположений. */
 it("rejects duplicate comment identities instead of silently merging locations", () => {
   expect(() =>
     collect({
@@ -189,12 +200,14 @@ it("rejects duplicate comment identities instead of silently merging locations",
   ).toThrow("Invalid post snapshot");
 });
 
+/** Выдаёт диагностику пустых элементов массива фотографий вместо подтверждения полной карты. */
 it("diagnoses empty photo array elements instead of approving missing references", () => {
   expect(
     collect({ posts: [post(1, { photos: [""] })], media: [] }).issues,
   ).toEqual(["posts:1.photos:0.invalid-url"]);
 });
 
+/** Сохраняет публичные аватары, опубликованные видео и сезонные изображения при совместном использовании клубом. */
 it("preserves public avatars, published videos and seasonal decoration when also referenced by club content", () => {
   const report = collect({
     posts: [post(1, { target: "club" })],
@@ -217,6 +230,7 @@ it("preserves public avatars, published videos and seasonal decoration when also
   });
   expect(report.issues).toEqual([]);
 });
+/** Не принимает ссылки неопубликованного видео за общедоступную часть каталога. */
 it("keeps unpublished video links restricted rather than privatizing the public catalog", () => {
   const report = collect({
     posts: [],
@@ -232,6 +246,7 @@ it("keeps unpublished video links restricted rather than privatizing the public 
     references: ["videos:5.videoUrl"],
   });
 });
+/** Отклоняет дубли идентификаторов оформления и персональные поля вне контракта снимка. */
 it("rejects duplicate decoration identities and unintended personal fields", () => {
   const input = {
     posts: [],

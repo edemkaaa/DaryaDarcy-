@@ -1,9 +1,10 @@
+// Архив Expo. Показывает native уведомление на переднем плане со звуком, не меняя badge.
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
 // Configure notification handler for foreground display
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
+  handleNotification: async () => /* Показывает native уведомление на переднем плане со звуком, не меняя badge. */ ({
     shouldShowBanner: true,
     shouldShowList: true,
     shouldPlaySound: true,
@@ -16,6 +17,8 @@ Notifications.setNotificationHandler({
  * Returns true if permissions are granted.
  */
 export async function requestNotificationPermissions(): Promise<boolean> {
+  // Создаёт Android-канал и спрашивает разрешение native ОС; на web возвращает отказ.
+
   if (Platform.OS === "web") return false;
 
   if (Platform.OS === "android") {
@@ -46,6 +49,8 @@ export async function schedulePostReminder(
   scheduledAt: Date,
   postPreview: string
 ): Promise<string | null> {
+  // Планирует локальное напоминание только на будущую дату; оно не публикует пост на сервере.
+
   if (Platform.OS === "web") return null;
 
   const hasPermission = await requestNotificationPermissions();
@@ -75,6 +80,8 @@ export async function schedulePostReminder(
  * Cancel a previously scheduled notification by its identifier.
  */
 export async function cancelPostReminder(identifier: string): Promise<void> {
+  // Отменяет одно native напоминание по идентификатору Expo.
+
   if (Platform.OS === "web") return;
   await Notifications.cancelScheduledNotificationAsync(identifier);
 }
@@ -83,6 +90,8 @@ export async function cancelPostReminder(identifier: string): Promise<void> {
  * Cancel all scheduled notifications (useful for cleanup).
  */
 export async function cancelAllPostReminders(): Promise<void> {
+  // Исторически отменяет все уведомления приложения без фильтра по типу напоминания.
+
   if (Platform.OS === "web") return;
   await Notifications.cancelAllScheduledNotificationsAsync();
 }
@@ -91,6 +100,8 @@ export async function cancelAllPostReminders(): Promise<void> {
  * Get all currently scheduled notifications.
  */
 export async function getScheduledReminders() {
+  // Читает все локальные native расписания, а не серверный календарь публикаций.
+
   if (Platform.OS === "web") return [];
   return Notifications.getAllScheduledNotificationsAsync();
 }

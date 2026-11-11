@@ -7,6 +7,7 @@ import {
 import { runApiRequest } from "@/shared/api/request-lifecycle";
 import { blobToBase64 } from "./image-upload";
 
+/** Читаем Blob или сетевой источник с общим лимитом вложения, затем кодируем под тем же сигналом отмены. */
 export async function attachmentBase64(
   source: Blob | string,
   signal?: AbortSignal,

@@ -25,7 +25,7 @@ import {
 
 type PendingProfile = ProfileInput & { expectedRevision?: number };
 
-/** Explicit profile edits only. An unknown write is reconciled by a fresh read. */
+/** Отделяем редактируемый черновик от неподтверждённого write; все сохранения используют исходную ревизию и владельца. Неизвестный write сверяется свежим чтением. */
 export function useProfileUpdate(recoveryKey: string, draftKey: string) {
   const { user, reconcileProfile, confirmProfileUpdate } = useAuth();
   const utils = trpc.useUtils();
@@ -40,6 +40,7 @@ export function useProfileUpdate(recoveryKey: string, draftKey: string) {
   const [storageError, setStorageError] = useState(false);
   const ownerId = user?.id;
   const writeDraft = useCallback(
+    /** Сначала удерживаем ввод в памяти, затем проверяем durable readback; ошибка storage не теряет текущие поля формы. */
     (value: ProfileDraft) => {
       if (!ownerId || !isPersonalDataOwner(ownerId))
         throw new Error("Аккаунт изменился");
@@ -54,6 +55,7 @@ export function useProfileUpdate(recoveryKey: string, draftKey: string) {
     },
     [ownerId, draftKey],
   );
+  /** Удаляем durable-черновик только при точном совпадении со своим снимком, сохраняя изменения другой вкладки. */
   const clearDraft = () => {
     if (!ownerId || !isPersonalDataOwner(ownerId)) return;
     // A successful older operation must not delete a different tab's draft.
@@ -63,6 +65,7 @@ export function useProfileUpdate(recoveryKey: string, draftKey: string) {
     setDraftState(null);
     setDraftError(null);
   };
+  /** Восстанавливаем текущий или legacy-черновик без автоматической смены базовой ревизии; неподтверждённые поля имеют приоритет в форме. */
   const beginEdit = (
     defaults: ProfileDraftValues,
     legacyInput = false,
@@ -96,6 +99,7 @@ export function useProfileUpdate(recoveryKey: string, draftKey: string) {
     }
   };
   const storeDraft = useCallback(
+    /** Обновляем копию пользовательского ввода и отдельно показываем сбой его локального сохранения. */
     (input: ProfileDraftValues) => {
       if (!draft.current) return;
       try {
@@ -114,6 +118,7 @@ export function useProfileUpdate(recoveryKey: string, draftKey: string) {
     [draftKey, writeDraft],
   );
   useEffect(() => {
+    // Восстанавливаем неподтверждённый write отдельно от формы; cleanup запрещает позднему чтению сменить состояние нового аккаунта.
     let cancelled = false;
     void Promise.resolve()
       .then(() => requiredStorage.getItem(recoveryKey))
@@ -159,6 +164,7 @@ export function useProfileUpdate(recoveryKey: string, draftKey: string) {
       cancelled = true;
     };
   }, [ownerId, recoveryKey]);
+  /** Фиксируем отправляемые поля и expectedRevision до сети; удаление pending разрешается только текущему владельцу. */
   const remember = (input: PendingProfile | null) => {
     if (!ownerId || !isPersonalDataOwner(ownerId))
       throw new Error("Аккаунт изменился");
@@ -172,6 +178,7 @@ export function useProfileUpdate(recoveryKey: string, draftKey: string) {
     setUnknown(input !== null);
   };
   // Ревизия относится к исходному профилю; при несовпадении сохраняем ввод для сравнения вместо перезаписи.
+  /** Записываем только после сверенной базы и durable intent; ACK обязан увеличить ревизию ровно на один, иначе результат проверяется чтением. */
   const save = async (input: ProfileInput): Promise<boolean> => {
     if (restoring || storageError || pending.current || !user) return false;
     if (!draft.current || draft.current.needsReview) {
@@ -251,6 +258,7 @@ export function useProfileUpdate(recoveryKey: string, draftKey: string) {
     }
   };
   // Readback проверяет отправленные поля; текущий успешный GET сам по себе не разрешает повтор неизвестной мутации.
+  /** Сравниваем отправленные поля и рост ревизии; несовпадение сохраняет ввод с review до снятия pending, не делает скрытый rebase. */
   const check = async (): Promise<boolean> => {
     const input = pending.current;
     if (!user || (!input && !draft.current)) return false;
@@ -331,6 +339,7 @@ export function useProfileUpdate(recoveryKey: string, draftKey: string) {
     draftError,
     needsReview: draftState?.needsReview ?? false,
     review: draftState?.review,
+    /** Новая база принимается явным действием и сначала сохраняется надёжно; при сбое старый конфликт возвращается в память. */
     acceptReview: () => {
       const current = draft.current;
       if (

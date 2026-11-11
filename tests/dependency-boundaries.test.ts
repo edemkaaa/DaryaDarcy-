@@ -1,9 +1,13 @@
+/** Проверяем AST-политику зависимостей workspaces на синтетических import/re-export/require/dynamic-import строках. */
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";
 import { inspectBoundary } from "../tooling/scripts/check-boundaries";
 const root = resolve(".");
+/** Нормализует путь фикстуры относительно Git-корня и вызывает чистую проверку границы. */
 function check(file: string, source: string) { return inspectBoundary(resolve(root, file), source, root); }
+/** Контракты общего пакета и type-only API-граница отделены от серверного runtime и инфраструктуры. */
 describe("enforced workspace dependency direction", () => {
+  /** Запрещённое направление должно дать ровно одну диагностику, включая type-import SQL-модели и dynamic import. */
   it.each([
     ["apps/frontend/lib/test.ts", 'import { getDb } from "../../backend/src/db";'],
     ["apps/frontend/lib/test.ts", 'import type { User } from "../../../packages/database/src/schema";'],
@@ -19,6 +23,7 @@ describe("enforced workspace dependency direction", () => {
     ["apps/video-service/server.mjs", 'import { users } from "../../packages/database/src/schema";'],
     ["apps/backend/src/test.ts", 'import "../../video-service/main.mjs";'],
   ])("rejects invalid dependency in %s", (file, source) => { expect(check(file, source)).toHaveLength(1); });
+  /** Поддерживаемые направления и узкие type-only исключения должны оставаться разрешёнными. */
   it.each([
     ["apps/frontend/lib/test.ts", 'import { normalizeEmail } from "@shared/email";'],
     ["apps/backend/src/test.ts", 'import { users } from "../../../packages/database/src/schema";'],

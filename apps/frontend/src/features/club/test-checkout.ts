@@ -11,7 +11,7 @@ import {
   type NextClubCheckoutRequest,
 } from "./checkout-intent";
 
-/** Explicit TEST-only next purchase; never retry or restore the terminal key. */
+/** Используем явно зарезервированный новый TEST-ключ после завершения предыдущей покупки; сверяем его до и после сети. */
 export async function createNextClubTestCheckout(
   client: TRPCClient<AppRouter>,
   request: NextClubCheckoutRequest,
@@ -36,7 +36,7 @@ export async function createNextClubTestCheckout(
   return result;
 }
 
-/** Test-only caller; enablement and terminal purchase lifecycle are separate gates. */
+/** Создаём или повторяем TEST-покупку по неизменному сохранённому ключу и выбору, учитывая смену сессии. Разрешение TEST проверяется отдельно от жизненного цикла терминального ключа. */
 export async function createClubTestCheckout(
   client: TRPCClient<AppRouter>,
   selection: ClubCheckoutSelection,
@@ -62,7 +62,7 @@ export async function createClubTestCheckout(
   return result;
 }
 
-/** Check the exact saved test purchase; absence is not permission to create one. */
+/** Читаем результат ровно сохранённой TEST-покупки; отсутствие записи возвращает null и не создаёт заказ. */
 export async function reconcileClubTestCheckout(
   client: TRPCClient<AppRouter>,
   callerSignal?: AbortSignal,

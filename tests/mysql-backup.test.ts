@@ -33,6 +33,7 @@ vi.mock("node:child_process", async (importOriginal) => {
   const files = await import("node:fs");
   return {
     ...original,
+    /** Подменяет только запуск mysqldump: сохраняет реальные дочерние процессы, pipe, gzip и файловую систему, а опциональные ветки используют явный тестовый MySQL-контейнер. */
     spawn: (
       command: string,
       args: string[],
@@ -115,10 +116,12 @@ vi.mock("node:child_process", async (importOriginal) => {
   };
 });
 
+/** Проверяет защиту реквизитов резервного копирования и признание файла завершённым только после успешного процесса. */
 describe("MySQL backup credentials and completion", () => {
   let directory: string;
   let runBackup: typeof import("../apps/backend/src/_core/backup").runMysqlBackupIfDue;
 
+  /** Создаёт собственный временный каталог и синтетическую конфигурацию, сбрасывая состояние загруженного backup-модуля. */
   beforeEach(async () => {
     directory = fs.mkdtempSync(
       path.join(os.tmpdir(), "daryadarcy-backup-test-"),
@@ -146,6 +149,7 @@ describe("MySQL backup credentials and completion", () => {
       .runMysqlBackupIfDue;
   });
 
+  /** Принудительно завершает только захваченные дочерние процессы и удаляет собственный временный каталог после возврата подмен. */
   afterEach(async () => {
     await Promise.all(
       harness.children.map(async (child) => {
@@ -161,9 +165,11 @@ describe("MySQL backup credentials and completion", () => {
     fs.rmSync(directory, { recursive: true, force: true });
   });
 
+  /** Перечисляет файлы собственного каталога резервных копий для проверки очистки и завершения. */
   const copies = (directory: string) =>
     fs.readdirSync(path.join(directory, "backups"));
 
+  /** Проверяет передачу пароля через уже удалённый owner-only файл, отсутствие секрета в argv и окружении и права итоговой копии. */
   it("passes credentials through an unlinked owner-only file", async () => {
     await runBackup();
     const launch = harness.launches[0];
@@ -193,6 +199,7 @@ describe("MySQL backup credentials and completion", () => {
     expect(fs.statSync(fullPath).mode & 0o777).toBe(0o600);
   });
 
+  /** Проверяет удаление только узнаваемого прерванного dump, сохраняя завершённый, посторонний и символьную ссылку. */
   it("removes interrupted dump files and preserves completed and unrelated files", async () => {
     const dir = path.join(directory, "backups");
     const name =
@@ -217,6 +224,7 @@ describe("MySQL backup credentials and completion", () => {
     expect(fs.readlinkSync(path.join(dir, symlink))).toBe(name);
   });
 
+  /** Проверяет безопасный отказ отсутствующего mysqldump без argv и реквизитов в исключении и без остаточного файла. */
   it("does not expose spawn arguments or credentials when mysqldump is missing", async () => {
     harness.scenario = "missing";
     const error = await runBackup().catch((failure: unknown) => failure);
@@ -228,6 +236,7 @@ describe("MySQL backup credentials and completion", () => {
     expect(fs.readdirSync(directory)).toEqual(["backups"]);
   });
 
+  /** Проверяет удаление частичного dump и отсутствие чувствительного stderr в возвращённой ошибке. */
   it("rejects partial dumps without returning sensitive stderr or keeping a usable-looking file", async () => {
     harness.scenario = "failure";
     const error = await runBackup().catch((failure: unknown) => failure);
@@ -236,12 +245,14 @@ describe("MySQL backup credentials and completion", () => {
     expect(copies(directory)).toEqual([]);
   });
 
+  /** Проверяет ожидание exit-кода процесса даже после раннего завершения stdout. */
   it("waits for process success even when stdout finishes before a failing exit", async () => {
     harness.scenario = "late-failure";
     await expect(runBackup()).rejects.toThrow();
     expect(copies(directory)).toEqual([]);
   });
 
+  /** Проверяет немедленно доступный следующий запуск после неудачи вместо суточного ожидания. */
   it("allows the next scheduled attempt after a failed dump instead of waiting a day", async () => {
     harness.scenario = "failure";
     await expect(runBackup()).rejects.toThrow();
@@ -251,12 +262,14 @@ describe("MySQL backup credentials and completion", () => {
     expect(copies(directory)).toHaveLength(1);
   });
 
+  /** Проверяет объединение двух конкурентных вызовов в один процесс и одну завершённую копию. */
   it("shares one in-progress backup even when callers explicitly bypass the interval", async () => {
     await Promise.all([runBackup(0), runBackup(0)]);
     expect(harness.launches).toHaveLength(1);
     expect(copies(directory)).toHaveLength(1);
   });
 
+  /** Проверяет сохранность готовой локальной копии и безопасный warning при отказе upload, list или delete внешнего S3-транспорта. */
   it.each([
     {
       failure: "upload",
@@ -362,11 +375,13 @@ describe("MySQL backup credentials and completion", () => {
     },
   );
 
+  /** Проверяет остановку дочернего dump и очистку реквизитов и частичного файла при ошибке записи. */
   it("cleans up credentials and stops the dump when writing fails", async () => {
     harness.scenario = "streaming";
     vi.spyOn(fs, "createWriteStream").mockImplementation((_file, options) => {
       fs.closeSync((options as { fd: number }).fd);
       return new Writable({
+        /** Имитирует ENOSPC в выходном Writable после освобождения исходного дескриптора для проверки cleanup-пути. */
         write(_chunk, _encoding, callback) {
           callback(new Error("ENOSPC password=BACKUP_TEST_SECRET"));
         },
@@ -380,6 +395,7 @@ describe("MySQL backup credentials and completion", () => {
     expect(harness.children[0].signalCode).toBe("SIGKILL");
   });
 
+  /** Проверяет очистку открытого потока при синхронном исключении запуска инструмента. */
   it("cleans up an output stream even if launching the tool throws synchronously", async () => {
     harness.scenario = "throw";
     await expect(runBackup()).rejects.toThrow();
@@ -387,6 +403,7 @@ describe("MySQL backup credentials and completion", () => {
     expect(fs.readdirSync(directory)).toEqual(["backups"]);
   });
 
+  /** Проверяет экранирование специальных символов option-file без внедрения дополнительных настроек. */
   it("quotes option-file metacharacters without injecting extra settings", async () => {
     vi.stubEnv(
       "DATABASE_URL",
@@ -398,6 +415,7 @@ describe("MySQL backup credentials and completion", () => {
     );
   });
 
+  /** Опционально проверяет точное чтение специальных символов пароля настоящим MySQL option-parser указанного тестового контейнера. */
   it.skipIf(!process.env.BACKUP_TEST_MYSQL_CONTAINER)(
     "roundtrips special password characters through the real MySQL option parser",
     async () => {
@@ -415,6 +433,7 @@ describe("MySQL backup credentials and completion", () => {
     },
   );
 
+  /** Опционально создаёт и восстанавливает только собственную backup_roundtrip-таблицу на явно проверенной одноразовой базе. */
   it.skipIf(
     !process.env.BACKUP_TEST_MYSQL_CONTAINER ||
       !process.env.BACKEND_TEST_DATABASE_URL,
@@ -460,6 +479,7 @@ describe("MySQL backup credentials and completion", () => {
     },
   );
 
+  /** Проверяет безопасный отказ некорректного URL и NUL-символов до запуска дочернего процесса. */
   it.each([
     "mysql://fixture:BACKUP_TEST_SECRET@invalid host/backend_test",
     "mysql://fixture:BACKUP_TEST_SECRET%ZZ@127.0.0.1/backend_test",

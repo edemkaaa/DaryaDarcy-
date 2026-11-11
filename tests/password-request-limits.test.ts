@@ -1,9 +1,12 @@
+/** Валидация восстановления пароля не должна расходовать общую ёмкость чужих rate-limit buckets. */
 import { beforeEach, expect, it, vi } from "vitest";
 import type { Request, Response } from "express";
 import type { PasswordService } from "../apps/backend/src/identity/password.service";
 
+/** Новый импорт сбрасывает process-local счётчики для независимых сценариев. */
 beforeEach(() => vi.resetModules());
 
+/** Вызываем настоящий контроллер с фиктивным response и локальным service spy, сохраняя только HTTP-статус. */
 async function requestPassword(email: string) {
   const { PasswordController } =
     await import("../apps/backend/src/identity/password.controller");
@@ -27,6 +30,7 @@ async function requestPassword(email: string) {
   return status;
 }
 
+/** Массовые некорректные email не должны вытеснить лимит входа другого IP. */
 it("does not let rejected password requests exhaust login capacity", async () => {
   const { checkRateLimit } =
     await import("../apps/backend/src/_core/rate-limit");
@@ -38,6 +42,7 @@ it("does not let rejected password requests exhaust login capacity", async () =>
   });
 });
 
+/** Даже почти заполненный лимитер не получает новый email-bucket от невалидного адреса; ответ остаётся нейтральным 202. */
 it("does not allocate a recipient bucket for an invalid email", async () => {
   const { checkRateLimit } =
     await import("../apps/backend/src/_core/rate-limit");

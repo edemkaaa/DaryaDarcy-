@@ -3,6 +3,7 @@ import { router, publicProcedure } from "../_core/trpc";
 import { clearSessionCookie } from "../_core/cookies";
 import { publicUser, SessionService } from "./session.service";
 
+/** Возвращаем tRPC-публичную проекцию текущей сессии и выход через общий серверный отзыв до очистки cookie; инфраструктурный сбой не подменяется гостем. */
 export const createAuthRouter = (
   sessions: Pick<SessionService, "revokeSessions">,
 ) =>

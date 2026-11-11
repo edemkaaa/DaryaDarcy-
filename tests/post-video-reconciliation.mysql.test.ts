@@ -9,6 +9,7 @@ import { createPostWithVideos } from "../apps/backend/src/content/post-creator";
 const first = "https://assets.example.test/first.webm";
 const second = "https://assets.example.test/second.mov";
 const added = "https://assets.example.test/new%20lesson.webm";
+/** Проверяет reconciliation списка видео без пересоздания retained-строк и потери метаданных. */
 describe.skipIf(!testDatabaseUrl)(
   "post video identity on disposable MySQL",
   () => {
@@ -17,6 +18,7 @@ describe.skipIf(!testDatabaseUrl)(
     let database: MySql2Database;
     let createdPostId: number | undefined;
     let locked = false;
+    /** Удаляет только два фиксированных поста и созданный в suite пост с их media. */
     async function cleanup() {
       const ids = [
         11501,
@@ -27,6 +29,7 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query("DELETE FROM posts WHERE id IN (?)", [ids]);
       createdPostId = undefined;
     }
+    /** Открывает content-схему и получает именованный lock диапазона видеофикстур до создания собственного пула. */
     beforeAll(async () => {
       conn = await openContentTestDatabase();
       const [locks] = await conn.query<mysql.RowDataPacket[]>(
@@ -37,6 +40,7 @@ describe.skipIf(!testDatabaseUrl)(
       pool = mysql.createPool({ uri: testDatabaseUrl!, timezone: "Z" });
       database = drizzle(pool);
     }, 35_000);
+    /** Восстанавливает два черновика и видео, аудио, документ с различающимися метаданными. */
     beforeEach(async () => {
       await cleanup();
       await conn.query(`INSERT INTO posts (id,text,photos,tags,status,published,target) VALUES
@@ -53,6 +57,7 @@ describe.skipIf(!testDatabaseUrl)(
         [first, second, first],
       );
     });
+    /** Закрывает пул и только при собственном lock очищает фикстуру и освобождает блокировку. */
     afterAll(async () => {
       await pool?.end();
       if (locked) {
@@ -63,18 +68,21 @@ describe.skipIf(!testDatabaseUrl)(
       }
       await conn?.end();
     });
+    /** Читает все media двух тестовых постов с полными колонками в стабильном порядке ID. */
     async function media() {
       const [rows] = await conn.query<mysql.RowDataPacket[]>(
         "SELECT * FROM post_media WHERE postId IN (11501,11502) ORDER BY id",
       );
       return rows;
     }
+    /** Возвращает посты и media вместе для точного сравнения полного отката. */
     async function snapshot() {
       const [posts] = await conn.query<mysql.RowDataPacket[]>(
         "SELECT * FROM posts WHERE id IN (11501,11502) ORDER BY id",
       );
       return { posts, media: await media() };
     }
+    /** Неизменный список видео сохраняет все их поля при редактировании только текста поста. */
     it("preserves all video columns on an unchanged list", async () => {
       const before = await media();
       await savePostEdit(database, 11501, { text: "Edited text" }, [
@@ -84,6 +92,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await media()).toEqual(before);
       expect((await snapshot()).posts[0].text).toBe("Edited text");
     });
+    /** Добавление создаёт одну новую строку с decoded filename и неизвестными MIME/размером/длительностью, сохраняя прежние строки. */
     it("adds only the new video, preserving old IDs and all metadata", async () => {
       const before = await media();
       await savePostEdit(database, 11501, {}, [first, second, added]);
@@ -101,11 +110,13 @@ describe.skipIf(!testDatabaseUrl)(
         sortOrder: 2,
       });
     });
+    /** Удаляется только исключённое видео выбранного поста, остальные виды media и соседний пост сохраняются. */
     it("removes only the excluded video, preserving audio/documents/other posts", async () => {
       const before = await media();
       await savePostEdit(database, 11501, {}, [first]);
       expect(await media()).toEqual(before.filter((row) => row.id !== 11512));
     });
+    /** Перестановка меняет только sortOrder retained-видео, сохраняя ID и метаданные. */
     it("reorders without changing IDs or other video columns", async () => {
       const before = await media();
       await savePostEdit(database, 11501, {}, [second, first]);
@@ -119,11 +130,13 @@ describe.skipIf(!testDatabaseUrl)(
         ),
       );
     });
+    /** Отсутствующее поле videos означает сохранить прежний список без изменений. */
     it("leaves all media untouched when videos is omitted", async () => {
       const before = await media();
       await savePostEdit(database, 11501, { text: "Only text" });
       expect(await media()).toEqual(before);
     });
+    /** Явный пустой videos удаляет только видео выбранного поста. */
     it("clears only this post's videos on an explicit empty list", async () => {
       const before = await media();
       await savePostEdit(database, 11501, {}, []);
@@ -131,6 +144,7 @@ describe.skipIf(!testDatabaseUrl)(
         before.filter((row) => row.id !== 11511 && row.id !== 11512),
       );
     });
+    /** Одинаковые URL учитываются как отдельные вхождения; сокращение списка убирает лишь лишнюю строку. */
     it("preserves duplicate URL occurrences and removes only the surplus row", async () => {
       await conn.query("UPDATE post_media SET url=? WHERE id=11512", [first]);
       const before = await media();
@@ -139,6 +153,7 @@ describe.skipIf(!testDatabaseUrl)(
       await savePostEdit(database, 11501, {}, [first]);
       expect(await media()).toEqual(before.filter((row) => row.id !== 11512));
     });
+    /** Недопустимое удаление media чужого поста откатывает текст, удаление, перестановку и добавление видео. */
     it("rolls back text, deletion, reorder and new rows when the final attachment save fails", async () => {
       const before = await snapshot();
       await expect(
@@ -152,6 +167,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).rejects.toMatchObject({ code: "BAD_REQUEST" });
       expect(await snapshot()).toEqual(before);
     });
+    /** Некорректный percent-encoding нового filename откатывает все изменения поста и вложений. */
     it("rolls back the post when a new video's filename cannot be decoded", async () => {
       const before = await snapshot();
       await expect(
@@ -162,6 +178,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).rejects.toThrow();
       expect(await snapshot()).toEqual(before);
     });
+    /** Создание поста тоже не угадывает MIME, размер или длительность из расширения URL. */
     it("stores unknown MIME for new videos during post creation too", async () => {
       createdPostId = await createPostWithVideos(
         database,

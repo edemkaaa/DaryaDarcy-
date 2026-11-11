@@ -4,6 +4,7 @@ import { editorApi, ok, failure } from "./editor-fixtures";
 
 test.setTimeout(45_000);
 
+/** Открываем быстрый редактор из Ленты после готовности сессии; тесты ниже проверяют сохранение пользовательского ввода, а не только сетевые ответы. */
 async function openQuickEditor(page: Page) {
   await gotoWithSession(page, "/feed");
   await page.getByRole("button", { name: "Новый пост", exact: true }).click();
@@ -12,6 +13,7 @@ async function openQuickEditor(page: Page) {
   ).toBeVisible();
 }
 
+/** Отказ сохранения оставляет введённый текст; только явный повтор пользователя добавляет вторую попытку записи. */
 test("a failed save keeps editor text and an explicit retry sends one write", async ({
   page,
 }) => {
@@ -47,6 +49,7 @@ test("a failed save keeps editor text and an explicit retry sends one write", as
   expect(calls).toBe(2);
 });
 
+/** До подтверждения загрузки вложения пост не создаётся; после проверки статуса успешная загрузка передаётся одной финальной записи. */
 test("audio upload rejection leaves the post untouched and retry commits it once", async ({
   page,
 }) => {
@@ -125,6 +128,7 @@ test("audio upload rejection leaves the post untouched and retry commits it once
   });
 });
 
+/** Неоднозначный ответ финальной записи блокирует повтор публикации и предлагает чтение статуса вместо слепого повторного создания. */
 test("an unconfirmed save is never automatically repeated", async ({
   page,
 }) => {
@@ -159,6 +163,7 @@ test("an unconfirmed save is never automatically repeated", async ({
   expect(messages.join(" ")).not.toContain("PRIVATE_INTERNAL_DETAILS");
 });
 
+/** Удерживаем ответ записи: закрытие не уничтожает ещё сохраняемый ввод, а подтверждение освобождает редактор для нового независимого черновика. */
 test("a pending final write cannot be abandoned; confirmed completion allows a fresh editor", async ({
   page,
 }) => {
@@ -215,6 +220,7 @@ test("a pending final write cannot be abandoned; confirmed completion allows a f
   ).toBeEnabled();
 });
 
+/** Ответ прокси с HTML и превышением размера превращается в понятную ошибку, не расходует тело повторно и не запускает создание поста. */
 test("a private video upload returning HTML 413 preserves its draft without creating a post", async ({
   page,
 }) => {
@@ -267,6 +273,7 @@ test("a private video upload returning HTML 413 preserves its draft without crea
   expect(writes).toBe(0);
 });
 
+/** Редактирование содержания черновика статьи сохраняет unpublished-состояние в отправленном запросе. */
 test("editing an unpublished article preserves its status", async ({
   page,
 }) => {
@@ -298,6 +305,7 @@ test("editing an unpublished article preserves its status", async ({
   await expect.poll(() => submitted).toMatchObject({ id: 7, published: false });
 });
 
+/** Минимальная карточка для редактора, реакций и карусели; отдельные сценарии меняют только поля, влияющие на проверяемый переход. */
 const contentPost = (extra: Record<string, unknown> = {}) => ({
   id: 1,
   text: "INTERACTION_TEST_POST",
@@ -313,6 +321,7 @@ const contentPost = (extra: Record<string, unknown> = {}) => ({
   ...extra,
 });
 
+/** Проверяем атомарность редактирования опубликованного поста: отказ нового вложения не пишет частичные изменения и не переключает статус публикации. */
 test("a rejected attachment upload cannot unpublish an existing post; retry saves it once", async ({
   page,
 }) => {
@@ -395,6 +404,7 @@ test("a rejected attachment upload cannot unpublish an existing post; retry save
   ]);
 });
 
+/** После неизвестного результата переключателя лайка откатываем локальную отметку; разрешение нового клика требует перечитать серверное состояние. */
 test("a failed like rolls back and requires a read before repeating an unconfirmed write", async ({
   page,
 }) => {
@@ -423,6 +433,7 @@ test("a failed like rolls back and requires a read before repeating an unconfirm
   expect(calls).toBe(1);
 });
 
+/** Два синхронных клика обходят обычный интервал рендера: блокировка должна пропустить одну мутацию, а итоговый счётчик берётся из обновлённой карточки. */
 test("two synchronous like clicks send one mutation and confirmed count comes from the post", async ({
   page,
 }) => {
@@ -460,6 +471,7 @@ test("two synchronous like clicks send one mutation and confirmed count comes fr
   expect(calls).toBe(1);
 });
 
+/** Пустое сохранённое Ленты не подменяется клубными карточками; переключение категории открывает именно её результат. */
 test("an empty saved category does not show posts from the other category", async ({
   page,
 }) => {
@@ -478,6 +490,7 @@ test("an empty saved category does not show posts from the other category", asyn
   ).toBeVisible();
 });
 
+/** После смены ширины просмотрщик сохраняет индекс выбранного снимка и пересчитывает смещение, вместо возврата к первому фото. */
 test("the photo viewer preserves the chosen photo when the viewport changes", async ({
   page,
 }) => {
@@ -497,7 +510,9 @@ test("the photo viewer preserves the chosen photo when the viewport changes", as
     .toBe(750);
 });
 
+/** Один управляемый список фото обслуживает детальный экран, Ленту и Клуб; возвращённая функция меняет ответ следующего чтения без навигации. */
 async function photoPostApi(page: Page, count: number) {
+  /** Стабильные адреса позволяют проверить сохранение выбранного снимка при изменении числа фото, отдельно от скачивания изображений. */
   const makePhotos = (length: number) =>
     Array.from(
       { length },
@@ -528,6 +543,7 @@ async function photoPostApi(page: Page, count: number) {
   };
 }
 
+/** Смена ориентации сразу после scroll проверяет гонку между событием прокрутки и пересчётом геометрии: выигрывает новый выбранный снимок. */
 test("a photo scroll immediately followed by resize preserves the new selection", async ({
   page,
 }) => {
@@ -552,6 +568,7 @@ test("a photo scroll immediately followed by resize preserves the new selection"
     .toBe(1688);
 });
 
+/** Одинаковый контракт карусели проверяем на трёх потребителях: клавиатурные границы, resize и независимая позиция полноэкранного просмотра. */
 for (const path of ["/post/1", "/feed", "/club"]) {
   test(`photo carousel position, edges and resize work in ${path}`, async ({
     page,
@@ -635,6 +652,7 @@ for (const path of ["/post/1", "/feed", "/club"]) {
   });
 }
 
+/** При сокращении серверного списка выбирается последний оставшийся снимок; при обнулении исчезает вся карусель, сохраняя текст поста. */
 test("a refreshed photo list clamps selection and removes empty indicators", async ({
   page,
 }) => {
@@ -646,6 +664,7 @@ test("a refreshed photo list clamps selection and removes empty indicators", asy
   await scroll.focus();
   await page.keyboard.press("End");
   await expect(carousel.getByText("12 / 12", { exact: true })).toBeVisible();
+  /** Обновляем список через синтетический pull-to-refresh; это проверка обработчика, а не приёмка физического жеста на iPhone. */
   const refresh = async () => {
     await page
       .locator(".ui-scroll:not(.ui-scroll-horizontal)")
@@ -687,6 +706,7 @@ test("a refreshed photo list clamps selection and removes empty indicators", asy
   ).toBeVisible();
 });
 
+/** Ноль, одиночный снимок и длинный набор проверяют отсутствие лишних индикаторов и горизонтального переполнения на крайних размерах списка. */
 for (const count of [0, 1, 11]) {
   test(`photo indicators handle ${count} photos without overflow`, async ({
     page,
@@ -722,6 +742,7 @@ for (const count of [0, 1, 11]) {
   });
 }
 
+/** Имитируем отказ браузерного play(), а не декодирование настоящего аудио: отклонённый Promise должен оставить кнопку воспроизведения и видимую ошибку. */
 test("a rejected audio play does not display playing state", async ({
   page,
 }) => {
@@ -765,6 +786,7 @@ test("a rejected audio play does not display playing state", async ({
   ).toHaveCount(0);
 });
 
+/** Выбор файла ещё не начинает загрузку комментария; ошибка при отправке сохраняет его текст и показывает контролируемое сообщение. */
 test("a failed comment photo upload keeps the text and reports its error", async ({
   page,
 }) => {
@@ -815,6 +837,7 @@ test("a failed comment photo upload keeps the text and reports its error", async
   expect(uploads).toBe(1);
 });
 
+/** Сбой чтения статей отличается от успешного пустого списка; пустое состояние появляется только после подтверждённого повтора. */
 test("a failed article list offers retry instead of showing an empty list", async ({
   page,
 }) => {
@@ -841,6 +864,7 @@ test("a failed article list offers retry instead of showing an empty list", asyn
   ).toBeVisible();
 });
 
+/** Повреждённые байты доходят до общего декодера; потребитель профиля перехватывает отказ без необработанной ошибки страницы. */
 test("shared image picker decoding errors are caught by its existing profile consumer", async ({
   page,
 }) => {
@@ -869,6 +893,7 @@ test("shared image picker decoding errors are caught by its existing profile con
   expect(uncaught).toEqual([]);
 });
 
+/** Подтверждённый 401 имеет приоритет над сообщением сохранения: закрываем приватный редактор без диалога, способного раскрыть прежний ввод. */
 test("an expired session during an editor write closes private UI before any error dialog", async ({
   page,
 }) => {

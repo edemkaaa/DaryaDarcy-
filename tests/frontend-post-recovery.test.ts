@@ -1,3 +1,4 @@
+/** Проверяем durable checkpoint координатора поста: неизвестный результат сохраняет исходное намерение и блокирует слепое повторение upload/update после перезагрузки. */
 import { beforeEach, expect, it, vi } from "vitest";
 vi.mock("../apps/frontend/src/shared/media/read-attachment", () => ({
   attachmentBase64: vi.fn(async () => "FILE_BASE64"),
@@ -23,6 +24,7 @@ const payload = serializePostDraft({
   sortOrder: 7,
   richText: [{ type: "paragraph", children: [{ text: "Post", italic: true }] }],
 });
+/** Каждое действие получает новую действующую OperationScope; сам coordinator переживает повторные операции. */
 const task = () =>
   new OperationScope().begin("save", new AbortController().signal, () => true)!;
 const api = {
@@ -34,6 +36,7 @@ const api = {
     fileSize: 46,
   })),
 };
+/** Сбрасываем транспортные mocks и возвращаем серверные metadata upload для независимых сценариев. */
 beforeEach(() => {
   vi.resetAllMocks();
   api.create.mockResolvedValue(42);
@@ -45,6 +48,7 @@ beforeEach(() => {
   });
 });
 
+/** Пока checkpoint не подтверждён, create не отправляется, редактор не закрывается и параллельный финальный save запрещён. */
 it("waits for durable creation before dispatch, synchronously excluding another final write", async () => {
   const coordinator = new PostSaveCoordinator();
   let release!: () => void;
@@ -71,6 +75,7 @@ it("waits for durable creation before dispatch, synchronously excluding another 
   expect(coordinator.snapshot().phase).toBe("complete");
 });
 
+/** Известный storage failure до запроса не создаёт неопределённости на сервере и разрешает повтор после восстановления. */
 it("storage failure before dispatch sends no request and permits a later safe retry", async () => {
   const coordinator = new PostSaveCoordinator();
   const checkpoint = vi.fn().mockRejectedValue(new Error("Storage full"));
@@ -85,6 +90,7 @@ it("storage failure before dispatch sends no request and permits a later safe re
   expect(api.create).toHaveBeenCalledTimes(1);
 });
 
+/** Upload phase фиксируется до отправки; потерянный ответ требует ручной проверки, а не повторной загрузки или create. */
 it.each([null, 42])(
   "journals attachment upload before dispatch and cannot blindly replay it after reload (%s)",
   async (id) => {
@@ -120,6 +126,7 @@ it.each([null, 42])(
   },
 );
 
+/** Явное восстановление повторяет неизменный create payload и server metadata, не новый ввод и не повторный upload. */
 it("explicit recovery replays the exact persisted creation with metadata and no second upload", async () => {
   const coordinator = new PostSaveCoordinator();
   const file = {
@@ -152,6 +159,7 @@ it("explicit recovery replays the exact persisted creation with metadata and no 
   expect(api.update).not.toHaveBeenCalled();
 });
 
+/** После известного 400 durable snapshot сохраняет связь склонированных Files с уже подтверждённым upload. */
 it("definite rejection preserves the intent and cloned uploaded File associations after reload", async () => {
   const coordinator = new PostSaveCoordinator();
   const files = [
@@ -175,6 +183,7 @@ it("definite rejection preserves the intent and cloned uploaded File association
   expect(api.create.mock.calls[1][0]).toEqual(api.create.mock.calls[0][0]);
 });
 
+/** Неопределённый update существующего поста не выдаётся за безопасно повторяемое создание. */
 it("an interrupted update stays blocked after reload and is never treated as a recoverable create", async () => {
   const coordinator = new PostSaveCoordinator(42, payload);
   let durable!: PostSaveSnapshot;
@@ -195,6 +204,7 @@ it("an interrupted update stays blocked after reload and is never treated as a r
   expect(api.create).not.toHaveBeenCalled();
 });
 
+/** Успешная серверная запись терминальна даже при ошибке последующего локального checkpoint. */
 it("a confirmed commit remains terminal even if persisting confirmation fails", async () => {
   const coordinator = new PostSaveCoordinator();
   coordinator.setCheckpoint(async (state) => {
@@ -212,6 +222,7 @@ it("a confirmed commit remains terminal even if persisting confirmation fails", 
   expect(api.create).toHaveBeenCalledTimes(1);
 });
 
+/** Отмена сессии во время checkpoint лишает операцию права отправить create. */
 it("session cancellation during persistence prevents dispatch", async () => {
   const coordinator = new PostSaveCoordinator();
   const scope = new OperationScope();
@@ -229,6 +240,7 @@ it("session cancellation during persistence prevents dispatch", async () => {
   expect(api.create).not.toHaveBeenCalled();
 });
 
+/** Конфликт явного восстановления не уничтожает исходные key/payload; следующая проверка использует то же намерение. */
 it("failed explicit recovery retains the same key and payload for another explicit check", async () => {
   const coordinator = new PostSaveCoordinator();
   coordinator.setCheckpoint(async () => {});

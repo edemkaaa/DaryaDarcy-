@@ -1,7 +1,10 @@
+/** Каноничность Base64 и декодированный размер проверяются независимо от HTTP и хранилища. */
 import { describe, expect, it } from "vitest";
 import { decodeMediaBase64 } from "../apps/backend/src/media/media-encoding";
 
+/** Матрицы включают padding, неиспользуемые биты и точное сохранение байтов. */
 describe("canonical media Base64", () => {
+  /** Корректные группы и нулевые байты декодируются без изменения содержимого. */
   it.each([
     ["Zg==", [102]], ["Zm8=", [102, 111]], ["Zm9v", [102, 111, 111]],
     ["/w==", [255]], ["//8=", [255, 255]],
@@ -10,6 +13,7 @@ describe("canonical media Base64", () => {
     expect(decodeMediaBase64(encoded)).toEqual(Buffer.from(bytes));
   });
 
+  /** Пробелы, URL-safe alphabet, неверный padding и лишние биты дают BAD_REQUEST. */
   it.each([
     "", "A", "AA", "AAA", "A===", "====", "AA=A", "AAAA=AAA",
     "AAAA====", "AA==AAAA", "Zg==\n", " Zg==", "Zg== ", "Zg=",
@@ -20,6 +24,7 @@ describe("canonical media Base64", () => {
     );
   });
 
+  /** Для каждого однобайтового значения перебираем все недопустимые остаточные биты. */
   it("preserves every byte and refuses nonzero unused padding bits", () => {
     const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     for (let byte = 0; byte < 256; byte++) {
@@ -34,6 +39,7 @@ describe("canonical media Base64", () => {
     }
   });
 
+  /** Сравниваем фактическое число декодированных байтов с лимитом, включая короткие padding-группы. */
   it("enforces a decoded-byte ceiling including padding without changing valid bytes", () => {
     expect(decodeMediaBase64("AA==", 1)).toEqual(Buffer.from([0]));
     expect(decodeMediaBase64("AAA=", 2)).toEqual(Buffer.from([0, 0]));
@@ -45,6 +51,7 @@ describe("canonical media Base64", () => {
     }
   });
 
+  /** Полный перебор двухбайтовых suffix ловит неканоничные два младших бита. */
   it("checks both unused bits for every two-byte suffix", () => {
     const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     for (let byte = 0; byte < 256; byte++) {
@@ -59,6 +66,7 @@ describe("canonical media Base64", () => {
     }
   });
 
+  /** Сначала ошибка формата, затем размера: повреждённый Base64 не маскируется под PAYLOAD_TOO_LARGE. */
   it("does not disguise invalid padding bits as a size rejection", () => {
     expect(() => decodeMediaBase64("AAB=", 1)).toThrowError(
       expect.objectContaining({ code: "BAD_REQUEST" }),

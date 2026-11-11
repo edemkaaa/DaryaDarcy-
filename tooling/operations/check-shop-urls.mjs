@@ -16,6 +16,7 @@ const env = Object.fromEntries(
     }),
 );
 
+// Источник — прежний Expo-экран Магазина; отсутствие этого файла означает устаревший инструмент, не пропажу товаров.
 const src = fs.readFileSync(
   path.join(root, "apps/frontend/app/(tabs)/shop/[id].tsx"),
   "utf8",
@@ -56,6 +57,7 @@ for (const key of unique) {
 console.log("referenced", unique.length, "present", present.length, "missing", missing.length);
 for (const key of missing) console.log("MISSING", key);
 
+// Только этот явный режим меняет ACL найденных картинок на public-read.
 if (process.argv.includes("--acl")) {
   let ok = 0;
   for (const key of present.filter((k) => k.startsWith("app-assets/shop/"))) {

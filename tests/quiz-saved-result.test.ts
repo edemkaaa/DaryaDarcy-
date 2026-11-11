@@ -1,3 +1,4 @@
+/** Результат теста восстанавливается из ограниченного журнала, а канонические тексты берутся из кода. */
 import { expect, it } from "vitest";
 import { parseSavedQuizResult } from "../apps/frontend/src/domain/quiz/saved-result";
 
@@ -16,6 +17,7 @@ const valid = {
     lightAcademia: 0,
   },
 };
+/** Сохранённый произвольный title не подменяет название эстетики; валидные баллы сохраняются. */
 it("restores canonical result content, not browser-supplied titles", () => {
   const result = parseSavedQuizResult(JSON.stringify(valid));
   expect(result?.primary.title).toBe(
@@ -24,6 +26,7 @@ it("restores canonical result content, not browser-supplied titles", () => {
   expect(result?.scores.cottagecore).toBe(21);
   expect(result?.secondary).toBeUndefined();
 });
+/** Для смешанного результата восстанавливаем вторую существующую эстетику. */
 it("restores both canonical aesthetics for a stored blend", () => {
   const result = parseSavedQuizResult(
     JSON.stringify({ ...valid, isBlend: true, secondaryKey: "goblincore" }),
@@ -31,12 +34,14 @@ it("restores both canonical aesthetics for a stored blend", () => {
   expect(result?.secondary?.key).toBe("goblincore");
   expect(result?.isBlend).toBe(true);
 });
+/** Отсутствующий, повреждённый или слишком большой JSON не становится результатом. */
 it.each([null, "{", "null", "x".repeat(4097)])(
   "rejects absent, malformed or oversized storage %s",
   (raw) => {
     expect(parseSavedQuizResult(raw)).toBeNull();
   },
 );
+/** Проверяем известные ключи, согласованность blend и полный числовой диапазон баллов. */
 it.each([
   { primaryKey: "__proto__" },
   { secondaryKey: "unknown", isBlend: true },

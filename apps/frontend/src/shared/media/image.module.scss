@@ -2,10 +2,12 @@
 @use "../styles/layers";
 
 @layer elements {
+  /* Контейнер обрезает изображение и служебные слои в заранее выбранной владельцем геометрии. */
   .div {
     overflow: hidden;
   }
 
+  /* Ошибка и ожидание накрывают ту же область; pointer-events:none пропускает действия карточки ниже. */
   .fallback,
   .loading {
     position: absolute;
@@ -23,6 +25,7 @@
     pointer-events: none;
   }
 
+  /* Явная кнопка повтора снова получает pointer events и достаточную область нажатия. */
   .retry {
     pointer-events: auto;
     min-height: 44px;
@@ -35,7 +38,9 @@
     cursor: pointer;
   }
 
+  /* При reduced motion переход изображения отключается принудительно, сохраняя доступность смены состояния. */
   @media (prefers-reduced-motion: reduce) {
+    /* Абсолютная картинка заполняет контейнер без влияния сетевой загрузки на размеры списка. */
     .img {
       transition: none !important;
     }

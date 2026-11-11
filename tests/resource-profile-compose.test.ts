@@ -1,3 +1,4 @@
+/** Опциональный офлайн Compose config-тест 8GiB resource overlay не запускает контейнеры и не меняет лимиты стенда. */
 import { execFileSync } from "node:child_process";
 import {
   copyFileSync,
@@ -29,9 +30,11 @@ type ComposeConfig = {
 };
 
 // config renders the actual merge offline. Never call up/run/pull or use real envs.
+/** Synthetic baseline/full/candidate stacks сравниваются целиком, не только по трём service-полям. */
 describe.skipIf(process.env.RESOURCE_COMPOSE_ACCEPTANCE !== "true")(
   "opt-in resource limits for a dedicated 8GiB host",
   () => {
+    /** Меняются ровно memory/cpu API/web/MySQL; остаётся минимум1GiB резерва и снятие overlay возвращает baseline. */
     it.each(["base", "full", "candidate"])(
       "changes only resource ceilings and preserves the %s stack on rollback",
       (variant) => {
@@ -82,6 +85,7 @@ describe.skipIf(process.env.RESOURCE_COMPOSE_ACCEPTANCE !== "true")(
                   "smtp-fixture.yaml",
                   ...(variant === "candidate" ? [files[5]] : []),
                 ];
+          /** Docker CLI только рендерит merge собственного temp-stack с synthetic image/env refs. */
           const config = (enabled: boolean): ComposeConfig =>
             JSON.parse(
               execFileSync(

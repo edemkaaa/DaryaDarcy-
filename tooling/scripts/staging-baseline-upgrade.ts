@@ -13,7 +13,7 @@ import {
 } from "./staging-baseline-policy";
 
 const sha256 = (value: string | Buffer) =>
-  createHash("sha256").update(value).digest("hex");
+  /* Вычисляет отпечаток точных байтов proof/SQL/data, чтобы согласование не относилось к незаметно изменившемуся файлу. */ createHash("sha256").update(value).digest("hex");
 const lockName = "daryadarcy_staging_baseline_0026";
 
 /** Credentials and restored row digests never leave the protected release directory. */
@@ -22,6 +22,8 @@ async function protectedFile(
   name: string,
   maxBytes: number,
 ) {
+  // Читает ограниченный обычный файл из закрытого каталога владельца без следования symlink.
+
   const dir = await lstat(directory);
   if (
     !dir.isDirectory() ||
@@ -51,6 +53,8 @@ async function protectedFile(
 }
 
 async function snapshot(conn: mysql.Connection, includeData: boolean) {
+  // Снимает read-only метадату и при репетиции хеши всех ограниченных строк, отдельно учитывая checkout-таблицу.
+
   await conn.query("START TRANSACTION READ ONLY");
   try {
     const [[identity]] = await conn.query<mysql.RowDataPacket[]>(
@@ -120,6 +124,8 @@ async function snapshot(conn: mysql.Connection, includeData: boolean) {
 }
 
 async function main() {
+  // Выбирает read-only/rehearse/apply, сверяет защищённые доказательства и выполняет только известный DDL под межпроцессной SQL-блокировкой.
+
   const args = process.argv.slice(2);
   if (
     args.length > 1 ||

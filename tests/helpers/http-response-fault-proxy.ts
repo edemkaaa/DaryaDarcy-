@@ -4,6 +4,8 @@ import type { AddressInfo } from "node:net";
 /** Transport faults only: every response originates in the real loopback API.
  * No retries, fake successes, request body logging or cookie capture. */
 export async function httpResponseFaultProxy(upstream: string) {
+  // Проксирует только явный loopback API и теряет либо удерживает уже полученный реальный ответ; запрос не повторяет и cookie не записывает.
+
   const target = new URL(upstream);
   if (
     target.protocol !== "http:" ||
@@ -97,6 +99,8 @@ export async function httpResponseFaultProxy(upstream: string) {
     base: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
     calls,
     arm(procedure: string, mode: "drop" | "hold") {
+      // Разрешает одну fault-инъекцию для указанной процедуры; перекрывающиеся правила и произвольные маршруты отклоняются.
+
       if (
         rule ||
         (!/^admin\.[A-Za-z]+$/.test(procedure) &&
@@ -119,6 +123,8 @@ export async function httpResponseFaultProxy(upstream: string) {
       return { reached: pending, release };
     },
     async close() {
+      // Освобождает удержанные ответы и закрывает только собственные соединения фикстуры.
+
       for (const item of held) item.release();
       server.closeAllConnections();
       await new Promise<void>((resolve) => server.close(() => resolve()));

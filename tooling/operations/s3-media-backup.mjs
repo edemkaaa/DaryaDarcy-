@@ -32,6 +32,8 @@ const args = new Set(process.argv.slice(2));
 const envPath = process.env.S3_BACKUP_ENV || path.join(root, "deploy", "s3-backup.env");
 
 function loadEnv(file) {
+  // Читает закрытый операторский файл настроек без выполнения shell-подстановок.
+
   if (!fs.existsSync(file)) return {};
   return Object.fromEntries(
     fs
@@ -53,6 +55,8 @@ const backupBucket = env.BACKUP_S3_BUCKET || "daryadarcy-s3-backup";
 const appAccessKey = env.APP_S3_ACCESS_KEY || env.S3_ACCESS_KEY;
 
 function client(accessKey, secretKey) {
+  // Создаёт отдельный S3-клиент для выданных прав чтения источника либо записи резервного бакета.
+
   return new S3Client({
     endpoint,
     region: "ru-1",
@@ -68,6 +72,8 @@ const sourceClient = client(
 const backupClient = client(env.BACKUP_S3_ACCESS_KEY, env.BACKUP_S3_SECRET_KEY);
 
 function backupBucketPolicy() {
+  // Формирует запрет удаления через S3 API и требование HTTPS; это не Object Lock и не запрет смены политики владельцем.
+
   const statements = [
     {
       Sid: "DenyAllApiDeletes",
@@ -90,6 +96,8 @@ function backupBucketPolicy() {
 }
 
 async function bucketExists(client, bucket) {
+  // Пробует HEAD бакета; исторически любая ошибка считается отсутствием, поэтому доступ нужно проверять отдельно.
+
   try {
     await client.send(new HeadBucketCommand({ Bucket: bucket }));
     return true;
@@ -99,6 +107,8 @@ async function bucketExists(client, bucket) {
 }
 
 async function setupBackup() {
+  // Создаёт/настраивает резервный бакет, версии, lifecycle и политику; это режим внешних изменений.
+
   if (!env.BACKUP_S3_ACCESS_KEY || !env.BACKUP_S3_SECRET_KEY) {
     throw new Error("Missing BACKUP_S3_ACCESS_KEY / BACKUP_S3_SECRET_KEY in s3-backup.env");
   }
@@ -161,6 +171,8 @@ async function setupBackup() {
 }
 
 async function headEtag(client, bucket, key) {
+  // Получает ETag существующей копии; только 404 трактуется как отсутствие, остальные ошибки прерывают операцию.
+
   try {
     const head = await client.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
     return head.ETag?.replace(/"/g, "") ?? null;
@@ -171,6 +183,8 @@ async function headEtag(client, bucket, key) {
 }
 
 async function runBackup() {
+  // Постранично копирует отличающиеся объекты без удаления; ETag — признак совпадения, а не универсальный SHA-256.
+
   const started = Date.now();
   let listed = 0;
   let copied = 0;
@@ -242,6 +256,8 @@ async function runBackup() {
 }
 
 async function verifyBackup() {
+  // Сравнивает общие числа объектов и байтов; полный контроль содержимого или восстановление этим не подтверждаются.
+
   let sourceCount = 0;
   let sourceBytes = 0;
   let token;

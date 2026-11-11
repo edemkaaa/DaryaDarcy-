@@ -7,12 +7,16 @@ The user confirmed there are no existing legacy phone accounts. This decision
 records the historical implementation; it no longer authorizes frontend rollout.
 Server removal remains with the backend owner.
 
+## Актуальность на 11 ноября 2026
+
+Сценарий привязки старых телефонных аккаунтов отменён владельцем; его наличие в коде не разрешает включение. Контактный номер нового checkout хранится отдельно и не возвращает вход по SMS. Исторические пункты о незарегистрированном worker и single-process лимитере не заменяют чтение текущей композиции и конфигурации.
+
 ## Context
 
 An administrator needs to bind an email to an existing legacy member with a phone
 and no email. The owner must explicitly confirm email control. Identity, password,
 session version and subscription must remain unchanged; this is not account merge
-or password recovery. The [approved specification](../../SPEC-email-binding.md)
+or password recovery. The [approved specification](../specifications/SPEC-email-binding.md)
 requires replay safety, privacy cleanup and disabled rollout until acceptance.
 
 ## Decision

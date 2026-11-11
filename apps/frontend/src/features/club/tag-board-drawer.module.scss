@@ -2,6 +2,7 @@
 @use "../../shared/styles/layers";
 
 @layer components {
+  /* Узкая ручка прикреплена к правому краю и остаётся над контентом до раскрытия доски. */
   .div {
     position: absolute;
     right: 0;
@@ -39,6 +40,7 @@
     margin-top: 3px;
   }
 
+  /* Слой drawer находится выше ручки, а рамка ограничивает видимую высоту содержимого. */
   .div3 {
     position: absolute;
     right: 0;
@@ -55,6 +57,7 @@
     overflow: hidden;
   }
 
+  /* Закрытие имеет собственный верхний z-слой, чтобы не оказаться под декоративной рамкой. */
   .action2 {
     position: absolute;
     top: 8px;
@@ -69,6 +72,7 @@
     box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.15);
   }
 
+  /* Контент позиционируется внутри геометрии иллюстрации; строки тегов намеренно не переносятся. */
   .drawerContent {
     position: absolute;
     justify-content: flex-start;
@@ -110,6 +114,7 @@
     letter-spacing: 0.05px;
   }
 
+  /* Очистка фильтра отделена от выбора тегов и имеет более крупный вертикальный зазор. */
   .action4 {
     align-self: center;
     margin-top: 14px;
@@ -127,6 +132,7 @@
     color: var(--brown);
     letter-spacing: 0.5px;
   }
+  /* Нажатие и выбранные рубрики меняют только оформление; набор фильтров хранится вне CSS. */
   .opacityState {
     opacity: 0.6;
     --action-base-opacity: 0.6;

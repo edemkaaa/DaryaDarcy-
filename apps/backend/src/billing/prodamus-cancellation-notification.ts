@@ -15,6 +15,7 @@ export type ProdamusCancellationNotificationPorts = {
 };
 
 /** После аутентификации ingress ждёт долговечного подтверждения выбранной операции отмены. */
+/** Сначала проверяет подпись обычным cancellation-key, затем точную merchant/profile-привязку и ждёт durable confirm; только подтверждённый профиль даёт 200. */
 export async function processProdamusCancellationNotification(
   body: Record<string, unknown>,
   signature: string,

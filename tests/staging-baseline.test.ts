@@ -1,3 +1,4 @@
+/** Проверяем узкий исторический upgrade 0026 по literal attestations: эти fixtures не являются текущим fresh-профилем из 52 миграций и не разрешают произвольный ремонт истории. */
 import { describe, expect, it } from "vitest";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -18,13 +19,16 @@ const baseline = {
   executableObjects: 0,
 };
 
+/** Граница разрешения фиксируется хешами конкретной старой схемы и SQL, а не только именем базы. */
 describe("the one approved staging baseline upgrade", () => {
+  /** Точное исходное свидетельство разрешает лишь ожидающее согласованное additive изменение. */
   it("allows only the pending additive 0026 on the attested baseline", () => {
     expect(inspectStageBaseline(baseline)).toEqual({
       state: "pending",
       issues: [],
     });
   });
+  /** Совпадение структуры не разрешает применять upgrade к другой базе. */
   it.each(["production", "daryadarcy", "backend_test", ""])(
     "refuses a different database even with the same schema: %s",
     (database) => {
@@ -34,6 +38,7 @@ describe("the one approved staging baseline upgrade", () => {
       });
     },
   );
+  /** Любое отличие base hash блокирует изменение, даже если оно кажется совместимым. */
   it("blocks any drift in an existing table or unexpected extra table", () => {
     expect(
       inspectStageBaseline({ ...baseline, baseHash: "a".repeat(64) }),
@@ -42,6 +47,7 @@ describe("the one approved staging baseline upgrade", () => {
       issues: ["baseline-schema-mismatch"],
     });
   });
+  /** Хеш разрешённого SQL не заменяется произвольным release-входом. */
   it("blocks changed SQL instead of executing arbitrary release input", () => {
     expect(
       inspectStageBaseline({ ...baseline, sqlHash: "a".repeat(64) }),
@@ -50,6 +56,7 @@ describe("the one approved staging baseline upgrade", () => {
       issues: ["upgrade-sql-mismatch"],
     });
   });
+  /** Неожиданные executable SQL-объекты выводят назначение за пределы аттестованной схемы. */
   it("refuses executable database objects absent from the approved baseline", () => {
     expect(inspectStageBaseline({ ...baseline, executableObjects: 1 })).toEqual(
       {
@@ -58,6 +65,7 @@ describe("the one approved staging baseline upgrade", () => {
       },
     );
   });
+  /** Присутствующая таблица должна совпасть по точному shape, а не только имени. */
   it("never accepts an existing differently shaped checkout table", () => {
     expect(
       inspectStageBaseline({ ...baseline, checkoutHash: "a".repeat(64) }),
@@ -66,6 +74,7 @@ describe("the one approved staging baseline upgrade", () => {
       issues: ["checkout-schema-mismatch"],
     });
   });
+  /** Потерянный DDL-ответ различается с отсутствием применения по точному checkout hash. */
   it("recognizes the exact rehearsed table after a lost DDL acknowledgement", () => {
     expect(
       inspectStageBaseline({
@@ -80,16 +89,19 @@ describe("the one approved staging baseline upgrade", () => {
   });
 });
 
+/** CLI не должен достигать сети с неподдерживаемыми аргументами или неверной целью. */
 describe("operator entry point refuses unsafe input before connecting", () => {
   const entry = fileURLToPath(
     new URL("../tooling/scripts/staging-baseline-upgrade.ts", import.meta.url),
   );
+  /** Запускает настоящий операторский entrypoint с явными аргументами и синтетическим URL, ожидая отказ до подключения. */
   const run = (args: string[], databaseUrl?: string) =>
     spawnSync(process.execPath, ["--import", "tsx", entry, ...args], {
       encoding: "utf8",
       timeout: 5000,
       env: { PATH: process.env.PATH, DATABASE_URL: databaseUrl },
     });
+  /** Неизвестные режимы и обход истории завершаются до подключения, без печати credential URL. */
   it.each([
     { args: ["--ignore-history"] },
     { args: ["--apply", "--rehearse"] },
@@ -105,6 +117,7 @@ describe("operator entry point refuses unsafe input before connecting", () => {
     );
     expect(result.stdout).toBe("");
   });
+  /** URI другой БД/схемы и опасные query options не принимаются как разрешённое назначение. */
   it.each([
     undefined,
     "https://secret-user:secret-password@mysql/db",
@@ -121,9 +134,11 @@ describe("operator entry point refuses unsafe input before connecting", () => {
   });
 });
 
+/** Проверяем независимый restore, неизменность данных и привязку репетиции к конкретному серверу и файлу backup. */
 describe("baseline identity and backup attestation", () => {
   const ddl =
     "CREATE TABLE `sample` (id int NOT NULL AUTO_INCREMENT, PRIMARY KEY (id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+  /** Schema hash игнорирует только текущее значение счётчика таблицы, не определение колонки. */
   it("ignores only a table's advancing auto-increment counter", () => {
     expect(
       hashStageTables([
@@ -134,6 +149,7 @@ describe("baseline identity and backup attestation", () => {
       ]),
     ).toBe("0c9f6a31476ff13af72010e349c55748805bf346863d56338453955451c62b61");
   });
+  /** Удаление AUTO_INCREMENT из колонки обязательно меняет schema identity. */
   it("keeps column auto-increment behavior and other schema differences", () => {
     expect(
       hashStageTables([
@@ -159,6 +175,7 @@ describe("baseline identity and backup attestation", () => {
     autoIncrementPreserved: true,
   };
   const now = new Date("2026-10-07T13:00:00.000Z");
+  /** Режим apply разрешён только для исходного сервера, связанного с проверенным restore. */
   it("binds application to the restored backup's exact source server", () => {
     expect(
       inspectRestoreProof(
@@ -170,6 +187,7 @@ describe("baseline identity and backup attestation", () => {
       ),
     ).toEqual([]);
   });
+  /** Rehearse разрешён на отдельной восстановленной копии, не на исходном рабочем сервере. */
   it("allows rehearsal only on the independently restored server", () => {
     expect(
       inspectRestoreProof(
@@ -190,6 +208,7 @@ describe("baseline identity and backup attestation", () => {
       ),
     ).toEqual(["backup-target-mismatch"]);
   });
+  /** Чужой сервер, несовпадение данных/схемы, self-restore и неверное время делают proof непригодным. */
   it.each([
     [
       "different server",
@@ -232,6 +251,7 @@ describe("baseline identity and backup attestation", () => {
       ),
     ).toEqual(issues);
   });
+  /** Реально прочитанный digest backup должен совпасть с аттестацией. */
   it("hashes the actual backup instead of trusting a supplied file name", () => {
     expect(
       inspectRestoreProof(
@@ -243,6 +263,7 @@ describe("baseline identity and backup attestation", () => {
       ),
     ).toEqual(["backup-file-mismatch"]);
   });
+  /** Неполное или неверной версии свидетельство не получает разрешающий default. */
   it.each([
     null,
     {},
@@ -274,9 +295,11 @@ describe("baseline identity and backup attestation", () => {
     dataUnchanged: true,
     verifiedAt: "2026-10-07T12:05:00.000Z",
   };
+  /** Для apply нужен отдельный успешный receipt репетиции того же SQL и восстановленного backup. */
   it("permits application only after a matching upgrade rehearsal", () => {
     expect(inspectRehearsalReceipt(receipt, proof, now)).toEqual([]);
   });
+  /** Receipt не исправляет недействительный underlying restore proof. */
   it.each([
     { ...proof, sourceDataHash: "e".repeat(64) },
     { ...proof, restoredSchemaHash: "e".repeat(64) },
@@ -293,6 +316,7 @@ describe("baseline identity and backup attestation", () => {
       ).toEqual(["invalid-upgrade-rehearsal"]);
     },
   );
+  /** Другой режим, сервер, SQL/backup/hash, изменённые данные или устаревшее время блокируют upgrade. */
   it.each([
     { ...receipt, mode: "apply" },
     { ...receipt, dataUnchanged: false },

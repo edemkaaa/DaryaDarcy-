@@ -25,6 +25,7 @@ export async function enforcePushRegistrationLimit(
     refuse(await checkRequestRateLimit(`push-register:user:${userId}`, 10, window), res);
 }
 
+/** При отказе квоты выставляем наибольший Retry-After уже накопленный в batch и возвращаем TOO_MANY_REQUESTS до записи. */
 function refuse(limit: Awaited<ReturnType<typeof checkRequestRateLimit>>, res: Response): void {
   if (limit.ok) return;
   res.setHeader(

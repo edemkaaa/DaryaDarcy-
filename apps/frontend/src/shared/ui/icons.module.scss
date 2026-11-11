@@ -2,6 +2,7 @@
 @use "../styles/layers";
 
 @layer elements {
+  /* Иконочные глифы всегда выводятся normal-начертанием, чтобы bold/italic окружающего текста не искажали символ. */
   .typography {
     font-weight: normal;
     font-style: normal;

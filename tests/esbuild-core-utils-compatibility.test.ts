@@ -1,9 +1,11 @@
+/** Сравниваем реальные sync/async преобразования прежнего core-utils и кандидатного esbuild без изменения установленного графа. */
 import { spawnSync } from "node:child_process";
 import { expect, it } from "vitest";
 
 // Characterize the deprecated migration loader's actual transformer before any
 // dependency override. The candidate is injected only in a separate child;
 // this does not change the installed graph or prove whole-loader compatibility.
+/** Подменяем compiler только внутри дочернего процесса, исполняем синтетический результат в VM и сверяем карту и warnings. */
 it.each([false, true])(
   "preserves core-utils sync/async TypeScript transforms (candidate: %s)",
   (candidate) => {

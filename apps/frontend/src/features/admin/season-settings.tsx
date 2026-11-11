@@ -35,10 +35,12 @@ import { StatusNotice } from "@/shared/ui/status-notice";
 import classes from "./admin-screen.module.scss";
 
 const readSettings = async (signal: AbortSignal) =>
-  parseLaunchSnapshot(
+  /* Проверяет форму серверного снимка и ревизию до использования в редакторе сезонов. */ parseLaunchSnapshot(
     await apiCall<unknown>("/api/admin/launch-settings", { signal }),
   );
 function validationMessage(config: LaunchConfiguration): string | null {
+  // Проверяет уникальные ежегодные даты и прямые HTTPS-изображения, отличая страницу Яндекс Диска от файла.
+
   if (
     SEASONS.some(
       (key) =>
@@ -68,6 +70,8 @@ function SeasonEditor({
   snapshot: LaunchConfigurationSnapshot;
   ownerId: number;
 }) {
+  // Редактирует локальную копию сезонной конфигурации; неопределённый PUT и конфликт блокируют новую запись до сверки.
+
   const cache = useQueryClient();
   const [base, setBase] = useState(snapshot);
   const [draft, setDraft] = useState(() => structuredClone(snapshot.config));
@@ -82,10 +86,14 @@ function SeasonEditor({
   const blocked = operation.busy || unknown;
   const dirty = !sameLaunchConfigurationSafe(draft, base.config);
   const rememberUnknown = (value: boolean) => {
+    // Обновляет ref и UI синхронно, не позволяя второму нажатию обогнать React-рендер.
+
     unknownRef.current = value;
     setUnknown(value);
   };
   const confirmed = (next: LaunchConfigurationSnapshot, message: string) => {
+    // Принимает подтверждённую конфигурацию как базу и инвалидирует оформление Клуба для последующего чтения.
+
     setBase(next);
     setDraft(structuredClone(next.config));
     setConflict(null);
@@ -97,6 +105,8 @@ function SeasonEditor({
   };
   // Отправляем снимок с базовой ревизией; неизвестный ответ блокирует новую запись до явной проверки.
   const save = async () => {
+    // Отправляет снимок с expectedRevision и проверяет ответ на точное следующее поколение и те же настройки.
+
     if (unknownRef.current) return;
     const invalid = validationMessage(draft);
     if (invalid) {
@@ -155,6 +165,8 @@ function SeasonEditor({
   };
   // Читающая сверка различает нашу подтверждённую запись и чужую версию, сохраняя введённое оформление.
   const inspect = async () => {
+    // Читает сервер, различая нашу запись, неизменённую базу и чужую новую версию; введённое оформление не затирается молча.
+
     const task = operation.begin("read");
     if (!task) return;
     setNotice(null);
@@ -197,6 +209,8 @@ function SeasonEditor({
     field: keyof SeasonAppearance,
     value: string,
   ) => {
+    // Меняет одно поле сезона в локальной копии; пустой URL означает встроенное оформление.
+
     setDraft((previous) => ({
       ...previous,
       seasons: {
@@ -379,6 +393,8 @@ function sameLaunchConfigurationSafe(
   a: LaunchConfiguration,
   b: LaunchConfiguration,
 ): boolean {
+  // Неполные поля во время ввода считаются отличием, а строгая проверка остаётся у явного сохранения.
+
   try {
     return sameLaunchConfiguration(a, b);
   } catch {
@@ -386,10 +402,12 @@ function sameLaunchConfigurationSafe(
   }
 }
 export function SeasonSettings() {
+  // Изолирует запрос конфигурации по аккаунту и перемонтирует редактор при смене владельца.
+
   const { isOwner, user } = useAuth();
   const query = useQuery({
     queryKey: ["launch-settings", user?.id],
-    queryFn: ({ signal }) => readSettings(signal),
+    queryFn: ({ signal }) => /* Читает снимок с сигналом query, не отправляя изменений при открытии вкладки. */ readSettings(signal),
     enabled: isOwner,
     retry: false,
   });

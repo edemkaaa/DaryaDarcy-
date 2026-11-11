@@ -20,14 +20,17 @@ import {
 } from "../apps/backend/src/db";
 import { purgeOldPostComments } from "../apps/backend/src/content/comments";
 
+/** Проверяет видимость опубликованных материалов и годовое удаление комментариев с зависимостями. */
 describe.skipIf(!testDatabaseUrl)(
   "content visibility and retention on disposable MySQL",
   () => {
     let conn: Connection;
+    /** Открывает одноразовую content-схему и перенаправляет прикладной пул. */
     beforeAll(async () => {
       conn = await openContentTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
     });
+    /** Очищает только собственные диапазоны постов, вложений и комментариев с реакциями. */
     beforeEach(async () => {
       await conn.query(
         "DELETE FROM post_media WHERE postId BETWEEN 8800 AND 8899",
@@ -43,6 +46,7 @@ describe.skipIf(!testDatabaseUrl)(
         "DELETE FROM post_comments WHERE id BETWEEN 8800 AND 8899",
       );
     });
+    /** Закрывает оба соединения и восстанавливает переменные окружения. */
     afterAll(async () => {
       await conn?.end();
       const database = await getDb();
@@ -51,6 +55,7 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** Все публичные и клубные чтения исключают draft и scheduled несмотря на старый published=true. */
     it("public and club queries exclude scheduled/draft rows even when the legacy published flag is true", async () => {
       // The database is shared with parallel creation suites. Explicit ordering
       // dates (within MySQL TIMESTAMP's range) put our fixture before those rows
@@ -60,6 +65,7 @@ describe.skipIf(!testDatabaseUrl)(
       (8802,'draft secret',JSON_ARRAY(),JSON_ARRAY(),'draft','both','2037-01-03'),
       (8803,'scheduled secret',JSON_ARRAY(),JSON_ARRAY(),'scheduled','both','2037-01-04'),
       (8804,'club visible',JSON_ARRAY(),JSON_ARRAY(),'published','club','2037-01-02')`);
+      /** Оставляет ID собственного диапазона, чтобы параллельные suite не влияли на ожидаемый список. */
       const ownedIds = (rows: { id: number }[]) =>
         rows.filter((p) => p.id >= 8800 && p.id <= 8899).map((p) => p.id);
       expect(ownedIds(await getPosts())).toEqual([8801]);
@@ -72,6 +78,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).toEqual([8801, 8804]);
       expect((await getLatestPublishedPost("club"))?.id).toBe(8804);
     });
+    /** Годовое удаление очищает устаревший комментарий с реакциями и сохраняет новые ответы, обнуляя parentId. */
     it("keeps 100-day-old comments but purges comments older than one year with related records", async () => {
       await conn.query(`INSERT INTO post_comments (id,postId,userId,text,parentId,createdAt) VALUES
       (8830,8801,782,'old parent',NULL,DATE_SUB(NOW(),INTERVAL 366 DAY)),
@@ -111,6 +118,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(likes).toEqual([]);
       expect(reports).toEqual([]);
     });
+    /** SKIP LOCKED пропускает занятый старый комментарий и удаляет его на следующем проходе после снятия блокировки. */
     it("defers a locked expired comment and removes it on a subsequent tick", async () => {
       await conn.query(
         "INSERT INTO post_comments (id,postId,userId,text,createdAt) VALUES (8830,8801,782,'locked expired',DATE_SUB(NOW(),INTERVAL 366 DAY))",

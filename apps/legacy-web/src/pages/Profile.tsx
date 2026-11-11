@@ -1,6 +1,8 @@
+/** Архивный профиль Vite с прежним контекстом сессии. */
 import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "../auth";
 
+/** До завершения первого чтения показывает загрузку, затем перенаправляет гостя или отображает профиль и выход. */
 export default function Profile() {
   const { user, loading, logout } = useAuth();
 

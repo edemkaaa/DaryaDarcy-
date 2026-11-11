@@ -1,5 +1,6 @@
 import { expect, it, vi } from "vitest";
 vi.mock("../apps/frontend/src/shared/media/read-attachment", () => ({
+  /** Возвращает Base64 исходного File в тестовом окружении без browser FileReader. */
   attachmentBase64: async (file: File) =>
     Buffer.from(await file.arrayBuffer()).toString("base64"),
 }));
@@ -21,6 +22,7 @@ const payload = serializePostDraft({
   publishedAt: new Date("2026-10-15T09:00:00Z"),
   sortOrder: 0,
 });
+/** Создаёт исходный документ с известными байтами для проверки сохранности при повторах. */
 const file = () => ({
   type: "document" as const,
   name: "kept.txt",
@@ -35,8 +37,10 @@ const receipt = {
   mimeType: "text/plain",
   fileSize: 14,
 };
+/** Выдаёт независимую действующую операцию сохранения. */
 const task = () =>
   new OperationScope().begin("save", new AbortController().signal, () => true)!;
+/** Создаёт API-double с приватной загрузкой и статусом; публичный fallback немедленно завершает тест ошибкой. */
 function boundary() {
   return {
     create: vi.fn(async (_input: object) => 42),
@@ -56,6 +60,7 @@ function boundary() {
   };
 }
 
+/** Сохраняет исходный File и ключ после 404/413, не публикуя частичный пост и не повторяя загрузку без статуса. */
 it.each([404, 413])(
   "keeps the original attachment and key after HTTP %s, without partial publication",
   async (status) => {
@@ -97,6 +102,7 @@ it.each([404, 413])(
   },
 );
 
+/** Передаёт в финальный create/update только подтверждённые privateAssetIds и явное удаление media. */
 it.each([null, 42])(
   "binds only private receipts in the final post transaction (%s)",
   async (id) => {
@@ -130,6 +136,7 @@ it.each([null, 42])(
   },
 );
 
+/** После восстановления журнала читает status потерянной загрузки и привязывает ready asset без повторной отправки. */
 it("reload after lost upload ACK checks status and binds without uploading twice", async () => {
   const api = boundary();
   api.uploadPrivate.mockRejectedValueOnce(new Error("Lost ACK"));
@@ -152,6 +159,7 @@ it("reload after lost upload ACK checks status and binds without uploading twice
   });
 });
 
+/** При явном восстановлении pending/notRecorded повторяет прежние байты и ключ вместо нового intent. */
 it.each(["pending", "notRecorded"])(
   "explicit recovery of %s replays original bytes and key, not a new intent",
   async (state) => {
@@ -175,6 +183,7 @@ it.each(["pending", "notRecorded"])(
   },
 );
 
+/** Отказ status сохраняет журнал и не разрешает загрузку или запись поста. */
 it.each([409, 401, 403, 503])(
   "status failure %s preserves intent and sends no upload/post",
   async (status) => {
@@ -194,6 +203,7 @@ it.each([409, 401, 403, 503])(
   },
 );
 
+/** Отмена владельцем операции не позволяет привязать позднюю ready-квитанцию. */
 it("account cancellation ignores a late ready receipt and never binds it", async () => {
   const api = boundary();
   const scope = new OperationScope();
@@ -215,6 +225,7 @@ it("account cancellation ignores a late ready receipt and never binds it", async
   expect(api.create).not.toHaveBeenCalled();
 });
 
+/** Не публикует по pending либо повреждённой квитанции с неверными метаданными или публичным URL. */
 it.each([
   { ...receipt, assetId: "not-a-uuid" },
   { ...receipt, state: "pending" },
@@ -237,6 +248,7 @@ it.each([
   },
 );
 
+/** Не применяет квитанцию status к журналу после отмены чтения. */
 it("a cancelled status read cannot apply its receipt to the restored journal", async () => {
   const api = boundary();
   api.uploadPrivate.mockRejectedValueOnce(new Error("Timeout"));
@@ -260,6 +272,7 @@ it("a cancelled status read cannot apply its receipt to the restored journal", a
   expect(api.create).not.toHaveBeenCalled();
 });
 
+/** При отказе журнала до загрузки не отправляет ни приватные, ни публичные байты. */
 it("journaling failure before private upload sends no bytes", async () => {
   const api = boundary();
   const coordinator = new PostSaveCoordinator();
@@ -273,6 +286,7 @@ it("journaling failure before private upload sends no bytes", async () => {
   expect(api.upload).not.toHaveBeenCalled();
 });
 
+/** Отказ финального recovery checkpoint не портит уже подтверждённую квитанцию и не требует повторной загрузки. */
 it("a failed final recovery checkpoint can be retried without poisoning a ready receipt", async () => {
   const api = boundary();
   api.uploadPrivate.mockRejectedValueOnce(new Error("Timeout"));

@@ -35,8 +35,10 @@ const existing = {
     },
   ],
 };
+/** Адресуем текст текущего экземпляра редактора после reload или смены аккаунта. */
 const field = (form: Locator) =>
   form.getByPlaceholder("Текст поста… Enter — новый абзац");
+/** Выбираем фактическое действие create/edit в полном либо быстром редакторе. */
 const submit = (form: Locator, mode: Mode, edit = false) =>
   form
     .getByRole("button", {
@@ -44,6 +46,7 @@ const submit = (form: Locator, mode: Mode, edit = false) =>
       exact: true,
     })
     .first();
+/** Открываем create/edit через соответствующий интерфейс и ждём чтения account-scoped черновика. */
 async function open(page: Page, mode: Mode, edit = false) {
   await gotoWithSession(page, mode === "full" ? "/admin" : "/feed");
   if (edit && mode === "quick")
@@ -65,6 +68,7 @@ async function open(page: Page, mode: Mode, edit = false) {
   );
   return form;
 }
+/** Выбираем небольшой синтетический документ и ждём его локального появления; выбор не должен отправлять upload. */
 async function choose(page: Page, form: Locator) {
   const chooser = page.waitForEvent("filechooser");
   await form.getByRole("button", { name: "Документ", exact: true }).click();
@@ -86,6 +90,7 @@ const receipt = {
   fileSize: 22,
 };
 
+/** Оба редактора проверяют отказ legacy DOC, изоляцию поздних receipt между аккаунтами и восстановление document upload после reload. */
 for (const mode of ["full", "quick"] as const) {
   test(`${mode}: unsupported legacy DOC stays local and sends no private/public upload`, async ({
     page,
@@ -113,6 +118,7 @@ for (const mode of ["full", "quick"] as const) {
     await expect(form.getByText("legacy.doc", { exact: true })).toHaveCount(0);
     expect(writes).toEqual([]);
   });
+  /** Меняем личность отдельно при ожидающем upload и при status-read: receipt старого владельца нельзя привязать к новому черновику. */
   for (const stage of ["upload", "status"] as const) {
     test(`${mode}: account switch during ${stage} drops late receipt and preserves only original owner's draft`, async ({
       page,
@@ -204,6 +210,7 @@ for (const mode of ["full", "quick"] as const) {
       expect(writes).toBe(0);
     });
   }
+  /** Create/edit и ready/notRecorded различают принятие готового receipt и повтор исходных байтов с тем же ключом; публикация остаётся отдельным действием. */
   for (const edit of [false, true]) {
     for (const outcome of ["ready", "notRecorded"] as const) {
       test(`${mode}/${edit ? "edit" : "create"}: lost upload ACK + reload + ${outcome} retains bytes/key and binds once`, async ({

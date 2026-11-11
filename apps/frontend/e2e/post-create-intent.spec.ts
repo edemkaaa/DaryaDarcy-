@@ -5,6 +5,7 @@ import { gotoWithSession } from "./layout-fixtures";
 const uuid =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+/** Оба редактора проходят одинаковые случаи определённого отказа: неизменённый ввод сохраняет ключ, исправленный получает новое намерение. */
 for (const mode of ["full", "quick"] as const) {
   for (const changed of [false, true]) {
     test(`${mode}: a definite rejection ${changed ? "starts a new intent for changed data" : "keeps the same creation intent"}`, async ({

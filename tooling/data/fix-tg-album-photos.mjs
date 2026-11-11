@@ -34,6 +34,8 @@ const s3 = new S3Client({
 const S3_PUBLIC = `${env.S3_ENDPOINT}/${env.S3_BUCKET}/`;
 
 function yandexDiskPath(relativePath) {
+  // Переводит относительный путь Telegram-экспорта в путь файла на согласованном публичном Яндекс Диске.
+
   const base = path.basename(relativePath.replace(/\\/g, "/"));
   const rel = relativePath.replace(/\\/g, "/");
   if (rel.startsWith("photos/")) return `/фото из клуба/${base}`;
@@ -42,6 +44,8 @@ function yandexDiskPath(relativePath) {
 }
 
 async function getCachedOrDownload(diskPath) {
+  // Переиспользует локальную копию или скачивает исходник в кэш; этот исторический путь может обращаться к сети и в dry-run.
+
   fs.mkdirSync(CACHE_DIR, { recursive: true });
   const safe = diskPath.replace(/[^\w@.\-]+/g, "_");
   const cacheFile = path.join(CACHE_DIR, safe);
@@ -61,6 +65,8 @@ async function getCachedOrDownload(diskPath) {
 }
 
 async function uploadPhoto(msgId, photoPath) {
+  // Историческая загрузка фото создаёт публичный объект; закрытая выдача требует отдельного современного процесса.
+
   const diskPath = yandexDiskPath(photoPath);
   if (!diskPath) return null;
   const name = path.basename(photoPath);
@@ -79,6 +85,8 @@ async function uploadPhoto(msgId, photoPath) {
 }
 
 async function main() {
+  // Дополняет фотографии старых Telegram-альбомов при наличии большего исходного набора.
+
   const data = JSON.parse(fs.readFileSync(RESULT_JSON, "utf8"));
   const messages = data.messages.filter((m) => m.type === "message");
   const { albumPhotos } = buildAlbumGroups(messages);

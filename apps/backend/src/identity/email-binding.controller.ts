@@ -13,9 +13,11 @@ import { checkRequestRateLimit } from "../_core/request-rate-limit";
 import { clientIp } from "../sms-auth";
 import { publicAccessUrl } from "./urls";
 
+/** Отвечаем нейтральной ошибкой заданного HTTP-статуса без email, proof или SQL-причин. */
 function reject(res: Response, status: number) {
   res.status(status).json({ error: "Запрос недоступен." });
 }
+/** Запрещаем кеширование, проверяем флаг, JSON для POST и совпадение Origin с доверенным PUBLIC_APP_URL при его наличии. */
 function ready(req: Request, res: Response) {
   res.setHeader("Cache-Control", "no-store");
   if (process.env.MEMBER_EMAIL_BINDING_ENABLED !== "true") {
@@ -42,6 +44,7 @@ function ready(req: Request, res: Response) {
   }
   return true;
 }
+/** Сопоставляем известные доменные ошибки с HTTP, неизвестную причину скрываем за временной недоступностью. */
 function failure(res: Response, error: unknown) {
   const codes = {
     invalid_input: 400,
@@ -52,6 +55,7 @@ function failure(res: Response, error: unknown) {
   };
   reject(res, error instanceof EmailBindingError ? codes[error.code] : 503);
 }
+/** Резервируем до 20 запросов в заданном окне и при отказе возвращаем Retry-After вместе с 429. */
 async function limited(res: Response, key: string, window: number) {
   const result = await checkRequestRateLimit(key, 20, window);
   if (result.ok) return false;
@@ -62,11 +66,13 @@ async function limited(res: Response, key: string, window: number) {
 
 @Controller("api")
 export class EmailBindingController {
+  /** Получаем сервис текущей сессии и доменные операции привязки без смешения транспорта с SQL. */
   constructor(
     @Inject(SessionService) private readonly sessions: SessionService,
     @Inject(EmailBindingService) private readonly bindings: EmailBindingService,
   ) {}
 
+  /** Без чтения БД перенаправляем на страницу подтверждения доверенного сайта, сохраняя fragment токена и запрещая query. */
   @Get("auth/email-binding")
   page(@Req() req: Request, @Res() res: Response) {
     if (!ready(req, res)) return;
@@ -87,6 +93,7 @@ export class EmailBindingController {
     }
   }
 
+  /** Проверяем текущую сессию и административную роль на HTTP-границе; доменная операция повторно сверит actor под блокировкой. */
   private async administrator(req: Request, res: Response) {
     const user = await this.sessions.optionalUser(req);
     if (!user) {
@@ -101,6 +108,7 @@ export class EmailBindingController {
     return { userId: user.id, sessionVersion: user.sessionVersion };
   }
 
+  /** При готовой функции и лимите администратора принимаем намерение привязки и возвращаем строгую квитанцию 202 без proof. */
   @Post("admin/member-email-bindings")
   async request(@Req() req: Request, @Res() res: Response) {
     if (!ready(req, res)) return;
@@ -118,6 +126,7 @@ export class EmailBindingController {
     }
   }
 
+  /** Возвращаем проверенный статус запроса текущему администратору; отсутствие заявки скрываем нейтральным 404. */
   @Get("admin/member-email-bindings/:requestKey")
   async status(@Req() req: Request, @Res() res: Response) {
     if (!ready(req, res)) return;
@@ -135,6 +144,7 @@ export class EmailBindingController {
     }
   }
 
+  /** Ограничиваем подтверждения по IP, принимаем точный одноразовый токен JSON и возвращаем только факт успеха без авторизации пользователя. */
   @Post("auth/email-bindings/confirm")
   async confirm(@Req() req: Request, @Res() res: Response) {
     if (!ready(req, res)) return;

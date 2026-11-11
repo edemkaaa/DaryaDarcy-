@@ -1,3 +1,4 @@
+// Создаёт опубликованные тестовые посты напрямую в выбранной БД и удаляет их в finally; принадлежность одноразовой БД не проверяется.
 /**
  * Creates temporary test posts, verifies fields, then deletes them.
  * Usage: node tooling/legacy/_test-admin-posts.mjs
@@ -48,6 +49,7 @@ const payloads = [
   },
 ];
 
+// Запоминаются только созданные этим процессом ID; аварийное завершение может обойти finally и оставить опубликованные тестовые записи.
 const ids = [];
 try {
   for (const p of payloads) {

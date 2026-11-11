@@ -65,7 +65,7 @@ API через composition root не запускал таймеры и внеш
   согласование старой копии с уже выполненными внешними эффектами требуют
   отдельной сверки. Это не проверка полного point-in-time recovery.
 
-Обновлена [инструкция DevOps](../../infrastructure/deploy/teamassist/README.build.md).
+Обновлена [инструкция DevOps](../../infrastructure/build/README.md).
 Подключение клиента остаётся в
 [едином документе фронтендеру](../development/frontend-request-audit-actions-2026-10-30.md).
 

@@ -3,6 +3,8 @@ import { getDb } from '../../apps/backend/src/db';
 import { posts } from '../../packages/database/src/schema';
 
 async function verify() {
+  // Считает ссылки фото по признакам S3/Instagram в БД; фактические байты и права доступа этим не проверяются.
+
   const db = await getDb();
   if (!db) { console.log('No DB connection'); process.exit(1); }
   const allPosts = await db.select().from(posts);

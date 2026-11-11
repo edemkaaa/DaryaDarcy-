@@ -1,3 +1,4 @@
+/** Content-Disposition/Range проверяются настоящим handler/AWS SDK на owned wire; authorized resolver synthetic, не SQL/auth приёмка. */
 import { afterAll, beforeAll, beforeEach, expect, it, vi } from "vitest";
 import express from "express";
 import { createServer, type Server } from "node:http";
@@ -13,11 +14,13 @@ let mime: string, label: string | undefined, inline: boolean;
 let denied: boolean, stale: boolean, requests: string[];
 let storageCalls = 0;
 
+/** Случайный loopback порт выделяется отдельно API и S3-wire. */
 async function listen(server: Server) {
   await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
   return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 }
 
+/** Wire требует signed request и pinned If-Match; API передаёт синтетические разрешённые metadata в настоящий sendPrivateFile. */
 beforeAll(async () => {
   wire = createServer((req, res) => {
     storageCalls++;
@@ -64,6 +67,7 @@ beforeAll(async () => {
   base = await listen(api);
 });
 
+/** Сбрасываем MIME/label/inline/deny/stale и счётчики сетевых эффектов. */
 beforeEach(() => {
   mime = "application/pdf";
   label = undefined;
@@ -72,6 +76,7 @@ beforeEach(() => {
   storageCalls = 0;
 });
 
+/** Закрываем оба owned servers и S3 env. */
 afterAll(async () => {
   for (const server of [api, wire]) {
     server?.closeAllConnections();
@@ -80,6 +85,7 @@ afterAll(async () => {
   vi.unstubAllEnvs();
 });
 
+/** Формат имени выводится из MIME, bytes совпадают, ответ private/no-store/nosniff и HEAD предшествует GET. */
 it.each([
   ["text/plain", "file.txt"],
   ["application/pdf", "file.pdf"],
@@ -116,6 +122,7 @@ it.each([
   expect(requests).toEqual(["HEAD", "GET"]);
 });
 
+/** 206 сохраняет имя attachment, правильный suffix и Content-Range. */
 it("preserves the attachment identity and extension for a range response", async () => {
   label = "attachment-123";
   const response = await fetch(`${base}/file`, {
@@ -129,6 +136,7 @@ it("preserves the attachment identity and extension for a range response", async
   expect(await response.text()).toBe("0123");
 });
 
+/** HEAD выдаёт metadata/filename без GET тела. */
 it("uses the library key for HEAD without fetching object bytes", async () => {
   label = "holly";
   const response = await fetch(`${base}/file`, { method: "HEAD" });
@@ -141,6 +149,7 @@ it("uses the library key for HEAD without fetching object bytes", async () => {
   expect(requests).toEqual(["HEAD"]);
 });
 
+/** Inline-фото получает актуальные WebP MIME/extension. */
 it("keeps normalized photos inline with the actual WebP format", async () => {
   mime = "image/webp";
   inline = true;
@@ -153,6 +162,7 @@ it("keeps normalized photos inline with the actual WebP format", async () => {
   await response.arrayBuffer();
 });
 
+/** Отказ resolver даёт404 до AWS и Content-Disposition. */
 it("does not disclose a filename or call storage when authorization denies", async () => {
   denied = true;
   const response = await fetch(`${base}/file`);
@@ -162,6 +172,7 @@ it("does not disclose a filename or call storage when authorization denies", asy
   expect(await response.json()).toEqual({ error: "Файл недоступен." });
 });
 
+/** Несовпавший ETag даёт503 уже после HEAD, без GET и download header. */
 it("does not send a download header for changed object metadata", async () => {
   stale = true;
   const response = await fetch(`${base}/file`);
@@ -171,6 +182,7 @@ it("does not send a download header for changed object metadata", async () => {
   expect(requests).toEqual(["HEAD"]);
 });
 
+/** 416 содержит только корректную total range-информацию, не готовое скачивание. */
 it("removes the download header for an unsatisfiable range", async () => {
   const response = await fetch(`${base}/file`, {
     headers: { Range: "bytes=10-" },

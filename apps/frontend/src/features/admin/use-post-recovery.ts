@@ -32,6 +32,8 @@ export function usePostRecovery({
   coordinator: RefObject<PostSaveCoordinator>;
   onRestore: (editor: PostEditorSnapshot) => void;
 }) {
+  // Связывает черновик, фазу координатора и выбранные File с аккаунтом и слотом редактора.
+
   const { user, isOwner } = useAuth();
   const ownerId = isOwner ? user?.id : undefined;
   const [status, setStatus] = useState<
@@ -54,10 +56,14 @@ export function usePostRecovery({
   } | null>(null);
   const latest = useRef({ editor, onRestore });
   useEffect(() => {
+    // Хранит свежие значения формы и callback для асинхронного журнала без пересоздания области.
+
     latest.current = { editor, onRestore };
   }, [editor, onRestore]);
   const acceptStoredRecord = useCallback(
     (stored: PostRecoveryRecord | null) => {
+      // Обычный idle-черновик восстанавливается сразу; незавершённая серверная команда требует отдельного подтверждения восстановления.
+
       // Ordinary edits can resume immediately. Unconfirmed server writes need
       // the recovery flow so editing cannot change their original payload.
       if (stored?.save.phase === "idle") {
@@ -75,6 +81,8 @@ export function usePostRecovery({
     [coordinator],
   );
   useEffect(() => {
+    // Создаёт отдельный журнал аккаунта и слота; позднее чтение предыдущего редактора игнорируется.
+
     if (!active || !ownerId) return;
     const current = {
       journal: new PostRecoveryJournal(ownerId, slot),
@@ -114,6 +122,8 @@ export function usePostRecovery({
       state?: PostSaveSnapshot,
       pending?: PostEditorSnapshot["pending"],
     ) => {
+      // До ожидания IndexedDB захватывает форму и фазу вместе; квитанция относится именно к этому вводу, а не к более новому.
+
       const current = context.current;
       if (!current?.alive || !ownerId || !isPersonalDataOwner(ownerId))
         throw new Error("Редактор недоступен до проверки аккаунта");
@@ -153,6 +163,8 @@ export function usePostRecovery({
   );
 
   useEffect(() => {
+    // Передаёт координатору контрольную точку и откладывает автосохранение ввода на 250 мс, отменяя старый таймер.
+
     if (!active || status !== "ready") return;
     coordinator.current.setCheckpoint(checkpoint);
     const timer = setTimeout(() => {
@@ -162,8 +174,12 @@ export function usePostRecovery({
   }, [active, status, editor, checkpoint, coordinator]);
 
   useEffect(() => {
+    // Удерживает предупреждение ухода только пока активна восстановленная форма.
+
     if (!active || status !== "ready") return;
     const warn = (event: BeforeUnloadEvent) => {
+      // Предупреждает закрытие активного редактора, поскольку отмена ожидания не отменяет серверную запись.
+
       event.preventDefault();
       event.returnValue = "";
     };
@@ -172,6 +188,8 @@ export function usePostRecovery({
   }, [active, status]);
 
   const restore = () => {
+    // Принимает сохранённую фазу и форму только для действующего владельца, сохраняя исходный ключ команды.
+
     if (!record || !ownerId || !isPersonalDataOwner(ownerId)) return;
     coordinator.current.restore(record.save);
     latest.current.onRestore(record.editor);
@@ -187,6 +205,8 @@ export function usePostRecovery({
   };
   // Пока очищаем журнал, запрещаем его поздней автозаписи заново создать уже закрытый черновик.
   const clear = async () => {
+    // Отключает позднее автосохранение перед очисткой, иначе завершённый черновик мог бы появиться заново.
+
     const current = context.current;
     if (!current?.alive) throw new Error("Редактор закрыт");
     current.alive = false;
@@ -216,6 +236,8 @@ export function usePostRecovery({
     restore,
     clear,
     retryStorage: async () => {
+      // Если первое чтение не удалось, перечитывает журнал; иначе повторяет контрольную точку без новой сетевой записи.
+
       if (!loaded.current) {
         const current = context.current;
         if (!current?.alive) return;

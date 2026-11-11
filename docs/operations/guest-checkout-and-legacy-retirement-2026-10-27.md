@@ -464,5 +464,5 @@ Mac: `.local-artifacts/guest-live-prep-20261027-9b580d0f` родительско
 размерная репетиция/восстановление, точный кандидат и план. Backend не выложен,
 LIVE/strict не включены, рабочая БД/входы/файлы сохранены.
 
-[Контракт гостя](../../SPEC-normal-checkout-recovery.md),
+[Контракт гостя](../specifications/SPEC-normal-checkout-recovery.md),
 [единый документ фронтендеру](../development/frontend-audit-handoff-2026-10-27.md).

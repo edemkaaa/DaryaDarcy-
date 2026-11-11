@@ -8,6 +8,7 @@ type QuizHarness = Window & {
   setOwner(id: number, loading?: boolean): void;
 };
 
+/** Формирует синтетический сохранённый результат выбранной эстетики с полной формой scores. */
 const saved = (key: string) =>
   JSON.stringify({
     primaryKey: key,
@@ -25,6 +26,7 @@ const saved = (key: string) =>
     },
   });
 
+/** Проверяет настоящий React/Chromium экран теста при смене owner и out-of-order восстановлении, отдельно для deferred adapter и native localStorage. */
 it.skipIf(!process.env.PLAYWRIGHT_EXECUTABLE_PATH).each([false, true])(
   "cancels an old quiz restore across owner changes (native localStorage: %s)",
   async (nativeStorage) => {
@@ -74,6 +76,7 @@ it.skipIf(!process.env.PLAYWRIGHT_EXECUTABLE_PATH).each([false, true])(
       plugins: [
         {
           name: "controlled-quiz-boundaries",
+          /** Подменяет только перечисленные session/leaf-view границы сборки, сохраняя настоящий quiz state и выбранную storage-реализацию. */
           setup(builder) {
             builder.onResolve({ filter: /^@\// }, (args) =>
               adapters[args.path]

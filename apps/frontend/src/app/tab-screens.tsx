@@ -19,9 +19,11 @@ class ScreenErrorBoundary extends Component<
   { failed: boolean }
 > {
   state = { failed: false };
+  /** Ошибка помечает конкретную retained-панель; остальные вкладки продолжают использовать свои экземпляры. */
   static getDerivedStateFromError() {
     return { failed: true };
   }
+  /** Локальный reset возвращает только boundary этой панели, не пересоздавая глобальные сессию и кеш. */
   render() {
     return this.state.failed ? (
       <RouteError reset={() => this.setState({ failed: false })} />
@@ -57,9 +59,11 @@ const screens = {
   "/profile": dynamic(() => import("@/features/profile/profile-screen")),
 };
 type TabPath = keyof typeof screens;
+/** Проверяем собственный ключ набора ленивых экранов: остальные адреса рисуются обычным changing subtree Next. */
 const isTabPath = (path: string): path is TabPath =>
   Object.hasOwn(screens, path);
 
+/** Монтируем только посещённые панели и сохраняем их DOM; active/hidden/inert отделяют жизнь экрана от его видимости и фокуса. */
 export default function TabScreens({
   path,
   children,

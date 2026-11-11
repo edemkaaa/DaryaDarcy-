@@ -23,16 +23,19 @@ import { libraryFilesEnabled } from "./library-files";
 import { prepareLibraryMigration } from "./library-migration-manifest";
 import { privateUploadKey } from "./private-upload-key";
 
+/** Сообщаем о несовпадении версии, состава или состояния переноса без частичного применения привязок. */
 const conflict = () =>
   new TRPCError({
     code: "CONFLICT",
     message: "Перенос конфликтует с текущей версией",
   });
+/** Отделяем временную недоступность БД, схемы или хранилища от конфликта плана. */
 const unavailable = () =>
   new TRPCError({
     code: "SERVICE_UNAVAILABLE",
     message: "Перенос временно недоступен",
   });
+/** Хешируем ключ операции вместе с исполнителем и версией протокола, изолируя повтор разных администраторов. */
 const keyFor = (actor: Actor, key: string) =>
   digest(
     JSON.stringify([
@@ -43,17 +46,21 @@ const keyFor = (actor: Actor, key: string) =>
   );
 type Operation = typeof operations.$inferSelect;
 type Binding = typeof bindings.$inferSelect;
+/** Останавливаем операторский перенос, если выдача Библиотеки или приватное хранилище отключены. */
 function enabled() {
   if (!libraryFilesEnabled()) throw new TRPCError({ code: "NOT_FOUND" });
 }
+/** Возвращаем только состояние и сохранённый результат операции для безопасного повтора после потери ответа. */
 function result(operation: Operation) {
   return { state: operation.state, bindings: operation.result ?? [] };
 }
+/** Получаем настроенную БД и превращаем её отсутствие в предсказуемую временную ошибку переноса. */
 async function database() {
   const db = await getDb();
   if (!db) throw unavailable();
   return db;
 }
+/** Блокируем ранее захваченную операцию по requestKey; отсутствие записи означает нарушение согласованного плана. */
 async function operation(tx: Tx, key: string) {
   const [row] = await tx
     .select()
@@ -63,6 +70,7 @@ async function operation(tx: Tx, key: string) {
   if (!row) throw conflict();
   return row;
 }
+/** До изменений проверяем таблицы и полные уникальные индексы InnoDB, на которых держится идемпотентность файлов и привязок. */
 async function schema(tx: Tx) {
   await tx.select().from(bindings).limit(0);
   await tx.select().from(operations).limit(0);
@@ -88,6 +96,7 @@ async function schema(tx: Tx) {
     )
       throw unavailable();
 }
+/** Блокируем привязки одного материала в одинаковом порядке ключей, чтобы сверить все ожидаемые ревизии. */
 async function materialRows(tx: Tx, material: string) {
   return tx
     .select()
@@ -96,6 +105,7 @@ async function materialRows(tx: Tx, material: string) {
     .orderBy(bindings.fileKey)
     .for("update");
 }
+/** Сравниваем каждую ожидаемую ревизию с текущей; новая привязка ожидает ноль. */
 function revisions(
   current: Binding[],
   plan: Awaited<ReturnType<typeof prepareLibraryMigration>>,
@@ -107,12 +117,14 @@ function revisions(
 }
 
 /** Operator-only library function: no HTTP upload, source fetch or automatic rollout. */
+/** Захватываем неизменяемый план, готовим новые объекты вне SQL и атомарно переключаем только проверенные ревизии привязок; повтор возвращает сохранённый результат. */
 export async function applyLibraryMigration(actor: Actor, input: unknown) {
   enabled();
   const plan = await prepareLibraryMigration(input);
   const db = await database(),
     key = keyFor(actor, plan.idempotencyKey),
     namespaceHash = privateStorageNamespace().hash;
+// Первая транзакция закрепляет набор assetId и отпечаток плана; повтор не генерирует другие файлы.
   const claimed = await db.transaction(async (tx) => {
     await lockPrivateAttachmentActor(tx, actor);
     await schema(tx);
@@ -141,6 +153,7 @@ export async function applyLibraryMigration(actor: Actor, input: unknown) {
   });
   if (claimed.state === "committed") return result(claimed);
   if (claimed.plan.length !== plan.files.length) throw conflict();
+// Каждый файл получает отдельную квитанцию: сетевой PUT идёт без удержания SQL-блокировок.
   for (const [index, file] of plan.files.entries()) {
     enabled();
     const assetId = claimed.plan[index],
@@ -226,6 +239,7 @@ export async function applyLibraryMigration(actor: Actor, input: unknown) {
       });
     }
   }
+// Все готовые файлы переключаются одной транзакцией после повторной проверки исполнителя и ревизий.
   try {
     return await db.transaction(async (tx) => {
       await lockPrivateAttachmentActor(tx, actor);
@@ -298,6 +312,7 @@ export async function applyLibraryMigration(actor: Actor, input: unknown) {
 }
 
 /** Восстанавливаем привязки только при сохранении условий отката данного плана. */
+/** Откатываем только неизменённые привязки результата к прежним готовым assetId; новые привязки выключаем и увеличиваем ревизии, файлы не удаляем. */
 export async function rollbackLibraryMigration(
   actor: Actor,
   idempotencyKey: string,

@@ -1,3 +1,4 @@
+// Применяет прежние SQL-части Pen Pals последовательно; сам запуск не включает функцию и не проверяет её объектный доступ.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -17,6 +18,7 @@ const statements = sql
   .map((part) => part.trim())
   .filter(Boolean);
 
+// С этого места выбранная БД реально изменяется; текущая история и рабочее назначение автоматически не проверены.
 const conn = await mysql.createConnection(env.DATABASE_URL.replace(/\r/g, "").trim());
 for (const statement of statements) {
   await conn.query(statement);

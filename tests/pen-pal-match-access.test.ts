@@ -26,7 +26,7 @@ const transport = vi.hoisted(() => ({
   affectedRows: 1,
 }));
 vi.mock("mysql2/promise", () => ({
-  default: { createPool: () => ({ on() {}, query: transport.query }) },
+  default: { /** Подменяет только mysql2 transport наблюдаемым query, оставляя настоящий Drizzle и репозитории. */ createPool: () => ({ /** Не регистрирует реальные события пула в изолированном SQL-double. */ on() {}, query: transport.query }) },
 }));
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { SessionService } from "../apps/backend/src/identity/session.service";
@@ -36,12 +36,15 @@ import { SessionService } from "../apps/backend/src/identity/session.service";
 let application: INestApplication;
 let base: string;
 let actorId: number;
+/** Создаёт настоящий tRPC HTTP-клиент для текущего loopback приложения. */
 const client = () =>
   createTRPCProxyClient<AppRouter>({
     links: [httpLink({ url: base + "/api/trpc", transformer: superjson })],
   });
+/** Выделяет изменяющие SQL-операторы, чтобы доказывать отсутствие записи при отказе доступа. */
 const writes = () =>
   transport.statements.filter(({ sql }) => /^(delete|update|insert)/.test(sql));
+/** Поднимает Nest с включённым Pen Pals и тестовым actor вместо поиска настоящей сессии. */
 beforeAll(async () => {
   vi.stubEnv("DATABASE_URL", "mysql://fixture@127.0.0.1:33317/backend_test");
   vi.stubEnv("ENABLE_PEN_PALS", "true");
@@ -59,6 +62,7 @@ beforeAll(async () => {
   await application.listen(0, "127.0.0.1");
   base = `http://127.0.0.1:${(application.getHttpServer().address() as AddressInfo).port}`;
 });
+/** Сбрасывает actor и SQL-ответы профилей, участников и заявки, сохраняя порядок исполняемых запросов. */
 beforeEach(() => {
   actorId = 3;
   transport.exists = true;
@@ -118,13 +122,16 @@ beforeEach(() => {
       },
     );
 });
+/** Очищает историю подмен между независимыми сценариями доступа. */
 afterEach(() => vi.clearAllMocks());
+/** Закрывает приложение и возвращает spy и окружение после набора. */
 afterAll(async () => {
   await application?.close();
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
 });
 
+/** Запрещает постороннему принять или удалить заявку двух других участников до любого изменяющего SQL. */
 it.each([false, true])(
   "outsider cannot respond accept=%s or mutate A–B's match",
   async (accept) => {
@@ -137,6 +144,7 @@ it.each([false, true])(
   },
 );
 
+/** Не создаёт заявку при неактивном профиле любой из сторон. */
 it.each([1, 2])(
   "request refuses inactive profile %s without writing",
   async (id) => {
@@ -148,6 +156,7 @@ it.each([1, 2])(
     expect(writes()).toEqual([]);
   },
 );
+/** Не подтверждает заявку при отсутствующем профиле любой из сторон. */
 it.each([1, 2])(
   "accept refuses missing profile %s without writing",
   async (id) => {
@@ -159,6 +168,7 @@ it.each([1, 2])(
     expect(writes()).toEqual([]);
   },
 );
+/** Не возобновляет истёкшую неподтверждённую заявку через request или accept. */
 it.each(["request", "accept"])(
   "%s cannot revive an expired pending match",
   async (action) => {
@@ -174,6 +184,7 @@ it.each(["request", "accept"])(
     expect(writes()).toEqual([]);
   },
 );
+/** Повтор запроса сохраняет исходный дедлайн согласия вместо его продления. */
 it("request retry retains the original deadline instead of extending consent", async () => {
   actorId = 1;
   expect(
@@ -183,6 +194,7 @@ it("request retry retains the original deadline instead of extending consent", a
     false,
   );
 });
+/** Проверяет порядок блокировок пользователей, профилей и заявки и использование актуального согласия в update. */
 it("accept uses locked current confirmations and serializes with account/profile changes", async () => {
   actorId = 2;
   expect(
@@ -202,6 +214,7 @@ it("accept uses locked current confirmations and serializes with account/profile
   expect(writes()[0].params.slice(0, 2)).toEqual([true, true]);
   expect(transport.statements.at(-1)?.sql).toBe("commit");
 });
+/** Не считает уже взаимно подтверждённую пару просроченной по старому сроку первичного согласия. */
 it("already mutual matches remain valid after their original confirmation deadline", async () => {
   actorId = 2;
   transport.deadline = "2000-01-01 00:00:00";
@@ -210,11 +223,13 @@ it("already mutual matches remain valid after their original confirmation deadli
     await client().penPals.respondMatch.mutate({ matchId: 91, accept: true }),
   ).toEqual({ ok: true });
 });
+/** Сохраняет проверку срока в предикате финального SQL подтверждения. */
 it("expiry remains a predicate of the final confirmation SQL", async () => {
   actorId = 2;
   await client().penPals.respondMatch.mutate({ matchId: 91, accept: true });
   expect(writes()[0].sql).toMatch(/`confirmDeadline` > CURRENT_TIMESTAMP/);
 });
+/** Не подтверждает успех при affectedRows=0 и проверяет rollback истёкшей к записи заявки. */
 it("expiry refusal at the write is not acknowledged as a successful confirmation", async () => {
   actorId = 2;
   transport.affectedRows = 0;
@@ -223,6 +238,7 @@ it("expiry refusal at the write is not acknowledged as a successful confirmation
   ).rejects.toMatchObject({ data: { code: "CONFLICT" } });
   expect(transport.statements.at(-1)?.sql).toBe("rollback");
 });
+/** Отклоняет неверный идентификатор цели до SQL. */
 it.each([0, -1, 1.5, 2147483648])(
   "request rejects invalid target %s before SQL",
   async (targetUserId) => {
@@ -232,6 +248,7 @@ it.each([0, -1, 1.5, 2147483648])(
     expect(transport.statements).toEqual([]);
   },
 );
+/** Блокировка аккаунта после аутентификации запрещает создание заявки при повторной проверке. */
 it("account block detected after authentication prevents match creation", async () => {
   actorId = 1;
   transport.blockedUser = 1;
@@ -241,6 +258,7 @@ it("account block detected after authentication prevents match creation", async 
   expect(writes()).toEqual([]);
 });
 
+/** Новая заявка фиксирует только согласие инициатора после блокировки обоих действующих профилей. */
 it("fresh request creates only the initiator's consent after locking both active profiles", async () => {
   actorId = 2;
   transport.exists = false;
@@ -252,12 +270,14 @@ it("fresh request creates only the initiator's consent after locking both active
   expect(writes()[0].params.slice(0, 5)).toEqual([1, 2, 2, false, true]);
   expect(transport.statements.at(-1)?.sql).toBe("commit");
 });
+/** Не разрешает заявку самому себе. */
 it("request cannot match the actor with themselves", async () => {
   await expect(
     client().penPals.requestMatch.mutate({ targetUserId: 3 }),
   ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } });
   expect(writes()).toEqual([]);
 });
+/** Отсутствие любого профиля приводит к отказу и rollback без записи. */
 it.each([1, 2])("request refuses missing profile %s", async (id) => {
   actorId = 1;
   transport.missingProfile = id;
@@ -267,6 +287,7 @@ it.each([1, 2])("request refuses missing profile %s", async (id) => {
   expect(writes()).toEqual([]);
   expect(transport.statements.at(-1)?.sql).toBe("rollback");
 });
+/** Не подтверждает заявку, если любой профиль стал неактивным. */
 it.each([1, 2])("accept refuses inactive profile %s", async (id) => {
   actorId = 2;
   transport.inactiveProfile = id;
@@ -275,6 +296,7 @@ it.each([1, 2])("accept refuses inactive profile %s", async (id) => {
   ).rejects.toMatchObject({ data: { code: "NOT_FOUND" } });
   expect(writes()).toEqual([]);
 });
+/** Неизвестная заявка возвращает объектный 404 без изменения данных. */
 it("unknown match is an object-level 404, not an infrastructure error", async () => {
   transport.exists = false;
   await expect(
@@ -284,6 +306,7 @@ it("unknown match is an object-level 404, not an infrastructure error", async ()
   });
   expect(writes()).toEqual([]);
 });
+/** Разрешает участнику отказ с повторной проверкой его участия непосредственно в DELETE. */
 it.each([1, 2])(
   "participant %s can reject, with ownership retained in DELETE",
   async (id) => {
@@ -301,6 +324,7 @@ it.each([1, 2])(
     expect(writes()[0].params).toEqual([91, id, id]);
   },
 );
+/** Отклоняет повреждённый matchId до SQL. */
 it.each([0, -1, 1.5])(
   "rejects malformed match ID %s before SQL",
   async (matchId) => {

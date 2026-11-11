@@ -21,6 +21,8 @@ import {
 } from "./migration-policy";
 
 async function main() {
+  // Проверяет пустой локальный tmpfs-контейнер и целевой URL, применяет доверенный fresh-профиль и сверяет историю; частично выполненный DDL не чинится повтором.
+
   const args = process.argv.slice(2);
   if (
     args.length !== 1 ||

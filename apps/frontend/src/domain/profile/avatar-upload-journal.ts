@@ -34,13 +34,16 @@ const receiptSchema = z.union([
     })
     .strict(),
 ]);
+/** Валидируем состояния missing/pending/ready; готовый аватар обязан сообщать, применён ли он и является ли текущим. */
 export function requireAvatarReceipt(value: unknown) {
   const result = receiptSchema.safeParse(value);
   if (!result.success) throw invalidResponse();
   return result.data;
 }
 
+/** Изолируем восстановление аватара аккаунтом, не сохраняя его в общем ключе устройства. */
 const key = (ownerId: number) => `darcy:user:${ownerId}:avatar-upload`;
+/** Доступ к журналу разрешён только текущему personal-data владельцу. */
 function storage(ownerId: number) {
   if (!isPersonalDataOwner(ownerId))
     throw new DOMException("Операция отменена", "AbortError");
@@ -49,6 +52,7 @@ function storage(ownerId: number) {
 
 export class CorruptAvatarIntentError extends Error {
   readonly idempotencyKey: string | null;
+  /** Сохраняем исходные повреждённые байты и, если возможно, прежний ключ для читающей проверки до удаления журнала. */
   constructor(
     readonly ownerId: number,
     readonly raw: string,
@@ -73,6 +77,7 @@ export class CorruptAvatarIntentError extends Error {
 
 // The cropped 400px image is small. Storage failures must stop the write,
 // unlike optional preferences: the exact bytes and key are needed after reload.
+/** Читаем строгий intent своего аккаунта; повреждение возвращаем отдельной ошибкой с исходным содержимым, а не как пустой слот. */
 export function readAvatarIntent(ownerId: number): AvatarUploadIntent | null {
   const raw = storage(ownerId).getItem(key(ownerId));
   if (raw === null) return null;
@@ -84,7 +89,7 @@ export function readAvatarIntent(ownerId: number): AvatarUploadIntent | null {
     throw new CorruptAvatarIntentError(ownerId, raw);
   }
 }
-/** Only an explicitly selected, still-corrupt snapshot may be discarded. */
+/** Удаляем только явно выбранную всё ещё повреждённую копию; исправленный или изменившийся журнал сохраняем. */
 export function discardCorruptAvatarIntent(corrupt: CorruptAvatarIntentError) {
   const store = storage(corrupt.ownerId);
   if (store.getItem(key(corrupt.ownerId)) !== corrupt.raw)
@@ -106,6 +111,7 @@ export function discardCorruptAvatarIntent(corrupt: CorruptAvatarIntentError) {
   }
   throw new Error("Черновик фото уже исправен. Сброс отменён.");
 }
+/** Сохраняем точные подготовленные байты и ключ, не заменяя отличающееся старое намерение. */
 export function saveAvatarIntent(intent: AvatarUploadIntent) {
   const valid = intentSchema.parse(intent);
   const store = storage(valid.ownerId);
@@ -114,6 +120,7 @@ export function saveAvatarIntent(intent: AvatarUploadIntent) {
     throw new Error("Сначала проверьте предыдущую загрузку фото.");
   store.setItem(key(valid.ownerId), JSON.stringify(valid));
 }
+/** Удаляем только совпадающий idempotencyKey, чтобы поздний результат не стёр загрузку другой вкладки. */
 export function removeAvatarIntent(intent: AvatarUploadIntent) {
   const store = storage(intent.ownerId);
   if (
@@ -121,5 +128,6 @@ export function removeAvatarIntent(intent: AvatarUploadIntent) {
   )
     store.removeItem(key(intent.ownerId));
 }
+/** Восстанавливаем локальный просмотр из сохранённых MIME и Base64 без сетевой загрузки. */
 export const avatarIntentUri = (intent: AvatarUploadIntent) =>
   `data:${intent.mimeType};base64,${intent.base64}`;

@@ -18,6 +18,7 @@ import { requestMemberEmailBinding } from "../apps/backend/src/identity/email-bi
 import { getMemberEmailBindingStatus } from "../apps/backend/src/identity/email-binding-status";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 
+/** Проверяет read-only receipt привязки email с актуальными admin-правами и безопасным delivery-статусом. */
 describe.skipIf(!testDatabaseUrl)(
   "administrator email binding status on owned MySQL",
   () => {
@@ -26,9 +27,11 @@ describe.skipIf(!testDatabaseUrl)(
     let database: MySql2Database;
     let requestKey: string;
     const actor = { userId: 91201, sessionVersion: 7 };
+    /** Читает контрольное SQL-состояние для сравнения неизменности status-запроса. */
     async function rows(query: string, params: unknown[] = []) {
       return (await conn.query<RowDataPacket[]>(query, params))[0];
     }
+    /** Удаляет outbox и intents своего инициатора, audit и три собственных аккаунта. */
     async function cleanup() {
       await conn.query(
         "DELETE o FROM member_email_binding_outbox o JOIN member_email_bindings b ON b.requestKey=o.requestKey WHERE b.actorUserId=91201",
@@ -41,6 +44,7 @@ describe.skipIf(!testDatabaseUrl)(
         "DELETE FROM users WHERE id IN (91201,91202,91203) AND openId LIKE 'binding-status-%'",
       );
     }
+    /** Создаёт отдельный пул одноразовой БД и synthetic ключ шифрования ссылок. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       pool = mysql.createPool({
@@ -54,6 +58,7 @@ describe.skipIf(!testDatabaseUrl)(
         Buffer.alloc(32, 29).toString("base64"),
       );
     });
+    /** Восстанавливает двух администраторов и получателя и создаёт pending-intent с новым UUID. */
     beforeEach(async () => {
       await cleanup();
       await conn.query(`INSERT INTO users (id,openId,phone,sessionVersion,role) VALUES
@@ -67,6 +72,7 @@ describe.skipIf(!testDatabaseUrl)(
         email: "binding-status@example.test",
       });
     });
+    /** Удаляет fixture и закрывает оба соединения с восстановлением окружения. */
     afterAll(async () => {
       if (conn) {
         await cleanup();
@@ -75,9 +81,11 @@ describe.skipIf(!testDatabaseUrl)(
       await pool?.end();
       vi.unstubAllEnvs();
     });
+    /** Читает receipt собственного requestKey от первого администратора. */
     const status = () =>
       getMemberEmailBindingStatus(database, actor, requestKey);
 
+    /** Status выдаёт только согласованный receipt без email/proof и не изменяет intent, outbox, users или audit. */
     it("projects only the recoverable receipt without exposing PII/proofs or mutating data", async () => {
       const before = await rows(
         "SELECT * FROM member_email_bindings WHERE requestKey=?",
@@ -119,6 +127,7 @@ describe.skipIf(!testDatabaseUrl)(
         await rows("SELECT * FROM admin_audit_log WHERE actorUserId=91201"),
       ).toEqual(audit);
     });
+    /** Текущий второй admin может проверить request, даже если не был инициатором. */
     it("permits a second current administrator, not only the original request actor", async () => {
       expect(
         await getMemberEmailBindingStatus(
@@ -128,6 +137,7 @@ describe.skipIf(!testDatabaseUrl)(
         ),
       ).toMatchObject({ requestKey, delivery: "queued" });
     });
+    /** Сохранённый sentAt остаётся sent после очистки секретов и не означает внешнюю inbox-доставку. */
     it("reports sent after terminal cleanup without claiming inbox delivery", async () => {
       await conn.query(
         "UPDATE member_email_bindings SET state='confirmed',completedAt='2026-10-10 11:00:00',email=NULL,proofHash=NULL WHERE requestKey=?",
@@ -143,6 +153,7 @@ describe.skipIf(!testDatabaseUrl)(
         completedAt: "2026-10-10T11:00:00.000Z",
       });
     });
+    /** Просроченный pending читается как delivery unavailable без неявной lifecycle-мутации. */
     it("does not mutate an expired pending request during inspection", async () => {
       await conn.query(
         "UPDATE member_email_bindings SET expiresAt='2020-01-01 00:00:00' WHERE requestKey=?",
@@ -167,6 +178,7 @@ describe.skipIf(!testDatabaseUrl)(
         email: "binding-status@example.test",
       });
     });
+    /** Нет cipher, discarded либо отсутствующий outbox означают unavailable вместо ложной очереди. */
     it.each([
       "UPDATE member_email_binding_outbox SET tokenCipher=NULL WHERE requestKey=?",
       "UPDATE member_email_binding_outbox SET discardedAt=CURRENT_TIMESTAMP WHERE requestKey=?",
@@ -175,6 +187,7 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query(query, [requestKey]);
       expect(await status()).toMatchObject({ delivery: "unavailable" });
     });
+    /** Активный lease и будущий retry остаются queued, чтение не меняет attempts и расписание. */
     it("keeps a leased retry queued without changing its attempt or schedule", async () => {
       await conn.query(
         "UPDATE member_email_binding_outbox SET leaseId=?,leaseUntil=DATE_ADD(NOW(), INTERVAL 5 MINUTE),attempts=3,nextAttemptAt=DATE_ADD(NOW(), INTERVAL 1 HOUR) WHERE requestKey=?",
@@ -192,6 +205,7 @@ describe.skipIf(!testDatabaseUrl)(
         ),
       ).toEqual(before);
     });
+    /** Текущие роль, блокировка, удаление, openId и epoch проверяются до поиска существующего и неизвестного ключа. */
     it.each([
       "role='user'",
       "role='moderator'",
@@ -215,15 +229,18 @@ describe.skipIf(!testDatabaseUrl)(
         }
       },
     );
+    /** Удалённый инициатор не получает receipt по старому actor ID. */
     it("rejects a removed actor", async () => {
       await conn.query("DELETE FROM users WHERE id=91201");
       await expect(status()).rejects.toMatchObject({ code: "forbidden" });
     });
+    /** Отсутствующий или удалённый retention запрос возвращает null. */
     it("returns no receipt for an absent or purged request", async () => {
       expect(
         await getMemberEmailBindingStatus(database, actor, randomUUID()),
       ).toBeNull();
     });
+    /** Terminal state не становится queued из-за случайно оставшегося cipher. */
     it.each(["confirmed", "expired", "cancelled"])(
       "never presents a terminal %s intent as queued even if a cipher remains",
       async (state) => {
@@ -238,6 +255,7 @@ describe.skipIf(!testDatabaseUrl)(
         });
       },
     );
+    /** Status ждёт actor-lock и после коммита отзыва epoch отказывает прежней сессии. */
     it("waits for concurrent actor revocation and refuses the previously valid session", async () => {
       const blocker = await pool.getConnection();
       let running: Promise<unknown> | undefined;
@@ -269,6 +287,7 @@ describe.skipIf(!testDatabaseUrl)(
         await running;
       }
     });
+    /** Пустые, oversized и невалидные UUID отклоняются как invalid_input. */
     it.each([
       "",
       "../users",
@@ -279,6 +298,7 @@ describe.skipIf(!testDatabaseUrl)(
         getMemberEmailBindingStatus(database, actor, key),
       ).rejects.toMatchObject({ code: "invalid_input" });
     });
+    /** Невалидная actor sessionVersion отклоняется до SQL. */
     it("rejects malformed actor versions before querying", async () => {
       await expect(
         getMemberEmailBindingStatus(
@@ -288,6 +308,7 @@ describe.skipIf(!testDatabaseUrl)(
         ),
       ).rejects.toMatchObject({ code: "invalid_input" });
     });
+    /** Сбой закрытого пула возвращает unavailable без SQL cause, bound UUID и деталей драйвера. */
     it("sanitizes database errors without bound values or SQL causes", async () => {
       const closed = mysql.createPool({ uri: testDatabaseUrl!, timezone: "Z" });
       await closed.end();

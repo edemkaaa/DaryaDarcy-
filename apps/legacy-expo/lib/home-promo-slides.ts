@@ -1,3 +1,4 @@
+// Архив Expo. Статический порядок промо-слайдов, локальные изображения и внутренние маршруты главной.
 import type { ImageSource } from "expo-image";
 
 /** Home promo carousel: Club → Quiz → Feed. PNG alpha on paper (see HomePromoCarousel). */

@@ -29,6 +29,8 @@ export type LegacyClubPlan = {
 };
 const tables: ContentTable[] = ["articles", "posts", "post_media"];
 function canonical(value: unknown): unknown {
+  // Приводит снимок к устойчивому представлению для сравнения содержимого независимо от порядка ключей.
+
   if (Array.isArray(value)) return value.map(canonical);
   if (value && typeof value === "object")
     return Object.fromEntries(
@@ -39,10 +41,12 @@ function canonical(value: unknown): unknown {
   return value;
 }
 const hash = (value: unknown) =>
-  createHash("sha256")
+  /* Считает отпечаток канонического состояния для защиты от изменений между планом и применением. */ createHash("sha256")
     .update(JSON.stringify(canonical(value)))
     .digest("hex");
 function identifier(name: string) {
+  // Разрешает только безопасные SQL-идентификаторы из ожидаемой схемы, не пользовательские фрагменты SQL.
+
   assert(/^[A-Za-z_][A-Za-z0-9_]*$/.test(name), "Invalid SQL identifier");
   return `\`${name}\``;
 }
@@ -51,11 +55,15 @@ async function rows(
   sql: string,
   params: unknown[] = [],
 ) {
+  // Получает строки выбранной проверенной таблицы для снимка и сверки после переноса.
+
   return (await connection.query<RowDataPacket[]>(sql, params))[0];
 }
 
 /** Verify container identity, tmpfs and exact loopback port before opening SQL. */
 async function connect(target: RehearsalTarget) {
+  // Допускает только помеченную одноразовую локальную MySQL без постоянных томов; рабочие подключения отклоняются.
+
   const url = new URL(target.uri);
   assert(
     process.env.NODE_ENV !== "production" &&
@@ -119,6 +127,8 @@ async function connect(target: RehearsalTarget) {
   }
 }
 async function snapshot(connection: Connection, lock = false) {
+  // Снимает ограниченный набор таблиц и отпечатки исходных строк; пользователей и платежи не переносит.
+
   const catalog = await rows(
     connection,
     "SELECT TABLE_NAME AS name,ENGINE AS engine,AUTO_INCREMENT AS nextId FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() ORDER BY TABLE_NAME",
@@ -160,6 +170,8 @@ function fingerprints(
   data: Record<string, DataRow[]>,
   exclude?: LegacyClubPlan["ids"],
 ): Fingerprint {
+  // Строит устойчивые отпечатки строк по ключам для обнаружения изменения прежнего контента.
+
   return Object.fromEntries(
     Object.entries(data).map(([table, all]) => {
       const omitted = new Set(
@@ -183,6 +195,8 @@ function mappedRows(
   source: LegacyClubContent,
   ids: LegacyClubPlan["ids"],
 ): Record<ContentTable, DataRow[]> {
+  // Переназначает только согласованные идентификаторы и внешние ключи согласно сохранённому плану.
+
   return {
     articles: source.articles.map((row) => ({
       ...row,
@@ -208,6 +222,8 @@ function mappedRows(
   };
 }
 function sameValue(expected: unknown, actual: unknown, key: string) {
+  // Сравнивает значения в канонической форме, учитывая особенности JSON/дат драйвера.
+
   if (
     ["photos", "tags", "richText", "sections"].includes(key) &&
     expected !== null &&
@@ -222,6 +238,8 @@ function verifyImported(
   data: Record<string, DataRow[]>,
   expected: Record<ContentTable, DataRow[]>,
 ) {
+  // Проверяет каждую импортированную строку и отсутствие повреждения исходных записей.
+
   for (const table of tables)
     for (const row of expected[table]) {
       const actual = data[table].find((item) => Number(item.id) === row.id);
@@ -238,6 +256,8 @@ export async function planLegacyClubMerge(
   connection: Connection,
   input: LegacyClubContent,
 ): Promise<LegacyClubPlan> {
+  // Резервирует новые идентификаторы выше существующих ссылок и фиксирует исходную схему и содержимое.
+
   const source = prepareLegacyClubContent(input);
   try {
     await connection.query(
@@ -305,6 +325,8 @@ export async function applyLegacyClubMerge(
   input: LegacyClubContent,
   plan: LegacyClubPlan,
 ) {
+  // Под блокировкой и транзакцией сверяет baseline, применяет всю партию либо подтверждает точный повтор и проверяет результат.
+
   const source = prepareLegacyClubContent(input);
   assert(
     plan.version === 1 && plan.sourceHash === hash(source),
@@ -425,6 +447,8 @@ export async function planLegacyClubRehearsal(
   target: RehearsalTarget,
   input: LegacyClubContent,
 ) {
+  // Создаёт план репетиции только для проверенной одноразовой БД.
+
   const connection = await connect(target);
   try {
     return await planLegacyClubMerge(connection, input);
@@ -437,6 +461,8 @@ export async function applyLegacyClubRehearsal(
   input: LegacyClubContent,
   plan: LegacyClubPlan,
 ) {
+  // Выполняет подготовленный план на той же одноразовой БД и сверяет неизменность старых строк.
+
   const connection = await connect(target);
   try {
     return await applyLegacyClubMerge(connection, input, plan);
@@ -450,6 +476,8 @@ export async function rollbackLegacyClubMerge(
   input: LegacyClubContent,
   plan: LegacyClubPlan,
 ): Promise<{ removed: number; originalRowsUnchanged: boolean }> {
+  // Удаляет только точные собственные строки переноса в обратном порядке связей; любой посторонний дрейф блокирует откат.
+
   const source = prepareLegacyClubContent(input);
   assert(
     plan.version === 1 && plan.sourceHash === hash(source),

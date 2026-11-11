@@ -1,3 +1,4 @@
+// Архив Expo. Редактирует локальную доску и экспортирует результат отдельно от отложенного автосохранения.
 import { useCallback, useRef } from "react";
 import {
   Alert,
@@ -25,11 +26,15 @@ type Props = {
 };
 
 export function MoodboardEditor({ board, onChange }: Props) {
+  // Редактирует локальную доску и экспортирует результат отдельно от отложенного автосохранения.
+
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savingRef = useRef(false);
 
   const persist = useCallback(
     (next: MoodboardDoc) => {
+      // Сразу обновляет preview, а полную запись AsyncStorage откладывает на 400 мс; cleanup таймера исторически отсутствует.
+
       onChange(next);
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(() => {
@@ -40,6 +45,8 @@ export function MoodboardEditor({ board, onChange }: Props) {
   );
 
   const updateItem = (id: string, patch: Partial<MoodboardItem>) => {
+    // Обновляет только элемент с совпавшим id, сохраняя порядок слоёв.
+
     persist({
       ...board,
       items: board.items.map((it) => (it.id === id ? { ...it, ...patch } : it)),
@@ -47,6 +54,8 @@ export function MoodboardEditor({ board, onChange }: Props) {
   };
 
   const handleSave = async () => {
+    // Защищает экспорт локальным ref от повторного запуска и явно сохраняет доску перед share.
+
     if (board.items.length === 0 || savingRef.current) return;
     savingRef.current = true;
     try {
@@ -101,6 +110,7 @@ export function MoodboardEditor({ board, onChange }: Props) {
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   wrap: { width: "100%", alignItems: "center", marginTop: 28 },
   titleInput: {

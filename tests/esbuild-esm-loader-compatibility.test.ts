@@ -1,3 +1,4 @@
+/** Проверяем прежний ESM loader с alias и dynamic import на изолированной конфигурационной фикстуре, без SQL. */
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
@@ -10,6 +11,7 @@ const require = createRequire(import.meta.url);
 
 // Native loader/config characterization only: no Drizzle command, SQL or
 // provider. Candidate hooks still come from the installed deprecated loader.
+/** Обычный и кандидатный loader должны вернуть один результат; кеш отключён и рабочее окружение миграций не используется. */
 it.each([false, true])(
   "loads aliased typed ESM config and dynamic imports (candidate: %s)",
   (candidate) => {

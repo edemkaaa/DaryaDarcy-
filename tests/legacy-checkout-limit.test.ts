@@ -1,3 +1,4 @@
+/** Реальный HTTP checkout проверяет квоты аккаунта и каждой операции batch с подменой только provider-сервиса. */
 import {
   afterAll,
   afterEach,
@@ -16,12 +17,14 @@ import type { User } from "../packages/database/src/schema";
 let app: Awaited<ReturnType<typeof createBackendApplication>>, base: string;
 let actor: User | null = null;
 let now = Date.now();
+/** Поднимаем локальный Nest без БД. */
 beforeAll(async () => {
   vi.stubEnv("DATABASE_URL", "");
   app = await createBackendApplication();
   await app.listen(0, "127.0.0.1");
   base = `http://127.0.0.1:${app.getHttpServer().address().port}/api/trpc/`;
 });
+/** Начинаем новое 15-минутное окно и задаём app-owned actor вместо SQL-аутентификации. */
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"] });
   now += 16 * 60_000;
@@ -31,14 +34,17 @@ beforeEach(() => {
     async () => actor,
   );
 });
+/** Снимаем spies и возвращаем настоящие часы. */
 afterEach(() => {
   vi.restoreAllMocks();
   vi.useRealTimers();
 });
+/** Закрываем приложение и возвращаем env. */
 afterAll(async () => {
   await app.close();
   vi.unstubAllEnvs();
 });
+/** Передаём одиночный checkout с синтетическим forwarded-IP через настоящий POST. */
 const send = (ip: string) =>
   fetch(base + "club.createCheckout", {
     method: "POST",
@@ -46,6 +52,7 @@ const send = (ip: string) =>
     body: superjson.stringify({ email: "fixture@example.test" }),
   });
 
+/** Пять попыток разрешены; смена IP не снимает account bucket, истечение окна допускает новую операцию. */
 it("limits an authenticated account across different IPs before provider calls, then allows recovery after the window", async () => {
   actor = {
     id: 70091,
@@ -66,6 +73,7 @@ it("limits an authenticated account across different IPs before provider calls, 
   expect((await send("198.51.100.11")).status).toBe(200);
 });
 
+/** В двух batch-envelope суммарно 31 процедура: первые 30 достигают сервиса, последняя получает 429. */
 it("counts every guest procedure in a batch rather than just the HTTP envelope", async () => {
   const provider = vi
     .spyOn(app.get(ClubCheckoutService), "createCheckout")

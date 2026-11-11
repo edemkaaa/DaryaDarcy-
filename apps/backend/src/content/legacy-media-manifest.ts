@@ -50,6 +50,7 @@ const manifest = z
     bytes: z.instanceof(Buffer),
   })
   .strict();
+/** Возвращает BAD_REQUEST для неподтверждённого manifest/bytes без исходных путей или содержимого в ответе. */
 const invalid = () =>
   new TRPCError({
     code: "BAD_REQUEST",
@@ -57,6 +58,7 @@ const invalid = () =>
   });
 
 /** Operator-owned bytes only. No URL/path reads, re-encoding, public upload or ACL changes. */
+/** Проверяет operator manifest и точные длину/hash/slot, копирует bytes до await, валидирует полное изображение либо MIME без перекодирования и строит immutable payloadHash. */
 export async function prepareLegacyMedia(raw: unknown) {
   const parsed = manifest.safeParse(raw);
   if (!parsed.success) throw invalid();
@@ -168,6 +170,7 @@ const streamManifest = manifest
   })
   .strict();
 
+/** Допускает только старое postMedia-видео до1 GiB из фиксированного bucket-prefix, проверяет bounded probe/ETag и связывает их с stream-intent. */
 async function prepareLegacyStream(raw: unknown) {
   const parsed = streamManifest.safeParse(raw);
   if (!parsed.success) throw invalid();
@@ -220,6 +223,7 @@ async function prepareLegacyStream(raw: unknown) {
 }
 
 /** Подготавливаем план до применения изменений; наличие плана само по себе ничего не переносит. */
+/** Выбирает явный s3Stream либо проверку предоставленных bytes; подготовка не читает URL/path, не меняет ACL и не переносит файл. */
 export async function prepareLegacyMigration(raw: unknown) {
   return z.object({ transport: z.literal("s3Stream") }).safeParse(raw).success
     ? prepareLegacyStream(raw)

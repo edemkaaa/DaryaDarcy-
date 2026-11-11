@@ -1,3 +1,4 @@
+/** От базовой мобильной приёмки оставляем только переключение фоновой музыки и отдельные артефакты. */
 import { defineConfig } from "@playwright/test";
 import acceptance from "./playwright.acceptance.config";
 

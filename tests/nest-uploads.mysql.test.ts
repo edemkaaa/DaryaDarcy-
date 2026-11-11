@@ -29,6 +29,7 @@ vi.mock("../apps/backend/src/storage", () => ({ storagePut: storage.put }));
 // HTTP/JWT/SQL/photo processing are real; only the external storage is doubled.
 // Media type policy now has its own direct regression suite; the retired public
 // endpoints must not succeed just to exercise that policy.
+/** Проверяет явное назначение publicCover и запрет retired legacy-загрузок при настоящих HTTP/JWT и обработке фото. */
 describe.skipIf(!testDatabaseUrl)(
   "public cover purpose and retired legacy uploads over HTTP/JWT/MySQL",
   () => {
@@ -38,6 +39,7 @@ describe.skipIf(!testDatabaseUrl)(
       token: string,
       photo: string;
     let ownsFixtures = false;
+    /** Создаёт admin tRPC-клиент настоящего локального API. */
     const client = () =>
       createTRPCProxyClient<AppRouter>({
         links: [
@@ -48,6 +50,7 @@ describe.skipIf(!testDatabaseUrl)(
           }),
         ],
       });
+    /** Отправляет произвольный JSON tRPC POST для проверки статусов без клиентского приведения типов. */
     const post = (procedure: string, input: unknown) =>
       fetch(`${base}/api/trpc/${procedure}`, {
         method: "POST",
@@ -57,12 +60,14 @@ describe.skipIf(!testDatabaseUrl)(
         },
         body: JSON.stringify({ json: input }),
       });
+    /** Читает media только собственного тестового поста. */
     const rows = async () => {
       const [records] = await conn.query<RowDataPacket[]>(
         "SELECT * FROM post_media WHERE postId=9010 ORDER BY id",
       );
       return records;
     };
+    /** Проверяет свободные fixture-ID, создаёт своего admin и draft и JPEG с EXIF orientation. */
     beforeAll(async () => {
       conn = await openContentTestDatabase();
       const [existing] = await conn.query<RowDataPacket[]>(
@@ -94,6 +99,7 @@ describe.skipIf(!testDatabaseUrl)(
           .toBuffer()
       ).toString("base64");
     });
+    /** Сбрасывает storage double и возвращает текущие права, epoch и profileRevision администратора. */
     beforeEach(async () => {
       storage.put.mockReset().mockResolvedValue({
         key: "synthetic-cover",
@@ -103,6 +109,7 @@ describe.skipIf(!testDatabaseUrl)(
         "UPDATE users SET role='admin',blockedAt=NULL,sessionVersion=0,accountDeletionRequestedAt=NULL,profileRevision=0,avatarUrl=NULL WHERE id=9010",
       );
     });
+    /** Закрывает API и только при successful claim удаляет собственный content и аккаунт. */
     afterAll(async () => {
       await app?.close();
       if (ownsFixtures) {
@@ -119,6 +126,7 @@ describe.skipIf(!testDatabaseUrl)(
         )?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** Явная publicCover нормализуется в повёрнутый WebP без EXIF и без создания post_media. */
     it("normalizes an explicitly public cover without creating post attachments", async () => {
       expect(
         await client().admin.uploadPhoto.mutate({
@@ -136,6 +144,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(metadata.exif).toBeUndefined();
       expect(await rows()).toEqual([]);
     });
+    /** Перед photo-storage заново проверяются epoch, блокировка и admin-роль после первоначальной авторизации. */
     it.each([
       ["sessionVersion=sessionVersion+1", 401],
       ["blockedAt=NOW()", 403],
@@ -163,6 +172,7 @@ describe.skipIf(!testDatabaseUrl)(
         pause.mockRestore();
       }
     });
+    /** Неоднозначная загрузка без purpose отклоняется до публичной S3-записи. */
     it("refuses missing purpose without a storage write", async () => {
       await expect(
         client().admin.uploadPhoto.mutate({
@@ -172,6 +182,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } });
       expect(storage.put).not.toHaveBeenCalled();
     });
+    /** Pending-удаление аккаунта запрещает последующую загрузку публичной обложки. */
     it("refuses a public cover after the administrator requests account deletion", async () => {
       expect(
         (await post("profileExtras.requestAccountDeletion", null)).status,
@@ -184,6 +195,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(response.status).toBe(403);
       expect(storage.put).not.toHaveBeenCalled();
     });
+    /** Изменение epoch, блока, удаления или profileRevision между проверками запрещает avatar-storage. */
     it.each([
       ["sessionVersion=sessionVersion+1", 401],
       ["blockedAt=NOW()", 403],
@@ -216,6 +228,7 @@ describe.skipIf(!testDatabaseUrl)(
         }
       },
     );
+    /** Legacy audio/video/document маршрут возвращает 404 без объекта и SQL-привязки. */
     it.each(["audio", "video", "document"] as const)(
       "retired %s media cannot create an object or association",
       async (type) => {
@@ -231,6 +244,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await rows()).toEqual([]);
       },
     );
+    /** Обычный участник не может обойти private-комментарии retired-публичной загрузкой. */
     it("unpaid member cannot use legacy public comment upload", async () => {
       await conn.query("UPDATE users SET role='user' WHERE id=9010");
       const response = await post("club.uploadCommentPhoto", {
@@ -240,6 +254,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(response.status).toBe(404);
       expect(storage.put).not.toHaveBeenCalled();
     });
+    /** User и moderator не получают admin-возможность создавать публичные обложки. */
     it.each(["user", "moderator"])(
       "%s cannot create public covers",
       async (role) => {
@@ -253,6 +268,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(storage.put).not.toHaveBeenCalled();
       },
     );
+    /** Storage-failure превращается в безопасный 500 без создания SQL-привязки. */
     it("cover storage failure remains a generic server error without an association", async () => {
       storage.put.mockRejectedValue(new Error("PRIVATE_STORAGE_FAILURE"));
       await expect(

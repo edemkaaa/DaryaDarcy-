@@ -5,6 +5,7 @@ export const BROWN_DARK = "#4A3728";
 export const BROWN_LIGHT = "#7A6B5E";
 export const GREEN_ACCENT = "#8B7355";
 export const ALL_TAGS = ALL_POST_TAGS;
+// В форме дата отображения, расписание и опубликованность раздельны; serializePostDraft приводит их к серверному контракту перед записью.
 export interface PostFormData {
   text: string;
   photos: string[];
@@ -17,6 +18,7 @@ export interface PostFormData {
   sortOrder: number;
   target: "feed" | "club" | "both";
 }
+// Это общий исходный снимок, включая Date, созданную при загрузке модуля; форма с явной календарной датой задаёт её отдельно.
 export const EMPTY_FORM: PostFormData = {
   text: "",
   photos: [],

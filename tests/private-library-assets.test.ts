@@ -1,7 +1,9 @@
+/** Закрытые ресурсы и обход image optimizer проверяются через frontend proxy без запуска Next. */
 import { expect, it } from "vitest";
 import { NextRequest } from "next/server";
 import { proxy } from "../apps/frontend/src/proxy";
 
+/** Обычный, URL-кодированный и optimizer-путь старой платной копии должны дать 404 с private/no-store. */
 it.each([
   "/assets/results/castlecore/outfits/outfit3.lossless.webp",
   "/assets/results/castlecore/outfits/outfit3.webp",
@@ -16,6 +18,7 @@ it.each([
     expect(response.headers.get("cache-control")).toBe("private, no-store");
   },
 );
+/** Бесплатный тест, служебные ресурсы и защищённый API не блокируются этим списком старых статических копий. */
 it.each([
   "/assets/quiz/houses/cottagecore.webp",
   "/assets/images/icon.png",

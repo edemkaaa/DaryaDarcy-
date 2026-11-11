@@ -1,10 +1,7 @@
 "use client";
 /** Списки названий и источников приводим к читабельному виду без изменения самих материалов. */
 const DESCRIPTION_SEPARATORS = [" — ", " – ", " - "] as const;
-/**
- * Keeps only the title/name from inspiration list entries that include
- * a trailing description after an em/en dash (e.g. films, books).
- */
+/** Срезаем описание по последнему согласованному разделителю тире, не оставляя пустую подпись вместо исходного текста. */
 export function stripInspirationDescription(entry: string): string {
   const trimmed = entry.trim();
   if (!trimmed) return trimmed;
@@ -19,6 +16,7 @@ export function stripInspirationDescription(entry: string): string {
   const title = trimmed.slice(0, lastIndex).trim();
   return title || trimmed;
 }
+/** Собираем краткие названия источников в одну строку после одинаковой очистки описаний. */
 export function formatInspirationList(items: string[]): string {
   return items.map(stripInspirationDescription).join(", ");
 }

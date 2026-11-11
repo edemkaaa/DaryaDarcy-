@@ -12,23 +12,24 @@ const transport = vi.hoisted(() => ({
   tagError: null as Error | null,
 }));
 vi.mock("mysql2/promise", () => ({
-  default: { createPool: () => ({ on() {}, query: transport.query }) },
+  default: { /** Подменяет mysql2 транспорт без замены настоящих репозиториев и Drizzle. */ createPool: () => ({ /** Не создаёт реальные listeners пула в тестовом SQL-double. */ on() {}, query: transport.query }) },
 }));
 
 // The SQL transport is doubled, not the repositories or Drizzle. These tests
 // inject unavailable reads; real MySQL coverage remains a separate gate.
 let database: typeof import("../apps/backend/src/db");
 const reads = [
-  { name: "feed list", run: () => database.getPosts() },
-  { name: "feed page", run: () => database.getPostsPaginated({ limit: 1 }) },
-  { name: "post detail", run: () => database.getPostById(41) },
-  { name: "saved posts", run: () => database.getPostsByIds([41]) },
-  { name: "admin posts", run: () => database.getAllPostsAdmin() },
+  { name: "feed list", /** Читает обычный список ленты через существующий фасад. */ run: () => database.getPosts() },
+  { name: "feed page", /** Читает страницу ленты, чтобы проверить обязательность загрузки её media. */ run: () => database.getPostsPaginated({ limit: 1 }) },
+  { name: "post detail", /** Читает детали конкретного поста вместе с media. */ run: () => database.getPostById(41) },
+  { name: "saved posts", /** Читает сохранённые ID через общий фасад постов. */ run: () => database.getPostsByIds([41]) },
+  { name: "admin posts", /** Читает администраторский список постов для проверки полноты media. */ run: () => database.getAllPostsAdmin() },
   {
     name: "club page",
+    /** Читает страницу Клуба через тот же repository pipeline. */
     run: () => database.getPostsForTarget("club", { limit: 1 }),
   },
-  { name: "post media", run: () => database.getPostMediaByPostId(41) },
+  { name: "post media", /** Читает непосредственно вложения поста для проверки исходной ошибки SQL. */ run: () => database.getPostMediaByPostId(41) },
 ];
 const media = {
   id: 51,
@@ -57,6 +58,7 @@ const emptyStatistics = {
   postsLastMonth: 0,
   topLikedPosts: [],
 };
+/** Извлекает media из разных форм ответов, сохраняя различие отсутствующего поля и честного пустого массива. */
 function postMedia(result: unknown): unknown {
   if (Array.isArray(result) && result.length === 0) return [];
   const first = Array.isArray(result)
@@ -74,6 +76,7 @@ function postMedia(result: unknown): unknown {
       ? first.media
       : undefined;
 }
+/** Создаёт независимый SQL-double с инъекцией отказов media/tags и настоящими формами строк Drizzle. */
 beforeEach(async () => {
   vi.resetModules();
   vi.stubEnv("DATABASE_URL", "mysql://fixture@127.0.0.1:33317/backend_test");
@@ -120,12 +123,15 @@ beforeEach(async () => {
     });
   database = await import("../apps/backend/src/db");
 });
+/** Возвращает окружение и spies после каждого независимого чтения. */
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.restoreAllMocks();
 });
 
+/** Проверяет, что обязательные media не исчезают из модели при инфраструктурном сбое. */
 describe("post media read integrity", () => {
+  /** Ошибка SQL media должна отклонить весь ответ вместо успешной неполной модели. */
   it.each(reads)(
     "rejects failed SQL in $name instead of a complete empty model",
     async ({ run }) => {
@@ -134,16 +140,19 @@ describe("post media read integrity", () => {
       await expect(run()).rejects.toThrow();
     },
   );
+  /** Недоступная БД не является подтверждённым пустым результатом чтения. */
   it.each(reads)("rejects unavailable database in $name", async ({ run }) => {
     vi.stubEnv("DATABASE_URL", "");
     await expect(run()).rejects.toThrow("Database not available");
   });
+  /** Пустые media остаются успешным ответом при доступном SQL. */
   it.each(reads)(
     "keeps genuinely empty media successful in $name",
     async ({ run }) => {
       expect(postMedia(await run())).toEqual([]);
     },
   );
+  /** После восстановления возвращает исходные идентификаторы и metadata без остаточного состояния ошибки. */
   it.each(reads)(
     "returns original IDs and metadata after $name recovers",
     async ({ run }) => {
@@ -169,6 +178,7 @@ describe("post media read integrity", () => {
       expect(postMedia(await run())).toEqual([media]);
     },
   );
+  /** Не запрашивает media для честно пустой страницы постов. */
   it("does not query media for an empty post page", async () => {
     transport.query.mockResolvedValue([[], []]);
     expect(await database.getPostsPaginated({ limit: 1 })).toEqual({
@@ -181,18 +191,22 @@ describe("post media read integrity", () => {
     expect(selects).toHaveLength(1);
     expect(selects[0]).not.toContain("post_media");
   });
+  /** Пустая подборка сохранённых ID не требует подключения к БД. */
   it("keeps an empty saved-ID selection successful without a database", async () => {
     vi.stubEnv("DATABASE_URL", "");
     expect(await database.getPostsByIds([])).toEqual([]);
   });
+  /** Отличает недоступность БД от пустого справочника тегов. */
   it("distinguishes an unavailable database from an empty tag catalog", async () => {
     vi.stubEnv("DATABASE_URL", "");
     await expect(database.getAllTags()).rejects.toMatchObject({ code: "SERVICE_UNAVAILABLE" });
   });
+  /** Сохраняет успешный пустой список при доступной пустой таблице тегов. */
   it("keeps a genuinely empty reference tag table successful", async () => {
     transport.query.mockResolvedValue([[], []]);
     expect(await database.getAllTags()).toEqual([]);
   });
+  /** Через HTTP проверяет безопасную ошибку чтения и последующее восстановление без раскрытия SQL и персональных данных. */
   it.each([
     { path: "admin.posts" },
     { path: "admin.getPostMedia", input: { postId: 41 } },
@@ -208,6 +222,7 @@ describe("post media read integrity", () => {
         createExpressMiddleware({
           router: appRouter,
           // Identity is a fixture; this is not a JWT or live authorization test.
+          /** Подставляет тестового администратора только для маршрутизации; это не проверка настоящего JWT или сессии. */
           createContext: ({ req, res }) =>
             ({
               req,
@@ -258,21 +273,26 @@ describe("post media read integrity", () => {
   );
 });
 
+/** Проверяет различие сбоя и честно пустых данных в администраторских списках и статистике. */
 describe("admin content read availability", () => {
+  /** Передаёт SQL-ошибку наружу, а после восстановления возвращает корректную пустую модель. */
   it.each([
     {
       name: "filtered posts",
+      /** Читает отфильтрованный список администратора через настоящий фасад. */
       run: () => database.getAdminPostsFiltered(),
       want: [],
     },
     {
       name: "scheduled posts",
+      /** Читает отложенные публикации через настоящий фасад. */
       run: () => database.getScheduledPosts(),
       want: [],
     },
-    { name: "articles", run: () => database.listAllArticles(), want: [] },
+    { name: "articles", /** Читает статьи через настоящий фасад. */ run: () => database.listAllArticles(), want: [] },
     {
       name: "statistics",
+      /** Читает статистику с настоящей обработкой пустых SQL-агрегатов. */
       run: () => database.getPostStatistics(),
       want: emptyStatistics,
     },

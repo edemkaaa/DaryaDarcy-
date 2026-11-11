@@ -1,3 +1,4 @@
+// Архив Expo. Открывает домашнюю вкладку через навигационный header.
 import { Tabs, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Pressable, Platform, StyleSheet, ImageBackground, View, useWindowDimensions } from "react-native";
@@ -9,6 +10,8 @@ import { useColors } from "@/hooks/use-colors";
 import { useClub } from "@/lib/club-context";
 
 function HomeHeaderButton() {
+  // Открывает домашнюю вкладку через навигационный header.
+
   const colors = useColors();
   const router = useRouter();
 
@@ -27,6 +30,8 @@ function HomeHeaderButton() {
 }
 
 function ProfileHeaderButton() {
+  // Открывает скрытый профиль по правой кнопке header.
+
   const colors = useColors();
   const router = useRouter();
 
@@ -45,6 +50,8 @@ function ProfileHeaderButton() {
 }
 
 export default function TabLayout() {
+  // Настраивает общий tab bar, safe-area и компактные подписи; у участницы Клуб скрывает общую панель.
+
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -60,7 +67,7 @@ export default function TabLayout() {
         tabBarInactiveTintColor: "#8B7355",
         headerShown: false,
         tabBarButton: HapticTab,
-        tabBarBackground: () => (
+        tabBarBackground: () => /* Растягивает бумажную текстуру под всем tab bar без перехвата маршрутизации. */ (
           <ImageBackground
             source={{ uri: "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/manus/d0db18ed8f2e-MasrlKbgCBdeyOhE.jpg" }}
             resizeMode="cover"
@@ -100,21 +107,21 @@ export default function TabLayout() {
         name="feed"
         options={{
           title: "Лента",
-          tabBarIcon: ({ color }) => <IconSymbol size={22} name="newspaper.fill" color={color} />,
+          tabBarIcon: ({ color }) => /* Рисует согласованный значок вкладки в цвете состояния навигации. */ <IconSymbol size={22} name="newspaper.fill" color={color} />,
         }}
       />
       <Tabs.Screen
         name="videos"
         options={{
           title: "Видео",
-          tabBarIcon: ({ color }) => <IconSymbol size={22} name="play.rectangle.fill" color={color} />,
+          tabBarIcon: ({ color }) => /* Рисует согласованный значок вкладки в цвете состояния навигации. */ <IconSymbol size={22} name="play.rectangle.fill" color={color} />,
         }}
       />
       <Tabs.Screen
         name="club"
         options={{
           title: "Клуб",
-          tabBarIcon: ({ color }) => <IconSymbol size={22} name="star.fill" color={color} />,
+          tabBarIcon: ({ color }) => /* Рисует согласованный значок вкладки в цвете состояния навигации. */ <IconSymbol size={22} name="star.fill" color={color} />,
           ...(isClubSubscribed ? { tabBarStyle: { display: "none" } } : {}),
         }}
       />
@@ -122,21 +129,21 @@ export default function TabLayout() {
         name="interactive"
         options={{
           title: "Интерактив",
-          tabBarIcon: ({ color }) => <IconSymbol size={22} name="sparkles" color={color} />,
+          tabBarIcon: ({ color }) => /* Рисует согласованный значок вкладки в цвете состояния навигации. */ <IconSymbol size={22} name="sparkles" color={color} />,
         }}
       />
       <Tabs.Screen
         name="library"
         options={{
           title: "Библиотека",
-          tabBarIcon: ({ color }) => <IconSymbol size={22} name="book.fill" color={color} />,
+          tabBarIcon: ({ color }) => /* Рисует согласованный значок вкладки в цвете состояния навигации. */ <IconSymbol size={22} name="book.fill" color={color} />,
         }}
       />
       <Tabs.Screen
         name="shop"
         options={{
           title: "Магазин",
-          tabBarIcon: ({ color }) => <IconSymbol size={22} name="bag.fill" color={color} />,
+          tabBarIcon: ({ color }) => /* Рисует согласованный значок вкладки в цвете состояния навигации. */ <IconSymbol size={22} name="bag.fill" color={color} />,
         }}
       />
       {/* Profile — hidden from tab bar, accessible via top-right icon */}

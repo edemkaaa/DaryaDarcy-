@@ -7,6 +7,8 @@ import assert from "node:assert/strict";
 
 const execute = promisify(execFile);
 export async function prepareBackupImage(root: string, directory: string) {
+  // Проверяет digest, ревизию и отсутствие секретов в готовом образе; проба использует только неизменённый backup-код и namespace принадлежащей тесту БД.
+
   const image = process.env.BACKUP_REHEARSAL_IMAGE!;
   const expectedId = process.env.BACKUP_REHEARSAL_IMAGE_ID;
   const revision = process.env.BACKUP_REHEARSAL_REVISION;
@@ -42,6 +44,7 @@ export async function prepareBackupImage(root: string, directory: string) {
     { cwd: root },
   );
   assert.equal(diff.stdout, "");
+  // В образ монтируется только собранный probe; предварительный git diff запрещает подменить проверяемый backup/ENV другим исходником.
   const probe = join(directory, "image-backup-probe.mjs");
   await build({
     entryPoints: [join(root, "tests/helpers/backup-image-probe.ts")],
@@ -64,6 +67,7 @@ export async function prepareBackupImage(root: string, directory: string) {
     assert.equal(url.pathname, "/backend_test");
     url.port = "3306"; // Join exactly the guarded fixture's network namespace.
     const owner = `daryadarcy-backup-image-${randomUUID()}`;
+    // Контейнер создаётся отдельно от запуска, чтобы известный ID оставался доступен точечной уборке при ошибке старта.
     const created = await execute("docker", [
       "create",
       "--pull=never",
@@ -133,6 +137,7 @@ export async function prepareBackupImage(root: string, directory: string) {
           join(directory, "backups"),
         ]);
       console.log(output.trim());
+    // Перед удалением повторно сверяются ID, owner, image и namespace: чужой контейнер не считается тестовым по одному имени.
     } finally {
       const inspected = await execute("docker", [
         "inspect",

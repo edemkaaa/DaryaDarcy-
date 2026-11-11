@@ -1,3 +1,4 @@
+// Архив Expo. Формат локальной доски: координаты в рабочей области, порядок слоёв и метка прозрачной наклейки.
 export type MoodboardSeason = "summer" | "autumn" | "winter" | "spring";
 
 export type MoodboardItem = {

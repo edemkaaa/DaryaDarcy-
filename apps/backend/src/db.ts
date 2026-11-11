@@ -99,21 +99,25 @@ import {
 } from "../../../packages/database/src/schema";
 import { normalizeEmail } from "./_core/password";
 
+/** Выводим детерминированную email-идентичность из нормализованного адреса для согласования регистрации и оплаты без перезаписи чужой записи. */
 export function emailToOpenId(email: string): string {
   const hash = createHash("sha256").update(normalizeEmail(email)).digest("hex").slice(0, 40);
   return `e_${hash}`;
 }
 
+/** Выводим отдельную детерминированную SMS-идентичность из уже нормализованного номера. */
 export function phoneToOpenId(phone: string): string {
   const hash = createHash("sha256").update(phone).digest("hex").slice(0, 40);
   return `p_${hash}`;
 }
 
+/** Признаём административные права только по роли admin, а не по email или внешнему идентификатору. */
 export function isOwnerAccount(user: { email?: string | null; openId?: string | null; role?: string | null }): boolean {
   return user.role === "admin";
 }
 
 /** Activity is not identity creation. Busy owners are skipped, never resurrected. */
+/** Не чаще пяти минут обновляем активность уже аутентифицированного actor условным SKIP LOCKED чтением; занятость, удаление или новый epoch не создают аккаунт заново. */
 export async function recordAuthenticatedActivity(
   user: Pick<User, "id" | "openId" | "sessionVersion"> & Partial<Pick<User, "lastSignedIn">>,
   signedInAt: Date,
@@ -138,6 +142,7 @@ export async function recordAuthenticatedActivity(
   });
 }
 
+/** Совместимо сохраняем явно переданные поля, но при конфликте любого уникального ключа обновляем только заблокированную запрошенную openId-идентичность; чужие credentials и роль не присваиваются. */
 export async function upsertUser(user: InsertUser): Promise<void> {
   if (!user.openId) {
     throw new Error("User openId is required for upsert");
@@ -158,6 +163,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     const textFields = ["name", "email", "phone", "loginMethod"] as const;
     type TextField = (typeof textFields)[number];
 
+    /** Отличаем пропущенное поле от явного null и готовим одинаковое значение для вставки и разрешённого обновления. */
     const assignNullable = (field: TextField) => {
       const value = user[field];
       if (value === undefined) return;
@@ -210,6 +216,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   }
 }
 
+/** Читаем текущую запись сессии по openId; отсутствие инфраструктуры бросает ошибку вместо подтверждения удалённой идентичности. */
 export async function getUserByOpenId(openId: string) {
   const db = await getDb();
   if (!db) {
@@ -222,6 +229,7 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+/** Ищем нормализованный email одним запросом; совместимый путь без настроенной БД возвращает undefined, поэтому вызывающий код отдельно проверяет готовность записи. */
 export async function getUserByEmail(email: string): Promise<User | undefined> {
   const db = await getDb();
   if (!db) {
@@ -238,6 +246,7 @@ export async function getUserByEmail(email: string): Promise<User | undefined> {
   return result.length > 0 ? result[0] : undefined;
 }
 
+/** Ищем точный нормализованный номер старого SMS-контракта; отсутствие подключения сохраняет совместимый undefined. */
 export async function getUserByPhone(phone: string): Promise<User | undefined> {
   const db = await getDb();
   if (!db) {
@@ -249,6 +258,7 @@ export async function getUserByPhone(phone: string): Promise<User | undefined> {
   return result.length > 0 ? result[0] : undefined;
 }
 
+/** Возвращаем существующий аккаунт либо вставляем email-идентичность без перезаписи победителя гонки, затем проверяем принадлежность нормализованного адреса. */
 export async function ensureUserByEmail(email: string): Promise<User> {
   const normalized = normalizeEmail(email);
   const existing = await getUserByEmail(normalized);
@@ -270,6 +280,7 @@ export async function ensureUserByEmail(email: string): Promise<User> {
 }
 
 // ── Profile update ──
+/** Внутренний совместимый путь меняет лишь переданные поля профиля и увеличивает ревизию имени/пола; HTTP-редактор использует отдельный saveProfile с precondition. */
 export async function updateUserProfile(userId: number, data: { name?: string; gender?: "female" | "male"; avatarUrl?: string }) {
   const db = await getDb();
   if (!db) {
@@ -325,6 +336,7 @@ export async function getAllTags(): Promise<Tag[]> {
 }
 
 // Toggle like on a post
+/** Делегируем переключение лайка в общую транзакцию с текущим actor и проверкой клубного доступа; сетевой повтор остаётся новым toggle. */
 export async function toggleLike(actor: ContentWriteActor, postId: number, hasClubAccess: ReactionAccessCheck): Promise<boolean> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -333,6 +345,7 @@ export async function toggleLike(actor: ContentWriteActor, postId: number, hasCl
 }
 
 // Toggle save/bookmark on a post
+/** Делегируем переключение сохранения в ту же сериализованную политику доступа, не обещая идемпотентность повторного toggle. */
 export async function toggleSave(actor: ContentWriteActor, postId: number, hasClubAccess: ReactionAccessCheck): Promise<boolean> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -380,15 +393,18 @@ export async function listAdminPayments(limit = 50) {
   return readAdminPayments(db, limit);
 }
 
+/** Передаём ограниченный запрос участников и контекст администратора в keyset-репозиторий вместо чтения всего списка. */
 export async function listAdminMembersPage(actorId: number, input: z.infer<typeof membersPageInput>) {
   return membersPage(await getDb(), actorId, input);
 }
+/** Передаём страницу платежей с контекстом администратора в самостоятельную ограниченную выборку. */
 export async function listAdminPaymentsPage(actorId: number, input: z.infer<typeof paymentsPageInput>) {
   return paymentsPage(await getDb(), actorId, input);
 }
 
 // ── Admin: Post CRUD ──
 
+/** Внутренний низкоуровневый helper вставляет только строку поста; редактор с медиа и восстановлением обязан использовать канонический транзакционный путь. */
 export async function createPost(data: InsertPost): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -408,6 +424,7 @@ export async function createPostWithVideos(
   return persistNewPost(db, data, videos, attachments);
 }
 
+/** Внутренний совместимый helper обновляет строку без протокола редакторской ревизии; сохранение редактора проходит через savePostEdit. */
 export async function updatePost(id: number, data: Partial<InsertPost>): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -427,6 +444,7 @@ export async function createPostOnce(
   return persistPostOnce(db, data, videos, attachments, intent);
 }
 
+/** Передаём частичную правку, видео, приватные квитанции и ожидаемую ревизию общему атомарному редактору поста. */
 export async function savePostEdit(
   id: number,
   data: Partial<InsertPost>,
@@ -473,6 +491,7 @@ export async function getAdminPostCalendar(input: z.infer<typeof adminPostCalend
 }
 
 // Get post by Instagram ID (for dedup during import)
+/** Внутренне ищем запись импорта по исходному Instagram ID, включая скрытые посты для дедупликации. */
 export async function getPostByInstagramId(instagramId: string): Promise<Post | undefined> {
   const db = await getDb();
   if (!db) return undefined;
@@ -486,6 +505,7 @@ export async function getPostByInstagramId(instagramId: string): Promise<Post | 
   return result[0];
 }
 
+/** Ищем внутреннюю запись по точному source без фильтра публичности, например для связи анонса статьи. */
 export async function getPostBySource(source: string): Promise<Post | undefined> {
   const db = await getDb();
   if (!db) return undefined;
@@ -497,6 +517,7 @@ export async function getPostBySource(source: string): Promise<Post | undefined>
 
 export type PushWriteActor = Pick<User, "id" | "openId" | "sessionVersion">;
 
+/** Блокируем текущую идентичность и epoch пользователя перед записью push-данных; отзыв сессии и блокировка сериализуются с изменением токена. */
 async function lockPushActor(tx: Pick<MySql2Database, "select">, actor: PushWriteActor) {
   // Та же блокировка, что при отзыве сессии и блокировке аккаунта.
   // Проверка и запись push-данных выполняются в одной транзакции.
@@ -520,6 +541,7 @@ async function lockPushActor(tx: Pick<MySql2Database, "select">, actor: PushWrit
   return current;
 }
 
+/** Сохраняем устройство: гостевой upsert не перепривязывает существующий аккаунт, авторизованный выполняется под текущей блокировкой; флаг, формат и квоты проверяются выше. */
 export async function registerPushToken(
   token: string,
   actor?: PushWriteActor,
@@ -530,6 +552,7 @@ export async function registerPushToken(
 
   // Гость может зарегистрировать устройство. У существующего токена
   // привязку к аккаунту меняет только запрос с действующей сессией.
+  /** Применяем единый upsert токена к переданному writer, сохраняя текущую привязку при отсутствии actor. */
   const save = (writer: Pick<MySql2Database, "insert">) =>
     writer.insert(pushTokens).values({
       token,
@@ -554,6 +577,7 @@ export async function registerPushToken(
   });
 }
 
+/** Возвращаем включённые токены существующих незаблокированных владельцев; это техническая выборка без маркетингового согласия. */
 export async function getAllEnabledPushTokens(): Promise<string[]> {
   const db = await getDb();
   if (!db) return [];
@@ -567,6 +591,7 @@ export async function getAllEnabledPushTokens(): Promise<string[]> {
   return results.map((r) => r.token);
 }
 
+/** Выбираем включённые устройства только указанного незаблокированного пользователя перед дополнительной проверкой аудитории отправки. */
 export async function getPushTokensForUser(userId: number): Promise<string[]> {
   const db = await getDb();
   if (!db) return [];
@@ -578,6 +603,7 @@ export async function getPushTokensForUser(userId: number): Promise<string[]> {
   return results.map((r) => r.token);
 }
 
+/** Совместимо собираем токены оплаченных участниц и администраторов, исключая заблокированных владельцев; маркетинговое согласие проверяется отдельным путём. */
 export async function getClubMemberPushTokens(): Promise<string[]> {
   const db = await getDb();
   if (!db) return [];
@@ -605,6 +631,7 @@ export async function getClubMemberPushTokens(): Promise<string[]> {
   return results.map((r) => r.token);
 }
 
+/** Под текущей блокировкой владельца добавляем событие согласия или отзыва с категорией, версией и ограниченным текстом. */
 export async function logPushConsentEvent(
   actor: PushWriteActor,
   consentType: PushConsentType,
@@ -629,6 +656,7 @@ export async function logPushConsentEvent(
   });
 }
 
+/** Читаем последнее маркетинговое событие по дате и ID; наличие токена или более старого granted не заменяет текущего согласия. */
 export async function hasMarketingPushConsent(userId: number): Promise<boolean> {
   const db = await getDb();
   if (!db) return false;
@@ -643,6 +671,7 @@ export async function hasMarketingPushConsent(userId: number): Promise<boolean> 
   return rows[0]?.status === "granted";
 }
 
+/** Сворачиваем историю событий в последнее решение каждого пользователя и возвращаем только актуальные granted. */
 async function getUserIdsWithMarketingConsent(): Promise<Set<number>> {
   const db = await getDb();
   if (!db) return new Set();
@@ -668,6 +697,7 @@ async function getUserIdsWithMarketingConsent(): Promise<Set<number>> {
   );
 }
 
+/** Собираем техническое множество оплаченных пользователей и администраторов для последующего ограничения аудитории push. */
 async function getClubMemberUserIds(): Promise<Set<number>> {
   const db = await getDb();
   if (!db) return new Set();
@@ -687,6 +717,7 @@ async function getClubMemberUserIds(): Promise<Set<number>> {
   return memberIds;
 }
 
+/** Пересекаем текущее маркетинговое согласие с клубной аудиторией при target=club и выбираем лишь включённые устройства незаблокированных владельцев. */
 export async function getMarketingPushTokens(
   target: "feed" | "club" | "both" = "feed",
 ): Promise<string[]> {
@@ -714,6 +745,7 @@ export async function getMarketingPushTokens(
   return results.map((r) => r.token);
 }
 
+/** Выбираем служебную аудиторию без маркетингового согласия, но с текущим владельцем устройства, блокировкой и клубным ограничением; личное сообщение дополнительно сужается userId. */
 export async function getServicePushTokens(
   target: "feed" | "club" | "both" = "feed",
   userId?: number,
@@ -742,6 +774,7 @@ export async function getServicePushTokens(
   return results.map((r) => r.token);
 }
 
+/** Под актуальной админской сессией удаляем устройства выбранного пользователя; право проверяется внутри той же транзакции. */
 export async function deletePushTokensForUser(
   userId: number,
   actor: PushWriteActor,
@@ -770,30 +803,36 @@ export async function getLatestPublishedPost(
 // ── Videos ──
 
 // Get all published videos ordered by sortOrder
+/** Сохраняем прежний фасад чтения только опубликованных открытых YouTube-видео через профильный репозиторий. */
 export async function getVideos(): Promise<PublicVideo[]> {
   return readVideos(await getDb());
 }
 
 // Public details must obey the same publication gate as the list.
+/** Читаем прежнюю публичную YouTube-карточку по тем же ограничениям, что и список. */
 export async function getVideoById(id: number): Promise<PublicVideo | undefined> {
   return readVideoById(await getDb(), id);
 }
 
 // Get video by YouTube ID (for dedup)
+/** Внутренне находим сырой YouTube-источник, включая неопубликованный, для дедупликации и повторной проверки playback. */
 export async function getVideoByYoutubeId(youtubeId: string): Promise<Video | undefined> {
   return readVideoByYoutubeId(await getDb(), youtubeId);
 }
 
+/** Проверяем только наличие актуального публичного YouTube-источника без гидратации полного каталога. */
 export async function isPublicYoutubeVideo(youtubeId: string) {
   return readPublicYoutubeVideo(await getDb(), youtubeId);
 }
 
 // Create a video entry
+/** Передаём подготовленную внутренним вызывающим кодом запись в репозиторий видео. */
 export async function createVideo(data: InsertVideo): Promise<number> {
   return persistVideoCreation(await getDb(), data);
 }
 
 // Bulk import videos (skip duplicates)
+/** Передаём импорт вместе с текущим actor в транзакционный репозиторий, который проверяет права и пропускает дубли. */
 export async function bulkImportVideos(
   items: InsertVideo[],
   actor: ContentWriteActor,
@@ -802,11 +841,13 @@ export async function bulkImportVideos(
 }
 
 // Update video
+/** Обновляем видео через общий репозиторий с увеличением редакторской ревизии. */
 export async function updateVideo(id: number, data: Partial<InsertVideo>): Promise<void> {
   return persistVideoUpdate(await getDb(), id, data);
 }
 
 // Delete video
+/** Удаляем строку каталога через репозиторий без удаления внешнего ролика или файлов. */
 export async function deleteVideo(id: number): Promise<void> {
   return persistVideoDeletion(await getDb(), id);
 }
@@ -845,6 +886,7 @@ export async function getScheduledPosts(): Promise<Post[]> {
 
 // ── Post Media CRUD ──
 
+/** Внутренний низкоуровневый helper вставляет строку медиа; канонический редактор отдельно согласует её с постом и приватными квитанциями. */
 export async function createPostMedia(data: InsertPostMedia): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -859,6 +901,7 @@ export async function getPostMediaByPostId(postId: number): Promise<PostMedia[]>
   return readPostMediaByPostId(db, postId);
 }
 
+/** Находим родительский пост и удаляем вложение через его каноническую транзакцию, сохраняя проверку итогового тела и явный внутренний допуск legacy-видео. */
 export async function deletePostMediaById(id: number, actor?: ContentWriteActor): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -870,6 +913,7 @@ export async function deletePostMediaById(id: number, actor?: ContentWriteActor)
   });
 }
 
+/** Внутренний helper удаляет строки медиа поста без эффектов в хранилище; вызывающий код отвечает за целостность материала. */
 export async function deletePostMediaByPostId(postId: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -877,6 +921,7 @@ export async function deletePostMediaByPostId(postId: number): Promise<void> {
   await db.delete(postMedia).where(eq(postMedia.postId, postId));
 }
 
+/** Совместимая замена видео использует блокировку поста и транзакцию общего редактора вместо отдельной незащищённой записи. */
 export async function replacePostVideos(postId: number, urls: string[]): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -885,6 +930,7 @@ export async function replacePostVideos(postId: number, urls: string[]): Promise
   await persistPostEdit(db, postId, {}, urls);
 }
 
+/** Под текущей админской сессией очищаем технические имена камерных файлов массовой SQL-правкой без изменения самих вложений. */
 export async function clearRawCameraFilenames(actor: ContentWriteActor): Promise<void> {
   const db = await getDb();
   if (!db) return;
@@ -899,6 +945,7 @@ export async function clearRawCameraFilenames(actor: ContentWriteActor): Promise
 }
 
 // Update post status (for confirming scheduled posts)
+/** Передаём ручную публикацию в атомарный переход видимости; данные уведомления получает только вызов, реально изменивший статус. */
 export async function confirmScheduledPost(postId: number, actor?: ContentWriteActor): Promise<PostPublication | undefined> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -906,6 +953,7 @@ export async function confirmScheduledPost(postId: number, actor?: ContentWriteA
   return confirmPostPublication(db, postId, actor);
 }
 
+/** Делегируем расписание общему SKIP LOCKED writer и возвращаем лишь его закоммиченную пачку. */
 export async function publishDueScheduledPosts(): Promise<{ id: number; text: string; target: "feed" | "club" | "both" }[]> {
   return persistDueScheduledPosts(await getDb());
 }
@@ -944,11 +992,13 @@ export type PenPalMatchCard = {
   sharedInterests: string[];
 };
 
+/** Нормализуем старый JSON интересов в массив строк, сохраняя порядок и повторы совместимого формата. */
 function asInterestList(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.filter((item): item is string => typeof item === "string");
 }
 
+/** Внутренне читаем старую анкету по userId; публичный интерфейс использует actor-проверяемый V2-контракт. */
 export async function getPenPalProfile(userId: number): Promise<PenPalProfile | undefined> {
   const db = await getDb();
   if (!db) return undefined;
@@ -956,6 +1006,7 @@ export async function getPenPalProfile(userId: number): Promise<PenPalProfile | 
   return rows[0];
 }
 
+/** Сохраняем старую анкету city/interests/address без V2-согласия; этот совместимый helper не заменяет новый проверяемый HTTP-путь. */
 export async function upsertPenPalProfile(userId: number, data: { city: string; interests: string[]; address: string }): Promise<PenPalProfile> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -980,12 +1031,14 @@ export async function upsertPenPalProfile(userId: number, data: { city: string; 
   return saved;
 }
 
+/** Совместимо выключаем старую анкету; полный отзыв связей и согласия реализован отдельно в pen-pals/profiles. */
 export async function deactivatePenPalProfile(userId: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(penPalProfiles).set({ active: false }).where(eq(penPalProfiles.userId, userId));
 }
 
+/** Прежний внутренний подбор ранжирует все активные анкеты в памяти и возвращает адрес; публичный V2-путь использует ограниченные карточки и взаимное подтверждение. */
 export async function findPenPalMatches(userId: number, limit = 2): Promise<PenPalMatchCard[]> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -1042,6 +1095,7 @@ export async function findPenPalMatches(userId: number, limit = 2): Promise<PenP
   });
 }
 
+/** Внутренне читаем полную SQL-модель пользователя по ID; публичные ответы обязаны применять отдельную явную проекцию. */
 export async function getUserById(id: number): Promise<User | undefined> {
   const db = await getDb();
   if (!db) return undefined;
@@ -1051,12 +1105,14 @@ export async function getUserById(id: number): Promise<User | undefined> {
 
 const CLUB_ACCESS_MS = 31 * 24 * 60 * 60 * 1000;
 
+/** Передаём подтверждённое платежное доказательство в единую транзакцию settlement, не начисляя доступ в фасаде. */
 export async function settleClubPayment(input: Parameters<typeof settleClubOrder>[1]) {
   const database = await getDb();
   if (!database) throw new Error("Database not available");
   return settleClubOrder(database, input);
 }
 
+/** Сохраняем pending-заказ; контакт профиля меняется только при явном текущем actor той же почты и пользователя, гостевой email не даёт права обновлять аккаунт. */
 export async function createClubPayment(data: {
   userId: number;
   orderId: string;
@@ -1094,6 +1150,7 @@ export async function createClubPayment(data: {
   });
 }
 
+/** Читаем конкретную запись платежа по orderId без вызова провайдера и начисления доступа. */
 export async function getClubPaymentByOrderId(orderId: string): Promise<ClubPayment | undefined> {
   const db = await getDb();
   if (!db) return undefined;
@@ -1101,12 +1158,14 @@ export async function getClubPaymentByOrderId(orderId: string): Promise<ClubPaym
   return rows[0];
 }
 
+/** Читаем активный оплаченный срок через переданный SQL-reader либо общий пул, сохраняя транзакционный контекст проверок доступа. */
 export async function getActiveClubSubscription(userId: number, reader?: Pick<MySql2Database, "select">): Promise<ClubPayment | undefined> {
   const db = reader ?? await getDb();
   if (!db) return undefined;
   return readActiveClubSubscription(db, userId);
 }
 
+/** Возвращаем максимальный срок среди оплаченных записей, не считая pending-заказ основанием членства. */
 export async function getLatestClubExpiry(userId: number): Promise<Date | null> {
   const db = await getDb();
   if (!db) return null;
@@ -1119,6 +1178,7 @@ export async function getLatestClubExpiry(userId: number): Promise<Date | null> 
   return rows[0]?.expiresAt ? new Date(rows[0].expiresAt) : null;
 }
 
+/** Вычисляем совместимый следующий срок от максимума текущего времени и активного окончания; конкурентное начисление выполняет отдельный settlement под блокировкой. */
 export async function nextClubExpiry(userId: number, periodMs = CLUB_ACCESS_MS): Promise<Date> {
   const active = await getActiveClubSubscription(userId);
   const currentEnd = active?.expiresAt ? new Date(active.expiresAt).getTime() : 0;
@@ -1126,12 +1186,14 @@ export async function nextClubExpiry(userId: number, periodMs = CLUB_ACCESS_MS):
   return new Date(baseMs + periodMs);
 }
 
+/** Делегируем ручное продление общей транзакции с проверкой исполнителя и стабильной записью доступа. */
 export async function grantClubDays(userId: number, days = 31, actor?: User): Promise<Date> {
   const database = await getDb();
   if (!database) throw new Error("Database not available");
   return grantClubAccess(database, userId, days, actor);
 }
 
+/** Низкоуровневый совместимый helper помечает заказ paid с готовым expiresAt; проверка доказательства и атомарный outbox принадлежат каноническому settlement. */
 export async function markClubPaymentPaid(data: {
   userId: number;
   orderId: string;
@@ -1168,6 +1230,7 @@ export async function markClubPaymentPaid(data: {
   });
 }
 
+/** Через доменную отмену запрашиваем подтверждение провайдера; совместимый cancelled отражает только confirmed, а не наличие локальной заявки. */
 export async function cancelClubSubscription(userId: number): Promise<{ cancelled: boolean; expiresAt: Date | null }> {
   // Compatibility facade: local flags are never an alternative to provider confirmation.
   const database=await getDb();if(!database) throw new Error("Database not available");
@@ -1177,6 +1240,7 @@ export async function cancelClubSubscription(userId: number): Promise<{ cancelle
   return {cancelled:result.confirmed,expiresAt:result.expiresAt};
 }
 
+/** Сохраняем pending-покупку; для привязанного пользователя требуем того же actor и текущую сессию под разделяемой блокировкой, гостевой заказ остаётся без владельца. */
 export async function createShopPurchase(
   data: {
     userId?: number | null;
@@ -1226,6 +1290,7 @@ export async function createShopPurchase(
   });
 }
 
+/** Внутренне читаем состояние цифрового заказа по уникальному orderId без внешних действий. */
 export async function getShopPurchaseByOrderId(orderId: string): Promise<ShopPurchase | undefined> {
   const db = await getDb();
   if (!db) return undefined;
@@ -1233,6 +1298,7 @@ export async function getShopPurchaseByOrderId(orderId: string): Promise<ShopPur
   return rows[0];
 }
 
+/** Совместимо создаём или обновляем paid-запись цифрового товара; этот путь не является атомарным клубным settlement и доступен только за выключенной capability магазина. */
 export async function markShopPurchasePaid(data: {
   userId?: number | null;
   productId: string;
@@ -1265,6 +1331,7 @@ export async function markShopPurchasePaid(data: {
   });
 }
 
+/** Проверяем наличие paid-покупки указанного товара у конкретного пользователя; pending-запись владения не даёт. */
 export async function userOwnsShopProduct(userId: number, productId: string): Promise<boolean> {
   const db = await getDb();
   if (!db) return false;
@@ -1312,6 +1379,7 @@ export async function createArticle(data: CreateArticleInput, intent?: ArticleCr
   return persistArticleCreation(db, data, intent, actor);
 }
 
+/** Восстанавливаем результат прежнего ключа создания статьи через профильный журнал без повторной записи материала. */
 export async function getArticleCreationStatus(actorUserId: number, key: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

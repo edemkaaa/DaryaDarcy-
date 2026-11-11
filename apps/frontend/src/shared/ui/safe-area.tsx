@@ -4,6 +4,7 @@ import { mergeStyles } from "@/shared/ui/css";
 import { type BoxProps } from "@/shared/ui/elements";
 export type Edge = "top" | "right" | "bottom" | "left";
 export { useBrowserSafeAreaInsets as useSafeAreaInsets } from "@/shared/browser/viewport";
+/** Добавляем безопасные отступы только на выбранных сторонах; верх и низ допускают значения контейнера Mini App. */
 export function SafeArea({
   edges = ["top", "left", "right"],
   style,

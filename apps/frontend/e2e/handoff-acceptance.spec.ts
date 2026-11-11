@@ -9,6 +9,7 @@ test.skip(
   "Requires both integrations in the build; synthetic API/provider replies only.",
 );
 
+/** Сквозной synthetic handoff объединяет NORMAL-recovery и клубный playback; смена аккаунта должна убрать прежние payment/media state без повторного checkout. */
 test("one recovered purchase opens club playback; account changes remove payment and media state", async ({
   page,
 }) => {
@@ -38,6 +39,7 @@ test("one recovered purchase opens club playback; account changes remove payment
     legacyWrites: 0,
     providerRequests: 0,
   };
+  /** Сериализуем Date тем же superjson-форматом, который использует реальный tRPC transport. */
   const result = (value: unknown) => ({
     result: { data: superjson.serialize(value) },
   });
@@ -52,6 +54,7 @@ test("one recovered purchase opens club playback; account changes remove payment
   await page.route("**/api/auth/me", (route) =>
     route.fulfill({ json: { user: state.user } }),
   );
+  /** Связываем синтетический order-ledger, доступ и playback; NORMAL не должен обращаться к TEST-proof или legacy video endpoints. */
   await page.route("**/api/trpc/**", async (route) => {
     const url = new URL(route.request().url());
     const names = url.pathname.split("/api/trpc/")[1].split(",");

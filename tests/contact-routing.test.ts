@@ -1,3 +1,4 @@
+/** Проверяем согласованный публичный адрес поддержки и default-получателя заказа без отправки писем. */
 import { expect, it } from "vitest";
 import { PUBLIC_CONTACT_EMAIL } from "../apps/frontend/src/shared/config/contact";
 import { managerOrderEmail } from "../apps/frontend/src/domain/product/manager-order-email";
@@ -7,6 +8,7 @@ import type { TrpcContext } from "../apps/backend/src/_core/context";
 
 const recipient = "daryadarcy19@gmail.com";
 
+/** Сверяем только адрес mailto; это не подтверждение доставки заказа. */
 it("routes public support and default shop orders to the approved owner", () => {
   expect(new URL(`mailto:${PUBLIC_CONTACT_EMAIL}`).pathname).toBe(recipient);
   const href = managerOrderEmail(
@@ -21,6 +23,7 @@ it("routes public support and default shop orders to the approved owner", () => 
   expect(new URL(href).pathname).toBe(recipient);
 });
 
+/** Заблокированный actor получает контакт в отказе, но защищённая операция не выполняется. */
 it("gives a blocked account the same support address without allowing the operation", async () => {
   const api = router({ probe: protectedProcedure.query(() => "must not run") });
   const caller = api.createCaller({

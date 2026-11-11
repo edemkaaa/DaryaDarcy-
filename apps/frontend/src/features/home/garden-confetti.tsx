@@ -12,6 +12,7 @@ import Animated, {
 } from "@/shared/browser/motion";
 import { PETALS } from "./garden-confetti.content";
 import type { Petal } from "./garden-confetti.content";
+/** Детерминированный лепесток анимирует только progress; задержка и траектория приходят из статических данных. */
 function ConfettiPetal({ petal, active }: { petal: Petal; active: boolean }) {
   const progress = useSharedValue(0);
   useEffect(() => {
@@ -50,6 +51,7 @@ function ConfettiPetal({ petal, active }: { petal: Petal; active: boolean }) {
     />
   );
 }
+/** Монтируем только декоративный слой активного эффекта; pointer-events не мешают содержимому страницы. */
 export function GardenConfetti({ active }: { active: boolean }) {
   if (!active) return null;
   return (

@@ -21,6 +21,7 @@ type FieldProps = Omit<
 export const Field = forwardRef<
   HTMLInputElement | HTMLTextAreaElement,
   FieldProps
+/** Сохраняем единый контракт значения и выделения для input/textarea; Enter отправляет только однострочное поле вне композиции IME. */
 >(function Field(
   {
     multiline,
@@ -43,8 +44,10 @@ export const Field = forwardRef<
       "--placeholder-color": placeholderColor,
       ...style,
     } as CSSProperties,
+    /** Публикуем значение строки, не отдавая родителю DOM-событие с ограниченным временем жизни. */
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       onValueChange?.(e.currentTarget.value),
+    /** Сохраняем диапазон выделения для форматирования; отсутствие selection трактуем как начало текста. */
     onSelect: (
       e: React.SyntheticEvent<HTMLInputElement | HTMLTextAreaElement>,
     ) =>
@@ -52,10 +55,12 @@ export const Field = forwardRef<
         start: e.currentTarget.selectionStart || 0,
         end: e.currentTarget.selectionEnd || 0,
       }),
+    /** Автовыделение выполняем до внешнего onFocus, чтобы экран видел итоговое выделение. */
     onFocus: (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       if (selectOnFocus) e.currentTarget.select();
       onFocus?.(e);
     },
+    /** Сначала даём экрану обработать клавишу; отправка не перехватывает отменённый Enter и завершение ввода IME. */
     onKeyDown: (
       e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>,
     ) => {

@@ -3,6 +3,7 @@
 import classes from "./post-menu-button.module.scss";
 import { Action } from "@/shared/ui/elements";
 import { MaterialIcons } from "./icons";
+/** Отображаем отдельное действие карточки; Action с обработчиком остановит распространение клика на переход поста. */
 export function PostMenuButton({ onClick }: { onClick: () => void }) {
   return (
     <Action

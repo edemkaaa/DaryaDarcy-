@@ -33,6 +33,7 @@ const requestSchema = z
     requestKey: emailBindingRequestKeySchema,
   })
   .strict();
+/** Хешируем каноническое намерение и одноразовое доказательство с отдельным назначением протокола. */
 const digest = (value: string) =>
   createHash("sha256").update(value).digest("hex");
 
@@ -47,6 +48,7 @@ export type EmailBindingReceipt = {
   state: "pending" | "confirmed" | "expired" | "cancelled";
 };
 export class EmailBindingError extends Error {
+  /** Передаём стабильный доменный код ошибки без персональных данных или исходной SQL-причины. */
   constructor(
     readonly code:
       | "invalid_input"
@@ -59,6 +61,7 @@ export class EmailBindingError extends Error {
   }
 }
 
+/** Распознаём ER_DUP_ENTRY в ограниченной цепочке cause, отделяя ожидаемую гонку уникальности от инфраструктурного отказа. */
 export function isEmailBindingDuplicate(error: unknown): boolean {
   let current = error;
   for (
@@ -73,6 +76,7 @@ export function isEmailBindingDuplicate(error: unknown): boolean {
   return false;
 }
 
+/** Создаём случайный одноразовый токен и AES-GCM шифротекст с AAD requestKey/payloadHash, сохраняя для поиска лишь хеш доказательства. */
 function encryptedProof(requestKey: string, payloadHash: string) {
   const raw = process.env.AUTH_LINK_ENCRYPTION_KEY || "";
   const key = Buffer.from(raw, "base64");
@@ -94,6 +98,7 @@ function encryptedProof(requestKey: string, payloadHash: string) {
 }
 
 /** Внутренняя операция до принятия границ подтверждения, доставки и очистки. */
+/** Проверяем администратора и телефонный аккаунт без почты под стабильными блокировками пользователей, захватываем неизменяемое намерение и атомарно создаём proof/outbox/аудит; повтор не восстанавливает очищенные секреты. */
 export async function requestMemberEmailBinding(
   database: MySql2Database,
   actor: EmailBindingActor,

@@ -2,6 +2,7 @@
 @use "../styles/layers";
 
 @layer elements {
+  /* Safe center и локальный scroll оставляют доступ к началу и действиям при недостаточной высоте экрана. */
   .container {
     flex: 1;
     background-color: var(--paper);
@@ -33,6 +34,7 @@
     margin-bottom: 32px;
   }
 
+  /* Рамка обрезает предпросмотр выбранной области; размеры и смещение фото задаются компонентом. */
   .circleFrame {
     overflow: hidden;
     border-width: 2px;
@@ -47,6 +49,7 @@
     justify-content: center;
   }
 
+  /* Отмена и применение находятся отдельной строкой после crop-области. */
   .buttonRow {
     flex-direction: row;
     gap: 16px;
@@ -82,6 +85,7 @@
     font-size: 16px;
     color: var(--paper);
   }
+  /* Pressed, disabled и масштаб кнопки меняют визуальную обратную связь, но не параметры качества результата. */
   .opacityState {
     opacity: 0.7;
     --action-base-opacity: 0.7;

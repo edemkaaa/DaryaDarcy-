@@ -1,3 +1,4 @@
+/** Проверяем реальную lint-зависимость picomatch/micromatch на малых фикстурах и ограниченном дочернем процессе. */
 import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { expect, it } from "vitest";
@@ -10,6 +11,7 @@ const picomatch = globRequire("picomatch") as (
 
 // Narrow characterization of the glob dependency used by frontend lint tools.
 // These synthetic patterns are never passed to application access control.
+/** Служебное имя прототипа не должно становиться допустимым POSIX-классом шаблона. */
 it.each(["constructor", "toString", "valueOf"])(
   "does not match a filename using inherited POSIX class %s",
   (name) => {
@@ -17,6 +19,7 @@ it.each(["constructor", "toString", "valueOf"])(
   },
 );
 
+/** Потенциальное долгое сопоставление ограничено процессом, heap и timeout; зависание не считается корректным false. */
 it("rejects overlapping repeated alternatives within a bounded child", () => {
   let output: string;
   try {
@@ -38,6 +41,7 @@ it("rejects overlapping repeated alternatives within a bounded child", () => {
   expect(JSON.parse(output)).toEqual({ matched: false });
 });
 
+/** Проверяем обычные расширения, исключение test-файлов и поддерживаемые классы шаблона. */
 it("preserves ordinary lint file selection and exclusions", () => {
   const micromatch = globRequire("micromatch") as (
     filenames: string[],

@@ -10,6 +10,7 @@ export const editBaseSchema = z.object({
 });
 export type ContentEditBase = z.infer<typeof editBaseSchema>;
 
+/** Проверяем revision на границе ответа; undefined сохраняет совместимость со старым выпуском, пустая строка недопустима. */
 export function readEditRevision(value: unknown): string | undefined {
   if (!value || typeof value !== "object") throw invalidResponse();
   const revision = (value as { editRevision?: unknown }).editRevision;
@@ -18,6 +19,7 @@ export function readEditRevision(value: unknown): string | undefined {
   return revision;
 }
 
+/** Сохраняем исходную ревизию и независимую копию редактируемых полей для последующей сверки. */
 export function captureEditBase(
   detail: unknown,
   snapshot: Record<string, unknown>,
@@ -28,6 +30,7 @@ export function captureEditBase(
   };
 }
 
+/** Добавляем optimistic revision только когда она действительно известна, не выдумывая базовую версию. */
 export function withExpectedRevision<T extends object>(
   input: T,
   revision?: string,
@@ -51,6 +54,7 @@ const postKeys = [
   "publishedAt",
 ];
 const articleKeys = ["title", "coverUrl", "access", "published", "sections"];
+/** Выбираем только поля, которые detail реально подтверждает; для поста разворачиваем media в видео и остальные вложения. */
 export function editableSnapshot(
   value: unknown,
   kind: "post" | "article",
@@ -72,6 +76,7 @@ export function editableSnapshot(
   return snapshot;
 }
 
+/** Стабилизируем порядок ключей и ISO-даты перед сравнением; массивы сохраняют семантический порядок. */
 function normalize(value: unknown, key?: string): unknown {
   if (
     value instanceof Date ||
@@ -90,7 +95,7 @@ function normalize(value: unknown, key?: string): unknown {
   return value;
 }
 
-/** Only acknowledge bytes/fields that a detail response actually proves. */
+/** Признаём commit только по доказуемым полям detail; privateAssetIds/posters не подтверждаются старым контрактом автоматически. */
 export function matchesEditableWrite(
   detail: unknown,
   wanted: Record<string, unknown>,

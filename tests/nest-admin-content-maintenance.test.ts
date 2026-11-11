@@ -48,25 +48,26 @@ describe("native admin content maintenance service boundary", () => {
     lastSignedIn: new Date("2026-01-01T00:00:00Z"),
   };
   const client = () =>
-    createTRPCProxyClient<AppRouter>({
+    /* Создаёт локальный tRPC-клиент, проверяющий настоящий Nest-роутер. */ createTRPCProxyClient<AppRouter>({
       links: [httpLink({ url: base + "/api/trpc", transformer: superjson })],
     });
+  // Одна таблица описывает аргументы и результат административных операций, чтобы проверять DI, доменные отказы и доступ независимо от SQL.
   const operations = [
     {
       method: "deletePost" as const,
-      invoke: () => client().admin.deletePost.mutate({ id: 9301 }),
+      invoke: () => /* Вызывает удаление выбранного тестового поста. */ client().admin.deletePost.mutate({ id: 9301 }),
       want: undefined,
       argument: 9301,
     },
     {
       method: "deleteMedia" as const,
-      invoke: () => client().admin.deleteMedia.mutate({ id: 9302 }),
+      invoke: () => /* Вызывает удаление выбранного тестового вложения. */ client().admin.deleteMedia.mutate({ id: 9302 }),
       want: undefined,
       argument: 9302,
     },
     {
       method: "cleanupMediaNames" as const,
-      invoke: () => client().admin.cleanupMediaNames.mutate(),
+      invoke: () => /* Вызывает чистку имён медиа с автором из сессии. */ client().admin.cleanupMediaNames.mutate(),
       want: { ok: true },
       argument: expect.objectContaining({
         id: administrator.id,
@@ -96,11 +97,15 @@ describe("native admin content maintenance service boundary", () => {
   it.each(operations)(
     "$method returns the injected content provider's outcome, not a direct SQL outcome",
     async ({ method, invoke, want, argument }) => {
+      // Сценарий: Ответ определяется внедрённым провайдером контента, а не обходным SQL-вызовом.
+
       let received: unknown;
       const original = Object.getOwnPropertyDescriptor(writes, method);
       Object.defineProperty(writes, method, {
         configurable: true,
         value: async (input: unknown) => {
+          // Фиксирует аргумент выбранной операции и возвращает заранее заданный результат провайдера.
+
           received = input;
           return want;
         },
@@ -118,10 +123,14 @@ describe("native admin content maintenance service boundary", () => {
   it.each(operations)(
     "$method preserves a domain refusal from the injected provider",
     async ({ method, invoke }) => {
+      // Сценарий: Доменный отказ провайдера сохраняется через HTTP.
+
       const original = Object.getOwnPropertyDescriptor(writes, method);
       Object.defineProperty(writes, method, {
         configurable: true,
         value: async () => {
+          // Отказывает выбранной операции доменным CONFLICT вместо обращения к SQL.
+
           throw new TRPCError({
             code: "CONFLICT",
             message: "synthetic content refusal",
@@ -171,6 +180,8 @@ describe("native admin content maintenance service boundary", () => {
     },
   ] as const)("$access", ({ role, blocked, code, status }) => {
     it.each(operations)("cannot execute $method", async ({ invoke }) => {
+      // Сценарий: Неподходящая роль или блокировка запрещает административные операции.
+
       actor = role
         ? { ...administrator, role, blockedAt: blocked ? new Date() : null }
         : null;
@@ -183,6 +194,8 @@ describe("native admin content maintenance service boundary", () => {
   it.each(["deletePost", "deleteMedia"] as const)(
     "%s rejects a malformed ID before doing content work",
     async (method) => {
+      // Сценарий: Неверный тип ID отклоняется до работы с контентом.
+
       await expect(
         client().admin[method].mutate({ id: "9301" as unknown as number }),
       ).rejects.toMatchObject({
@@ -194,6 +207,8 @@ describe("native admin content maintenance service boundary", () => {
   it.each(["deletePost", "deleteMedia"] as const)(
     "%s with the real provider does not announce success without a database",
     async (method) => {
+      // Сценарий: Реальное удаление без БД не объявляется успешным.
+
       await expect(
         client().admin[method].mutate({ id: 9301 }),
       ).rejects.toMatchObject({
@@ -203,14 +218,18 @@ describe("native admin content maintenance service boundary", () => {
     },
   );
   it("keeps cleanup's existing no-database no-op response", async () => {
+    // Сценарий: Исторический no-op очистки имён без БД сохраняет свой контракт.
+
     expect(await client().admin.cleanupMediaNames.mutate()).toEqual({
       ok: true,
     });
   });
   describe("bounded payment history", () => {
-    const page = (input: unknown = { limit: 20 }) => fetch(base + "/api/trpc/admin.paymentsPage?input=" + encodeURIComponent(JSON.stringify({ json: input })));
+    const page = (input: unknown = { limit: 20 }) => /* Читает страницу платежей через настоящий HTTP с сериализованным входом. */ fetch(base + "/api/trpc/admin.paymentsPage?input=" + encodeURIComponent(JSON.stringify({ json: input })));
     it.each(["guest", "user", "moderator", "blocked-admin"] as const)(
       "refuses %s before accessing payment history", async (access) => {
+        // Сценарий: История платежей закрыта до обращения к хранилищу для неподходящих ролей.
+
         actor = access === "guest" ? null : { ...administrator,
           role: access === "blocked-admin" ? "admin" : access,
           blockedAt: access === "blocked-admin" ? new Date() : null };
@@ -219,10 +238,14 @@ describe("native admin content maintenance service boundary", () => {
     );
     it.each([{ limit: 0 }, { limit: 51 }, { limit: 1.5 }, { cursor: "" }, { direction: "backward" }])(
       "rejects invalid pagination input %j", async (input) => {
+        // Сценарий: Недопустимые размеры страницы и курсоры отклоняются схемой.
+
         expect((await page(input)).status).toBe(400);
       },
     );
     it("returns service unavailability rather than a false empty page", async () => {
+      // Сценарий: Недоступная БД даёт 503, а не правдоподобную пустую страницу платежей.
+
       const response = await page();
       expect(response.status).toBe(503);
       expect(await response.json()).toMatchObject({ error: { json: { data: { code: "SERVICE_UNAVAILABLE" } } } });
@@ -237,10 +260,14 @@ describe("native admin content maintenance service boundary", () => {
     { name: "articles", read: db.listAllArticles },
   ] as const)("admin $name read availability", ({ name, read }) => {
     it("refuses a missing database rather than returning an empty list", async () => {
+      // Сценарий: Прямые административные чтения без БД не возвращают пустые списки.
+
       await expect(read()).rejects.toThrow("Database not available");
     });
 
     it("returns a safe native HTTP error rather than known empty data", async () => {
+      // Сценарий: HTTP-чтения без БД возвращают безопасную серверную ошибку.
+
       await expect(client().admin[name].query()).rejects.toMatchObject({
         message: "Внутренняя ошибка сервера",
         data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
@@ -250,6 +277,8 @@ describe("native admin content maintenance service boundary", () => {
     it.each(["guest", "user", "moderator", "blocked-admin"] as const)(
       "preserves the access refusal for %s before the database error",
       async (access) => {
+        // Сценарий: Запрет доступа имеет приоритет над ошибкой недоступной БД.
+
         actor =
           access === "guest"
             ? null
@@ -270,11 +299,15 @@ describe("native admin content maintenance service boundary", () => {
 
   describe("video metadata import", () => {
     it("returns the injected import service outcome with validated input", async () => {
+      // Сценарий: Импорт проходит через внедрённый сервис с очищенным входом и actor сессии.
+
       let received: unknown;
       let receivedActor: unknown;
       Object.defineProperty(writes, "importVideos", {
         configurable: true,
         value: async (input: unknown, actor: unknown) => {
+          // Фиксирует импортированные данные и actor вместо записи видео в БД.
+
           received = input;
           receivedActor = actor;
           return { imported: 7 };
@@ -301,9 +334,13 @@ describe("native admin content maintenance service boundary", () => {
     });
 
     it("keeps a domain refusal from the injected import service", async () => {
+      // Сценарий: Отказ внедрённого импортера сохраняет доменный CONFLICT.
+
       Object.defineProperty(writes, "importVideos", {
         configurable: true,
         value: async () => {
+          // Возвращает доменный отказ импорта для проверки передачи ошибки через HTTP.
+
           throw new TRPCError({
             code: "CONFLICT",
             message: "synthetic import refusal",
@@ -325,6 +362,8 @@ describe("native admin content maintenance service boundary", () => {
     });
 
     it("keeps ordered metadata, null defaults and the persistence count", async () => {
+      // Сценарий: Импорт сохраняет порядок, значения null по умолчанию и фактический счётчик хранилища.
+
       let persisted: Parameters<typeof db.bulkImportVideos>[0] | undefined;
       vi.spyOn(db, "bulkImportVideos").mockImplementation(async (items) => {
         persisted = items;
@@ -372,6 +411,8 @@ describe("native admin content maintenance service boundary", () => {
     });
 
     it("preserves the empty import response without inventing records", async () => {
+      // Сценарий: Пустой импорт не создаёт придуманные записи.
+
       let persisted: Parameters<typeof db.bulkImportVideos>[0] | undefined;
       vi.spyOn(db, "bulkImportVideos").mockImplementation(async (items) => {
         persisted = items;
@@ -392,6 +433,8 @@ describe("native admin content maintenance service boundary", () => {
       },
       { videos: "not-an-array" },
     ])("rejects malformed metadata before persistence (%#)", async (input) => {
+      // Сценарий: Повреждённые метаданные не достигают слоя записи.
+
       vi.spyOn(db, "bulkImportVideos").mockImplementation(async () => {
         throw new TRPCError({
           code: "CONFLICT",
@@ -412,6 +455,8 @@ describe("native admin content maintenance service boundary", () => {
     it.each(["guest", "user", "moderator", "blocked-admin"] as const)(
       "denies video import for %s",
       async (access) => {
+        // Сценарий: Импорт видео доступен только действующему администратору.
+
         actor =
           access === "guest"
             ? null
@@ -434,6 +479,8 @@ describe("native admin content maintenance service boundary", () => {
     );
 
     it("does not expose a failed persistence operation as a successful import", async () => {
+      // Сценарий: Сбой сохранения не превращается в успешный импорт.
+
       vi.spyOn(db, "bulkImportVideos").mockRejectedValue(
         new Error("synthetic private SQL error"),
       );

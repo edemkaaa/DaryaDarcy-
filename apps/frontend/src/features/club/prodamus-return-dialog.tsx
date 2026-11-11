@@ -25,6 +25,7 @@ type View = {
 const checking =
   "Проверяем оплату на сервере… Доступ откроется только после подтверждения.";
 
+/** Забираем ограниченную ссылку результата из fragment и проверяем её сервером; подтверждённый платёж не создаёт сессию. */
 export function ProdamusReturnDialog() {
   const active = useScreenActive();
   const { user, loading, error, refreshError } = useAuth();
@@ -41,6 +42,7 @@ export function ProdamusReturnDialog() {
     // Resolving the initial identity remounts this subtree. Leave the reference
     // in the fragment until that identity is settled so the new scope can read it.
     if (!active || !ready) return;
+    /** Читаем токен только на /club после установления аккаунта и сразу убираем его из адресной строки. */
     const capture = () => {
       if (window.location.pathname !== "/club") return;
       const reference = readProdamusReturnToken(window.location.hash);
@@ -68,9 +70,11 @@ export function ProdamusReturnDialog() {
     if (!active || !token || !ready) return;
     const controller = new AbortController();
     const signal = controller.signal;
+    /** Публикуем наблюдение только пока текущая проверка не отменена. */
     const publish = (message: string, busy = false, retryAt = 0) => {
       if (!signal.aborted) setView({ token, actor, message, busy, retryAt });
     };
+    /** При скрытии оставляем понятную паузу и прерываем кампанию, не отменяя заказ у провайдера. */
     const visibility = () => {
       setHidden(document.hidden);
       if (document.hidden) {
@@ -138,6 +142,7 @@ export function ProdamusReturnDialog() {
 
   const current = view?.token === token && view.actor === actor ? view : null;
   const retryAt = current?.retryAt ?? 0;
+  /** Таймер меняет доступность кнопки после паузы, сохраняя явный запуск следующей проверки. */
   useEffect(() => {
     if (!retryAt) return;
     const timer = setTimeout(

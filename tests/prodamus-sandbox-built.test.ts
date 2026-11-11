@@ -5,6 +5,7 @@ import { mkdtempSync, rmSync, rmdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
+/** Собирает production ESM с настоящим диагностическим HTTP-handler и проверяет, что валидная demo-подпись не достигает LIVE-settlement и не выдаёт сессию. */
 it("compiled ESM keeps diagnostic signature verification separate from live settlement", async () => {
   const directory = mkdtempSync(resolve(".tmp-prodamus-sandbox-"));
   const entry = join(directory, "application.mjs");
@@ -79,6 +80,7 @@ it("compiled ESM keeps diagnostic signature verification separate from live sett
   }
 });
 
+/** Собирает отдельный diagnostic composition, проверяет dependency graph и runtime-запрет SQL/SMTP/S3/tRPC effect-зависимостей без LIVE-маршрута. */
 it("compiled standalone composition verifies callbacks without loading application effect ports", async () => {
   const directory = mkdtempSync(resolve(".tmp-prodamus-isolated-"));
   const entry = join(directory, "application.mjs");

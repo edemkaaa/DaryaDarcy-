@@ -17,14 +17,17 @@ type Stored = {
   revision: number;
   record: Omit<PrivateCommentRecord, "files"> & { files: StoredFile[] };
 };
+/** Недоступный или повреждённый локальный журнал запрещает новую неподтверждаемую отправку. */
 const failed = () =>
   new Error(
     "Не удалось проверить сохранённый комментарий на этом устройстве. Новая отправка не начата.",
   );
+/** Конфликт ревизии требует перечитать обсуждение, а не заменить сохранённый intent. */
 const changed = () =>
   new Error(
     "Сохранённая отправка комментария изменилась. Откройте обсуждение заново.",
   );
+/** Файлы сохраняем явными ArrayBuffer с метаданными: это переносимый для WebKit формат IndexedDB. */
 async function pack(record: PrivateCommentRecord): Promise<Stored["record"]> {
   requirePrivateCommentRecord(record);
   const snapshot = { ...record };
@@ -41,6 +44,7 @@ async function pack(record: PrivateCommentRecord): Promise<Stored["record"]> {
   );
   return { ...snapshot, files };
 }
+/** Проверяем обёртку и бинарные метаданные, восстанавливаем File и повторно валидируем весь intent. */
 function unpack(value: unknown): {
   stored: Stored;
   record: PrivateCommentRecord;
@@ -79,6 +83,7 @@ function unpack(value: unknown): {
     record: requirePrivateCommentRecord({ ...stored.record, files }),
   };
 }
+/** Сравниваем неизменные поля и байты каждого файла, а не только имя или размер. */
 function sameIntent(a: Stored["record"], b: Stored["record"]): boolean {
   if (
     JSON.stringify([a.ownerId, a.postId, a.parentId, a.text, a.key]) !==
@@ -111,6 +116,7 @@ function sameIntent(a: Stored["record"], b: Stored["record"]): boolean {
     );
   });
 }
+/** Разрешаем только продвижение прежнего intent: write, savedId и ready-квитанция не могут откатиться. */
 function advances(before: Stored["record"], after: Stored["record"]): boolean {
   return (
     sameIntent(before, after) &&
@@ -131,10 +137,12 @@ function advances(before: Stored["record"], after: Stored["record"]): boolean {
 /** One account/post slot. File bytes are explicit buffers, never session tokens or S3 keys. */
 export class PrivateCommentJournal {
   private revision: number | null = null;
+  /** Ключ хранения принадлежит одной паре аккаунт/пост; ревизия появится после load или prepare. */
   constructor(
     readonly ownerId: number,
     readonly postId: number,
   ) {}
+  /** Проверяем текущего владельца и соответствие поста перед локальной транзакцией и после асинхронной подготовки. */
   private assertOwner(record?: PrivateCommentRecord) {
     if (
       !isPersonalDataOwner(this.ownerId) ||
@@ -145,6 +153,7 @@ export class PrivateCommentJournal {
     )
       throw changed();
   }
+  /** Оборачиваем IndexedDB в ограниченную по времени транзакцию; resolve происходит только после oncomplete, сбой abort закрывает соединение. */
   private async transaction<T>(
     mode: IDBTransactionMode,
     work: (
@@ -159,6 +168,7 @@ export class PrivateCommentJournal {
         tx: IDBTransaction | undefined,
         result: T,
         done = false;
+      /** Один раз прерываем транзакцию, снимаем дедлайн и закрываем БД, не выдавая частичный result за сохранённый. */
       const fail = (error: unknown = failed()) => {
         if (done) return;
         done = true;
@@ -222,6 +232,7 @@ export class PrivateCommentJournal {
       }
     });
   }
+  /** Читаем и проверяем текущую запись, запоминая её ревизию для следующего checkpoint. */
   async load(): Promise<PrivateCommentRecord | null> {
     const loaded = await this.transaction<{
       revision: number;
@@ -238,6 +249,7 @@ export class PrivateCommentJournal {
     this.revision = loaded?.revision ?? null;
     return loaded?.record ?? null;
   }
+  /** Атомарно занимаем пустой слот либо возвращаем уже существующее намерение другой вкладки без перезаписи. */
   async prepare(
     record: PrivateCommentRecord,
   ): Promise<{ record: PrivateCommentRecord; restored: boolean }> {
@@ -268,6 +280,7 @@ export class PrivateCommentJournal {
     this.revision = result.revision;
     return { record: result.record, restored: result.restored };
   }
+  /** Сохраняем только допустимое продвижение при совпадении ожидаемой ревизии; новые байты читаем до открытия транзакции. */
   async checkpoint(record: PrivateCommentRecord): Promise<void> {
     this.assertOwner(record);
     const expected = this.revision;
@@ -291,6 +304,7 @@ export class PrivateCommentJournal {
     });
     this.revision = expected + 1;
   }
+  /** Удаляем только ту же ревизию совместимого intent, чтобы закрытие старого редактора не стёрло чужую отправку. */
   async clear(record: PrivateCommentRecord): Promise<void> {
     this.assertOwner(record);
     requirePrivateCommentRecord(record);

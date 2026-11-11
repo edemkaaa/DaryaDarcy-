@@ -25,6 +25,7 @@ import { sdk } from "../apps/backend/src/_core/sdk";
 import type { AppRouter } from "../apps/backend/src/routers";
 
 // Own disposable SQL, real HTTP/JWT; no provider requests, emails or SMS.
+/** Проверяет безопасное хранение неподтверждённого contactPhone при TEST и LIVE checkout без SMS и внешних платежей. */
 describe.skipIf(!testDatabaseUrl)(
   "unverified checkout contact in the user card",
   () => {
@@ -34,8 +35,10 @@ describe.skipIf(!testDatabaseUrl)(
     const freshEmail = "user-contact-fresh@example.invalid";
     const original = "+447700900123";
     const phone = "+79991234567";
+    /** Читает контрольные аккаунты и заказы напрямую через отдельное соединение. */
     const rows = async (sql: string, args: unknown[] = []) =>
       (await conn.query<RowDataPacket[]>(sql, args))[0];
+    /** Создаёт HTTP tRPC-клиент с выбранной Bearer-сессией либо для гостя. */
     const client = (bearer?: string) =>
       createTRPCProxyClient<AppRouter>({
         links: [
@@ -46,6 +49,7 @@ describe.skipIf(!testDatabaseUrl)(
           }),
         ],
       });
+    /** Создаёт checkout с email и неподтверждённым номером через настоящий club API. */
     const create = (
       bearer?: string,
       contactPhone = "8 (999) 123-45-67",
@@ -55,6 +59,7 @@ describe.skipIf(!testDatabaseUrl)(
         email: recipient,
         contactPhone,
       });
+    /** Удаляет свой fault-триггер, заказы и только три fixture-email аккаунта. */
     async function cleanup() {
       await conn.query("DROP TRIGGER IF EXISTS owned_contact_payment_failure");
       const users = await rows("SELECT id FROM users WHERE email IN (?,?,?)", [
@@ -67,6 +72,7 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query("DELETE FROM users WHERE id=?", [id]);
       }
     }
+    /** Настраивает synthetic TEST-кабинет, фиксированное время и настоящий локальный API на одноразовой БД. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -82,6 +88,7 @@ describe.skipIf(!testDatabaseUrl)(
       await app.listen(0, "127.0.0.1");
       base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
     }, 45_000);
+    /** Разводит окна rate limit по времени, восстанавливает двух владельцев и JWT администратора. */
     beforeEach(async () => {
       // Independent checkout scenarios must not share a rate-limit window.
       vi.setSystemTime(Date.now() + 16 * 60_000);
@@ -95,6 +102,7 @@ describe.skipIf(!testDatabaseUrl)(
         sessionVersion: 0,
       });
     });
+    /** Закрывает API, очищает fixture и соединения и возвращает настоящие часы и окружение. */
     afterAll(async () => {
       await app?.close();
       if (conn) {
@@ -107,6 +115,7 @@ describe.skipIf(!testDatabaseUrl)(
       vi.useRealTimers();
       vi.unstubAllEnvs();
     });
+    /** Переключает только test-процесс на synthetic LIVE-конфигурацию без реального запроса провайдеру. */
     function liveCheckout() {
       vi.stubEnv("PRODAMUS_TEST_ENABLED", "false");
       vi.stubEnv("GUEST_CHECKOUT_RECOVERY_ENABLED", "false");
@@ -114,6 +123,7 @@ describe.skipIf(!testDatabaseUrl)(
       vi.stubEnv("PRODAMUS_SECRET", "synthetic-merchant-key");
       vi.stubEnv("PRODAMUS_SUBSCRIPTION_ID", "123");
     }
+    /** До подтверждения гостевой номер хранится только в unpaid-заказе, а не в чужой или новой карточке пользователя. */
     it.each(["TEST", "LIVE"])(
       "stores a new guest contact only on the unpaid order (%s)",
       async (mode) => {
@@ -144,6 +154,7 @@ describe.skipIf(!testDatabaseUrl)(
         );
       },
     );
+    /** Гостевой checkout не меняет существующий аккаунт, сохраняя переданный номер только в заказе. */
     it.each([email, otherEmail])(
       "a guest cannot overwrite an existing user's contact (%s)",
       async (recipient) => {
@@ -161,6 +172,7 @@ describe.skipIf(!testDatabaseUrl)(
         ).toEqual([{ contactPhone: phone }]);
       },
     );
+    /** Владелец с текущей сессией может обновить только свой contactPhone без изменения email, phone, пароля, роли и epoch. */
     it.each(["TEST", "LIVE"])(
       "updates only the authenticated owner contact and keeps credentials and roles (%s)",
       async (mode) => {
@@ -182,6 +194,7 @@ describe.skipIf(!testDatabaseUrl)(
         ).toEqual(before);
       },
     );
+    /** Даже авторизованный запрос не может записать номер в карточку другого email или userId. */
     it("rejects changing the contact of a different email even with an authenticated session", async () => {
       await expect(create(token, phone, otherEmail)).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
@@ -201,6 +214,7 @@ describe.skipIf(!testDatabaseUrl)(
         await rows("SELECT contactPhone FROM users WHERE id=989702"),
       ).toEqual([{ contactPhone: null }]);
     });
+    /** Публичный session DTO не содержит contactPhone; admin membersPage содержит его, обычный пользователь не читает список. */
     it("does not expose the contact in public session responses, but returns it to admin members", async () => {
       await create(token);
       const me = await fetch(base + "/api/auth/me", {
@@ -219,6 +233,7 @@ describe.skipIf(!testDatabaseUrl)(
         client(ordinaryToken).admin.membersPage.query({ userId: 989701 }),
       ).rejects.toMatchObject({ data: { code: "FORBIDDEN" } });
     });
+    /** Отказ INSERT заказа откатывает одновременно изменённый контакт владельца. */
     it("rolls back the authenticated contact when payment insertion fails", async () => {
       await conn.query(`CREATE TRIGGER owned_contact_payment_failure BEFORE INSERT ON club_payments FOR EACH ROW
       BEGIN IF NEW.userId=989701 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Synthetic contact payment failure'; END IF; END`);
@@ -230,6 +245,7 @@ describe.skipIf(!testDatabaseUrl)(
         await rows("SELECT orderId FROM club_payments WHERE userId=989701"),
       ).toEqual([]);
     });
+    /** Неподтверждённый контакт не является уникальной идентичностью и может совпадать в чужом гостевом заказе. */
     it("allows a guest order to use the same unverified contact as another account", async () => {
       await create(token);
       await create(undefined, phone, freshEmail);
@@ -240,6 +256,7 @@ describe.skipIf(!testDatabaseUrl)(
         await rows("SELECT contactPhone FROM club_payments WHERE email=?", [freshEmail]),
       ).toEqual([{ contactPhone: phone }]);
     });
+    /** Конкурентное разрешение нового email создаёт одного получателя без переноса непроверенного номера. */
     it("creates one recipient for concurrent email resolution without a contact", async () => {
       await Promise.all([
         ensureUserByEmail(freshEmail),
@@ -251,6 +268,7 @@ describe.skipIf(!testDatabaseUrl)(
         ]),
       ).toEqual([{ contactPhone: null }]);
     });
+    /** Блокировка, запрос удаления и отзыв epoch после capture актёра запрещают позднюю запись номера. */
     it.each([
       "blockedAt=CURRENT_TIMESTAMP",
       "accountDeletionRequestedAt=CURRENT_TIMESTAMP",

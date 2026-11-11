@@ -4,7 +4,7 @@ import { apiCall } from "@/shared/api/auth";
 
 export const PUBLIC_LAUNCH_KEY = ["launch-config"];
 
-/** Keep the full response: each consumer validates only its own settings. */
+/** Один публичный query хранит полный неизвестный ответ; каждый select валидирует свою часть без вытеснения остальных настроек. */
 export function publicConfigurationOptions() {
   return queryOptions({
     queryKey: PUBLIC_LAUNCH_KEY,

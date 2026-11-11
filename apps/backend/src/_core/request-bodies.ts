@@ -16,6 +16,7 @@ const jsonParsers = {
   media: express.json({ limit: MEDIA_JSON_BODY_LIMIT }),
 };
 
+/** Проверяет актуальную сессию и при необходимости admin до выделения большого тела; различает 401, 403 и сбой проверки 503. */
 async function requireUploadIdentity(req: Request, res: Response, administrator: boolean, sessions: Pick<SessionService, "optionalUser">) {
   try {
     const user = await sessions.optionalUser(req);
@@ -24,12 +25,14 @@ async function requireUploadIdentity(req: Request, res: Response, administrator:
     return true;
   } catch { res.status(503).json({ error: "Проверка сессии временно недоступна" }); return false; }
 }
+/** Сохраняет безопасный 4xx парсера, скрывая его детали; превышение размера получает отдельное сообщение 413. */
 function bodyError(res: Response, error: unknown) {
   const status = (error as { status?: number })?.status;
   const safeStatus = typeof status === "number" && status >= 400 && status < 500 ? status : 400;
   res.status(safeStatus).json({ error: safeStatus === 413 ? "Запрос слишком большой" : "Некорректный запрос" });
 }
 
+/** Выделяет только точный Prodamus webhook GET/HEAD/POST, чтобы общие парсеры не изменили подписанные данные. */
 function isProviderWebhook(req: Request): boolean {
   return /^\/api\/prodamus\/webhook\/?$/.test(req.path) &&
     (req.method === "GET" || req.method === "HEAD" || req.method === "POST");
@@ -45,7 +48,7 @@ export function registerRequestBodies(app: Express, sessions: Pick<SessionServic
       res.status(400).json({ error: "Некорректный запрос" }); return;
     }
     if (!admitVideoUpload(req, res)) return;
-    express.raw({ type: () => true, limit: "80mb", inflate: false })(req, res, err => {
+    express.raw({ /** Raw-парсер приватного видео читает байты независимо от Content-Type после проверки metadata и admission. */ type: () => true, limit: "80mb", inflate: false })(req, res, err => {
       if (err) { releaseVideoUpload(req); bodyError(res, err); return; }
       next();
     });

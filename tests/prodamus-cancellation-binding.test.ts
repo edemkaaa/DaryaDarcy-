@@ -1,3 +1,4 @@
+/** Декодирование cancellation proof связывает domain/subscription/profile с доверенной конфигурацией. */
 import { expect, it } from "vitest";
 import { readProdamusCancellationProfile } from "../apps/backend/src/billing/prodamus-cancellation";
 
@@ -13,6 +14,7 @@ const expected = {
 
 // Dropping merchant/subscription comparison or changing legacy scalar decoding
 // must break these independent literal expectations, not just source structure.
+/** Независимая матрица фиксирует trim/case/scalar-совместимость payload, отказ чужому merchant/тарифу и допустимые старые profile ID. */
 it.each<[string, Record<string, unknown>, typeof expected | null]>([
   [
     "complete profile",
@@ -126,6 +128,7 @@ it.each<[string, Record<string, unknown>, typeof expected | null]>([
   expect(readProdamusCancellationProfile(body, configured)).toEqual(want);
 });
 
+/** Payload не меняется; доверенная конфигурация должна быть уже канонической, в отличие от входных полей провайдера. */
 it("does not mutate frozen decoded payload or normalize trusted configuration", () => {
   const body = Object.freeze({
     domain: "fixture.payform.ru",

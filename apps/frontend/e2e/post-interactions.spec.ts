@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { editorApi, failure, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
+/** Gate раздельно удерживает mutation, персональный read и count-detail, чтобы воспроизводить гонки их поколений. */
 function deferred() {
   let release!: () => void;
   const promise = new Promise<void>((resolve) => {
@@ -15,6 +16,7 @@ const actions = [
   { kind: "save", procedure: "feed.toggleSave", label: "Сохранить пост" },
 ] as const;
 
+/** Моделируем owner, подтверждённые отметки и общий счётчик отдельно; snapshot-read фиксируется до gate, а mutation учитывает владельца начала запроса. */
 async function fixture(page: Page) {
   const state = {
     owner: 101,
@@ -33,6 +35,7 @@ async function fixture(page: Page) {
     totalLikes: 17,
     calls: [] as string[],
   };
+  /** Количество лайков включает внешнюю базу плюс текущую отметку, чтобы локальная арифметика не подменяла свежий серверный count. */
   const post = () => ({
     id: 1,
     text: "SHARED_INTERACTION_POST",
@@ -110,6 +113,7 @@ async function fixture(page: Page) {
   return state;
 }
 
+/** Подтверждённый toggle обновляет отметку, затем точечно читает count своего поста и передаёт его retained-ленте. */
 test("confirmed likes read only their post and copy the server count into the retained feed", async ({
   page,
 }) => {
@@ -145,6 +149,7 @@ test("confirmed likes read only their post and copy the server count into the re
   await expect(like).toHaveAttribute("aria-pressed", "false");
 });
 
+/** Сбой count-read не откатывает уже подтверждённую отметку; recovery читает состояние без replay мутации. */
 test("a failed count refresh preserves the confirmed mark and recovers without replaying the mutation", async ({
   page,
 }) => {
@@ -173,6 +178,7 @@ test("a failed count refresh preserves the confirmed mark and recovers without r
   expect(state.writes).toEqual(["feed.toggleLike"]);
 });
 
+/** Свежий missing-detail после toggle удаляет карточку из кеша вместо сохранения устаревшей записи. */
 test("a post removed before the count read disappears from the cached feed", async ({
   page,
 }) => {
@@ -191,6 +197,7 @@ test("a post removed before the count read disappears from the cached feed", asy
   expect(state.writes).toEqual(["feed.toggleLike"]);
 });
 
+/** Поздний count прежнего владельца не восстанавливает его кеш после смены аккаунта. */
 test("a delayed count refresh cannot restore the previous account's cache", async ({
   page,
 }) => {
@@ -229,6 +236,7 @@ test("a delayed count refresh cannot restore the previous account's cache", asyn
   }
 });
 
+/** Лайк и сохранение проверяются из ленты, клуба и detail: pending shared-state блокирует дубли между экранами. */
 for (const action of actions) {
   for (const source of ["feed", "club", "post"] as const) {
     test(`${action.kind}: pending state survives navigation from ${source}`, async ({
@@ -280,6 +288,7 @@ for (const action of actions) {
     });
   }
 
+  /** Unknown-toggle остаётся заблокированным через навигацию и успех другого действия; разблокирует его только успешная сверка соответствующего состояния. */
   test(`${action.kind}: uncertain outcome stays blocked across screens until a successful explicit read`, async ({
     page,
   }) => {
@@ -343,6 +352,7 @@ for (const action of actions) {
   });
 }
 
+/** ACK мутации прежнего аккаунта не меняет отметки нового, но не блокирует его самостоятельные действия. */
 test("an old account's pending response cannot change the new account's marks", async ({
   page,
 }) => {
@@ -385,6 +395,7 @@ test("an old account's pending response cannot change the new account's marks", 
   }
 });
 
+/** Сверка покрывает только операции, существовавшие к её началу: более поздний unknown-write требует отдельного read. */
 test("a recovery read cannot unlock a different write that failed after the read started", async ({
   page,
 }) => {
@@ -429,6 +440,7 @@ test("a recovery read cannot unlock a different write that failed after the read
   }
 });
 
+/** Отменённая сверка не подтверждает unknown-save старым кешем, даже если параллельный like завершился успешно. */
 test("a cancelled recovery read does not unlock an uncertain save with old cached data", async ({
   page,
 }) => {

@@ -11,6 +11,7 @@ type VideoWriter = Pick<
 >;
 
 /** Caller owns the transaction and the parent post's write lock. */
+/** Сопоставляем вхождения URL с прежними видео в стабильном порядке, проверяем новые адреса до записи и сохраняем метаданные существующих; приватные видео удаляются только отдельным проверенным путём. */
 export async function replacePostVideoRows(
   writer: VideoWriter,
   postId: number,
@@ -36,6 +37,7 @@ export async function replacePostVideoRows(
     bucket.rows.push(video);
     byUrl.set(video.url, bucket);
   }
+// Сначала полностью готовим план: даже ошибка декодирования нового имени должна возникнуть до удаления прежних строк.
   const retained = new Set<number>();
   const changes: {
     url: string;
@@ -98,6 +100,7 @@ export async function replacePostVideoRows(
           inArray(postMedia.id, removedIds),
         ),
       );
+// Для сохранённых строк меняются лишь порядок и отсутствующая обложка; новые URL не доказывают MIME файла.
   for (const { url, sortOrder, video, filename } of changes) {
     const posterUrl = posters.get(url);
     if (video) {

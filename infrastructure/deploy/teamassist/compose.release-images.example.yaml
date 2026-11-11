@@ -2,7 +2,9 @@
 # Image pins only. Append to the COMPLETE accepted runtime stack after its overlays.
 # Preserve the current database, private manifests, egress/SMTP and image-cache mounts.
 services:
+# Образ API закрепляется независимо от web; остальные overlays и volumes продолжают действовать.
   api:
     image: ${API_RUNTIME_IMAGE:?Set the accepted API image digest}
+# Подменяется только образ Next; публичные флаги в нём должны соответствовать принятой сборке.
   web:
     image: ${WEB_RUNTIME_IMAGE:?Set the accepted web image digest}

@@ -1,3 +1,4 @@
+// Архив Expo. Открывает внешнее меню действий одного поста без собственной мутации.
 import { useState, useCallback, useEffect } from "react";
 import {
   Text,
@@ -42,6 +43,8 @@ type MenuAction = "edit" | "tags" | "delete";
 
 // ── Three-Dot Menu Button ──
 export function PostMenuButton({ onPress }: { onPress: () => void }) {
+  // Открывает внешнее меню действий одного поста без собственной мутации.
+
   return (
     <Pressable
       onPress={onPress}
@@ -62,6 +65,8 @@ function ActionSheet({
   onClose: () => void;
   onSelect: (action: MenuAction) => void;
 }) {
+  // Монтирует модалку edit/tags/delete только при visible, чтобы закрытый overlay не перехватывал жесты.
+
   if (!visible) return null;
 
   return (
@@ -117,16 +122,22 @@ function TagSelectionModal({
   onClose: () => void;
   onSave: (tags: string[]) => void;
 }) {
+  // Редактирует копию тегов выбранного поста до явного сохранения.
+
   const [selectedTags, setSelectedTags] = useState<string[]>(post?.tags || []);
 
   // Reset when post changes
   useEffect(() => {
+    // При смене post восстанавливает локальный набор тегов из новой записи.
+
     if (post) {
       setSelectedTags([...post.tags]);
     }
   }, [post]);
 
   const toggleTag = (slug: string) => {
+    // Переключает slug в локальном наборе тегов и даёт native haptic.
+
     setSelectedTags((prev) =>
       prev.includes(slug) ? prev.filter((t) => t !== slug) : [...prev, slug]
     );
@@ -136,6 +147,8 @@ function TagSelectionModal({
   };
 
   const handleSave = () => {
+    // Передаёт текущие теги владельцу модалки; серверным подтверждением занимается мутация.
+
     if (Platform.OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
@@ -200,6 +213,8 @@ function TagSelectionModal({
 
 // ── Main Post Management Hook ──
 export function usePostManagement(onRefresh: () => void) {
+  // Объединяет меню, редактор и теги для выбранного поста; использует архивные мутации без ревизий.
+
   const utils = trpc.useUtils();
   const [actionSheetVisible, setActionSheetVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -208,11 +223,15 @@ export function usePostManagement(onRefresh: () => void) {
 
   const updateMutation = trpc.admin.updatePost.useMutation({
     onSuccess: () => {
+      // После обновления перечитывает контент и закрывает связанные формы.
+
       onRefresh();
       setEditModalVisible(false);
       setTagModalVisible(false);
     },
     onError: (err) => {
+      // Показывает ошибку сохранения без автоматического повтора записи.
+
       const message = err.message || "Не удалось сохранить изменения";
       if (Platform.OS === "web") window.alert(message);
       else Alert.alert("Ошибка", message);
@@ -221,6 +240,8 @@ export function usePostManagement(onRefresh: () => void) {
 
   const deleteMutation = trpc.admin.deletePost.useMutation({
     onSuccess: async () => {
+      // После удаления сбрасывает выбранный пост/модалки и инвалидирует постраничную Ленту.
+
       setActivePost(null);
       setEditModalVisible(false);
       setTagModalVisible(false);
@@ -229,6 +250,8 @@ export function usePostManagement(onRefresh: () => void) {
       onRefresh();
     },
     onError: (err) => {
+      // Показывает ошибку удаления, сохраняя возможность ручного решения.
+
       const message = err.message || "Не удалось удалить пост";
       if (Platform.OS === "web") window.alert(message);
       else Alert.alert("Ошибка", message);
@@ -236,15 +259,21 @@ export function usePostManagement(onRefresh: () => void) {
   });
 
   const openMenu = useCallback((post: PostData) => {
+    // Фиксирует выбранную запись до открытия списка действий.
+
     setActivePost(post);
     setActionSheetVisible(true);
   }, []);
 
   const closeMenu = useCallback(() => {
+    // Скрывает action sheet без изменения выбранного поста.
+
     setActionSheetVisible(false);
   }, []);
 
   const handleAction = useCallback((action: MenuAction) => {
+    // Переключает соответствующую форму, а delete отправляет только после платформенного подтверждения.
+
     setActionSheetVisible(false);
 
     if (action === "edit") {
@@ -265,6 +294,8 @@ export function usePostManagement(onRefresh: () => void) {
             text: "Удалить",
             style: "destructive",
             onPress: () => {
+              // После native подтверждения удаляет только всё ещё выбранный пост.
+
               if (activePost) {
                 deleteMutation.mutate({ id: activePost.id });
               }
@@ -277,6 +308,8 @@ export function usePostManagement(onRefresh: () => void) {
 
   const handleTagsSave = useCallback(
     (tags: string[]) => {
+      // Отправляет patch тегов по id текущего поста.
+
       if (activePost) {
         updateMutation.mutate({ id: activePost.id, tags });
       }
@@ -285,7 +318,7 @@ export function usePostManagement(onRefresh: () => void) {
   );
 
   const ManagementModals = useCallback(
-    () => (
+    () => /* Монтирует только открытый редактор и передаёт ему снимок выбранной записи с датами/вложениями. */ (
       <>
         <ActionSheet
           visible={actionSheetVisible}
@@ -336,6 +369,7 @@ export function usePostManagement(onRefresh: () => void) {
 }
 
 // ── Styles ──
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   // Menu button
   menuButton: {

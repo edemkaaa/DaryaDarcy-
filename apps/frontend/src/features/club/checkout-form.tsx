@@ -19,6 +19,7 @@ export type ClubCheckoutAttempt =
   | { kind: "opened" | "canceled" }
   | { kind: "error"; error: unknown };
 
+/** Покупку TEST запускаем только после проверки прежнего намерения; сессия, видимость и выбранный получатель ограничивают право на поздний redirect. */
 export function ClubTestCheckoutForm({
   client,
   active,
@@ -61,6 +62,7 @@ export function ClubTestCheckoutForm({
   };
   useEffect(() => {
     mounted.current = true;
+    /** При уходе вкладки прерываем локальную подготовку; сохранённая покупка остаётся доступной для проверки. */
     const hidden = () => {
       if (document.hidden) current.current?.abort();
     };
@@ -71,6 +73,7 @@ export function ClubTestCheckoutForm({
       document.removeEventListener("visibilitychange", hidden);
     };
   }, []);
+  /** При скрытии экрана или неготовой сессии прекращаем незавершённую подготовку. */
   useEffect(() => {
     if (!active || !sessionReady) current.current?.abort();
   }, [active, sessionReady]);
@@ -79,6 +82,7 @@ export function ClubTestCheckoutForm({
 
   const terminal =
     result?.state === "succeeded" || result?.state === "canceled";
+  /** Сначала сбрасываем показанное доказательство и резервируем ключ, затем проверяем ответ и актуальность экрана до перехода к провайдеру. */
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (

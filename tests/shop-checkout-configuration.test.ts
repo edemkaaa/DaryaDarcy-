@@ -1,6 +1,8 @@
+/** Низкоуровневый shop URL builder проверяется без отправки платежа; его наличие не включает продажи через приложение. */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 const input = { productId: "digital-1", orderId: "shop-digital-1-fixture" };
+/** Каждый импорт получает synthetic shop/club merchant и фиксированные product prices. */
 beforeEach(() => {
   vi.resetModules();
   vi.stubEnv("PUBLIC_APP_URL", "https://shop.example.test");
@@ -14,8 +16,10 @@ beforeEach(() => {
   vi.stubEnv("SHOP_DIGITAL_1_PRICE", "50");
   vi.stubEnv("SHOP_DIGITAL_2_PRICE", "50");
 });
+/** Возвращаем env. */
 afterEach(() => vi.unstubAllEnvs());
 
+/** Catalog lookup использует только собственные product keys. */
 it.each(["__proto__", "constructor", "toString"])(
   "does not resolve inherited object properties as shop products: %s",
   async (productId) => {
@@ -24,6 +28,7 @@ it.each(["__proto__", "constructor", "toString"])(
   },
 );
 
+/** Unknown product отвергается ещё до merchant configuration. */
 it.each(["__proto__", "constructor", "toString"])(
   "does not build a payment URL for inherited catalog properties: %s",
   async (productId) => {
@@ -34,6 +39,7 @@ it.each(["__proto__", "constructor", "toString"])(
   },
 );
 
+/** Невалидный HTTPS payform root даёт безопасный PRECONDITION_FAILED без credentials. */
 it.each([
   "",
   "   ",
@@ -61,6 +67,7 @@ it.each([
   expect(String(failure)).not.toContain("synthetic-shop-key");
 });
 
+/** Пустые ключи не разрешают payable unsigned URL. */
 it("refuses an unsigned shop link when neither merchant has a signing key", async () => {
   vi.stubEnv("PRODAMUS_SHOP_SECRET", " ");
   vi.stubEnv("PRODAMUS_SECRET", "");
@@ -70,6 +77,7 @@ it("refuses an unsigned shop link when neither merchant has a signing key", asyn
   );
 });
 
+/** Legacy fallback требует отдельно валидный club merchant, не guessed origin. */
 it.each(["", "https://fixture-club.payform.ru?signature=PRIVATE_VALUE"])(
   "requires an explicit safe club form for the existing club-key fallback: %s",
   async (form) => {
@@ -83,6 +91,7 @@ it.each(["", "https://fixture-club.payform.ru?signature=PRIVATE_VALUE"])(
   },
 );
 
+/** Callback origin проверяется независимо и не отражает private userinfo в ошибке. */
 it.each([
   "",
   "http://shop.example.test",
@@ -104,6 +113,7 @@ it.each([
   },
 );
 
+/** Цена должна соответствовать тем же decimal/minor-unit правилам, что и settlement. */
 it.each(["SHOP_DIGITAL_1_PRICE", "SHOP_DIGITAL_2_PRICE"])(
   "rejects invalid money in %s using the billing amount rules",
   async (name) => {
@@ -125,6 +135,7 @@ it.each(["SHOP_DIGITAL_1_PRICE", "SHOP_DIGITAL_2_PRICE"])(
 
 // These digests come from an independently hand-written canonical payload,
 // not from createProdamusSign or the URL builder being tested.
+/** Независимые literal HMAC для live/demo сохраняют one-off без subscription. */
 it.each([
   ["0", "47bcafc84547b76d5e0a8e507e85c80caa3e078dc3ea5b1acc3a9108027b65d4"],
   ["true", "5977a33a05239254c5bf57f97e52ca29ad5e48da9531acf03f5a553e53409d79"],
@@ -142,6 +153,7 @@ it.each([
   },
 );
 
+/** Явно настроенный fallback использует club key, но не recurring subscription. */
 it("preserves the explicit club merchant fallback for a one-off shop purchase", async () => {
   vi.stubEnv("PRODAMUS_SHOP_SECRET", "");
   const { buildShopCheckoutUrl } = await import("../apps/backend/src/prodamus");
@@ -153,6 +165,7 @@ it("preserves the explicit club merchant fallback for a one-off shop purchase", 
   expect(url.searchParams.has("subscription")).toBe(false);
 });
 
+/** Whitespace/trailing slash нормализуются без потери копеек. */
 it("normalizes an explicit shop root without changing fractional product price", async () => {
   vi.stubEnv("PRODAMUS_SHOP_PAYFORM_URL", " https://fixture-shop.payform.ru/ ");
   vi.stubEnv("SHOP_DIGITAL_1_PRICE", "50.25");

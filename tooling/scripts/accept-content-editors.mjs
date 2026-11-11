@@ -49,6 +49,8 @@ let memoryTimer;
 let peakUsed = 0;
 const memoryLimit = 13_200_000_000;
 async function usedMemory() {
+  // Читает Linux MemAvailable и сохраняет максимум занятой памяти; отсутствие метрики останавливает прогон вместо игнорирования лимита.
+
   const info = await readFile("/proc/meminfo", "utf8");
   const total = Number(info.match(/^MemTotal:\s+(\d+)/m)?.[1]) * 1024;
   const available = Number(info.match(/^MemAvailable:\s+(\d+)/m)?.[1]) * 1024;
@@ -58,6 +60,8 @@ async function usedMemory() {
   return total - available;
 }
 function launch(command, args, extra = {}, cwd = root) {
+  // Запускает собственную группу процессов с минимальным env и учитывает её для последующей остановки.
+
   const child = spawn(command, args, {
     cwd,
     env: { ...env, ...extra },
@@ -69,6 +73,8 @@ function launch(command, args, extra = {}, cwd = root) {
   return child;
 }
 async function run(command, args, extra, cwd) {
+  // Дожидается конкретной дочерней команды и превращает ненулевое завершение в отказ приёмки.
+
   const child = launch(command, args, extra, cwd);
   const [code, signal] = await once(child, "exit");
   if (code !== 0)
@@ -77,6 +83,8 @@ async function run(command, args, extra, cwd) {
     );
 }
 async function freePort() {
+  // Получает свободный loopback-порт у ОС, не закрепляя адрес рабочего API.
+
   const server = createServer();
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
@@ -85,6 +93,8 @@ async function freePort() {
   return port;
 }
 async function waitFor(probe, child, label) {
+  // Дожидается проверяемой готовности в пределах deadline и сразу замечает завершение ожидаемого процесса.
+
   const deadline = Date.now() + 60_000;
   while (Date.now() < deadline) {
     if (child && (child.exitCode !== null || child.signalCode !== null))
@@ -99,6 +109,8 @@ async function waitFor(probe, child, label) {
   throw new Error(`${label} readiness timed out`);
 }
 async function cleanup() {
+  // Совместно для всех путей завершения останавливает только свои группы, контейнер и временную копию; повторный вызов разделяет ту же очистку.
+
   return (closing ??= (async () => {
     clearInterval(memoryTimer);
     for (const child of children) {

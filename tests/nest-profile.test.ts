@@ -66,10 +66,10 @@ describe("profile use cases over native HTTP", () => {
     lastSignedIn: new Date(0),
   };
   const client = () =>
-    createTRPCProxyClient<AppRouter>({
+    /* Создаёт локальный tRPC-клиент для настоящего Nest-провайдера профиля. */ createTRPCProxyClient<AppRouter>({
       links: [httpLink({ url: base + "/api/trpc", transformer: superjson })],
     });
-  const avatarInput = () => ({
+  const avatarInput = () => /* Передаёт JPEG-байты с намеренно недоверенными именем и MIME, которые сервер должен игнорировать. */ ({
     base64: photo,
     filename: "../../client.html",
     mimeType: "text/html",
@@ -77,17 +77,18 @@ describe("profile use cases over native HTTP", () => {
   const operations = [
     {
       name: "update" as const,
-      run: () => client().profile.update.mutate({ expectedRevision: 0, name: "synthetic name" }),
+      run: () => /* Запускает изменение профиля с ожидаемой ревизией. */ client().profile.update.mutate({ expectedRevision: 0, name: "synthetic name" }),
     },
     {
       name: "uploadAvatar" as const,
-      run: () => client().profile.uploadAvatar.mutate(avatarInput()),
+      run: () => /* Запускает загрузку аватара через локальный HTTP. */ client().profile.uploadAvatar.mutate(avatarInput()),
     },
     {
       name: "requestAccountDeletion" as const,
-      run: () => client().profileExtras.requestAccountDeletion.mutate(),
+      run: () => /* Запускает запрос удаления аккаунта без немедленного удаления пользователя. */ client().profileExtras.requestAccountDeletion.mutate(),
     },
   ];
+  // Синтетический JPEG содержит приватный EXIF-маркер: настоящий декодер должен удалить его, а SQL и внешний storage остаются подменами.
   beforeAll(async () => {
     vi.stubEnv("DATABASE_URL", "");
     photo = (
@@ -121,8 +122,12 @@ describe("profile use cases over native HTTP", () => {
   it.each(["update", "uploadAvatar", "requestAccountDeletion"] as const)(
     "%s preserves the explicitly supplied profile service's refusal",
     async (method) => {
+      // Сценарий: Явно внедрённый сервис профиля определяет отказ; роутер не обходит его глобальными helpers.
+
       let received: unknown;
       const unexpected = async () => {
+        // Отказывает любому вызову не выбранной подменённой операции профиля.
+
         throw new Error("unexpected profile operation");
       };
       const profiles = {
@@ -130,6 +135,8 @@ describe("profile use cases over native HTTP", () => {
         uploadAvatar: unexpected,
         requestAccountDeletion: unexpected,
         [method]: async (...args: unknown[]) => {
+          // Фиксирует параметры выбранного сервиса и возвращает доменный CONFLICT.
+
           received = args;
           throw new TRPCError({
             code: "CONFLICT",
@@ -163,10 +170,10 @@ describe("profile use cases over native HTTP", () => {
         res: {},
       } as TrpcContext);
       const calls = {
-        update: () => caller.profile.update({ expectedRevision: 0, name: "synthetic name" }),
-        uploadAvatar: () => caller.profile.uploadAvatar(avatarInput()),
+        update: () => /* Вызывает обновление через явно собранный сервисный контекст. */ caller.profile.update({ expectedRevision: 0, name: "synthetic name" }),
+        uploadAvatar: () => /* Вызывает аватар через явно собранный сервисный контекст. */ caller.profile.uploadAvatar(avatarInput()),
         requestAccountDeletion: () =>
-          caller.profileExtras.requestAccountDeletion(),
+          /* Вызывает запрос удаления через явно собранный сервисный контекст. */ caller.profileExtras.requestAccountDeletion(),
       };
       await expect(calls[method]()).rejects.toMatchObject({
         code: "CONFLICT",
@@ -182,6 +189,8 @@ describe("profile use cases over native HTTP", () => {
     },
   );
   it("disabled recovery export remains unavailable without acquiring a broken database", async () => {
+    // Сценарий: Выключенный экспорт восстановления не пытается получить сломанную БД.
+
     vi.stubEnv("CONTENT_RECOVERY_EXPORT_ENABLED", "false");
     vi.spyOn(db, "getDb").mockRejectedValue(
       new Error("synthetic database failure"),
@@ -193,6 +202,8 @@ describe("profile use cases over native HTTP", () => {
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
   it("enabled recovery export reports sanitized unavailability on database acquisition failure", async () => {
+    // Сценарий: Включённый экспорт превращает отказ получения БД в безопасный SERVICE_UNAVAILABLE.
+
     vi.stubEnv("CONTENT_RECOVERY_EXPORT_ENABLED", "true");
     vi.spyOn(db, "getDb").mockRejectedValue(
       new Error("synthetic private database details"),
@@ -210,6 +221,8 @@ describe("profile use cases over native HTTP", () => {
   it.each(operations)(
     "$name uses the actual Nest-managed profile provider",
     async ({ name, run }) => {
+      // Сценарий: HTTP использует фактический Nest-managed сервис и сохраняет его доменную ошибку.
+
       const profiles = app.get(ProfileService);
       vi.spyOn(db, "updateUserProfile").mockResolvedValue(undefined);
       vi.spyOn(platformDb, "requestAccountDeletion").mockResolvedValue(
@@ -255,6 +268,8 @@ describe("profile use cases over native HTTP", () => {
   ])(
     "preserves a $name update and session ownership",
     async ({ input, want }) => {
+      // Сценарий: Частичное и пустое обновление нормализуются и принадлежат пользователю сессии.
+
       let received: unknown;
       vi.spyOn(profileWrites, "saveProfile").mockImplementation(async (...args) => {
         received = args; return Object.keys(want).length ? 1 : 0;
@@ -270,6 +285,8 @@ describe("profile use cases over native HTTP", () => {
     { label: "ASCII TEXT boundary", name: "n".repeat(65_535) },
     { label: "UTF-8 TEXT boundary", name: "я".repeat(32_767) + "a" },
   ])("accepts a name at the $label", async ({ name }) => {
+    // Сценарий: Граничное имя принимается по байтовому пределу TEXT для ASCII и UTF-8.
+
     const persist = vi
       .spyOn(profileWrites, "saveProfile")
       .mockResolvedValue(1);
@@ -283,6 +300,8 @@ describe("profile use cases over native HTTP", () => {
     "http://assets.example.test/avatar.webp",
     "https://assets.example.test/avatar.webp",
   ])("preserves supported avatar URL %s", async (avatarUrl) => {
+    // Сценарий: Поддерживаемые HTTP(S) URL аватара сохраняют контракт.
+
     const persist = vi
       .spyOn(profileWrites, "saveProfile")
       .mockResolvedValue(1);
@@ -293,6 +312,8 @@ describe("profile use cases over native HTTP", () => {
   });
 
   it("returns the same explicit public profile through REST and tRPC", async () => {
+    // Сценарий: REST и tRPC возвращают одинаковый явный публичный профиль без внутренних и будущих SQL-полей.
+
     actor = {
       ...member,
       name: "synthetic profile",
@@ -323,6 +344,8 @@ describe("profile use cases over native HTTP", () => {
   });
 
   it("keeps guest profile responses unchanged in both APIs", async () => {
+    // Сценарий: Гость сохраняет null-профиль в обоих API.
+
     actor = null;
     const rest = await fetch(base + "/api/auth/me");
     expect(rest.status).toBe(200);
@@ -331,6 +354,8 @@ describe("profile use cases over native HTTP", () => {
   });
 
   it("stores a sanitized avatar in the actor's folder before updating its URL", async () => {
+    // Сценарий: Аватар декодируется в WebP без EXIF/XMP и сохраняется до смены URL только в каталоге actor.
+
     vi.spyOn(db, "getDb").mockResolvedValue(drizzle.mock());
     const effects: string[] = [];
     let stored:
@@ -373,6 +398,8 @@ describe("profile use cases over native HTTP", () => {
   });
 
   it("records the actor's deletion request without immediately deleting an account", async () => {
+    // Сценарий: Запрос удаления записывает намерение actor без немедленного удаления аккаунта.
+
     let received: unknown;
     vi.spyOn(platformDb, "requestAccountDeletion").mockImplementation(
       async (id) => {
@@ -396,6 +423,8 @@ describe("profile use cases over native HTTP", () => {
   ])(
     "refuses every profile operation for $name before side effects",
     async (fixture) => {
+      // Сценарий: Гость и заблокированный участник отклоняются до SQL/S3 для всех операций профиля.
+
       actor = fixture.user;
       const effects: string[] = [];
       vi.spyOn(db, "updateUserProfile").mockImplementation(async () => {
@@ -433,19 +462,19 @@ describe("profile use cases over native HTTP", () => {
   it.each([
     {
       name: "empty name",
-      run: () => client().profile.update.mutate({ expectedRevision: 0, name: "" }),
+      run: () => /* Передаёт пустое имя для проверки ранней валидации. */ client().profile.update.mutate({ expectedRevision: 0, name: "" }),
     },
     {
       name: "whitespace-only name",
-      run: () => client().profile.update.mutate({ expectedRevision: 0, name: " \t\n " }),
+      run: () => /* Передаёт имя только из пробелов для проверки нормализации. */ client().profile.update.mutate({ expectedRevision: 0, name: " \t\n " }),
     },
     {
       name: "name exceeding TEXT bytes",
-      run: () => client().profile.update.mutate({ expectedRevision: 0, name: "n".repeat(65_536) }),
+      run: () => /* Передаёт ASCII-имя сверх байтового предела TEXT. */ client().profile.update.mutate({ expectedRevision: 0, name: "n".repeat(65_536) }),
     },
     {
       name: "multibyte name exceeding TEXT bytes",
-      run: () => client().profile.update.mutate({ expectedRevision: 0, name: "я".repeat(32_768) }),
+      run: () => /* Передаёт многобайтное имя сверх байтового предела TEXT. */ client().profile.update.mutate({ expectedRevision: 0, name: "я".repeat(32_768) }),
     },
     ...[
       "javascript:alert(1)",
@@ -453,38 +482,40 @@ describe("profile use cases over native HTTP", () => {
       "file:///tmp/avatar.png",
     ].map((avatarUrl) => ({
       name: "non-HTTP avatar " + avatarUrl.split(":")[0],
-      run: () => client().profile.update.mutate({ expectedRevision: 0, avatarUrl }),
+      run: () => /* Проверяет отказ не-HTTP схемы аватара до сохранения. */ client().profile.update.mutate({ expectedRevision: 0, avatarUrl }),
     })),
     {
       name: "avatar URL exceeding TEXT bytes",
       run: () =>
-        client().profile.update.mutate({ expectedRevision: 0,
+        /* Передаёт URL сверх байтового предела поля TEXT. */ client().profile.update.mutate({ expectedRevision: 0,
           avatarUrl: "https://example.invalid/" + "a".repeat(65_535),
         }),
     },
     {
       name: "invalid gender",
       run: () =>
-        client().profile.update.mutate({ expectedRevision: 0, gender: "other" as "female" }),
+        /* Передаёт неизвестный enum пола для проверки схемы. */ client().profile.update.mutate({ expectedRevision: 0, gender: "other" as "female" }),
     },
     {
       name: "invalid avatar URL",
-      run: () => client().profile.update.mutate({ expectedRevision: 0, avatarUrl: "not a URL" }),
+      run: () => /* Передаёт синтаксически неверный URL аватара. */ client().profile.update.mutate({ expectedRevision: 0, avatarUrl: "not a URL" }),
     },
     {
       name: "short photo",
       run: () =>
-        client().profile.uploadAvatar.mutate({ ...avatarInput(), base64: "x" }),
+        /* Передаёт слишком короткое Base64-фото. */ client().profile.uploadAvatar.mutate({ ...avatarInput(), base64: "x" }),
     },
     {
       name: "invalid photo bytes",
       run: () =>
-        client().profile.uploadAvatar.mutate({
+        /* Передаёт HTML вместо изображения, проверяя декодирование реальных байтов. */ client().profile.uploadAvatar.mutate({
           ...avatarInput(),
           base64: Buffer.from("<html>synthetic</html>").toString("base64"),
         }),
     },
   ])("rejects $name before persistence/storage", async ({ run }) => {
+    // Сценарий: Неверное имя, URL, enum и байты изображения отклоняются до сохранения.
+
     vi.spyOn(db, "getDb").mockResolvedValue(drizzle.mock());
     const effects: string[] = [];
     vi.spyOn(profileWrites, "saveProfile").mockResolvedValue(0);
@@ -501,6 +532,8 @@ describe("profile use cases over native HTTP", () => {
   it.each(["update", "avatar storage", "avatar profile", "deletion"] as const)(
     "does not return success or leak internal details after a %s failure",
     async (failure) => {
+      // Сценарий: Ошибка обновления, хранилища, привязки аватара либо удаления не объявляется успехом и не раскрывает детали.
+
       vi.spyOn(db, "getDb").mockResolvedValue(drizzle.mock());
       const effects: string[] = [];
       vi.spyOn(profileWrites,"saveProfile").mockImplementation(async (_db, _id, _version, input) => {
@@ -545,6 +578,8 @@ describe("profile use cases over native HTTP", () => {
   ])(
     "refuses a $name update when no database is available",
     async ({ input }) => {
+      // Сценарий: Даже пустое обновление без БД получает временный отказ.
+
       vi.spyOn(db,"getDb").mockResolvedValue(null);
       vi.spyOn(console, "warn").mockImplementation(() => undefined);
       await expect(client().profile.update.mutate({expectedRevision:0,...(input)})).rejects.toMatchObject(
@@ -556,6 +591,8 @@ describe("profile use cases over native HTTP", () => {
   );
 
   it("does not upload an avatar when no database client is available", async () => {
+    // Сценарий: Аватар не загружается, если клиента БД нет.
+
     vi.spyOn(db,"getDb").mockResolvedValue(null);
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const uploaded: string[] = [];
@@ -571,6 +608,8 @@ describe("profile use cases over native HTTP", () => {
   });
 
   it("does not upload an avatar when database client acquisition rejects", async () => {
+    // Сценарий: Отказ получения клиента БД не оставляет непривязанный загруженный аватар.
+
     vi.spyOn(db, "getDb").mockRejectedValue(
       new Error("synthetic private database configuration detail"),
     );
@@ -586,6 +625,8 @@ describe("profile use cases over native HTTP", () => {
     expect(effects).toEqual([]);
   });
   it("keeps deletion-request failure when no database is available", async () => {
+    // Сценарий: Запрос удаления без БД не объявляется успешным.
+
     await expect(operations[2].run()).rejects.toMatchObject({
       message: "Внутренняя ошибка сервера",
       data: { httpStatus: 500 },

@@ -1,3 +1,4 @@
+/** Реальная Express/tRPC сериализация проверяется через локальный HTTP; подменены только открытые tags-данные. */
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import type { INestApplication } from "@nestjs/common";
 import { request } from "node:http";
@@ -9,6 +10,7 @@ import { ContentReadService } from "../apps/backend/src/content/content-read.ser
 let app: INestApplication, port: number;
 // Exercise the actual mounted Express/tRPC adapter and serializer. Only SQL
 // output is substituted; no database, storage, mail or background workers run.
+/** Локальный Nest отдаёт достаточно большой синтетический публичный ответ без SQL/workers. */
 beforeAll(async () => {
   vi.stubEnv("DATABASE_URL", "");
   app = await createBackendApplication();
@@ -24,11 +26,13 @@ beforeAll(async () => {
   await app.listen(0, "127.0.0.1");
   port = (app.getHttpServer().address() as AddressInfo).port;
 });
+/** Закрываем приложение и spies/env. */
 afterAll(async () => {
   await app?.close();
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
 });
+/** Node HTTP сохраняет сжатые wire-байты без автоматического fetch-декодирования. */
 function read(path: string, headers: Record<string, string>) {
   return new Promise<{
     status: number;
@@ -51,6 +55,7 @@ function read(path: string, headers: Record<string, string>) {
       .end();
   });
 }
+/** Gzip должен уменьшить ответ и после gunzip дать байт-в-байт тот же JSON, с корректным Vary. */
 it("compresses a real mounted tRPC response without changing serialized bytes", async () => {
   const plain = await read("/api/trpc/feed.tags", {
     "Accept-Encoding": "identity",
@@ -66,6 +71,7 @@ it("compresses a real mounted tRPC response without changing serialized bytes", 
   expect(gunzipSync(packed.body)).toEqual(plain.body);
   expect(packed.body.length).toBeLessThan(plain.body.length / 2);
 });
+/** Публичный batch с query согласовывает br и сохраняет исходный сериализованный ответ. */
 it("negotiates Brotli for a real public batch with a query string", async () => {
   const path = "/api/trpc/feed.tags,feed.tags?batch=1";
   const plain = await read(path, { "Accept-Encoding": "identity" });
@@ -74,6 +80,7 @@ it("negotiates Brotli for a real public batch with a query string", async () => 
   expect(packed.headers["content-encoding"]).toBe("br");
   expect(brotliDecompressSync(packed.body)).toEqual(plain.body);
 });
+/** Даже посторонняя cookie исключает персональный запрос из public compression и оставляет no-store. */
 it("keeps cookie-bearing public reads uncompressed", async () => {
   const result = await read("/api/trpc/feed.tags", {
     "Accept-Encoding": "gzip",
@@ -83,6 +90,7 @@ it("keeps cookie-bearing public reads uncompressed", async () => {
   expect(result.headers["content-encoding"]).toBeUndefined();
   expect(result.headers["cache-control"]).toBe("no-store");
 });
+/** Смешанный batch с приватной процедурой не сжимается как полностью публичный. */
 it("keeps a real batch containing auth.me uncompressed", async () => {
   const result = await read("/api/trpc/feed.tags,auth.me?batch=1", {
     "Accept-Encoding": "gzip",

@@ -12,6 +12,7 @@
     flex: 1;
   }
 
+  /* Полоса прогресса использует те же горизонтальные поля, что и содержимое вопроса. */
   .progressContainer {
     // The progress row now shares the scroll content's horizontal gutters.
     padding-left: 0;
@@ -43,6 +44,7 @@
     color: var(--brown);
   }
 
+  /* Вопрос и ответы прокручиваются внутри экрана, не сдвигая навигационную строку. */
   .scrollContent {
     padding-left: 16px;
     padding-right: 16px;
@@ -70,6 +72,7 @@
     margin-bottom: 20px;
   }
 
+  /* Карусель выходит за текстовые поля, чтобы визуальные ответы использовали всю доступную ширину. */
   .carouselContainer {
     margin-left: -16px;
     margin-right: -16px;
@@ -88,6 +91,7 @@
     align-items: center;
   }
 
+  /* Индикатор выбора накладывается поверх изображения и не меняет размер слайда. */
   .div3 {
     position: absolute;
     top: 12px;
@@ -122,6 +126,7 @@
     color: var(--brown);
   }
 
+  /* Группы визуальных и текстовых ответов имеют разные раскладки, сохраняя одну модель выбора. */
   .visualContainer {
     gap: 4px;
   }
@@ -161,6 +166,7 @@
     border-radius: 12px;
   }
 
+  /* Назад и продолжение расположены отдельной нижней строкой с разделителем. */
   .div5 {
     flex-direction: row;
     align-items: center;
@@ -197,6 +203,7 @@
     font-size: 16px;
     font-family: EBGaramond_700Bold;
   }
+  /* Условные рамки, точки и начертания отмечают выбранный ответ; сами результаты вычисляются моделью теста. */
   .fontFamilyState {
     font-family: EBGaramond_700Bold;
   }

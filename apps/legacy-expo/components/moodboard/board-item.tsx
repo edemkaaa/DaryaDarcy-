@@ -1,3 +1,4 @@
+// Архив Expo. Ограничивает drag-координату на UI-потоке Reanimated; директива worklet остаётся первой инструкцией.
 import { useEffect } from "react";
 import { Image } from "expo-image";
 import { Platform, StyleSheet } from "react-native";
@@ -13,17 +14,23 @@ type Props = {
 };
 
 function clamp(value: number, min: number, max: number) {
+  // Ограничивает drag-координату на UI-потоке Reanimated; директива worklet остаётся первой инструкцией.
+
   "worklet";
   return Math.min(Math.max(value, min), max);
 }
 
 function isCutoutItem(item: MoodboardItem): boolean {
+  // Сохраняет прозрачные cutout без crop по явной метке или PNG-расширению.
+
   if (item.cutout) return true;
   return /\.png(\?|$)/i.test(item.uri);
 }
 
 /** Пока только перетаскивание; масштаб на доске отключён до отдельного UX. */
 export function BoardItem({ item, canvasWidth, canvasHeight, onChange }: Props) {
+  // Перетаскивает фото внутри рабочей области и передаёт итог в JS только в конце жеста.
+
   const cutout = isCutoutItem(item);
   const x = useSharedValue(item.x);
   const y = useSharedValue(item.y);
@@ -35,6 +42,8 @@ export function BoardItem({ item, canvasWidth, canvasHeight, onChange }: Props) 
   const ch = useSharedValue(canvasHeight);
 
   useEffect(() => {
+    // Согласует shared values с размером доски и ограничивает элемент обновлёнными границами.
+
     cw.value = canvasWidth;
     ch.value = canvasHeight;
     x.value = Math.min(item.x, Math.max(0, canvasWidth - item.width));
@@ -79,6 +88,7 @@ export function BoardItem({ item, canvasWidth, canvasHeight, onChange }: Props) 
   );
 }
 
+// Абсолютные координаты элемента соответствуют рабочей области; прозрачный фон не перекрывает нижние слои доски.
 const styles = StyleSheet.create({
   item: { backgroundColor: "transparent" },
   image: { width: "100%", height: "100%", backgroundColor: "transparent" },

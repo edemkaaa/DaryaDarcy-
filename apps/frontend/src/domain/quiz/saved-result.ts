@@ -33,7 +33,7 @@ const saved = z
       : value.secondaryKey === null,
   );
 
-/** Browser data is untrusted; restore only keys/scores, never stored HTML or titles. */
+/** Восстанавливаем только проверенные ключи эстетик и баллы; подписи и тексты заново берём из текущей модели, а не из localStorage. */
 export function parseSavedQuizResult(raw: string | null): QuizResult | null {
   if (!raw || raw.length > 4096) return null;
   try {

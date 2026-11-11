@@ -17,6 +17,8 @@ export async function preparePrivatePostVideo(
   operation: ScopedOperation,
   withPoster = false,
 ): Promise<PrivatePostVideo> {
+  // Проверяет исходное видео; необязательная ошибка извлечения кадра не должна терять выбранный файл.
+
   operation.assertCurrent();
   const video: PrivatePostVideo = { key: crypto.randomUUID(), file };
   validatePrivatePostVideo(video);
@@ -53,10 +55,12 @@ type VideoScope = {
 
 /** Only optional preview URLs are temporary. Original File/key pairs go to the journal. */
 export function usePrivatePostVideos(active: boolean, slot: string | number) {
+  // Хранит оригиналы и квитанции видео в текущей области, временными делает только адреса обложек.
+
   const { user } = useAuth();
   const ownerId = user?.id;
   const resources = useMemo<VideoScope>(
-    () => ({ ownerId, active, slot, alive: true, posters: new Map() }),
+    () => /* Новая область аккаунта или слота получает собственные признаки жизни и карту постеров. */ ({ ownerId, active, slot, alive: true, posters: new Map() }),
     [ownerId, active, slot],
   );
   const [selection, setSelection] = useState<{
@@ -64,10 +68,14 @@ export function usePrivatePostVideos(active: boolean, slot: string | number) {
     videos: PrivatePostVideo[];
   } | null>(null);
   const release = useCallback(() => {
+    // Освобождает Blob-постеры, сохраняя байты видео для журнала.
+
     for (const url of resources.posters.values()) URL.revokeObjectURL(url);
     resources.posters.clear();
   }, [resources]);
   useEffect(() => {
+    // Помечает область живой только на время монтирования; закрытие запрещает поздние добавления и освобождает постеры.
+
     resources.alive = true;
     return () => {
       resources.alive = false;
@@ -75,10 +83,14 @@ export function usePrivatePostVideos(active: boolean, slot: string | number) {
     };
   }, [resources, release]);
   const reset = useCallback(() => {
+    // Очищает визуальный выбор и адреса при явном сбросе редактора.
+
     release();
     setSelection(null);
   }, [release]);
   const assertOwner = () => {
+    // Не разрешает позднему выбору файла попасть в закрытую форму или в другой аккаунт.
+
     if (
       !active ||
       !resources.alive ||
@@ -88,6 +100,8 @@ export function usePrivatePostVideos(active: boolean, slot: string | number) {
       throw new DOMException("Операция отменена", "AbortError");
   };
   const addPreview = (video: PrivatePostVideo) => {
+    // Создаёт локальный адрес только при наличии подготовленного кадра.
+
     if (video.poster)
       resources.posters.set(
         privatePostVideoReference(video),
@@ -97,8 +111,10 @@ export function usePrivatePostVideos(active: boolean, slot: string | number) {
   return {
     videos:
       active && selection?.resources === resources ? selection.videos : empty,
-    poster: (reference: string) => resources.posters.get(reference),
+    poster: (reference: string) => /* Возвращает постер выбранного локального видео, не инициируя загрузку в сеть. */ resources.posters.get(reference),
     add: async (file: File, operation: ScopedOperation, withPoster = false) => {
+      // Проверяет владельца до и после извлечения кадра, затем присоединяет оригинал к действующей области.
+
       assertOwner();
       const video = await preparePrivatePostVideo(file, operation, withPoster);
       operation.assertCurrent();
@@ -114,6 +130,8 @@ export function usePrivatePostVideos(active: boolean, slot: string | number) {
       return privatePostVideoReference(video);
     },
     remove: (reference: string) => {
+      // Освобождает только постер снятого видео; File и квитанции удерживаются для восстановления исходной операции.
+
       assertOwner();
       const url = resources.posters.get(reference);
       if (url) URL.revokeObjectURL(url);
@@ -122,6 +140,8 @@ export function usePrivatePostVideos(active: boolean, slot: string | number) {
       // A recovered idle coordinator may still refer to a now-unselected video.
     },
     restore: (videos: PrivatePostVideo[], references: string[]) => {
+      // Выбирает нужные ссылки для превью, сохраняя полный набор File и aliases для координатора.
+
       assertOwner();
       const selected = selectPrivatePostVideos(references, videos);
       release();

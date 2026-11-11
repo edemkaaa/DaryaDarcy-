@@ -13,6 +13,7 @@ const env = Object.fromEntries(
     })
 );
 
+// Проверка читает сохранённые JSON-поля, затем считает повреждённые/пустые данные; никаких исправлений не выполняется.
 const conn = await mysql.createConnection(env.DATABASE_URL);
 const [rows] = await conn.query(
   "SELECT id, target, photos, tags, richText FROM posts WHERE published = 1 AND target IN ('feed', 'both') ORDER BY sortOrder LIMIT 30"

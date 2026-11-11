@@ -25,14 +25,17 @@ import { requestMemberEmailBinding } from "../apps/backend/src/identity/email-bi
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 import { openLoopbackSmtp } from "./helpers/loopback-smtp";
 
+/** Проверяет встроенный worker привязки email с реальными SQL и loopback SMTP без внешних писем. */
 describe.skipIf(!testDatabaseUrl)(
   "binding jobs through the real worker and owned SQL/SMTP",
   () => {
     let conn: Connection, pool: Pool, database: MySql2Database;
     let smtp: Awaited<ReturnType<typeof openLoopbackSmtp>>;
+    /** Читает журнал привязки, outbox и аккаунт для независимой проверки worker. */
     async function rows(sql: string, params: unknown[] = []) {
       return (await conn.query<RowDataPacket[]>(sql, params))[0];
     }
+    /** Удаляет только outbox и intents своего инициатора, его audit и два собственных аккаунта. */
     async function cleanup() {
       await conn.query(
         "DELETE o FROM member_email_binding_outbox o JOIN member_email_bindings b USING(requestKey) WHERE b.actorUserId=91801",
@@ -45,6 +48,7 @@ describe.skipIf(!testDatabaseUrl)(
         "DELETE FROM users WHERE id IN (91801,91802) AND openId LIKE 'binding-worker-%'",
       );
     }
+    /** Открывает одноразовую БД, отдельный пул и loopback SMTP с synthetic ключом шифрования ссылок. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       pool = mysql.createPool({
@@ -69,6 +73,7 @@ describe.skipIf(!testDatabaseUrl)(
       vi.stubEnv("PUBLIC_APP_URL", "https://worker.example.test");
       vi.stubEnv("PUBLIC_AUTH_URL", "");
     });
+    /** Восстанавливает тестовые аккаунты и включает binding-worker, очищая принятые локальные письма. */
     beforeEach(async () => {
       await cleanup();
       smtp.reset();
@@ -77,6 +82,7 @@ describe.skipIf(!testDatabaseUrl)(
         "INSERT INTO users (id,openId,role,phone,passwordHash,sessionVersion) VALUES (91801,'binding-worker-admin','admin',NULL,'ADMIN_FIXTURE',0),(91802,'binding-worker-member','user','+70000091802','MEMBER_FIXTURE',2)",
       );
     });
+    /** Удаляет собственные записи, закрывает соединения и SMTP и возвращает окружение. */
     afterAll(async () => {
       if (conn) {
         await cleanup();
@@ -86,6 +92,7 @@ describe.skipIf(!testDatabaseUrl)(
       await smtp?.close();
       vi.unstubAllEnvs();
     });
+    /** Создаёт настоящий pending-intent с уникальным requestKey для собственного получателя. */
     async function queue() {
       const requestKey = randomUUID();
       await requestMemberEmailBinding(
@@ -95,6 +102,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       return requestKey;
     }
+    /** Запускает настоящий WorkerJobs на один цикл, подменяя только несвязанные effects, и ждёт завершения при stop. */
     async function cycle() {
       let application: INestApplication | undefined,
         jobs: WorkerJobs | undefined;
@@ -103,14 +111,23 @@ describe.skipIf(!testDatabaseUrl)(
         const operations = application.get<WorkerOperations>(WORKER_OPERATIONS);
         // Only unrelated effects are replaced. Binding helpers and sender are real.
         Object.assign(operations, {
+          /** Возвращает отдельный одноразовый Drizzle-пул worker. */
           getDb: async () => database,
+          /** Исключает публикационные записи из теста привязки email. */
           publishDueScheduledPosts: async () => [],
+          /** Не отправляет marketing push в тесте email-worker. */
           sendMarketingPostNotification: async () => {},
+          /** Исключает обработку отмены подписок из цикла fixture. */
           processCancellations: async () => {},
+          /** Не вызывает платёжного провайдера из несвязанных worker операций. */
           cancelProdamusSubscription: async () => false,
+          /** Не отправляет письма платёжного доступа в тесте binding. */
           processAccessEmails: async () => {},
+          /** Не обрабатывает магазинный email-outbox в данном fixture. */
           processPendingShopDeliveryEmails: async () => {},
+          /** Исключает общую очистку данных из проверяемого binding-цикла. */
           runDataRetentionMaintenance: async () => {},
+          /** Не создаёт резервные копии во время теста email-worker. */
           runMysqlBackupIfDue: async () => {},
         });
         jobs = application.get<WorkerJobs>(WorkerJobs);
@@ -122,6 +139,7 @@ describe.skipIf(!testDatabaseUrl)(
         await application?.close();
       }
     }
+    /** Включённый worker доставляет одно локальное proof-письмо и очищает cipher без изменения аккаунта или выдачи подписки. */
     it("enabled worker delivers a pending binding without changing identity or access", async () => {
       const key = await queue();
       const identity = await rows(
@@ -144,6 +162,7 @@ describe.skipIf(!testDatabaseUrl)(
         await rows("SELECT id FROM club_payments WHERE userId=91802"),
       ).toEqual([]);
     });
+    /** Флаги, отличные от явного true, не запускают доставку и не увеличивают attempts. */
     it.each(["", "false", "1"])(
       "binding jobs remain disabled for flag=%s",
       async (flag) => {
@@ -159,6 +178,7 @@ describe.skipIf(!testDatabaseUrl)(
         ).toEqual([{ attempts: 0, sentAt: null }]);
       },
     );
+    /** SMTP-отказ сохраняет retry, ближайший tick его не повторяет; после nextAttemptAt письмо успешно принимается. */
     it("retries SMTP refusal only after the persisted delay", async () => {
       const key = await queue();
       smtp.rejectRecipients(true);
@@ -191,6 +211,7 @@ describe.skipIf(!testDatabaseUrl)(
         ),
       ).toEqual([{ attempts: 2, sent: 1 }]);
     });
+    /** Worker истекает proof с удалением секретов, затем после retention удаляет terminal intent и его outbox. */
     it("expires proofs and purges terminal history through the scheduled worker", async () => {
       const key = await queue();
       await conn.query(
@@ -229,6 +250,7 @@ describe.skipIf(!testDatabaseUrl)(
         ),
       ).toEqual([]);
     });
+    /** Отсутствующий outbox или неверные уникальные индексы запрещают даже очистку и доставку pending-intent. */
     it.each(["outbox", "identity-index", "proof-index", "identity-definition"])(
       "refuses partial schema (%s) before cleanup or delivery",
       async (part) => {

@@ -29,6 +29,7 @@ export const commentsPageInput = z
   .strict();
 
 /** Ограничиваем страницу и проверяем контекст курсора перед возвратом обсуждения. */
+/** Одним snapshot проверяет published/club доступ и parent-принадлежность, затем выдаёт keyset-страницу roots либо replies с batched like/reply counts и totalCount. */
 export async function commentsPage(
   database: MySql2Database | null,
   actor: User,

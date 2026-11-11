@@ -27,6 +27,7 @@ export const HOUSE_IMAGES: Record<AestheticKey, { uri: string }> = {
   darkAcademia: { uri: "/assets/quiz/houses/dark-academia.webp" },
   lightAcademia: { uri: "/assets/quiz/houses/light-academia.webp" },
 };
+/** Эти исходные пути задают идентичность и порядок иллюстраций для сопоставления с защищёнными привязками; экран подставляет URL из API. */
 export const MOODBOARDS: Record<AestheticKey, { uri: string }[]> = {
   cottagecore: [
     { uri: "/assets/results/cottagecore/moodboards/moodboard1.webp" },
@@ -180,6 +181,7 @@ export const INTERIORS: Record<AestheticKey, { uri: string }[]> = {
   ],
 };
 
+/** Передаём ширину экрана в расчёт баннеров и трёх независимых форматов каруселей. */
 export function getAestheticsScreenContent(viewport: ViewportSize) {
   const { width } = viewport;
   return { width };

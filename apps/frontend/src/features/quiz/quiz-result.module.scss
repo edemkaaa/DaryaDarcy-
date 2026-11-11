@@ -10,6 +10,7 @@
     padding-bottom: 60px;
   }
 
+  /* Вкладки смешанного результата равномерно делят строку, активность отмечается нижней границей без сдвига высоты. */
   .blendTabs {
     flex-direction: row;
     justify-content: center;
@@ -34,6 +35,7 @@
     font-size: 15px;
   }
 
+  /* Hero, нижний градиент и подписи образуют наложенные слои с общей рамкой. */
   .heroContainer {
     position: relative;
   }
@@ -81,6 +83,7 @@
     margin-top: 6px;
   }
 
+  /* Короткий итог отделён карточкой от подробного описания эстетики. */
   .div {
     margin-left: 24px;
     margin-right: 24px;
@@ -127,6 +130,7 @@
     margin-bottom: 10px;
   }
 
+  /* Шкалы используют отдельную числовую колонку и flex-трек, чтобы разные значения не двигали подписи. */
   .scoresContainer {
     gap: 10px;
   }
@@ -167,6 +171,7 @@
     color: var(--muted);
   }
 
+  /* Клубное продолжение оформлено отдельным CTA, не смешанным с бесплатным результатом. */
   .clubCTA {
     margin-left: 24px;
     margin-right: 24px;
@@ -210,6 +215,7 @@
     font-family: EBGaramond_700Bold;
   }
 
+  /* Возврат и повтор теста сгруппированы после результата; условные классы ниже меняют только выбор вкладок. */
   .actionsContainer {
     padding-left: 24px;
     padding-right: 24px;

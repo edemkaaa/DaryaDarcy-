@@ -4,10 +4,12 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { Connection, RowDataPacket } from "mysql2/promise";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 
+/** Проверяем эксклюзивность и передачу фоновой задачи между двумя реальными процессами, пока второй HTTP остаётся доступным. */
 describe.skipIf(!testDatabaseUrl)(
   "worker handover while another API stays online",
   () => {
     let conn: Connection;
+    /** Создаём отдельную InnoDB probe-таблицу счётчика настоящих коммитов задания. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       await conn.query(
@@ -15,11 +17,13 @@ describe.skipIf(!testDatabaseUrl)(
       );
       await conn.query("INSERT INTO backend_shutdown_probe VALUES (1,0)");
     });
+    /** Удаляем только служебную probe-таблицу одноразовой БД и закрываем соединение. */
     afterAll(async () => {
       await conn?.query("DROP TABLE IF EXISTS backend_shutdown_probe");
       await conn?.end();
     });
 
+    /** Поднимаем отдельный loopback API с mysql-координацией, фиксируем exit и ждём готовность по IPC. */
     async function replica(children: ChildProcess[]) {
       const child = fork(
         resolve("tests/helpers/worker-shutdown-process.ts"),
@@ -44,6 +48,7 @@ describe.skipIf(!testDatabaseUrl)(
       }>((done) => {
         child.once("exit", (code, signal) => done({ code, signal }));
       });
+      /** Ограниченно ждём один IPC-ответ, снимая подписки и таймер при успехе или смерти процесса. */
       function answer(
         timeout = 5000,
       ): Promise<{ base?: string; holding?: boolean; runs?: number }> {
@@ -52,8 +57,11 @@ describe.skipIf(!testDatabaseUrl)(
             () => finish(new Error("Replica reply timeout")),
             timeout,
           );
+          /** Завершаем ожидание ошибкой, если процесс вышел раньше IPC-ответа. */
           const onExit = () => finish(new Error("Replica exited before reply"));
+          /** Передаём полученный IPC-ответ общей функции очистки ожидания. */
           const onMessage = (message: object) => finish(undefined, message);
+          /** Единой точкой снимаем таймер и события перед разрешением либо отклонением ожидания. */
           function finish(error?: Error, message?: object) {
             clearTimeout(timer);
             child.off("exit", onExit);
@@ -71,6 +79,7 @@ describe.skipIf(!testDatabaseUrl)(
         child,
         exited,
         base: ready.base!,
+        /** Подписываемся на ответ до отправки IPC-команды, закрывая гонку быстрого ответа. */
         ask(action: string) {
           const pending = answer();
           child.send({ action });
@@ -81,6 +90,7 @@ describe.skipIf(!testDatabaseUrl)(
 
     // Ловит раннее закрытие пула/lock до завершения job и отсутствие handover
     // после аварийного завершения. SQL-эффекты настоящие, отправки наружу нет.
+    /** Сравниваем graceful drain, deadline и SIGKILL: пока владелец жив задача не дублируется, затем второй API получает lock и коммитит, сохраняя HTTP. */
     it.each(["drain", "deadline", "kill"] as const)(
       "preserves exclusivity and hands over after %s",
       async (mode) => {

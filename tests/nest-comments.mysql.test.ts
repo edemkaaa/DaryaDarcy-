@@ -26,6 +26,7 @@ vi.mock("../apps/backend/src/push", () => ({
   sendMarketingPostNotification: vi.fn(async () => undefined),
 }));
 
+/** Проверяет комментарии и реакции через настоящий HTTP, JWT, политики доступа и отдельный SQL с подменой только внешнего push. */
 describe.skipIf(!testDatabaseUrl)(
   "native discussion/reactions over HTTP/JWT/MySQL",
   () => {
@@ -33,6 +34,7 @@ describe.skipIf(!testDatabaseUrl)(
       conn: Connection,
       base: string,
       bearer: string;
+    /** Создаёт tRPC HTTP-клиент выбранной сессии либо гостя. */
     const client = (token?: string) =>
       createTRPCProxyClient<AppRouter>({
         links: [
@@ -43,6 +45,7 @@ describe.skipIf(!testDatabaseUrl)(
           }),
         ],
       });
+    /** Находит собственные комментарии, затем удаляет только их likes, reports и строки по индексируемым ID. */
     async function clearDiscussion() {
       const [rows] = await conn.query<RowDataPacket[]>(
         "SELECT id FROM post_comments WHERE postId BETWEEN 8990 AND 8995",
@@ -58,6 +61,7 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query("DELETE FROM post_comments WHERE id IN (?)", [ids]);
       }
     }
+    /** Поднимает локальный API и создаёт пользователей, подписку и посты разных целей, статусов и окон обсуждения. */
     beforeAll(async () => {
       vi.stubEnv("API_DB_BURST_QUEUE_ENABLED", "true");
       conn = await openContentTestDatabase();
@@ -84,6 +88,7 @@ describe.skipIf(!testDatabaseUrl)(
         sessionVersion: 0,
       });
     });
+    /** Возвращает актуальную сессию и подписку, сбрасывает push-capture и собственные обсуждения и реакции. */
     beforeEach(async () => {
       push.mockClear();
       await conn.query(
@@ -99,6 +104,7 @@ describe.skipIf(!testDatabaseUrl)(
         "INSERT INTO post_comments (id,postId,userId,text) VALUES (8990,8990,8991,'club author'),(8991,8991,8991,'public author'),(8993,8993,8991,'draft author'),(8994,8994,8991,'hidden author')",
       );
     });
+    /** Удаляет свои обсуждения, реакции, посты и аккаунты и закрывает API и SQL-пул. */
     afterAll(async () => {
       await application?.close();
       if (conn) {
@@ -117,18 +123,21 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** Читает контрольный набор комментариев только собственного диапазона постов. */
     async function comments() {
       const [rows] = await conn.query<RowDataPacket[]>(
         "SELECT id,postId,parentId,userId,text,photos FROM post_comments WHERE postId BETWEEN 8990 AND 8995 ORDER BY id",
       );
       return rows;
     }
+    /** Формирует набор edit, like, delete и report для проверки одинаковой политики каждого изменения комментария. */
     const mutations = (id: number) => [
       () => client(bearer).club.updateComment.mutate({ id, text: "changed" }),
       () => client(bearer).club.toggleCommentLike.mutate({ commentId: id }),
       () => client(bearer).club.deleteComment.mutate({ id }),
       () => client(bearer).club.reportComment.mutate({ id, reason: "reason" }),
     ];
+    /** Проверяет отдельное служебное право модератора без выдуманного оплаченного периода и без права на admin payments. */
     it("subscription reports moderator service access separately from a paid period", async () => {
       await conn.query("UPDATE users SET role='moderator' WHERE id=8990");
       await conn.query(
@@ -148,6 +157,7 @@ describe.skipIf(!testDatabaseUrl)(
         data: { code: "FORBIDDEN", httpStatus: 403 },
       });
     });
+    /** Проверяет независимость оплаченной подписки, staff-полномочий и блокировки пользователя. */
     it("keeps paid access separate from moderator authority", async () => {
       await conn.query("UPDATE users SET role='moderator' WHERE id=8990");
       expect(await client(bearer).club.subscription.query()).toMatchObject({
@@ -181,6 +191,7 @@ describe.skipIf(!testDatabaseUrl)(
           expiresAt: null,
         });
     });
+    /** Проверяет чтение и добавление комментария открытого feed/both поста авторизованным пользователем без подписки. */
     it.each(["feed", "both"])(
       "reads the saved public %s comment without a paid subscription",
       async (target) => {
@@ -227,6 +238,7 @@ describe.skipIf(!testDatabaseUrl)(
         }
       },
     );
+    /** Проверяет обязательную действующую сессию даже для открытого обсуждения. */
     it("requires a live authenticated account even for public discussion", async () => {
       const original = await comments();
       for (const postId of [8990, 8991]) {
@@ -246,6 +258,7 @@ describe.skipIf(!testDatabaseUrl)(
       }
       expect(await comments()).toEqual(original);
     });
+    /** Проверяет чтение старого публичного обсуждения при уже закрытом окне добавления. */
     it("keeps old public discussion readable but its posting window closed", async () => {
       await conn.query(
         "UPDATE club_payments SET expiresAt='2020-01-01' WHERE orderId='native-comment-subscription'",
@@ -271,6 +284,7 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query("UPDATE posts SET publishedAt=NOW() WHERE id=8991");
       }
     });
+    /** Проверяет служебный доступ администратора и модератора к обсуждению клуба без оплаченного периода. */
     it.each(["admin", "moderator"])(
       "keeps %s service access to club discussion without a paid period",
       async (role) => {
@@ -283,6 +297,7 @@ describe.skipIf(!testDatabaseUrl)(
         ).toMatchObject([{ id: 8990, text: "club author" }]);
       },
     );
+    /** Проверяет отсутствие доступа к draft, scheduled, hidden и отсутствующему обсуждению без изменения записей. */
     it("hides draft, scheduled, hidden and absent discussions from unpaid readers", async () => {
       await conn.query(
         "UPDATE club_payments SET expiresAt='2020-01-01' WHERE orderId='native-comment-subscription'",
@@ -307,6 +322,7 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query("UPDATE posts SET status='draft' WHERE id=8993");
       }
     });
+    /** Проверяет поля автора и персональный likedByMe только при действующем доступе к клубному обсуждению. */
     it("lists club author fields and viewer likes only for a live member", async () => {
       expect(
         await client(bearer).club.toggleCommentLike.mutate({ commentId: 8990 }),
@@ -331,6 +347,7 @@ describe.skipIf(!testDatabaseUrl)(
         data: { code: "FORBIDDEN", httpStatus: 403 },
       });
     });
+    /** Проверяет запрет всех изменений клубных комментариев после expiry без записей и уведомлений. */
     it("denies all club mutations after expiry without changing records or notifying", async () => {
       const original = await comments();
       await conn.query(
@@ -358,6 +375,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(reports).toEqual([]);
       expect(push).not.toHaveBeenCalled();
     });
+    /** Проверяет сокрытие неопубликованного обсуждения даже для администратора во всех пользовательских read/write процедурах. */
     it.each([8993, 8994])(
       "hides unpublished post %s for list/add/all mutations even from admin",
       async (postId) => {
@@ -376,6 +394,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(push).not.toHaveBeenCalled();
       },
     );
+    /** Проверяет закрытое окно старой или не-community публикации без добавления комментария. */
     it.each([8992, 8995])(
       "retains closed/non-community comment window for %s",
       async (postId) => {
@@ -389,6 +408,7 @@ describe.skipIf(!testDatabaseUrl)(
         ).toEqual([]);
       },
     );
+    /** Проверяет trim текста, сохранение фото и исключительное право автора редактировать комментарий даже при чужой admin-роли. */
     it("persists trimmed text/photos and author-only edit", async () => {
       const { id } = await client(bearer).club.addComment.mutate({
         postId: 8990,
@@ -423,6 +443,7 @@ describe.skipIf(!testDatabaseUrl)(
         "club author",
       );
     });
+    /** Проверяет принадлежность parent выбранному посту, запись ответа и уведомление только другого автора с ограниченным текстом. */
     it("checks parent belongs to the post, persists replies, and only notifies another author", async () => {
       for (const [parentId, code] of [
         [8991, "BAD_REQUEST"],
@@ -459,6 +480,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       expect(push).toHaveBeenCalledTimes(1);
     });
+    /** Проверяет upsert единственной жалобы и атомарное удаление модератором с отвязкой ответов и очисткой likes/reports. */
     it("upserts one report and atomically removes associations on live moderator deletion", async () => {
       await client(bearer).club.toggleCommentLike.mutate({ commentId: 8990 });
       for (const reason of ["first reason", " second reason "])
@@ -496,6 +518,7 @@ describe.skipIf(!testDatabaseUrl)(
         client(bearer).club.deleteComment.mutate({ id: 8991 }),
       ).rejects.toMatchObject({ data: { code: "FORBIDDEN", httpStatus: 403 } });
     });
+    /** Проверяет операции автора и реакции открытого обсуждения для авторизованного пользователя без подписки. */
     it("preserves public comment mutation access for authenticated non-members", async () => {
       await conn.query(
         "UPDATE club_payments SET expiresAt='2020-01-01' WHERE orderId='native-comment-subscription'",
@@ -523,6 +546,7 @@ describe.skipIf(!testDatabaseUrl)(
         ok: true,
       });
     });
+    /** Проверяет отказ всех обсуждений и записей после блокировки или отзыва сессии без push. */
     it.each(["blockedAt=NOW()", "sessionVersion=1"])(
       "rejects all discussion writes/list after %s",
       async (patch) => {
@@ -544,6 +568,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(push).not.toHaveBeenCalled();
       },
     );
+    /** Удерживает первую настоящую reaction-транзакцию и проверяет, что следующий toggle видит её committed-состояние. */
     it.each(["toggleLike", "toggleSave"] as const)(
       "waits for an in-flight %s transaction and observes its committed state",
       async (method) => {
@@ -564,6 +589,7 @@ describe.skipIf(!testDatabaseUrl)(
             DO RELEASE_LOCK('${gate}'); END IF; END`);
           ownsTrigger = true;
           requests.push(client(bearer).feed[method].mutate({ postId: 8991 }));
+          /** Читает число ожидающих тестовую advisory-блокировку запросов для точной синхронизации гонки. */
           const waiting = async () => {
             const [rows] = await conn.query<RowDataPacket[]>(
               "SELECT COUNT(*) n FROM performance_schema.metadata_locks WHERE OBJECT_TYPE='USER LEVEL LOCK' AND OBJECT_NAME=? AND LOCK_STATUS='PENDING'",
@@ -608,6 +634,7 @@ describe.skipIf(!testDatabaseUrl)(
       },
       15_000,
     );
+    /** Проверяет отказ невалидных, отсутствующих и недоступных постов до reaction SQL, сохраняя открытые реакции без подписки. */
     it.each(["toggleLike", "toggleSave"] as const)(
       "rejects %s for invalid, absent, unpublished and inaccessible posts without SQL writes",
       async (method) => {
@@ -650,6 +677,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(rows).toEqual([]);
       },
     );
+    /** Проверяет служебный доступ staff и сохранность уже существующей закрытой реакции при отказе обычному пользователю. */
     it.each(["toggleLike", "toggleSave"] as const)(
       "preserves staff club access and does not remove inaccessible existing %s rows",
       async (method) => {
@@ -685,6 +713,7 @@ describe.skipIf(!testDatabaseUrl)(
         ).toEqual(before);
       },
     );
+    /** Удерживает post-lock, меняет видимость и проверяет повторную проверку публикации перед toggle. */
     it.each(["toggleLike", "toggleSave"] as const)(
       "rechecks publication after %s waits for a concurrent visibility edit",
       async (method) => {
@@ -729,6 +758,7 @@ describe.skipIf(!testDatabaseUrl)(
         }
       },
     );
+    /** Проверяет чётность двадцати и двадцати одного конкурентного toggle без дублей и потерянных переключений. */
     it.each(["toggleLike", "toggleSave"] as const)(
       "serializes concurrent %s requests without duplicates or lost toggles",
       async (method) => {
@@ -757,6 +787,7 @@ describe.skipIf(!testDatabaseUrl)(
         }
       },
     );
+    /** Проверяет независимость конкурентных toggle разных пользователей. */
     it.each(["toggleLike", "toggleSave"] as const)(
       "keeps concurrent %s requests isolated between actors",
       async (method) => {
@@ -789,6 +820,7 @@ describe.skipIf(!testDatabaseUrl)(
         }
       },
     );
+    /** Проверяет выключение всех legacy-дублей только выбранного поста и единственную новую строку при повторном включении. */
     it.each(["toggleLike", "toggleSave"] as const)(
       "disables all legacy %s duplicates without changing another post",
       async (method) => {
@@ -812,6 +844,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(enabled).toEqual([{ postId: 8991 }]);
       },
     );
+    /** Проверяет общий откат reaction-вставки и освобождение lock для следующего запроса после снятия отказного триггера. */
     it.each(["toggleLike", "toggleSave"] as const)(
       "rolls back failed %s writes and releases locks for the next request",
       async (method) => {
@@ -842,6 +875,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(rows).toEqual([{ userId: 8990, postId: 8991 }]);
       },
     );
+    /** Проверяет прежний boolean-результат и coercion ID при обязательной текущей идентичности actor. */
     it.each(["toggleLike", "toggleSave"] as const)(
       "retains boolean/coerced input and actor identity for %s",
       async (method) => {

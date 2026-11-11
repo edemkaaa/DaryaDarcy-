@@ -34,6 +34,7 @@ export async function enforceReturnCheckLimit(req: Request, res: Response): Prom
   refuse(keyLimit, res);
 }
 
+/** Преобразует отказ квоты в 429 и Retry-After, не продолжая провайдерскую проверку. */
 function refuse(limit: Awaited<ReturnType<typeof checkRequestRateLimit>>, res: Response): void {
   if (limit.ok) return;
   res.setHeader("Retry-After", limit.retryAfterSec);

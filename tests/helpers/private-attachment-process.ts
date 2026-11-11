@@ -7,9 +7,12 @@ import { once } from "node:events";
 
 /** Two fresh compiled Node processes, no dotenv/listeners/jobs from production boot. */
 export async function privateAttachmentProcesses() {
+  // Компилирует отдельный probe API без production boot и даёт каждому запуску явное тестовое окружение и локальный wire.
+
   const root = new URL("../../", import.meta.url).pathname;
   const directory = await mkdtemp(join(tmpdir(), "daryadarcy-ag4-process-"));
   const active = new Set<ChildProcess>();
+  // Встроенный probe-код является неизменяемой строкой сборки: сообщает команды SDK и готовность, закрывает приложение по stdin.
   const source = `
     import { createBackendApplication } from ${JSON.stringify(join(root, "apps/backend/src/_core/application.ts"))};
     import { getDb } from ${JSON.stringify(join(root, "apps/backend/src/db.ts"))};
@@ -46,6 +49,9 @@ export async function privateAttachmentProcesses() {
         appOrigin?: string;
       } = {},
     ) {
+      // Разрешает только loopback origin браузера и ограниченный набор передаваемых переменных; готовность подтверждается собственным JSON-событием.
+
+      // Передаётся явный набор тестовых переменных; родитель должен настроить локальный wire и охраняемую БД до запуска.
       const env: Record<string, string> = {
         PATH: process.env.PATH!,
         NODE_ENV: "test",
@@ -131,6 +137,8 @@ export async function privateAttachmentProcesses() {
         pid: child.pid!,
         commands,
         stop: async () => {
+          // Просит дочерний API закрыть пул, а по deadline завершает лишь известный дочерний процесс.
+
           if (!active.has(child)) return;
           const exited = once(child, "exit");
           child.stdin!.end("close\n");
@@ -147,6 +155,8 @@ export async function privateAttachmentProcesses() {
     return {
       start,
       close: async () => {
+        // Останавливает принадлежащие фикстуре процессы и удаляет только каталог с проверенным временным префиксом.
+
         for (const child of active) {
           if (child.exitCode === null && child.signalCode === null) {
             const exited = once(child, "exit");

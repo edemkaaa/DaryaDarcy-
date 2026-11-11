@@ -2,6 +2,7 @@
 /** Параметры размытия преобразуем в CSS-оформление слоя; доступ к содержимому этим эффектом не ограничивается. */
 import { mergeStyles } from "@/shared/ui/css";
 import { type BoxProps } from "@/shared/ui/elements";
+/** Имитируем слой размытия через backdrop-filter и полупрозрачную подложку; это только оформление доступного содержимого. */
 export function BlurView({
   intensity = 50,
   tint = "light",

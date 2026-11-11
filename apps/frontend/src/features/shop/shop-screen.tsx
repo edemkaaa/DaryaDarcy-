@@ -37,6 +37,7 @@ import {
 } from "./shop-screen.content";
 import { getShopScreenContent } from "./shop-screen.content";
 import type { Product } from "./shop-screen.content";
+/** Привязываем товарные карточки к координатам исходной иллюстрации полки; фокус экрана управляет только декоративными анимациями. */
 function ShopScreenInner() {
   const viewport = useViewport();
   const {
@@ -53,6 +54,7 @@ function ShopScreenInner() {
   const router = useRouter();
   const books = PRODUCTS.filter((p) => p.type === "book");
   const digitals = PRODUCTS.filter((p) => p.type === "digital");
+  /** Открываем детальную карточку по ID товара без создания заказа. */
   const handleProductPress = (product: Product) => {
     router.push(`/shop/${product.id}`);
   };
@@ -244,6 +246,7 @@ function ShopScreenInner() {
     };
   });
   // Helper: each mote combines autonomous loop + scroll-driven displacement
+  /** Сочетаем собственный цикл частицы с текущим scrollY; один helper сохраняет согласованный расчёт всех декоративных пылинок. */
   const useDustStyle = (
     loop: SharedValue<number>,
     baseY: number,
@@ -328,6 +331,7 @@ function ShopScreenInner() {
   const SHELF4_PLANK_BOTTOM = shelfImageHeight * 0.785;
   // Metal nameplates sit on the shelf front edge (торец), not below it
   // Front lip of the shelf plank (below book bottoms), not on the book spines
+  /** Выровняем табличку по переднему краю полки с учётом её собственной высоты. */
   const shelfLabelTop = (plankBottom: number) =>
     plankBottom - LABEL_HEIGHT * 0.05;
   const digitalInner = SCREEN_WIDTH - DIGITAL_SIDE * 2;
@@ -337,7 +341,9 @@ function ShopScreenInner() {
     DIGITAL_SIDE + digitalGap * 2 + BOOK_WIDTH + BOOK_WIDTH / 2;
   const shelf3LabelTop = shelfLabelTop(SHELF3_PLANK_BOTTOM);
   // Price tags on left/right edges of nameplates (see shop mockup)
+  /** Получаем левый край центрально расположенной таблички для ценника. */
   const nameplateLeft = (cx: number) => cx - LABEL_WIDTH / 2;
+  /** Получаем правый край таблички симметрично её центру. */
   const nameplateRight = (cx: number) => cx + LABEL_WIDTH / 2;
   const PRICE_TAG_EDGE_OVERLAP = TAG_W * 0.2;
   const PRICE_TAG_TOP = shelf3LabelTop + LABEL_HEIGHT - TAG_H * 0.72;
@@ -614,6 +620,7 @@ function ShopScreenInner() {
     </div>
   );
 }
+/** Сохраняем общую внешнюю stack-обёртку экрана, оставляя всю витрину внутреннему компоненту. */
 export default function ShopScreen() {
   return (
     <div className="ui-stack ">

@@ -10,6 +10,7 @@ for line in (root / ".env").read_text(encoding="utf-8").splitlines():
         k, v = line.split("=", 1)
         env[k.strip()] = v.strip()
 
+# Windows-путь env и автоматическое доверие SSH относятся к старому окружению; не запускать как универсальный preflight.
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 sock = socket.create_connection((env["DEPLOY_HOST"], 22), 45)
@@ -42,6 +43,7 @@ import subprocess, json
 # just check via mysql client if available
 PY
 """
+# Получает только диагностику настроек и HTTP; доставки конкретного письма этот сценарий не подтверждает.
 stdin, stdout, stderr = client.exec_command(cmd, timeout=30)
 out = stdout.read().decode("utf-8", errors="replace")
 err = stderr.read().decode("utf-8", errors="replace")

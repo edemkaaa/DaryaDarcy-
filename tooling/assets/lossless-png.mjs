@@ -6,6 +6,8 @@ import { deflateSync, inflateSync, crc32, constants } from "node:zlib";
 const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 const channels = { 0: 1, 2: 3, 3: 1, 4: 2, 6: 4 };
 function chunks(bytes) {
+  // Проверяет сигнатуру, длины и CRC всех PNG chunks, сохраняя исходные дополнительные блоки для неизменной сборки.
+
   if (!bytes.subarray(0, 8).equals(signature)) throw new Error("Not PNG");
   const result = [];
   for (let offset = 8; offset < bytes.length;) {
@@ -21,11 +23,15 @@ function chunks(bytes) {
   return result;
 }
 function paeth(left, up, corner) {
+  // Выбирает стандартный PNG-предиктор по ближайшему соседу без изменения восстановленных байтов образцов.
+
   const value = left + up - corner;
   const a = Math.abs(value - left), b = Math.abs(value - up), c = Math.abs(value - corner);
   return a <= b && a <= c ? left : b <= c ? up : corner;
 }
 function predictor(filter, left, up, corner) {
+  // Сопоставляет допустимый номер фильтра PNG с его предсказанием; неизвестный фильтр не угадывается.
+
   switch (filter) {
     case 0: return 0;
     case 1: return left;
@@ -36,6 +42,8 @@ function predictor(filter, left, up, corner) {
   }
 }
 function unfilter(filtered, width, height, bpp) {
+  // Восстанавливает точные строки образцов по фильтру, предыдущей строке и ширине пикселя.
+
   if (filtered.length !== (width + 1) * height) throw new Error("Invalid PNG scanlines");
   const raw = Buffer.alloc(width * height);
   for (let y = 0; y < height; y++) {
@@ -50,6 +58,8 @@ function unfilter(filtered, width, height, bpp) {
   return raw;
 }
 function refilter(raw, width, height, bpp) {
+  // Выбирает меньшую стоимость кодирования строки среди стандартных фильтров, не меняя исходные raw-байты.
+
   const output = Buffer.alloc((width + 1) * height);
   const candidate = Buffer.alloc(width);
   for (let y = 0; y < height; y++) {
@@ -73,6 +83,8 @@ function refilter(raw, width, height, bpp) {
   return output;
 }
 function idat(data) {
+  // Собирает единственный новый IDAT с корректными длиной и CRC для выбранного сжатого потока.
+
   const result = Buffer.alloc(data.length + 12);
   result.writeUInt32BE(data.length);
   result.write("IDAT", 4, "ascii");
@@ -81,6 +93,8 @@ function idat(data) {
   return result;
 }
 export function optimizeLosslessPng(bytes) {
+  // Перепаковывает только поддерживаемый PNG после проверки обратимости; APNG, interlace и неполезное увеличение сохраняются как есть.
+
   const parts = chunks(bytes);
   const header = parts.find((part) => part.type === "IHDR")?.data;
   // APNG and interlaced files require different scanline handling; preserve them.

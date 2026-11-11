@@ -2,22 +2,28 @@ import { expect, test, type Page } from "@playwright/test";
 import { editorApi, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
+/** Выбираем отдельную операцию архивирования повреждённого черновика, а не обычный retry чтения. */
 const recover = (page: Page) =>
   page.getByRole("button", {
     name: "Восстановить редактор",
     exact: true,
   });
+/** Повтор чтения не должен удалять или архивировать исходные данные. */
 const retryRead = (page: Page) =>
   page.getByRole("button", {
     name: "Повторить",
     exact: true,
   });
+/** Создание новой статьи отражает блокировку только конфликтующего new-slot. */
 const create = (page: Page) =>
   page.getByRole("button", { name: "Написать статью", exact: true });
+/** Адресуем заголовок реального открытого редактора. */
 const title = (page: Page) => page.getByPlaceholder("Что посмотреть осенью...");
+/** Здоровый черновик продолжается независимо от повреждённого слота другой статьи. */
 const restore = (page: Page) =>
   page.getByRole("button", { name: "Продолжить черновик статьи", exact: true });
 
+/** Считаем любые remote-write, чтобы восстановление локального IndexedDB не превратилось в публикацию или загрузку. */
 async function fixture(page: Page) {
   const writes: string[] = [];
   await editorApi(page, (name) => {
@@ -38,6 +44,7 @@ async function fixture(page: Page) {
   });
   return writes;
 }
+/** Закладываем один повреждённый slot с исходным File и при необходимости здоровый другой slot в ту же транзакцию. */
 async function seed(
   page: Page,
   badSlot: number | null,
@@ -101,6 +108,7 @@ async function seed(
     { badSlot, validSlot },
   );
 }
+/** Читаем активные drafts и recovery-копии вместе с содержимым File: одной записи о backup недостаточно без сохранённых байтов. */
 async function stored(page: Page) {
   return page.evaluate(async () => {
     type Entry = {
@@ -151,11 +159,13 @@ async function stored(page: Page) {
     };
   });
 }
+/** Перезагружаем приложение перед выбором статей, исключая только in-memory восстановление. */
 async function openArticles(page: Page) {
   await page.reload();
   await page.getByRole("button", { name: "Статьи", exact: true }).click();
 }
 
+/** Архивирование требует подтверждения; отказ оставляет оригинал, согласие переносит его с File и не мешает здоровому edit-draft. */
 test("a damaged new draft leaves healthy drafts usable and is archived with original file bytes only after confirmation", async ({
   page,
 }) => {
@@ -228,6 +238,7 @@ test("a damaged edit blocks only that article and the server article can be open
   expect(writes).toEqual([]);
 });
 
+/** Искусственный quota-failure до add оставляет исходный slot заблокированным и допускает явный повтор. */
 test("a failed backup leaves the original draft locked and can be retried", async ({
   page,
 }) => {
@@ -238,6 +249,7 @@ test("a failed backup leaves the original draft locked and can be retried", asyn
   await page.evaluate(() => {
     const add = IDBObjectStore.prototype.add;
     Object.assign(window, { failDraftBackup: true });
+    /** Отказываем только записи в article-drafts; остальные операции IndexedDB проходят нативно. */
     IDBObjectStore.prototype.add = function (...args) {
       if (
         this.transaction.db.name === "darcy-article-drafts" &&
@@ -294,6 +306,7 @@ test("a valid replacement from another tab is preserved and can be discovered wi
   expect(writes).toEqual([]);
 });
 
+/** Ошибка открытия хранилища предлагает retry без удаления данных и не выдаёт повреждение за отсутствие черновика. */
 test("an initial IndexedDB read failure can be retried and does not require deleting data", async ({
   page,
 }) => {
@@ -301,6 +314,7 @@ test("an initial IndexedDB read failure can be retried and does not require dele
   await page.addInitScript(() => {
     const open = indexedDB.open.bind(indexedDB);
     Object.assign(window, { failDraftRead: true });
+    /** Инъекция SecurityError действует только на article-drafts до явного снятия флага; native open сохранён для остальных БД. */
     indexedDB.open = ((...args: Parameters<IDBFactory["open"]>) => {
       if (
         args[0] === "darcy-article-drafts" &&
@@ -323,6 +337,7 @@ test("an initial IndexedDB read failure can be retried and does not require dele
   expect(writes).toEqual([]);
 });
 
+/** Сбой чтения после успешного архива не отменяет backup и не заставляет архивировать второй раз. */
 test("a failed refresh after archiving preserves the backup and a read retry unlocks the editor", async ({
   page,
 }) => {
@@ -335,6 +350,7 @@ test("a failed refresh after archiving preserves the backup and a read retry unl
     const open = indexedDB.open.bind(indexedDB);
     let draftReads = 0;
     Object.assign(window, { failDraftRefresh: true });
+    /** Отказываем второму открытию после архива, чтобы отдельно проверить ошибку обновления списка уже сохранённых копий. */
     indexedDB.open = ((...args: Parameters<IDBFactory["open"]>) => {
       if (
         args[0] === "darcy-article-drafts" &&
@@ -376,6 +392,7 @@ test("a failed refresh after archiving preserves the backup and a read retry unl
   expect(writes).toEqual([]);
 });
 
+/** Одновременное подтверждение архивирования сохраняет один backup и File; проигравшая вкладка сначала перечитывает состояние. */
 test("two tabs cannot archive the same damaged draft twice or lose its file", async ({
   page,
   context,

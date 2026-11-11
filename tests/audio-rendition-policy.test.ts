@@ -1,6 +1,8 @@
+/** Проверяем выбор битрейта совместимых аудиокопий в прежней квоте, без перекодирования или S3. */
 import { expect, it } from "vitest";
 import { audioRenditionBitrate } from "../tooling/data/audio-rendition-policy";
 
+/** Для эталонных длительностей закрепляем допустимый битрейт; длинная запись не должна повышать лимит файла. */
 it.each([
   [3, 96],
   [1305.77, 96],
@@ -14,6 +16,7 @@ it.each([
   (duration, expected) =>
     expect(audioRenditionBitrate(duration)).toBe(expected),
 );
+/** Неверную или слишком большую длительность отклоняем вместо скрытого обхода квоты. */
 it.each([0, -1, NaN, Infinity, 8000, 15000])(
   "refuses invalid or too long duration %s instead of raising the quota",
   (duration) => {

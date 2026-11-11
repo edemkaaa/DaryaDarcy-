@@ -46,6 +46,8 @@ before(async () => {
     },
   );
   const capture = (chunk) => {
+    // Ограничивает накопление stdout/stderr принадлежащего тесту Next-процесса для ожидания готовности.
+
     output = (output + chunk).slice(-6000);
   };
   child.stdout.on("data", capture);
@@ -79,6 +81,8 @@ after(async () => {
 });
 
 test("real /club build respects its explicit mode and never trusts return flags", async (t) => {
+  // Сценарий: Реальная сборка /club соблюдает зафиксированный при сборке режим и не считает query-флаги доказательством оплаты.
+
   const context = await browser.newContext();
   context.setDefaultTimeout(5000);
   t.after(() => context.close());
@@ -208,6 +212,7 @@ test("real /club build respects its explicit mode and never trusts return flags"
   await page.goto(
     `${origin}/club?paid=1&payment=returned&checkout=1&order=forged`,
   );
+  // Ветка проверяет реальный Prodamus TEST-интерфейс, различие провайдеров, цену 790 и выдачу доступа только после серверной проверки.
   if (expectedMode === "prodamus") {
     const purchase = page.getByRole("button", {
       name: "Открыть тестовую оплату",
@@ -360,6 +365,7 @@ test("real /club build respects its explicit mode and never trusts return flags"
     assert.equal(errors.length, 0);
     return;
   }
+  // Ветка выключенного TEST сохраняет обычные кнопки и не читает/не вращает тестовое намерение по флагам возврата.
   if (expectedMode === "legacy") {
     const purchaseButtons = page.getByRole("button", { name: /^Оплатить/ });
     await purchaseButtons.first().waitFor();
@@ -376,6 +382,7 @@ test("real /club build respects its explicit mode and never trusts return flags"
     assert.equal(errors.length, 0);
     return;
   }
+  // Ветка отдельного TEST проверяет статус под сохранённым ключом, затем разрешает только явную следующую покупку с новым durable-ключом.
   await page
     .getByRole("status")
     .filter({ hasText: "Результат пока неизвестен" })

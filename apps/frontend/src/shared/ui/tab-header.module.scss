@@ -1,6 +1,7 @@
 /* Оформление компонента: Общая шапка связывает домашний переход, возврат, профиль и музыку с текущим разделом. */
 @use "../styles/layers";
 @layer elements {
+  /* Шапка накладывается на экран и учитывает safe-area всех сторон; сама оболочка пропускает касания между кнопками. */
   .header {
     position: absolute;
     inset: 0 0 auto;
@@ -20,14 +21,17 @@
     transition: transform 200ms ease;
     will-change: transform;
   }
+  /* Уход шапки — transform с учётом safe-area и тени, без изменения высоты/позиции содержимого экрана. */
   .header[data-hidden="true"] {
     // Include the safe area and icon shadows, without changing the page layout.
     transform: translate3d(0, calc(-100% - 4px), 0);
     transition-duration: 250ms;
   }
+  /* Скрытая шапка также отключает pointer events кнопок, не оставляя невидимых областей нажатия. */
   .header[data-hidden="true"] .group > * {
     pointer-events: none;
   }
+  /* Уход и возврат шапки происходят без перехода при reduced motion. */
   @media (prefers-reduced-motion: reduce) {
     .header,
     .header[data-hidden="true"] {
@@ -37,12 +41,14 @@
   .overlay {
     color: #ffffff;
   }
+  /* Текстура принадлежит движущейся шапке, а не неподвижному зазору экрана. */
   .paper {
     // The background belongs to the moving header, not a fixed screen inset.
     background: var(--paper)
       url("/assets/responsive/d0db18ed8f2e-MasrlKbgCBdeyOhE.w1440.fe3ce71852fa6634.webp")
       center / cover;
   }
+  /* Светлые значки имеют тень для контраста, когда под прозрачной шапкой проходит бумажный контент. */
   .overlay .action svg {
     // Keep light icons visible when paper content scrolls under the header.
     filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.9))
@@ -61,6 +67,7 @@
     align-items: center;
     gap: 4px;
   }
+  /* Симметричные боковые grid-колонки удерживают заголовок по центру даже при разном числе кнопок. */
   .withTitle {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -70,6 +77,7 @@
   .withTitle .group:last-child {
     justify-self: end;
   }
+  /* Длинный заголовок сокращается многоточием и не раздвигает группы навигации. */
   .title {
     min-width: 0;
     margin: 0;
@@ -83,6 +91,7 @@
     white-space: nowrap;
     text-overflow: ellipsis;
   }
+  /* Pointer events включаются только у реальных действий; промежутки шапки остаются прозрачными для жестов страницы. */
   .group > * {
     pointer-events: auto;
   }
@@ -103,6 +112,7 @@
     height: 22px;
     fill: currentColor;
   }
+  /* Стрелка рисуется stroke, остальные значки fill; единый currentColor сохраняет цветовую схему шапки. */
   .action .backIcon {
     fill: none;
     stroke: currentColor;

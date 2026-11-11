@@ -6,6 +6,7 @@ type Frame = {
   card?: { opacity: number; y: number };
 };
 
+/** Снимаем последовательности кадров первого входа на двух ширинах: opacity растёт без отката уже видимого контента, а заголовок не скачет по координате. */
 for (const width of [390, 1440]) {
   test(`first entry fades from its initial frame without resetting visible content (${width}px)`, async ({
     page,
@@ -24,6 +25,7 @@ for (const width of [390, 1440]) {
           if (!path || !["/videos", "/interactive"].includes(path)) return;
           const frames: Frame[] = (records[path] = []);
           const start = performance.now();
+          /** Наблюдаем первые 1,6 секунды после capture-click, чтобы получить именно исходный кадр retained-панели. */
           const sample = () => {
             const panel = document.querySelector(
               `[data-tab-screen="${path}"]:not([hidden])`,
@@ -32,6 +34,7 @@ for (const width of [390, 1440]) {
             const card = panel?.querySelector(
               '[class*="cardsContainer"] > div',
             );
+            /** Сохраняем минимальные сериализуемые свойства кадра: opacity и вертикальную координату. */
             const rect = (node: Element) => ({
               opacity: Number(getComputedStyle(node).opacity),
               y: node.getBoundingClientRect().y,
@@ -107,6 +110,7 @@ for (const width of [390, 1440]) {
     }
   });
 
+  /** Удерживаем видеоответ до измерения placeholder; реальные карточки занимают те же места и начинают собственный плавный вход. */
   test(`nonempty video data preserves both placeholder card positions (${width}px)`, async ({
     page,
   }) => {
@@ -122,6 +126,7 @@ for (const width of [390, 1440]) {
         if (!item) return;
         observer.disconnect();
         const body = item.parentElement!;
+        /** Снимаем opacity родителя первых реальных карточек до полного появления, после которого прекращаем animation-frame. */
         const sample = () => {
           const value = Number(getComputedStyle(body).opacity);
           opacity.push(value);
@@ -214,6 +219,7 @@ for (const width of [390, 1440]) {
   });
 }
 
+/** При reduced-motion содержимое сразу видно и в поддереве нет активных анимаций. */
 test("reduced motion shows the real screen immediately with no entrance animation", async ({
   page,
 }) => {

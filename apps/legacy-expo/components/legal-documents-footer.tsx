@@ -1,3 +1,4 @@
+// Архив Expo. Накладывает две внутренние ссылки на локальную графику папки с фиксированными пропорциями.
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from "react-native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -12,6 +13,8 @@ type Props = {
 
 /** Footer links on the legal-documents folder graphic. */
 export function LegalDocumentsFooter({ style }: Props) {
+  // Накладывает две внутренние ссылки на локальную графику папки с фиксированными пропорциями.
+
   const router = useRouter();
   const folderHeight = FOLDER_WIDTH / FOLDER_ASPECT;
 
@@ -40,6 +43,7 @@ export function LegalDocumentsFooter({ style }: Props) {
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   wrap: {
     alignItems: "center",

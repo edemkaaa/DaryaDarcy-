@@ -1,3 +1,4 @@
+// Архив Expo. Показывает обложку, заголовок и упорядоченные блоки статьи через один renderer.
 import { useState } from "react";
 import {
   Dimensions,
@@ -28,6 +29,8 @@ export function ArticleContent({
   blocks: ArticleBlock[];
   onOpenImage?: (url: string) => void;
 }) {
+  // Показывает обложку, заголовок и упорядоченные блоки статьи через один renderer.
+
   return (
     <View>
       {coverUrl ? (
@@ -57,6 +60,8 @@ function ArticleBlockView({
   block: ArticleBlock;
   onOpenImage?: (url: string) => void;
 }) {
+  // Выбирает heading/text/photo/png/link/carousel, уточняя пропорции одиночного изображения после загрузки.
+
   const [ratio, setRatio] = useState(block.type === "png" ? 1.15 : 1.6);
 
   if (block.type === "heading" && block.text?.trim()) {
@@ -158,6 +163,7 @@ function ArticleBlockView({
   return null;
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   pad: { paddingHorizontal: 22, paddingBottom: 20 },
   banner: { width: "100%", aspectRatio: 3, backgroundColor: "#E8E0D4" },

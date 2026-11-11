@@ -13,16 +13,20 @@ export class OperationScope {
     null;
   private kind: string | null = null;
   private listeners = new Set<() => void>();
+  /** Подписчик получает изменения kind; возвращённая функция снимает только его собственное наблюдение. */
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
     return () => {
       this.listeners.delete(listener);
     };
   };
+  /** Стабильный snapshot позволяет useSyncExternalStore читать текущий вид операции без копирования контроллера. */
   getSnapshot = () => this.kind;
+  /** Уведомляем всех подписчиков после изменения области, сохраняя один источник busy-состояния. */
   private emit() {
     for (const listener of this.listeners) listener();
   }
+  /** Сначала снимаем владение и parent listener, затем abort и уведомление: поздний finally отменённой задачи не затронет следующую. */
   cancel = () => {
     const current = this.current;
     this.current = null;
@@ -33,6 +37,7 @@ export class OperationScope {
     );
     this.emit();
   };
+  /** Занятая или лишённая доступа область не выдаёт задачу; успешный begin связывает новый AbortController с parent-сессией. */
   begin(
     kind: string,
     parentSignal: AbortSignal,
@@ -48,15 +53,18 @@ export class OperationScope {
     this.kind = kind;
     parentSignal.addEventListener("abort", this.cancel, { once: true });
     this.emit();
+    /** Применение результата требует совпадения экземпляра задачи, живого signal и всё ещё действующих прав владельца. */
     const isCurrent = () =>
       this.current === current && !controller.signal.aborted && ownsAccess();
     return {
       signal: controller.signal,
       isCurrent,
+      /** Преобразуем потерю владения в AbortError до очередной записи состояния или следующего сетевого шага. */
       assertCurrent: () => {
         if (!isCurrent())
           throw new DOMException("Операция отменена", "AbortError");
       },
+      /** Завершаем только свой экземпляр задачи и снимаем parent listener; новая операция уже может владеть той же областью. */
       finish: () => {
         if (this.current !== current) return;
         current.cleanup();

@@ -1,3 +1,4 @@
+/** Собранный ESM worker runtime проверяется отдельным процессом с собственными локальными operations, без БД/SMTP/S3. */
 import { expect, it } from "vitest";
 import { build } from "esbuild";
 import { execFileSync } from "node:child_process";
@@ -5,6 +6,7 @@ import { mkdtempSync, rmSync, rmdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
+/** Child payload запрещает interval до start, проверяет health до/во время задач, double start, await stop и невозможность возобновления; встроенная строка не редактируется. */
 it("compiled ESM composes inert workers and only runs explicitly supplied local effects", async () => {
   const directory = mkdtempSync(resolve(".tmp-nest-workers-"));
   const entry = join(directory, "application.mjs");

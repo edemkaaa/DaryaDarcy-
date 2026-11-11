@@ -4,18 +4,18 @@ import { parseRetryAfter } from "./retry-after";
 
 let sessionRequests = new AbortController();
 
-/** Local file preparation must belong to the same session as its subsequent upload. */
+/** Возвращаем текущий сигнал владельца сессии, чтобы подготовка файла и последующая сеть отменялись вместе. */
 export function getSessionRequestSignal(): AbortSignal {
   return sessionRequests.signal;
 }
 
-/** Invalidate every outstanding read and mutation before changing identities. */
+/** Одновременно отменяем все старые связанные операции и создаём свежий сигнал для следующей личности. */
 export function cancelSessionRequests(): void {
   sessionRequests.abort();
   sessionRequests = new AbortController();
 }
 
-/** The deadline covers both fetch and consuming the body; caller cancellation is preserved. */
+/** Объединяем отмену вызывающего кода и сессии с deadline fetch+body; finally снимает подписки и таймер независимо от исхода. */
 export async function runApiRequest<T>(
   url: RequestInfo | URL,
   options: RequestInit,
@@ -33,6 +33,7 @@ export async function runApiRequest<T>(
   const aborted = new Promise<never>((_, reject) => {
     rejectAbort = reject;
   });
+  /** Отмена получает собственный ApiError и завершает гонку даже тогда, когда consume пока не реагирует на abort. */
   const cancel = () => {
     const error = new ApiError(
       "Запрос отменён.",
@@ -90,6 +91,7 @@ export async function runApiRequest<T>(
   }
 }
 
+/** Успешный HTTP с нечитаемым JSON означает нарушенный контракт; ошибочный HTTP сохраняет свой статус и Retry-After. */
 function responseFailure(response: Response): ApiError {
   return response.ok
     ? invalidResponse()
@@ -100,9 +102,9 @@ function responseFailure(response: Response): ApiError {
       );
 }
 
-/** tRPC drops response metadata when json() rejects. Keep the status in its
- * typed cause, without attaching the private body or the parser's exception. */
+/** Обёртка удерживает HTTP-метаданные до позднего tRPC json(), не прикрепляя приватное тело к исключению. */
 class BufferedApiResponse extends Response {
+  /** Ошибка JSON-разбора преобразуется по сохранённому HTTP-статусу, чтобы 413/429 не терялись как безымянная parser error. */
   override async json(): Promise<unknown> {
     try {
       return await super.json();
@@ -112,6 +114,7 @@ class BufferedApiResponse extends Response {
   }
 }
 
+/** Буферизуем тело внутри общего deadline, затем возвращаем совместимый Response для HTTP-links tRPC. */
 export function fetchApiResponse(
   url: RequestInfo | URL,
   options: RequestInit = {},
@@ -144,7 +147,7 @@ export function fetchApiResponse(
   );
 }
 
-/** File bytes get a separate finite budget; receipt/status reads stay short. */
+/** Файловая отправка получает больший, но конечный бюджет; обычные чтения статуса не наследуют этот длинный timeout. */
 export function fetchUploadResponse(
   url: RequestInfo | URL,
   options: RequestInit = {},

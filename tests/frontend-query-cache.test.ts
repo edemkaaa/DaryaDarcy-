@@ -1,3 +1,4 @@
+/** Проверяем реальный QueryClient: повторное использование свежих данных, ограничение неактивных scope и сохранение наблюдаемого экрана без автоматического повтора mutations. */
 import { afterEach, expect, it, vi } from "vitest";
 import {
   QueryObserver,
@@ -12,12 +13,14 @@ import {
 import { subscribeSessionChecks } from "../apps/frontend/src/shared/api/session-events";
 import { ApiError } from "../apps/frontend/src/shared/api/errors";
 
+/** Возвращаем менеджеры online/focus и настоящий clock, чтобы события соседних тестов не зависели от прошлого сценария. */
 afterEach(() => {
   onlineManager.setOnline(true);
   focusManager.setFocused(undefined);
   vi.useRealTimers();
 });
 
+/** Разные старые фильтры вытесняются до лимита, но QueryObserver защищает данные открытого экрана. */
 it.each([
   "feed.savedPostsPage",
   "admin.postsPage",
@@ -52,6 +55,7 @@ it.each([
   },
 );
 
+/** Два чтения свежего ключа используют один fetch; явная invalidation требует нового запроса. */
 it("reuses fresh data and refetches after an explicit invalidation", async () => {
   const client = createAppQueryClient();
   const queryFn = vi.fn(async () => ["POST"]);
@@ -68,6 +72,7 @@ it("reuses fresh data and refetches after an explicit invalidation", async () =>
   }
 });
 
+/** Проверяем фактический GC неактивного query по виртуальным часам, а не только значение настройки. */
 it("keeps inactive data for five minutes, then releases it", async () => {
   vi.useFakeTimers();
   const client = createAppQueryClient();
@@ -85,6 +90,7 @@ it("keeps inactive data for five minutes, then releases it", async () => {
   }
 });
 
+/** Возврат focus/online сам не выкачивает stale-список: текущие данные остаются до явного обновления. */
 it("stale content stays cached when focus or the connection returns", async () => {
   const client = createAppQueryClient();
   const queryFn = vi.fn(async () => ["POST"]);
@@ -114,6 +120,7 @@ it("stale content stays cached when focus or the connection returns", async () =
   }
 });
 
+/** 401/403 вызывают одну проверку сессии без автоматического повтора отклонённого запроса. */
 it.each([401, 403])(
   "protected query rejection still asks for a session check: %s",
   async (status) => {
@@ -136,6 +143,7 @@ it.each([401, 403])(
   },
 );
 
+/** 503 после mutation имеет неопределённый результат, поэтому QueryClient не повторяет запись сам. */
 it("a failed mutation is never retried automatically", async () => {
   const client = createAppQueryClient();
   const mutationFn = vi.fn(async () => {
@@ -150,9 +158,11 @@ it("a failed mutation is never retried automatically", async () => {
   }
 });
 
+/** Строит тот же tRPC-shaped ключ комментариев, по которому политика кеша группирует посты. */
 const commentKey = (postId: number) =>
   [["club", "comments"], { input: { postId }, type: "query" }] as const;
 
+/** Давно не используемые ветки удаляются, активный контекст ответа сохраняется до unsubscribe. */
 it("evicts the oldest unused comments while keeping an observed reply's data", async () => {
   const client = createAppQueryClient();
   const held = commentKey(0);
@@ -185,6 +195,7 @@ it("evicts the oldest unused comments while keeping an observed reply's data", a
   }
 });
 
+/** Лимит применяется к старым scope фильтров, а не обрезает уже загруженные страницы текущей infinite-ленты. */
 it("bounds abandoned feed filters without removing pages of the current list", async () => {
   const client = createAppQueryClient();
   const key = (search: string) =>
@@ -221,6 +232,7 @@ it("bounds abandoned feed filters without removing pages of the current list", a
   }
 });
 
+/** Выполняющийся запрос не вытесняется посередине; после settlement кеш возвращается к ограниченному размеру. */
 it("allows an unobserved comment request to settle before cache eviction", async () => {
   const client = createAppQueryClient();
   let resolve!: (data: string[]) => void;
@@ -248,6 +260,7 @@ it("allows an unobserved comment request to settle before cache eviction", async
   }
 });
 
+/** Клубные фильтры имеют собственную группу ограничения и сохраняют наблюдаемый запрос. */
 it("bounds abandoned club filters independently of feed filters", async () => {
   const client = createAppQueryClient();
   const activeKey = [

@@ -2,6 +2,7 @@
 import type { CSSProperties } from "react";
 import classes from "./photo-dots.module.scss";
 
+/** Показываем компактные точки только для 2–10 кадров; индекс приходит от карусели, а длинный список использует её числовой счётчик. */
 export function PhotoDots({
   count,
   index,

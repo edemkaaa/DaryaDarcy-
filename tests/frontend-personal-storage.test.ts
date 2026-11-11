@@ -1,9 +1,11 @@
+/** Проверяем изоляцию локальных персональных данных по владельцу и различие обязательного/необязательного storage. */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import storage, {
   setPersonalDataOwner,
   requiredStorage,
 } from "../apps/frontend/src/shared/browser/storage";
 let values: Map<string, string>;
+/** Каждый тест получает пустой storage и неизвестного владельца. */
 beforeEach(() => {
   values = new Map();
   vi.stubGlobal("window", {
@@ -15,17 +17,20 @@ beforeEach(() => {
   });
   setPersonalDataOwner(null);
 });
+/** Очищаем scope владельца и подменённое окно. */
 afterEach(() => {
   setPersonalDataOwner(null);
   vi.unstubAllGlobals();
 });
 
+/** Данные без доказанного owner нельзя присвоить следующему аккаунту. */
 it("never migrates an unowned profile into the next account", async () => {
   values.set("@darcy_club_profile_name", "Previous person");
   setPersonalDataOwner(2);
   expect(await storage.getItem("@darcy_club_profile_name")).toBeNull();
   expect(values.has("@darcy_club_profile_name")).toBe(false);
 });
+/** Смена аккаунта удаляет личные результаты и черновики, сохраняя обычную подсказку интерфейса. */
 it("isolates all personal state while keeping ordinary interface preferences", async () => {
   await storage.setItem("@darcy_install_guide_seen", "1");
   setPersonalDataOwner(1);
@@ -41,6 +46,7 @@ it("isolates all personal state while keeping ordinary interface preferences", a
   expect([...values.values()].join()).not.toContain("PRIVATE_PROGRESS");
 });
 
+/** Неудачная обязательная запись должна быть видна вызывающему коду; необязательная настройка может не блокировать работу. */
 it("required drafts expose storage failures while optional preferences stay optional", async () => {
   vi.spyOn(window.localStorage, "setItem").mockImplementation(() => {
     throw new Error("Storage full");
@@ -53,6 +59,7 @@ it("required drafts expose storage failures while optional preferences stay opti
   ).resolves.toBeUndefined();
 });
 
+/** Черновики и неизвестные операции профиля не должны переходить новому пользователю. */
 it("profile drafts and unknown writes are scoped and cleared on account changes", async () => {
   const keys = [
     "@darcy_club_profile_draft",

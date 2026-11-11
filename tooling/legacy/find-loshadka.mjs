@@ -1,3 +1,4 @@
+// Читает список и один конкретный объект S3, сохраняя локальную копию; импорт PutObject не означает выполненную запись.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

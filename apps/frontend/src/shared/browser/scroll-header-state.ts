@@ -1,16 +1,17 @@
 /** Направление прокрутки определяем по пройденным пикселям, чтобы частота событий не меняла поведение шапки. */
-/** Direction thresholds use travelled CSS pixels, regardless of event frequency. */
 export class ScrollHeaderState {
   hidden = false;
   private previousY = 0;
   private travel = 0;
 
+  /** Явное раскрытие сбрасывает накопленный путь: восстановленная позиция экрана становится новой базой, а не командой спрятать шапку. */
   reveal(y = 0) {
     this.hidden = false;
     this.previousY = Math.max(0, y);
     this.travel = 0;
   }
 
+  /** Обрезаем Safari rubber-band к границам и накапливаем движение одного направления; разные пороги скрытия/возврата уменьшают дрожание. */
   update(rawY: number, maxY: number): boolean {
     const max = Math.max(0, maxY);
     // Safari reports positions outside both boundaries during rubber-banding.

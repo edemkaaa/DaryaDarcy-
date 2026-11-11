@@ -1,5 +1,7 @@
+/** Архивный экран Интерактива с переходом к старому тесту и неактивным анонсом мудборда. */
 import { Link } from "react-router-dom";
 
+/** Показывает статические плитки; надпись «скоро» не означает реализацию редактора. */
 export default function Interactive() {
   return (
     <div className="page">

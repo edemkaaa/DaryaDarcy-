@@ -1,9 +1,11 @@
 # Изолирует прежний YouTube-worker от БД и пользовательских секретов. Временные файлы живут в ограниченном tmpfs, VK iframe этот сервис не требует.
 # Opt-in staging-only overlay. Preserve the existing SMTP/local override too.
 services:
+# Работает без БД и постоянного диска: cache и распаковка бинарника ограничены tmpfs.
   video:
     image: ${STAGING_VIDEO_IMAGE:?Set a versioned video-service image}
     platform: linux/amd64
+    # Worker видит API через video-control и внешний источник через отдельный video-egress.
     networks: [video-control, video-egress]
     read_only: true
     tmpfs:
@@ -31,6 +33,7 @@ services:
     logging:
       driver: json-file
       options: { max-size: "5m", max-file: "2" }
+# Только video-overlay добавляет маршруты /api/yt и /media/yt-thumb к общему edge.
   edge:
     networks: [ingress, isolated, video-control]
     volumes: ["./edge.video.conf:/etc/nginx/nginx.conf:ro"]

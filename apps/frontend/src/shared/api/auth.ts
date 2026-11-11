@@ -6,9 +6,11 @@ import { runApiRequest } from "./request-lifecycle";
 import { parseRetryAfter } from "./retry-after";
 export { ApiError } from "./errors";
 
+/** Для REST-конвертов нужен объект полей; массив и null не подтверждают форму ответа. */
 function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
+/** Предпочитаем положительную задержку тела, иначе разбираем HTTP-заголовок одним общим парсером. */
 function retryAfter(
   response: Response,
   data: Record<string, unknown>,
@@ -20,6 +22,7 @@ function retryAfter(
   }
   return parseRetryAfter(response.headers.get("Retry-After"));
 }
+/** Общий REST-вызов читает JSON внутри deadline, нормализует ошибки и отключает HTTP-кеш; T задаёт ожидание, а не runtime-валидацию payload. */
 export async function apiCall<T>(
   endpoint: string,
   options: RequestInit = {},
@@ -80,6 +83,7 @@ type Session = {
   user: AuthUser;
 };
 // Публичный профиль собираем явным списком полей; добавленное сервером внутреннее поле не становится частью локальной сессии.
+/** Проверяем обязательные поля профиля и собираем публичный объект явно, не распространяя внутренние серверные поля через spread. */
 export function parseAuthUser(value: unknown): AuthUser {
   if (
     !isObject(value) ||
@@ -131,6 +135,7 @@ export function parseAuthUser(value: unknown): AuthUser {
     gender: (value.gender ?? null) as AuthUser["gender"],
   };
 }
+/** Ожидаем конверт с валидным user после POST; токен не возвращается и не сохраняется в браузерном хранилище. */
 async function authenticate(
   endpoint: string,
   input: object,
@@ -144,6 +149,7 @@ async function authenticate(
   if (!isObject(result)) throw invalidResponse();
   return { user: parseAuthUser(result.user) };
 }
+/** Вход отправляет email/пароль и необязательный TOTP существующему REST login, сохраняя сигнал владельца формы. */
 export const loginWithEmail = (
   email: string,
   password: string,
@@ -152,6 +158,7 @@ export const loginWithEmail = (
 ) => authenticate("/api/auth/login", { email, password, totp }, signal);
 
 // Регистрация и восстановление подтверждают принятие инструкции, а не установку пароля или доставку письма.
+/** Регистрация или recovery принимают только ok=true и непустую инструкцию; этот ответ не подтверждает доставку письма. */
 async function requestInstructions(
   endpoint: string,
   input: object,
@@ -171,6 +178,7 @@ async function requestInstructions(
     throw invalidResponse();
   return { ok: true, message: result.message };
 }
+/** Передаём версию согласия вместе с данными регистрации и возвращаем только принятую сервером инструкцию. */
 export const registerWithEmail = (
   email: string,
   name?: string,
@@ -182,15 +190,18 @@ export const registerWithEmail = (
     { email, name, consentVersion },
     signal,
   );
+/** Просим инструкцию для email без создания сессии; установку пароля выполняет отдельный одноразовый endpoint. */
 export const requestPasswordInstructions = (
   email: string,
   signal?: AbortSignal,
 ) => requestInstructions("/api/auth/password/request", { email }, signal);
+/** Совместимый SMS-метод только отправляет запрос коду; доступность функции контролируется отдельно capabilities. */
 export const sendSmsCode = (phone: string) =>
   apiCall<{
     ok: true;
     retryAfterSec: number;
   }>("/api/auth/sms/send", { method: "POST", body: JSON.stringify({ phone }) });
+/** Проверка кода использует тот же парсер публичной сессии, что и email-вход; сама функция не включает SMS-сценарий. */
 export const verifySmsCode = (
   phone: string,
   code: string,
@@ -198,6 +209,7 @@ export const verifySmsCode = (
   totp?: string,
 ) =>
   authenticate("/api/auth/sms/verify", { phone, code, consentVersion, totp });
+/** Серверный выход подтверждается явным success=true; непонятный ответ оставляет отзыв сессии неподтверждённым. */
 export async function logout(signal?: AbortSignal): Promise<void> {
   const result = await apiCall<unknown>("/api/auth/logout", {
     method: "POST",
@@ -205,11 +217,13 @@ export async function logout(signal?: AbortSignal): Promise<void> {
   });
   if (!isObject(result) || result.success !== true) throw invalidResponse();
 }
+/** Отличаем подтверждённый user=null от ошибки конверта или чтения; остальные профили проходят parseAuthUser. */
 export async function getMe(signal?: AbortSignal): Promise<AuthUser | null> {
   const result = await apiCall<unknown>("/api/auth/me", { signal });
   if (!isObject(result) || !("user" in result)) throw invalidResponse();
   return result.user === null ? null : parseAuthUser(result.user);
 }
+/** Совместимый обмен отправляет bearer только на сервер установки сессии; локально строка токена не сохраняется. */
 export async function establishSession(token: string) {
   await apiCall("/api/auth/session", {
     method: "POST",

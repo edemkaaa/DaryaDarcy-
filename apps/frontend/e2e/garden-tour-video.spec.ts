@@ -7,6 +7,7 @@ import {
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
 
 type Mode = "available" | "network" | "http" | "corrupt";
+/** Заменяем тяжёлое садовое видео коротким MP4 и независимо задаём сетевую, HTTP- или decode-ошибку; считаем запросы до и после активации. */
 async function fixture(page: Page, mode: Mode = "available") {
   const state = { mode, requests: 0 };
   await layoutApi(page);
@@ -36,17 +37,22 @@ async function fixture(page: Page, mode: Mode = "available") {
   return { state, trigger };
 }
 
+/** Садовый ролик является единственным нативным video в этой изолированной странице. */
 const video = (page: Page) => page.locator("video");
+/** Отбираем сообщение именно об ошибке видео, не смешивая его с другими alert страницы. */
 const notice = (page: Page) =>
   page.getByRole("alert").filter({ hasText: "Не удалось воспроизвести видео" });
+/** Выбираем явную кнопку повторной загрузки текущего источника. */
 const retry = (page: Page) =>
   page.getByRole("button", { name: "Повторить загрузку видео", exact: true });
+/** Дожидаемся декодированных данных кадра, а не одного ответа HTTP. */
 const ready = (page: Page) =>
   expect
     .poll(() =>
       video(page).evaluate((node: HTMLVideoElement) => node.readyState),
     )
     .toBeGreaterThanOrEqual(2);
+/** Проверяем фактический диапазон воспроизведения, а не только наличие autoplay. */
 const played = (page: Page) =>
   expect
     .poll(() =>
@@ -54,6 +60,7 @@ const played = (page: Page) =>
     )
     .toBeGreaterThan(0);
 
+/** На узком и широком экране проверяем ленивую загрузку, неизменную геометрию, восстановление после трёх классов ошибок и остановку при уходе. */
 for (const screen of [
   { width: 320, height: 844, touch: true },
   { width: 1440, height: 900, touch: false },
@@ -64,6 +71,7 @@ for (const screen of [
       hasTouch: screen.touch,
       isMobile: screen.touch,
     });
+    /** Используем tap в touch-профиле и click на десктопе, сохраняя пользовательский жест для play. */
     const activate = (button: Locator) =>
       screen.touch ? button.tap() : button.click();
 
@@ -141,6 +149,7 @@ for (const screen of [
       });
     }
 
+    /** Уход с главной и синтетическое visibilitychange приостанавливают короткую зацикленную fixture; возвращение не запускает её само. */
     test("leaving Home or hiding the document pauses playback without restarting it on return", async ({
       page,
     }) => {

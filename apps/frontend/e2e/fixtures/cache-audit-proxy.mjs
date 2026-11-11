@@ -7,6 +7,7 @@ const origin = "http://127.0.0.1:19092";
 const svg =
   '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="800"><rect width="640" height="800" fill="#d8c7ac"/></svg>';
 const video = readFileSync(new URL("./carousel-video.webm", import.meta.url));
+/** Создаём синтетическую карточку с локальным cacheable-фото; роль и права моделируются отдельно от сетевого кеша. */
 const post = (id = 501, target = "feed", tag = "") => ({
   id,
   text: "Публикация аудита",
@@ -44,7 +45,9 @@ const videoCard = {
   provider: "youtube",
   access: "public",
 };
+/** Заполняем обязательные строковые поля пустыми значениями для минимального валидного guide-fixture. */
 const fields = (keys) => Object.fromEntries(keys.map((key) => [key, ""]));
+/** Строим детерминированный закрытый гайд без импорта настоящего платного содержимого. */
 const guide = (key) => ({
   key,
   style: {
@@ -120,6 +123,7 @@ const stats = {
   postsLastMonth: 0,
   topLikedPosts: [],
 };
+/** Выбираем только известные синтетические чтения; данные нужны аудиту браузерного кеша, а не проверке серверной бизнес-логики. */
 function answer(name, input, role) {
   switch (name) {
     case "club.subscription":
@@ -210,11 +214,13 @@ function answer(name, input, role) {
       return [];
   }
 }
+/** Локальный HTTP-слой сохраняет реальный browser cache: API синтетический и no-store, документы/ассеты проходят к локальному Next. */
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, origin);
   const role =
     /(?:^|; )cache_audit_role=(\w+)/.exec(req.headers.cookie ?? "")?.[1] ??
     "guest";
+  /** Единообразно отдаём JSON API без кеширования, независимо от cacheable-медиа ниже. */
   const json = (data, status = 200) => {
     res.writeHead(status, {
       "Content-Type": "application/json",

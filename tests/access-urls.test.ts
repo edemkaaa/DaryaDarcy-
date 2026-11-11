@@ -7,6 +7,7 @@ import { publicAccessUrl } from "../apps/backend/src/identity/urls";
 let application: INestApplication, base: string;
 // Node fetch overwrites Sec-Fetch-Mode with "cors". Send the browser's actual
 // navigation metadata over HTTP instead of accidentally testing a fetch.
+/** Передаёт настоящие navigation metadata через node:http, поскольку fetch сам заменяет Sec-Fetch-Mode и исказил бы проверку браузерного перехода. */
 function requestWithBrowserMetadata(
   path: string,
   options: RequestOptions,
@@ -34,15 +35,19 @@ function requestWithBrowserMetadata(
     req.end(body);
   });
 }
+/** Поднимает локальный API на случайном порту без рабочей базы и внешних отправителей. */
 beforeAll(async () => {
   application = await createBackendApplication();
   await application.listen(0, "127.0.0.1");
   base = `http://127.0.0.1:${(application.getHttpServer().address() as AddressInfo).port}`;
 });
+/** Закрывает локальное приложение после проверки переходов. */
 afterAll(async () => {
   await application.close();
 });
+/** Возвращает изменённые адреса и режим окружения между сценариями. */
 afterEach(() => vi.unstubAllEnvs());
+/** Проверяет безопасный переход старой почтовой ссылки только на frontend password-страницу без сессии и активного содержимого. */
 it.each(["/api/auth/password", "/api/auth/password/"])(
   "redirects old email links from %s without issuing a session",
   async (path) => {
@@ -74,6 +79,7 @@ it.each(["/api/auth/password", "/api/auth/password/"])(
     );
   },
 );
+/** Проверяет, что исключение для email-navigation не открывает cross-site iframe, fetch, формы и другие API-маршруты. */
 it.each([
   {
     name: "iframe",
@@ -159,6 +165,7 @@ it.each([
   expect(response.headers.get("set-cookie")).toBeNull();
   expect(response.headers.get("access-control-allow-origin")).toBeNull();
 });
+/** Проверяет запрет CORS для чужого origin даже на password-document. */
 it("does not grant foreign origins CORS access to the password document", async () => {
   const response = await requestWithBrowserMetadata("/api/auth/password", {
     headers: {
@@ -171,6 +178,7 @@ it("does not grant foreign origins CORS access to the password document", async 
   expect(response.status).toBe(403);
   expect(response.headers.get("access-control-allow-origin")).toBeNull();
 });
+/** Проверяет использование только настроенного frontend origin без доверия query-next, query-token и старому auth-origin. */
 it("redirects to the configured frontend without trusting query or legacy auth origins", async () => {
   vi.stubEnv("PUBLIC_APP_URL", "https://club.example.test");
   vi.stubEnv("PUBLIC_AUTH_URL", "https://api.example.test");
@@ -185,6 +193,7 @@ it("redirects to the configured frontend without trusting query or legacy auth o
   expect(response.headers.get("cache-control")).toBe("no-store");
   expect(response.headers.get("referrer-policy")).toBe("no-referrer");
 });
+/** Проверяет безопасный 503 для недопустимой production-конфигурации без отражения credentials. */
 it.each([
   "javascript:alert(1)",
   "ftp://localhost",
@@ -197,6 +206,7 @@ it.each([
   expect(response.status).toBe(503);
   expect(await response.text()).not.toContain("PRIVATE_PASSWORD");
 });
+/** Проверяет канонические frontend setup/login URL без переноса configured path/query и с токеном только во fragment. */
 it("uses the frontend for setup and login without retaining configured paths or queries", () => {
   vi.stubEnv("PUBLIC_APP_URL", "https://club.example.test/unused?tracking=1");
   vi.stubEnv("PUBLIC_AUTH_URL", "https://api.example.test/unused?tracking=1");
@@ -206,6 +216,7 @@ it("uses the frontend for setup and login without retaining configured paths or 
   );
   expect(publicAccessUrl().toString()).toBe("https://club.example.test/login");
 });
+/** Проверяет HTTP только для local development и отказ иной локальной схемы. */
 it("supports local HTTP in development, but never another local scheme", () => {
   vi.stubEnv("NODE_ENV", "development");
   vi.stubEnv("PUBLIC_APP_URL", "http://localhost:8081");
@@ -216,6 +227,7 @@ it("supports local HTTP in development, but never another local scheme", () => {
     "Invalid public access URL",
   );
 });
+/** Проверяет запрет credentials в mail-link origin без раскрытия их значения. */
 it("rejects credentials in the mail-link origin without exposing their value", () => {
   vi.stubEnv("PUBLIC_APP_URL", "https://club.example.test");
   vi.stubEnv(

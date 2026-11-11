@@ -10,6 +10,7 @@ type Props = {
   style?: CSSProperties;
   className?: string;
 };
+/** Даём единые переходы к обзору документов и политике; внешний стиль меняет только положение футера. */
 export function LegalDocumentsFooter({ style, className = "" }: Props) {
   const router = useRouter();
   return (

@@ -61,6 +61,7 @@ import {
 } from "./profile-screen.content";
 type SavedPost = ApiOutputs["feed"]["savedPostsPage"]["items"][number];
 type SavedTab = "feed" | "club";
+/** Форматируем подтверждённую дату доступа в русской локали для профиля. */
 function formatRuDate(date: Date): string {
   return date.toLocaleDateString("ru-RU", {
     day: "numeric",
@@ -68,6 +69,7 @@ function formatRuDate(date: Date): string {
     year: "numeric",
   });
 }
+/** Открываем письмо поддержки с закодированной темой; отправка остаётся действием почтового клиента. */
 function openSupportMail(subject: string) {
   void openExternalUrl(
     `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}`,
@@ -78,6 +80,7 @@ interface CropperImage {
   width: number;
   height: number;
 }
+/** Собираем личный профиль без общего paywall: открытые сохранения доступны аккаунту без клуба, клубные данные дополнительно фильтруются по правам. */
 export default function ProfileScreen() {
   const active = useScreenActive();
   const prodamusTest = getClubPaymentMode() === "prodamus-test";
@@ -227,6 +230,7 @@ export default function ProfileScreen() {
     return clubRows;
   }, [savedTab, savedFromApi.items, hasClubAccess]);
   const isLoadingSaved = savedFromApi.isLoading;
+  /** Открываем picker с отдельным лимитом исходника аватара и передаём выбранную геометрию в cropper. */
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -248,13 +252,16 @@ export default function ProfileScreen() {
       });
     }
   };
+  /** Загрузку и восстановление квитанции отдаём owner-scoped avatar hook, не назначая URL оптимистично. */
   const saveAvatar = async (uri: string) => {
     await avatar.upload(uri);
   };
+  /** Закрываем cropper и начинаем загрузку отдельного результата, сохраняя исходную операцию в журнале. */
   const handleCropComplete = async (croppedUri: string) => {
     setCropperImage(null);
     await saveAvatar(croppedUri);
   };
+  /** Закрываем только локальное кадрирование, не меняя серверное фото. */
   const handleCropCancel = () => {
     setCropperImage(null);
   };
@@ -276,11 +283,13 @@ export default function ProfileScreen() {
     );
   }
   // Render saved post card
+  /** Материал-статья открывается своим маршрутом, обычный пост — через publicId-aware postHref. */
   const handlePostPress = (post: SavedPost) => {
     const articleId = articleIdFromSource(post.source);
     if (articleId) router.push(`/library/article/${articleId}`);
     else if (post.id) router.push(postHref(post));
   };
+  /** Строим краткую карточку по тексту и реальным вложениям; обложка первого видео не подменяет прочие фото галереи. */
   const renderSavedPost = ({ item }: { item: SavedPost }) => {
     const preview = truncateSelectionPreview(
       sanitizePlainPostText(item.text) ||

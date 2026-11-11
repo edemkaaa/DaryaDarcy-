@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
 import { ok } from "./editor-fixtures";
 
+/** Создаём различимые закладки ленты и клуба с общей структурой карточки. */
 const savedPost = (id: number, text: string, target: "feed" | "club") => ({
   id,
   text,
@@ -18,6 +19,7 @@ const savedPost = (id: number, text: string, target: "feed" | "club") => ({
   publishedAt: "2026-10-01T12:00:00Z",
 });
 
+/** После предварительного подтверждения access-scope измеряем ровно запросы профиля: retained-вкладка хранит имя-черновик, выбранный target и scroll, а stale-read не очищает подтверждённые карточки. */
 for (const width of [390, 1440]) {
   test(`profile retains its draft, saved tab and scroll; stale bookmarks recheck once (${width}px)`, async ({
     page,
@@ -157,6 +159,7 @@ for (const width of [390, 1440]) {
   });
 }
 
+/** Смена личности удаляет скрытый профиль вместе с незаписанным вводом и не переносит account-scoped черновик новому владельцу. */
 test("switching accounts clears a hidden profile and its unsaved state", async ({
   page,
 }) => {

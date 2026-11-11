@@ -15,6 +15,7 @@ ffmpeg = r"C:\Users\Иван\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg
 public = "https://disk.yandex.ru/i/vJDF9B0Bqoq7bQ"
 
 def download_url():
+    # Получает временный href конкретного публичного ролика через API Яндекс Диска, не публикуя новый доступ.
     meta_url = (
         "https://cloud-api.yandex.net/v1/disk/public/resources/download?public_key="
         + urllib.parse.quote(public)

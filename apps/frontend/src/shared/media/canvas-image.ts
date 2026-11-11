@@ -13,6 +13,7 @@ type Operation = {
     height?: number;
   };
 };
+/** Последовательно выполняем crop/resize под отменяемой задачей; соседние crop+resize объединяем, чтобы не создавать огромный промежуточный canvas. */
 export async function manipulateAsync(
   uri: string,
   operations: Operation[],
@@ -26,6 +27,7 @@ export async function manipulateAsync(
     const img = new Image();
     const canvases: HTMLCanvasElement[] = [];
     let rejectLoad: (reason: unknown) => void = () => {};
+    /** Отмена прерывает ожидание декодирования и снимает источник; finally освобождает все созданные холсты. */
     const cancel = () => {
       img.removeAttribute("src");
       rejectLoad(signal.reason);

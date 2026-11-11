@@ -13,6 +13,7 @@ import {
 } from "../../../../packages/database/src/schema";
 
 const seasonName = z.enum(["winter", "spring", "summer", "autumn"]);
+// Ежегодные MM-DD проверяются на невисокосном году: невозможная дата и 29 февраля не становятся границей автосезона.
 const annualDate = z.string().regex(/^\d{2}-\d{2}$/).refine(value => {
   const parsed = new Date(`2001-${value}T00:00:00Z`);
   return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(5, 10) === value;
@@ -44,6 +45,7 @@ export const defaultLaunchConfiguration: LaunchConfiguration = {
   },
   managerEmail: PUBLIC_CONTACT_EMAIL,
 };
+/** Читаем единственный сохранённый документ настроек с ревизией; при отсутствии строки возвращаем независимую копию согласованных значений по умолчанию. */
 export async function getLaunchConfiguration(database: MySql2Database): Promise<LaunchConfigurationSnapshot> {
   const [saved] = await database.select().from(launchSettings).where(eq(launchSettings.id, 1));
   return saved ? { revision: saved.revision, config: saved.config } : { revision: 0, config: structuredClone(defaultLaunchConfiguration) };
@@ -84,6 +86,7 @@ export async function saveLaunchConfiguration(
       throw new TRPCError({ code: "UNAUTHORIZED" });
     if (current.blockedAt || current.role !== "admin")
       throw new TRPCError({ code: "FORBIDDEN" });
+// Создаём отсутствующую единственную строку без перезаписи, затем блокируем её и сравниваем ожидаемую ревизию перед записью и аудитом.
     await tx.insert(launchSettings).ignore().values({ id: 1, config: defaultLaunchConfiguration });
     const [saved] = await tx.select().from(launchSettings).where(eq(launchSettings.id, 1)).for("update");
     if (saved.revision !== expectedRevision) throw new TRPCError({ code: "CONFLICT", message: "Настройки изменились. Обновите страницу" });

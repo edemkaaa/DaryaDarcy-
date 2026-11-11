@@ -21,12 +21,14 @@ import { processScheduledAccountDeletions } from "../apps/backend/src/identity/a
 
 // Real disposable SQL and application services; only external photo transport is paused.
 // No SMTP, real storage, payments or production database access.
+/** Проверяет поздние записи после удаления или отзыва полномочий и защиту стартовой JWT-конфигурации. */
 describe.skipIf(!testDatabaseUrl)("security regression guards", () => {
   const owner = 988650,
     neighbor = 988651,
     postId = 988650,
     commentId = 988650;
   let conn: Connection;
+  /** Удаляет собственные outbox, токены, платежи, аудит, обсуждение и двух пользователей. */
   async function cleanup() {
     await conn.query("DELETE FROM access_email_outbox WHERE userId IN (?,?)", [
       owner,
@@ -54,12 +56,14 @@ describe.skipIf(!testDatabaseUrl)("security regression guards", () => {
     await conn.query("DELETE FROM posts WHERE id=?", [postId]);
     await conn.query("DELETE FROM users WHERE id IN (?,?)", [owner, neighbor]);
   }
+  /** Подключает одноразовую content-схему и включает retirement без private-storage. */
   beforeAll(async () => {
     conn = await openContentTestDatabase();
     vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
     vi.stubEnv("CONTENT_RECOVERY_RETIREMENT_ENABLED", "true");
     vi.stubEnv("PRIVATE_CONTENT_FILES_ENABLED", "false");
   });
+  /** Восстанавливает двух участников и обсуждение с просроченной заявкой удаления автора. */
   beforeEach(async () => {
     await cleanup();
     await conn.query(
@@ -75,6 +79,7 @@ describe.skipIf(!testDatabaseUrl)("security regression guards", () => {
       [commentId, postId, owner, commentId + 1, postId, neighbor],
     );
   });
+  /** Удаляет fixture, закрывает соединения и возвращает окружение. */
   afterAll(async () => {
     if (conn) await cleanup();
     await conn?.end();
@@ -84,6 +89,7 @@ describe.skipIf(!testDatabaseUrl)("security regression guards", () => {
     )?.$client.end();
     vi.unstubAllEnvs();
   });
+  /** Захватывает текущую строку тестового автора в прямом tRPC-контексте. */
   async function caller() {
     return appRouter.createCaller({
       user: (await getUserByOpenId("security-probe-owner"))!,
@@ -91,7 +97,9 @@ describe.skipIf(!testDatabaseUrl)("security regression guards", () => {
       res: {} as TrpcContext["res"],
     });
   }
+  /** Возвращает подмены фото-транспорта после каждого сценария. */
   afterEach(() => vi.restoreAllMocks());
+  /** Завершение photo-upload после retirement не восстанавливает аватар удалённому аккаунту. */
   it("rejects a late avatar after final retirement", async () => {
     await conn.query(
       "UPDATE users SET accountDeletionRequestedAt=NULL WHERE id=?",
@@ -127,6 +135,7 @@ describe.skipIf(!testDatabaseUrl)("security regression guards", () => {
     );
     expect(rows[0]).toMatchObject({ avatarUrl: null, sessionVersion: 1 });
   });
+  /** Legacy-resend повторно проверяет epoch, роль, блокировку и удаление staff до постановки письма. */
   it.each(["epoch", "role", "blocked", "deletion"] as const)(
     "rejects legacy resend after staff %s changes",
     async (change) => {
@@ -166,6 +175,7 @@ describe.skipIf(!testDatabaseUrl)("security regression guards", () => {
       expect(rows[0].n).toBe(0);
     },
   );
+  /** И keyed, и legacy выдача дней запрещены при отозванных текущих полномочиях администратора. */
   it.each(["role", "epoch", "blocked", "deletion"] as const)(
     "legacy and keyed grants both reject a revoked admin %s",
     async (change) => {
@@ -201,6 +211,7 @@ describe.skipIf(!testDatabaseUrl)("security regression guards", () => {
       expect(rows[0].n).toBe(0);
     },
   );
+  /** Текущий администратор сохраняет совместимые ручную выдачу и постановку access-письма. */
   it("keeps legacy grant and resend available for a current administrator", async () => {
     vi.stubEnv(
       "AUTH_LINK_ENCRYPTION_KEY",
@@ -225,6 +236,7 @@ describe.skipIf(!testDatabaseUrl)("security regression guards", () => {
     );
     expect(rows[0]).toMatchObject({ grants: 1, mails: 1 });
   });
+  /** Актуальная загрузка аватара сохраняет URL и увеличивает profileRevision. */
   it("saves a current avatar and advances the profile revision", async () => {
     await conn.query(
       "UPDATE users SET accountDeletionRequestedAt=NULL WHERE id=?",
@@ -247,6 +259,7 @@ describe.skipIf(!testDatabaseUrl)("security regression guards", () => {
       profileRevision: 1,
     });
   });
+  /** Поздний avatar-upload получает CONFLICT после более новой правки профиля и не затирает её URL. */
   it("does not overwrite a newer profile while an avatar upload is pending", async () => {
     await conn.query(
       "UPDATE users SET accountDeletionRequestedAt=NULL WHERE id=?",
@@ -283,6 +296,7 @@ describe.skipIf(!testDatabaseUrl)("security regression guards", () => {
       profileRevision: 1,
     });
   });
+  /** Production API отказывается запускаться со слишком коротким ключом подписи JWT. */
   it("production startup refuses a one-byte JWT signing key", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("JWT_SECRET", "x");

@@ -21,15 +21,18 @@ import { sdk } from "../apps/backend/src/_core/sdk";
 import { getDb } from "../apps/backend/src/db";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 
+/** Проверяет привязку почты через настоящий Nest HTTP, JWT и отдельную SQL-базу, включая восстановление результата. */
 describe.skipIf(!testDatabaseUrl)("email binding native HTTP and MySQL", () => {
   let conn: Connection, app: INestApplication, base: string, bearer: string;
   let fixture = 0;
   const adminPath = "/api/admin/member-email-bindings";
   const confirmPath = "/api/auth/email-bindings/confirm";
   const encryptionKey = Buffer.alloc(32, 31);
+  /** Читает контрольные SQL-снимки без подмены репозиториев привязки почты. */
   async function rows(sql: string, args: unknown[] = []) {
     return (await conn.query<RowDataPacket[]>(sql, args))[0];
   }
+  /** Удаляет только триггер и записи семейства binding-http с фиксированными тестовыми участниками. */
   async function cleanup() {
     await conn.query("DROP TRIGGER IF EXISTS binding_http_audit_failure");
     await conn.query(
@@ -45,6 +48,7 @@ describe.skipIf(!testDatabaseUrl)("email binding native HTTP and MySQL", () => {
       "DELETE FROM users WHERE id IN (91301,91302) AND openId LIKE 'binding-http-%'",
     );
   }
+  /** Поднимает локальное приложение на случайном порту и подписывает сессию тестового администратора. */
   beforeAll(async () => {
     conn = await openTestDatabase();
     vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -58,6 +62,7 @@ describe.skipIf(!testDatabaseUrl)("email binding native HTTP and MySQL", () => {
       sessionVersion: 2,
     });
   });
+  /** Возвращает флаги и ключ шифрования к исходным значениям, создаёт администратора и телефонный аккаунт получателя. */
   beforeEach(async () => {
     fixture++;
     vi.stubEnv("PUBLIC_APP_URL", "http://127.0.0.1");
@@ -69,6 +74,7 @@ describe.skipIf(!testDatabaseUrl)("email binding native HTTP and MySQL", () => {
       (91301,'binding-http-admin','admin',NULL,2,'ADMIN_HASH'),
       (91302,'binding-http-member','user','+70000091302',4,'MEMBER_HASH')`);
   });
+  /** Закрывает HTTP-приложение и SQL-пулы, удаляет собственные записи и возвращает окружение. */
   afterAll(async () => {
     await app?.close();
     if (conn) {
@@ -80,11 +86,13 @@ describe.skipIf(!testDatabaseUrl)("email binding native HTTP and MySQL", () => {
     )?.$client.end();
     vi.unstubAllEnvs();
   });
+  /** Формирует новый ключ операции для одной и той же пары получателя и почты. */
   const input = () => ({
     userId: 91302,
     email: "binding-http@example.test",
     requestKey: randomUUID(),
   });
+  /** Отправляет настоящий JSON-запрос с управляемой авторизацией, origin и отдельным адресом для лимитов сценария. */
   function call(
     path: string,
     body?: unknown,
@@ -102,12 +110,14 @@ describe.skipIf(!testDatabaseUrl)("email binding native HTTP and MySQL", () => {
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
   }
+  /** Проверяет единый закрытый ответ без cookie и кеширования, не раскрывающий внутреннюю причину отказа. */
   async function safe(response: Response, code: number) {
     expect(response.status).toBe(code);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(response.headers.get("set-cookie")).toBeNull();
     expect(await response.json()).toEqual({ error: "Запрос недоступен." });
   }
+  /** Расшифровывает сохранённое тестовое доказательство с тем же AAD, который связывает его с ключом операции и хешем. */
   async function proof(requestKey: string) {
     const [binding] = await rows(
       "SELECT b.payloadHash,o.tokenCipher FROM member_email_bindings b JOIN member_email_binding_outbox o USING(requestKey) WHERE b.requestKey=?",
@@ -128,6 +138,7 @@ describe.skipIf(!testDatabaseUrl)("email binding native HTTP and MySQL", () => {
       decipher.final(),
     ]).toString("utf8");
   }
+  /** Проверяет отказ всех маршрутов при выключенной функции и отсутствие созданного намерения. */
   it("is closed by default for request/status/confirm without creating an intent", async () => {
     vi.stubEnv("MEMBER_EMAIL_BINDING_ENABLED", "");
     const request = input();
@@ -142,6 +153,7 @@ describe.skipIf(!testDatabaseUrl)("email binding native HTTP and MySQL", () => {
       await rows("SELECT * FROM member_email_bindings WHERE actorUserId=91301"),
     ).toEqual([]);
   });
+  /** Проверяет безопасный GET-переход только на настроенный фронтенд без расходования доказательства и изменения аккаунта. */
   it("redirects the public read-only entry to the configured frontend without consuming a proof or changing identity", async () => {
     const request = input();
     expect((await call(adminPath, request)).status).toBe(202);
@@ -181,6 +193,7 @@ describe.skipIf(!testDatabaseUrl)("email binding native HTTP and MySQL", () => {
       await rows("SELECT * FROM admin_audit_log WHERE actorUserId=91301"),
     ).toEqual(audit);
   });
+  /** Проверяет отклонение любых query-параметров входной страницы без отражения секретов и адресов перенаправления. */
   it("refuses query-bearing entry without reflecting proof or redirect input", async () => {
     for (const query of [
       "token=" + "a".repeat(43),
@@ -194,6 +207,7 @@ describe.skipIf(!testDatabaseUrl)("email binding native HTTP and MySQL", () => {
       expect(response.headers.get("location")).toBeNull();
     }
   });
+  /** Проверяет закрытый отказ при недопустимом адресе фронтенда с учётными данными. */
   it("fails closed on invalid configured frontend navigation", async () => {
     vi.stubEnv(
       "PUBLIC_APP_URL",
@@ -205,6 +219,7 @@ describe.skipIf(!testDatabaseUrl)("email binding native HTTP and MySQL", () => {
     );
     vi.stubEnv("PUBLIC_APP_URL", "http://127.0.0.1");
   });
+  /** Проверяет единственную запись повторной операции, безопасный статус и конфликт изменённой полезной нагрузки. */
   it("creates once, recovers safe status and rejects key reuse with a different payload", async () => {
     const request = input();
     const before = await rows("SELECT * FROM users WHERE id=91302");
@@ -236,6 +251,7 @@ describe.skipIf(!testDatabaseUrl)("email binding native HTTP and MySQL", () => {
       await rows("SELECT id FROM admin_audit_log WHERE actorUserId=91301"),
     ).toHaveLength(1);
   });
+  /** Проверяет отказ гостю и модератору на создании привязки и чтении её статуса. */
   it("requires current administrator authority on request and status", async () => {
     await safe(await call(adminPath, input(), false), 401);
     await safe(
@@ -246,11 +262,13 @@ describe.skipIf(!testDatabaseUrl)("email binding native HTTP and MySQL", () => {
     await safe(await call(adminPath, input()), 403);
     await safe(await call(`${adminPath}/${randomUUID()}`), 403);
   });
+  /** Проверяет текущую версию сессии на обоих административных маршрутах. */
   it("rejects a stale session on both protected routes", async () => {
     await conn.query("UPDATE users SET sessionVersion=3 WHERE id=91301");
     await safe(await call(adminPath, input()), 401);
     await safe(await call(`${adminPath}/${randomUUID()}`), 401);
   });
+  /** Проверяет запрет при утрате роли, блокировке либо запросе удаления администратора. */
   it.each([
     ["role='user'", 403],
     ["blockedAt=NOW()", 401],
@@ -263,6 +281,7 @@ describe.skipIf(!testDatabaseUrl)("email binding native HTTP and MySQL", () => {
       await safe(await call(`${adminPath}/${randomUUID()}`), status);
     },
   );
+  /** Проверяет строгую форму запроса и безопасные ошибки отсутствующего получателя или операции. */
   it("validates strict inputs and unavailable targets without leaking values", async () => {
     await safe(await call(adminPath, { ...input(), role: "admin" }), 400);
     await safe(await call(adminPath, { ...input(), userId: 2147483648 }), 400);
@@ -270,6 +289,7 @@ describe.skipIf(!testDatabaseUrl)("email binding native HTTP and MySQL", () => {
     await safe(await call(`${adminPath}/invalid-key`), 400);
     await safe(await call(`${adminPath}/${randomUUID()}`), 404);
   });
+  /** Проверяет одноразовое подтверждение явным POST без входа, новой подписки и изменения пароля или эпохи сессии. */
   it("requires explicit public proof POST and never authenticates or grants a subscription", async () => {
     const request = input();
     expect((await call(adminPath, request)).status).toBe(202);
@@ -299,6 +319,7 @@ describe.skipIf(!testDatabaseUrl)("email binding native HTTP and MySQL", () => {
       state: "confirmed",
     });
   });
+  /** Проверяет единый отказ для неизвестного, неверного и лишнего содержимого доказательства. */
   it("rejects malformed and unknown proof bodies identically", async () => {
     for (const body of [
       { token: "bad" },
@@ -310,6 +331,7 @@ describe.skipIf(!testDatabaseUrl)("email binding native HTTP and MySQL", () => {
       await safe(await call(confirmPath, body, false), 400);
     }
   });
+  /** Проверяет откат намерения и очищенный ответ 503 при отказе записи аудита. */
   it("returns sanitized 503 and rolls back a request on SQL failure", async () => {
     await conn.query(
       "CREATE TRIGGER binding_http_audit_failure BEFORE INSERT ON admin_audit_log FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='binding-http@example.test private SQL failure'",
@@ -319,6 +341,7 @@ describe.skipIf(!testDatabaseUrl)("email binding native HTTP and MySQL", () => {
       await rows("SELECT * FROM member_email_bindings WHERE actorUserId=91301"),
     ).toEqual([]);
   });
+  /** Проверяет отдельное требование same-origin, которое не снимается разрешением CORS. */
   it("requires same-origin even for another CORS-allowed origin", async () => {
     await safe(
       await call(adminPath, input(), true, { Origin: "http://localhost" }),
@@ -339,6 +362,7 @@ describe.skipIf(!testDatabaseUrl)("email binding native HTTP and MySQL", () => {
     expect(result.status).toBe(403);
     expect(result.headers.get("cache-control")).toBe("no-store");
   });
+  /** Проверяет тип тела, синтаксис JSON и предел размера без отражения переданного доказательства. */
   it("requires JSON and preserves bounded parser errors without echoing input", async () => {
     await safe(
       await call(adminPath, input(), true, { "Content-Type": "text/plain" }),
@@ -367,6 +391,7 @@ describe.skipIf(!testDatabaseUrl)("email binding native HTTP and MySQL", () => {
       expect(error.error).not.toContain("private-input");
     }
   });
+  /** Проверяет независимость опроса статуса от почтовой квоты и лимит попыток подтверждения. */
   it("does not spend mail quota on status polling and bounds proof attempts", async () => {
     for (let i = 0; i < 21; i++)
       await safe(await call(`${adminPath}/${randomUUID()}`), 404);
@@ -380,6 +405,7 @@ describe.skipIf(!testDatabaseUrl)("email binding native HTTP and MySQL", () => {
     expect(Number(response.headers.get("retry-after"))).toBeGreaterThan(0);
     await safe(response, 429);
   });
+  /** Проверяет откат почты при отказе аудита и успешный повтор того же ещё не расходованного доказательства. */
   it("rolls back failed confirmation and permits the same proof to retry", async () => {
     const request = input();
     expect((await call(adminPath, request)).status).toBe(202);
@@ -395,6 +421,7 @@ describe.skipIf(!testDatabaseUrl)("email binding native HTTP and MySQL", () => {
     expect((await call(confirmPath, { token }, false)).status).toBe(200);
   });
   // Includes bundling and a separate HTTP/SQL server; keep this budget local.
+  /** Собирает отдельный ESM-вход и проверяет регистрацию маршрутов, лимиты и подтверждение в дочернем production-процессе. */
   it("registers request, recovery and confirmation in compiled production ESM", async () => {
     const directory = mkdtempSync(resolve(".tmp-binding-http-"));
     const entry = join(directory, "application.mjs");

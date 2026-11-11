@@ -10,10 +10,13 @@ import type { AppRouter } from "../apps/backend/src/routers";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 import { getDb, grantClubDays, listAdminMembers, listAdminPayments } from "../apps/backend/src/db";
 
+/** Проверяет ручную выдачу клубных дней, конкурентные продления, проекции админки и актуальные права администратора. */
 describe.skipIf(!testDatabaseUrl)("manual club grants on disposable MySQL", () => {
   let conn: Connection;
   let app: INestApplication, base: string, token: string;
+  /** Создаёт настоящий admin tRPC-клиент с выбранным Bearer либо без сессии. */
   const admin = (bearer = token) => createTRPCProxyClient<AppRouter>({ links: [httpLink({ url: base + "/api/trpc", transformer: superjson, headers: bearer ? { Authorization: `Bearer ${bearer}` } : {} })] }).admin;
+  /** Создаёт своего администратора и получателя и запускает локальный API с тестовым JWT. */
   beforeAll(async () => {
     conn = await openTestDatabase();
     vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -25,6 +28,7 @@ describe.skipIf(!testDatabaseUrl)("manual club grants on disposable MySQL", () =
     base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
     token = await sdk.createSessionToken("grant-admin-fixture", { sessionVersion: 0 });
   });
+  /** Восстанавливает доступность аккаунтов и единственный начальный оплаченный период на 60 дней. */
   beforeEach(async () => {
     await conn.query("UPDATE users SET role='admin',blockedAt=NULL WHERE id=92400");
     await conn.query("DELETE FROM club_payments WHERE userId=92401");
@@ -32,6 +36,7 @@ describe.skipIf(!testDatabaseUrl)("manual club grants on disposable MySQL", () =
     await conn.query(`INSERT INTO club_payments (userId,orderId,email,status,expiresAt)
       VALUES (92401,'grant-fixture-initial','grant@example.test','paid',DATE_ADD(NOW(),INTERVAL 60 DAY))`);
   });
+  /** Закрывает API, удаляет данные двух тестовых аккаунтов и соединения, затем возвращает окружение. */
   afterAll(async () => {
     await app?.close();
     if (conn) {
@@ -43,10 +48,12 @@ describe.skipIf(!testDatabaseUrl)("manual club grants on disposable MySQL", () =
     await (database as unknown as { $client: { end(): Promise<void> } })?.$client.end();
     vi.unstubAllEnvs();
   });
+  /** Читает собственную историю получателя по сроку для сверки накопленного продления и email. */
   async function payments() {
     const [rows] = await conn.query<RowDataPacket[]>("SELECT orderId,status,expiresAt,email,sum FROM club_payments WHERE userId=92401 ORDER BY expiresAt");
     return rows;
   }
+  /** Десять одновременных выдач по три дня должны накопить все 30 дней с уникальными orderId. */
   it("accumulates every simultaneous grant instead of overwriting the same expiry", async () => {
     const initial = (await payments())[0].expiresAt as Date;
     const results = await Promise.allSettled(Array.from({ length: 10 }, () => grantClubDays(92401, 3)));
@@ -56,18 +63,21 @@ describe.skipIf(!testDatabaseUrl)("manual club grants on disposable MySQL", () =
     expect(new Set(rows.map(row => row.orderId)).size).toBe(11);
     expect(rows.at(-1)!.expiresAt.getTime()).toBe(initial.getTime() + 30 * 86400000);
   });
+  /** Выдача по умолчанию добавляет 31 день и записывает сохранённый email при нулевой сумме. */
   it("preserves the default 31-day grant and stored recipient", async () => {
     const initial = (await payments())[0].expiresAt as Date;
     const expiresAt = await grantClubDays(92401);
     expect(expiresAt.getTime()).toBe(initial.getTime() + 31 * 86400000);
     expect((await payments()).at(-1)).toMatchObject({ status: "paid", email: "grant@example.test", sum: "0" });
   });
+  /** Проекция участниц после выдачи содержит новый срок и только согласованный набор полей, включая contactPhone. */
   it("keeps the admin member projection and refreshed expiry after a grant", async () => {
     const expiresAt = await grantClubDays(92401);
     const member = (await listAdminMembers()).find(row => row.id === 92401);
     expect(member).toMatchObject({ id: 92401, email: "grant@example.test", clubExpiresAt: expiresAt, blockedAt: null, blockedReason: null });
     expect(Object.keys(member!).sort()).toEqual(["blockedAt", "blockedReason", "clubExpiresAt", "contactPhone", "createdAt", "email", "id", "name", "role"]);
   });
+  /** История платежей показывает подтверждённую бесплатную выдачу, paidAt и соблюдает переданный лимит. */
   it("keeps the admin payment limit and confirmed grant fields", async () => {
     const expiresAt = await grantClubDays(92401);
     const rows = await listAdminPayments();
@@ -77,9 +87,11 @@ describe.skipIf(!testDatabaseUrl)("manual club grants on disposable MySQL", () =
     expect(grants[0].paidAt).toBeInstanceOf(Date);
     expect(await listAdminPayments(1)).toHaveLength(1);
   });
+  /** Нулевой лимит означает успешно пустую выборку, не ошибку хранилища. */
   it("keeps a successful known-empty payment read distinct from unavailable storage", async () => {
     expect(await listAdminPayments(0)).toEqual([]);
   });
+  /** После истечения прежнего доступа новые дни начисляются от текущего времени. */
   it("starts an expired membership from now rather than its old expiry", async () => {
     await conn.query("UPDATE club_payments SET expiresAt=DATE_SUB(NOW(),INTERVAL 10 DAY) WHERE userId=92401");
     const before = Date.now();
@@ -87,11 +99,13 @@ describe.skipIf(!testDatabaseUrl)("manual club grants on disposable MySQL", () =
     expect(expiry.getTime()).toBeGreaterThanOrEqual(before + 2 * 86400000);
     expect(expiry.getTime()).toBeLessThanOrEqual(Date.now() + 2 * 86400000);
   });
+  /** Нулевые, дробные и чрезмерные сроки отклоняются без записи новой выдачи. */
   it.each([0, -1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER])("rejects invalid duration %s without changing payments", async days => {
     const before = await payments();
     await expect(grantClubDays(92401, days)).rejects.toBeInstanceOf(RangeError);
     expect(await payments()).toEqual(before);
   });
+  /** Заблокированный либо удалённый получатель вызывает конфликт без изменения платежной истории. */
   it.each(["blocked", "deleted"])("refuses a %s recipient without recording a grant", async state => {
     if (state === "blocked") await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=92401");
     else await conn.query("UPDATE users SET openId='deleted-92401-fixture',email=NULL,passwordHash=NULL WHERE id=92401");
@@ -99,11 +113,13 @@ describe.skipIf(!testDatabaseUrl)("manual club grants on disposable MySQL", () =
     await expect(grantClubDays(92401)).rejects.toMatchObject({ code: "CONFLICT", message: "Аккаунт недоступен для выдачи доступа" });
     expect(await payments()).toEqual(before);
   });
+  /** Несуществующий получатель даёт NOT_FOUND и не создаёт платёжную запись. */
   it("refuses a missing recipient", async () => {
     await expect(grantClubDays(92409)).rejects.toMatchObject({ code: "NOT_FOUND", message: "Аккаунт не найден" });
     const [rows] = await conn.query<RowDataPacket[]>("SELECT id FROM club_payments WHERE userId=92409");
     expect(rows).toEqual([]);
   });
+  /** HTTP сохраняет явный NOT_FOUND или CONFLICT и не меняет ни аккаунт, ни чужие платежи. */
   it.each(["missing", "blocked", "deleted"] as const)("returns an explicit native refusal for a %s recipient without changing rows", async state => {
     if (state === "blocked") await conn.query("UPDATE users SET blockedAt=NOW() WHERE id=92401");
     if (state === "deleted") await conn.query("UPDATE users SET openId='deleted-92401-fixture',email=NULL,passwordHash=NULL WHERE id=92401");
@@ -117,6 +133,7 @@ describe.skipIf(!testDatabaseUrl)("manual club grants on disposable MySQL", () =
     expect((await conn.query("SELECT * FROM users WHERE id=92401"))[0]).toEqual(accounts);
     expect((await conn.query("SELECT id FROM club_payments WHERE userId IN (92400,92409)"))[0]).toEqual([]);
   });
+  /** Успешный HTTP-ответ содержит именно подтверждённый в БД срок 31-дневного продления. */
   it("acknowledges a real admin grant only with its committed 31-day expiry", async () => {
     const initial = (await payments())[0].expiresAt as Date;
     const result = await admin().grantClub.mutate({ userId: 92401 });
@@ -124,6 +141,7 @@ describe.skipIf(!testDatabaseUrl)("manual club grants on disposable MySQL", () =
     expect(await payments()).toHaveLength(2);
     expect((await payments()).at(-1)).toMatchObject({ status: "paid", sum: "0", expiresAt: new Date(result.expiresAt) });
   });
+  /** Гость, обычный пользователь, модератор и заблокированный администратор не могут выдать дни. */
   it.each(["guest", "user", "moderator", "blocked-admin"] as const)("does not grant or change history for %s", async access => {
     if (access !== "guest") await conn.query("UPDATE users SET role=?,blockedAt=? WHERE id=92400", [access === "blocked-admin" ? "admin" : access, access === "blocked-admin" ? new Date() : null]);
     const before = await payments();

@@ -1,3 +1,4 @@
+/** Settlement orchestration сохраняет полный provider proof и durable решение; внешняя SQL-запись заменена портом. */
 import { expect, it, vi } from "vitest";
 import {
   ClubSettlementService,
@@ -16,6 +17,7 @@ const proof: PaymentProof = Object.freeze({
   profileId: "23",
 });
 
+/** Monthly/semiannual/recurring передают правильный период и неизменённые sum/proof к транзакционному порту ровно один раз. */
 it.each([
   ["club-7-monthly", 2_592_000_000, undefined],
   ["club6m-7-semiannual", 15_552_000_000, undefined],
@@ -52,6 +54,7 @@ it.each([
   },
 );
 
+/** False от durable validator не повышается до успешной выдачи доступа. */
 it("does not turn a rejected durable settlement into success", async () => {
   const service = new ClubSettlementService(async () => false);
   expect(await service.settle("club-7-rejected", { sum: "790", proof })).toBe(
@@ -59,6 +62,7 @@ it("does not turn a rejected durable settlement into success", async () => {
   );
 });
 
+/** Оркестратор не придумывает сумму/доказательство вместо отсутствующего входа. */
 it("leaves absent amount/proof for the existing durable validator instead of inventing defaults", async () => {
   let received = false;
   const service = new ClubSettlementService(async (input) => {
@@ -76,6 +80,7 @@ it("leaves absent amount/proof for the existing durable validator instead of inv
   expect(received).toBe(true);
 });
 
+/** Ошибка SQL остаётся ошибкой, без ACK и слепого повтора. */
 it("propagates SQL failure rather than acknowledging or retrying it", async () => {
   const failure = new Error("synthetic settlement failure");
   const settlePayment = vi.fn(async () => {
@@ -88,6 +93,7 @@ it("propagates SQL failure rather than acknowledging or retrying it", async () =
   expect(settlePayment).toHaveBeenCalledTimes(1);
 });
 
+/** Caller ждёт завершения durable promise, а не только начала записи. */
 it("awaits settlement completion before reporting success", async () => {
   let complete!: (granted: boolean) => void;
   const pending = new Promise<boolean>((resolve) => {
@@ -108,6 +114,7 @@ it("awaits settlement completion before reporting success", async () => {
   expect(await result).toBe(true);
 });
 
+/** Совместимый fulfillPaidOrder передаёт полный полугодовой proof и возвращает club только после true. */
 it.each([true, false])(
   "standalone fulfillment retains its durable decision: %s",
   async (granted) => {

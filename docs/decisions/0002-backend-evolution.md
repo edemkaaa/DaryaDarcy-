@@ -3,6 +3,10 @@
 - **Status:** Proposed for full launch; immediate security repairs requested
 - **Date:** 2026-10-02
 
+## Актуальность на 11 ноября 2026
+
+Ограничение на смену framework заменено [ADR-005](0005-nestjs-modular-backend.md). Сервер уже использует NestJS и общий пул MySQL; прежние проблемы ниже описывают исходную точку, а не текущий перечень незакрытых работ.
+
 ## Context
 
 Existing Express/tRPC and Drizzle can implement the launch requirements. Backend

@@ -26,6 +26,7 @@ import type { AppRouter } from "../apps/backend/src/routers";
 
 // Native HTTP/JWT/SQL and signed cancellation HTTP against loopback only.
 // No checkout, external provider, payments, SMTP or real notification delivery.
+/** Проверяет pending и confirmed отмены через настоящий HTTP, JWT, SQL и локальный подписанный провайдер. */
 describe.skipIf(!testDatabaseUrl)(
   "cancellation status across native HTTP and SQL",
   () => {
@@ -43,12 +44,14 @@ describe.skipIf(!testDatabaseUrl)(
     const expiresAt = new Date("2030-12-01T00:00:00Z");
     const secret = "synthetic-cancellation-loopback-signing-key";
     const nativeFetch = globalThis.fetch;
+    /** Открывает локальный сервер на случайном порту и возвращает его loopback-адрес. */
     async function listen(server: Server) {
       await new Promise<void>((resolve) =>
         server.listen(0, "127.0.0.1", resolve),
       );
       return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
     }
+    /** Закрывает собственный HTTP-сервер вместе с оставшимися соединениями. */
     async function close(server?: Server) {
       if (!server) return;
       await new Promise<void>((resolve, reject) => {
@@ -56,9 +59,11 @@ describe.skipIf(!testDatabaseUrl)(
         server.closeAllConnections();
       });
     }
+    /** Читает контрольные строки SQL для состояния отмены. */
     async function rows(query: string, values: unknown[] = []) {
       return (await conn.query<RowDataPacket[]>(query, values))[0];
     }
+    /** Снимает recurring-профили с lease и оплаченные сроки пользователя. */
     async function state() {
       return {
         profiles: await rows(
@@ -71,12 +76,14 @@ describe.skipIf(!testDatabaseUrl)(
         ),
       };
     }
+    /** Создаёт HTTP tRPC-клиент для выбранного пользователя или гостя и управляемого прокси-адреса. */
     function client(userId?: number, origin = base) {
       return createTRPCProxyClient<AppRouter>({
         links: [
           httpLink({
             url: `${origin}/api/trpc`,
             transformer: superjson,
+            /** Подписывает отдельный JWT выбранного синтетического аккаунта либо оставляет запрос гостевым. */
             headers: async () =>
               userId === undefined
                 ? {}
@@ -87,6 +94,7 @@ describe.skipIf(!testDatabaseUrl)(
         ],
       });
     }
+    /** Делает готовыми к повтору только собственные recurring-профили, не меняя production-backoff. */
     async function due() {
       // Advance only these owned fixtures, not the worker's real backoff policy.
       await conn.query(
@@ -94,6 +102,7 @@ describe.skipIf(!testDatabaseUrl)(
         [actorId],
       );
     }
+    /** Запускает локальный подписанный провайдер и API; прокси может потерять ответ только после завершения upstream-запроса. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       merchant = createServer(async (request, response) => {
@@ -169,6 +178,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       dropBase = await listen(droppedReply);
     });
+    /** Пересоздаёт два аккаунта и точную цепочку заказа, квитанции, recurring-профиля и письма. */
     beforeEach(async () => {
       calls = [];
       protocolErrors = 0;
@@ -217,11 +227,13 @@ describe.skipIf(!testDatabaseUrl)(
         [`club-access:${paymentKey}`, actorId],
       );
     });
+    /** Удаляет собственный отказной триггер, возвращает подмены и проверяет отсутствие нарушений протокола провайдера. */
     afterEach(async () => {
       await conn.query("DROP TRIGGER IF EXISTS owned_cancellation_sql_failure");
       vi.restoreAllMocks();
       expect(protocolErrors).toBe(0);
     });
+    /** Закрывает прокси, API и провайдера, удаляет свои записи и восстанавливает глобальный fetch и окружение. */
     afterAll(async () => {
       await close(droppedReply);
       await app?.close();
@@ -250,6 +262,7 @@ describe.skipIf(!testDatabaseUrl)(
       vi.unstubAllGlobals();
       vi.unstubAllEnvs();
     });
+    /** Проверяет различие отказа SQL до и после сохранения намерения: серверная ошибка не должна выглядеть окончательным клиентским отказом. */
     it.each(["before commit", "after commit"] as const)(
       "SQL failure %s is a server error, never a terminal client rejection",
       async (stage) => {
@@ -297,6 +310,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(calls).toEqual(["456"]);
       },
     );
+    /** Проверяет безопасный отказ для legacy-подписки без доказанной привязки recurring-профиля. */
     it("an unverified legacy billing profile remains a safe client refusal", async () => {
       await conn.query("DELETE FROM billing_profiles WHERE userId=?", [
         actorId,
@@ -309,6 +323,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await state()).toEqual(before);
       expect(calls).toEqual([]);
     });
+    /** Проверяет pending при 503 провайдера и его восстановление новым клиентом только чтением без потери оплаченного срока. */
     it("returns pending on provider 503, then restores it with a read-only fresh client", async () => {
       expect(await client(actorId).club.subscription.query()).toMatchObject({
         cancellationStatus: "none",
@@ -345,6 +360,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await state()).toEqual(saved);
       expect(calls).toEqual(["456"]);
     });
+    /** Проверяет восстановление потерянного ответа без второй отправки провайдеру и дублирования запроса отмены. */
     it("recovers a lost response without a second provider attempt or duplicate request", async () => {
       await expect(
         client(actorId, dropBase).club.cancel.mutate(),
@@ -361,6 +377,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await state()).toEqual(saved);
       expect(calls).toEqual(["456"]);
     });
+    /** Проверяет pending при разрыве соединения провайдером вместо ложного неуспеха принятого API-действия. */
     it("reports a disconnected provider as pending, not a failed API request", async () => {
       mode = "disconnect";
       expect(await client(actorId).club.cancel.mutate()).toMatchObject({
@@ -373,6 +390,7 @@ describe.skipIf(!testDatabaseUrl)(
         cancelAtPeriodEnd: false,
       });
     });
+    /** Проверяет переход к confirmed после фонового подтверждения с сохранением оплаченного доступа до окончания срока. */
     it("worker confirmation changes reads to confirmed and preserves the paid period", async () => {
       await client(actorId).club.cancel.mutate();
       await due();
@@ -395,6 +413,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       expect(calls).toEqual(["456", "456"]);
     });
+    /** Проверяет, что частичное подтверждение нескольких recurring-профилей не объявляет всю подписку отменённой. */
     it("partial provider confirmation does not report all renewal profiles cancelled", async () => {
       await conn.query(
         "INSERT INTO billing_profiles(profileKey,userId,domain,subscriptionId,profileId,email,amountMinor) VALUES ('cancellation-status-two',?,'127.0.0.1','123','457','synthetic@example.test',79000)",
@@ -422,6 +441,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       expect(calls).toEqual(["456", "457", "457"]);
     });
+    /** Удерживает SQL-блокировку пользователя и проверяет отзыв сессии перед продолжением отмены без обращения к провайдеру. */
     it("rejects cancellation after session revocation while waiting for the user lock", async () => {
       const control = await mysql.createConnection({
         uri: testDatabaseUrl!,
@@ -463,6 +483,7 @@ describe.skipIf(!testDatabaseUrl)(
         await control.end();
       }
     });
+    /** Проверяет отказ нового непривязанного заказа независимо от более старого отменённого профиля и legacy-флага. */
     it("refuses an unbound new order despite an older cancelled profile", async () => {
       await conn.query(
         "UPDATE billing_profiles SET cancelRequestedAt=NOW(),cancelledAt=NOW() WHERE userId=?",
@@ -488,6 +509,7 @@ describe.skipIf(!testDatabaseUrl)(
         hasClubAccess: true,
       });
     });
+    /** Проверяет точную привязку квитанции к recurring-профилю даже при совпавших email и сумме. */
     it("refuses a receipt whose profile is different even when amount and email match", async () => {
       await conn.query(
         "UPDATE billing_receipts SET payloadHash=? WHERE userId=?",
@@ -509,6 +531,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await state()).profiles[0].cancelRequestedAt).toBeNull();
       expect(calls).toEqual([]);
     });
+    /** Проверяет отсутствие доступа к чужому pending-запросу и невозможность отмены гостем или другим аккаунтом. */
     it("does not leak or cancel another account's pending request", async () => {
       await client(actorId).club.cancel.mutate();
       const saved = await state();
@@ -528,6 +551,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await state()).toEqual(saved);
       expect(calls).toEqual(["456"]);
     });
+    /** Проверяет видимость уже принятой pending-отмены после истечения оплаченного доступа. */
     it("keeps a saved pending request visible even after paid access expires", async () => {
       await client(actorId).club.cancel.mutate();
       await conn.query(
@@ -541,6 +565,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       expect(calls).toEqual(["456"]);
     });
+    /** Приостанавливает настоящее чтение оплаченного периода и проверяет, что конкурентное подтверждение не создаёт ложный статус none. */
     it("never emits none between an earlier paid read and concurrent worker confirmation", async () => {
       await client(actorId).club.cancel.mutate();
       await due();

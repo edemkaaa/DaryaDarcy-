@@ -51,10 +51,12 @@ export const ALL_POST_TAGS: PostTag[] = CLUB_TAGS;
 const LABEL_BY_SLUG = new Map(
   ALL_POST_TAGS.map((tag) => [tag.slug, tag.label.toLowerCase()]),
 );
+/** Отображаем согласованную русскую подпись известного slug, сохраняя неизвестный пользовательский тег. */
 export function postTagLabel(slug: string): string {
   const found = ALL_POST_TAGS.find((tag) => tag.slug === slug);
   return found?.label || slug;
 }
+/** Сопоставляем slug и русские подписи без учёта регистра; пустой фильтр ничего не выбирает. */
 export function postHasTag(
   tags: string[] | null | undefined,
   filter: string,
@@ -67,6 +69,7 @@ export function postHasTag(
     return slug === needle || (LABEL_BY_SLUG.get(slug) ?? slug) === label;
   });
 }
+/** Предлагаем редактору набор тегов целевого раздела, не меняя уже сохранённые значения поста. */
 export function tagsForTarget(target: "feed" | "club" | "both"): PostTag[] {
   if (target === "club") return CLUB_TAGS;
   if (target === "feed") return FEED_TAGS;

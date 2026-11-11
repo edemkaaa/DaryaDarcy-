@@ -1,3 +1,4 @@
+// Разрушительный исторический перенос может очистить целевые таблицы и переключить env; fallback не восстанавливает весь контент и аккаунты.
 /**
  * Migrate all app data to Timeweb MySQL.
  *
@@ -74,6 +75,8 @@ const TABLE_ORDER = [
 ];
 
 function shortcodeToUnix(shortcode) {
+  // Извлекает приблизительную дату Instagram по известной структуре shortcode, отклоняя неподходящий алфавит.
+
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
   let id = 0n;
   for (const char of shortcode) {
@@ -87,7 +90,10 @@ function shortcodeToUnix(shortcode) {
 }
 
 async function connect(url, label) {
+  // Открывает выбранную БД и возвращает null при ошибке; ошибка источника далее может включить неполное восстановление.
+
   try {
+    // С этого места выбранная БД реально изменяется; текущая история и рабочее назначение автоматически не проверены.
     const conn = await mysql.createConnection(url);
     console.log(`${label}: connected`);
     return conn;
@@ -98,6 +104,8 @@ async function connect(url, label) {
 }
 
 async function applySchema(conn) {
+  // Применяет старый journal с исторического drizzle-пути и пропускает совпадения DDL; актуальную историю миграций не гарантирует.
+
   const journal = JSON.parse(
     fs.readFileSync(
       path.join(root, "packages/database/drizzle/meta/_journal.json"),
@@ -131,6 +139,8 @@ async function applySchema(conn) {
 }
 
 async function tableCount(conn, table) {
+  // Считает строки разрешённой вызывающим кодом таблицы; -1 объединяет отсутствие таблицы и ошибки чтения.
+
   try {
     const [[row]] = await conn.query(`SELECT COUNT(*) AS c FROM \`${table}\``);
     return Number(row.c);
@@ -140,6 +150,8 @@ async function tableCount(conn, table) {
 }
 
 async function copyTable(oldConn, newConn, table) {
+  // Читает всю старую таблицу в память и вставляет партиями по 100, преобразуя объектные поля в JSON.
+
   const [rows] = await oldConn.query(`SELECT * FROM \`${table}\``);
   if (!rows.length) {
     console.log(`  ${table}: 0 rows (skip)`);
@@ -173,6 +185,8 @@ async function copyTable(oldConn, newConn, table) {
 }
 
 async function copyAllFromOld(oldConn, newConn) {
+  // Отключает FK-проверки и удаляет целевые таблицы перед копированием; это разрушительный исторический путь без общей транзакции.
+
   await newConn.query("SET FOREIGN_KEY_CHECKS=0");
   for (const table of TABLE_ORDER) {
     const existsOld = (await tableCount(oldConn, table)) >= 0;
@@ -184,6 +198,8 @@ async function copyAllFromOld(oldConn, newConn) {
 }
 
 async function seedTags(conn) {
+  // Записывает фиксированный исторический словарь тегов, обновляя совпавшие slug.
+
   for (const [slug, label, category, sortOrder] of TAGS) {
     await conn.query(
       `INSERT INTO tags (slug, label, category, sortOrder)
@@ -196,6 +212,8 @@ async function seedTags(conn) {
 }
 
 async function seedOwner(conn) {
+  // Создаёт/обновляет администратора по env; это реальная выдача роли, не сохранение действующих входов по умолчанию.
+
   const email = (env.OWNER_EMAIL || "daryadarcy19@gmail.com").toLowerCase();
   const openId = env.OWNER_OPEN_ID || `e_${createHash("sha256").update(email).digest("hex").slice(0, 40)}`;
   const name = env.OWNER_NAME || "Дарья Левина";
@@ -215,6 +233,8 @@ async function seedOwner(conn) {
 }
 
 async function importFeedFromS3(conn) {
+  // Восстанавливает только фотографии Instagram по именам S3, создавая пустые тексты; исходные статьи и клуб так не восстановить.
+
   const client = new S3Client({
     endpoint: env.S3_ENDPOINT,
     region: "ru-1",
@@ -287,6 +307,8 @@ async function importFeedFromS3(conn) {
 }
 
 async function importVideos(conn) {
+  // Добавляет опубликованные старые YouTube-записи из JSON через INSERT IGNORE; нынешний VK-каталог здесь не поддерживается.
+
   const file = path.join(root, "tooling/data/youtube-videos.json");
   if (!fs.existsSync(file)) return;
   const list = JSON.parse(fs.readFileSync(file, "utf8"));
@@ -311,6 +333,8 @@ async function importVideos(conn) {
 }
 
 async function report(conn, label) {
+  // Печатает только счётчики выбранных таблиц; равенство чисел не доказывает полноту или целостность переноса.
+
   const summary = {};
   for (const table of ["users", "tags", "posts", "post_media", "videos", "articles", "post_comments"]) {
     summary[table] = await tableCount(conn, table);
@@ -319,6 +343,8 @@ async function report(conn, label) {
 }
 
 async function updateEnvDatabaseUrl(newUrl) {
+  // Переписывает локальное подключение приложения на новую БД; это фактическое переключение после переноса.
+
   const envPath = path.join(root, ".env");
   let text = fs.readFileSync(envPath, "utf8");
   if (!text.includes("OLD_DATABASE_URL=") && text.includes("DATABASE_URL=")) {
@@ -342,6 +368,8 @@ async function updateEnvDatabaseUrl(newUrl) {
 }
 
 async function main() {
+  // Выбирает полный разрушительный перенос либо неполный fallback, затем переключает env; не использовать как современное восстановление.
+
   console.log("=== migrate to Timeweb MySQL ===\n");
 
   const newConn = await connect(NEW_URL, "NEW");

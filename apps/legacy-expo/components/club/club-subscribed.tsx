@@ -1,3 +1,4 @@
+// Архив Expo. Архивный двухсезонный календарь выбирает winter с 20 ноября по 19 марта, остальные даты autumn; текущая серверная сезонность отдельно.
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -68,6 +69,8 @@ const SEASONAL_BANNERS = {
 };
 
 function getClubSeason(): "autumn" | "winter" {
+  // Архивный двухсезонный календарь выбирает winter с 20 ноября по 19 марта, остальные даты autumn; текущая серверная сезонность отдельно.
+
   const now = new Date();
   const month = now.getMonth(); // 0-indexed
   const day = now.getDate();
@@ -251,6 +254,8 @@ function ClubPostCard({
   onMenuPress?: () => void;
   onPhotoPress?: (photos: string[], index: number) => void;
 }) {
+  // Соединяет media, richText, комментарии, рубрики и декоративные like/save с действиями владельца.
+
   const router = useRouter();
   const likeScale = useSharedValue(1);
   const saveScale = useSharedValue(1);
@@ -258,6 +263,8 @@ function ClubPostCard({
   const canOpen = Number.isFinite(postId) && postId > 0;
 
   const openPost = () => {
+    // Открывает только положительный числовой id, не фикстурную карточку.
+
     if (!canOpen) return;
     router.push(`/post/${postId}`);
   };
@@ -270,6 +277,8 @@ function ClubPostCard({
   }));
 
   const handleLike = () => {
+    // Анимирует наклейку лайка и делегирует изменение внешнему обработчику.
+
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -280,6 +289,8 @@ function ClubPostCard({
   };
 
   const handleSave = () => {
+    // Анимирует наклейку закладки и передаёт действие владельцу списка.
+
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
@@ -423,6 +434,8 @@ function ClubPostCard({
 const PROFILE_COMPLETED_KEY = "@darcy_club_profile_completed";
 
 export function ClubSubscribed() {
+  // Архивный Клуб читает до 200 записей, сортирует/фильтрует на клиенте и при пустом API использует фикстуры; это не текущий постраничный web-каталог.
+
   const [activeTab, setActiveTab] = useState<ClubTab | null>(null);
   const [showPenPals, setShowPenPals] = useState(false);
   const [profileCompleted, setProfileCompleted] = useState<boolean | null>(null); // null = loading
@@ -437,6 +450,8 @@ export function ClubSubscribed() {
   const utils = trpc.useUtils();
   const toggleSaveMut = trpc.feed.toggleSave.useMutation({
     onSuccess: () => {
+      // После сохранения поста инвалидирует закладки и серверные interaction id.
+
       void utils.feed.savedPosts.invalidate();
       void utils.feed.userInteractions.invalidate();
     },
@@ -447,11 +462,13 @@ export function ClubSubscribed() {
   const interactions = trpc.feed.userInteractions.useQuery(undefined, { enabled: Boolean(user) });
 
   const pushProfileToServer = useCallback(async () => {
+    // Переносит локальный профиль на сервер, затем перечитывает сессию и аватары комментариев.
+
     if (!user) return;
     await syncClubProfileToServer(
       {
-        updateProfile: (input) => updateProfile.mutateAsync(input),
-        uploadAvatar: (input) => uploadAvatar.mutateAsync(input),
+        updateProfile: (input) => /* Адаптирует профильный patch к tRPC мутации без отдельной обработки ошибок. */ updateProfile.mutateAsync(input),
+        uploadAvatar: (input) => /* Адаптирует старую avatar-загрузку к синхронизатору локального профиля. */ uploadAvatar.mutateAsync(input),
       },
       { currentAvatarUrl: user.avatarUrl },
     );
@@ -460,7 +477,9 @@ export function ClubSubscribed() {
   }, [user, updateProfile, uploadAvatar, refresh, utils.club.comments]);
 
   // Admin post management (edit/delete)
-  const onRefresh = () => { utils.club.list.invalidate(); };
+  const onRefresh = () => {
+    // Инвалидирует клубный список после административного изменения.
+ utils.club.list.invalidate(); };
   const { openMenu, ManagementModals } = usePostManagement(onRefresh);
   const [viewerVisible, setViewerVisible] = useState(false);
   const [viewerPhotos, setViewerPhotos] = useState<string[]>([]);
@@ -469,14 +488,20 @@ export function ClubSubscribed() {
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   const handleListScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    // Показывает кнопку наверх после 360 px прокрутки.
+
     setShowScrollTop(event.nativeEvent.contentOffset.y > 360);
   }, []);
 
   const scrollClubToTop = useCallback(() => {
+    // Прокручивает клубный FlatList к нулевому offset.
+
     listRef.current?.scrollToOffset({ offset: 0, animated: true });
   }, []);
 
   const openPhotoViewer = (photos: string[], index: number) => {
+    // Сохраняет выбранную фотосерию и индекс до монтирования viewer.
+
     setViewerPhotos(photos);
     setViewerInitialIndex(index);
     setViewerVisible(true);
@@ -484,6 +509,8 @@ export function ClubSubscribed() {
 
   // Check if profile has been completed (stored locally)
   useEffect(() => {
+    // Восстанавливает общий локальный профиль и закладки устройства; этот архивный кеш не разделён по аккаунтам.
+
     Promise.all([
       AsyncStorage.getItem(PROFILE_COMPLETED_KEY),
       AsyncStorage.getItem(CLUB_PROFILE_NAME_KEY),
@@ -507,6 +534,8 @@ export function ClubSubscribed() {
 
   const profileSyncUserRef = useRef<number | null>(null);
   useEffect(() => {
+    // Один раз на userId пробует перенести локальный аватар при отсутствии серверного; ошибка необязательна для чтения Клуба.
+
     if (!user) return;
     if (profileSyncUserRef.current === user.id) return;
     profileSyncUserRef.current = user.id;
@@ -516,6 +545,8 @@ export function ClubSubscribed() {
   }, [user?.id, user?.avatarUrl, pushProfileToServer]);
 
   useEffect(() => {
+    // Объединяет непустые серверные interaction id с локальными Sets; пустой ответ не очищает прежние Sets в архиве.
+
     const liked = interactions.data?.likedIds || [];
     if (liked.length) {
       setLikedClubIds(new Set(liked.map(String)));
@@ -531,6 +562,8 @@ export function ClubSubscribed() {
   }, [interactions.data]);
 
   const handleClubLike = (postId: string) => {
+    // Оптимистично переключает локальный Set и отправляет старую toggle-мутацию для числового id.
+
     const idNum = Number(postId);
     if (!Number.isNaN(idNum)) {
       toggleLikeMut.mutate({ postId: idNum });
@@ -544,6 +577,8 @@ export function ClubSubscribed() {
   };
 
   const handleClubSave = (postId: string) => {
+    // Переключает локальную закладку и общий AsyncStorage кеш, отдельно отправляя серверный toggle.
+
     const idNum = Number(postId);
     if (!Number.isNaN(idNum)) {
       toggleSaveMut.mutate({ postId: idNum });
@@ -623,7 +658,7 @@ export function ClubSubscribed() {
   const tartanUri = SEASONAL_TARTANS[season];
   const bannerUri = SEASONAL_BANNERS[season];
 
-  const renderPost = ({ item }: { item: ClubPost }) => (
+  const renderPost = ({ item }: { item: ClubPost }) => /* Привязывает карточку к interaction Sets и передаёт admin menu только для настоящих числовых записей. */ (
     <ClubPostCard
       item={item}
       isSaved={savedClubIds.has(item.id) || Boolean(interactions.data?.savedIds?.includes(Number(item.id)))}
@@ -646,7 +681,7 @@ export function ClubSubscribed() {
   );
 
   // Banner image as the first element in the scrollable list
-  const ListHeader = () => (
+  const ListHeader = () => /* Показывает сезонный баннер, приветствие, почтовый CTA и текущий фильтр над списком. */ (
     <View>
       {bannerUri ? (
         <View style={styles.bannerContainer}>
@@ -840,6 +875,7 @@ export function ClubSubscribed() {
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
+// Тартан остаётся фоном списка, баннер скроллится вместе с контентом, внутренняя клубная панель закреплена снизу.
 const styles = StyleSheet.create({
   // Tartan background — fixed, always visible
   tartanBackground: {

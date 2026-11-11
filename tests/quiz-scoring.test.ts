@@ -1,8 +1,10 @@
+/** Независимые буквальные маршруты ответов проверяют веса эстетик, ранжирование и границу смешанного результата. */
 import { expect, it } from "vitest";
 import { calculateResult } from "../apps/frontend/src/domain/quiz/quiz-data";
 
 // Literal answer IDs reflect each aesthetic, including the shuffled shelter IDs.
 // Catches wrong answer mapping, lost home weight, ranking and blend boundaries.
+/** Все десять ответов одной эстетики должны дать ровно 21 балл только ей, без вторичного результата. */
 it.each([
   {
     key: "cottagecore",
@@ -58,6 +60,7 @@ it.each([
   },
 );
 
+/** Разницы 1/3/5 баллов проверяют порядок двух эстетик и включительную границу blend; ожидаемые суммы заданы независимо. */
 it.each([
   {
     label: "one-point difference",

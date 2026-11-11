@@ -2,6 +2,7 @@
 @use "../styles/layers";
 
 @layer components {
+  /* Слой уведомлений накрывает экран, но не блокирует его касания; реальная notice восстанавливает pointer events. */
   .slot {
     position: absolute;
     inset: 0;
@@ -13,6 +14,7 @@
     pointer-events: none;
   }
 
+  /* Уведомление прижато к низу своей области и появляется без сдвига основной страницы. */
   .slot .notice {
     margin: 0;
     pointer-events: auto;
@@ -27,6 +29,7 @@
       opacity: 1;
     }
   }
+  /* Системное предпочтение reduced motion отключает анимацию сообщения, сохраняя его доступность. */
   @media (prefers-reduced-motion: reduce) {
     .slot .notice {
       animation: none;

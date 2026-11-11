@@ -11,6 +11,7 @@ import {
 
 @Injectable()
 export class LaunchService {
+  /** Получаем общий пул процесса для настроек, не создавая и не закрывая соединения на каждый HTTP-вызов. */
   private async database() {
     // Пул Drizzle общий; его жизненный цикл не принадлежит HTTP-методу сервиса.
     const database = await getDb();
@@ -18,6 +19,7 @@ export class LaunchService {
     return database;
   }
 
+  /** Из актуального снимка выбираем сезон и его оформление, получателя заказов и серверные capabilities; публичный способ заказа остаётся email-client. */
   async publicConfiguration() {
     const snapshot = await this.configuration();
     const season = currentSeason(snapshot.config);
@@ -31,10 +33,12 @@ export class LaunchService {
     };
   }
 
+  /** Читаем цельный документ настроек с ревизией через репозиторий запуска. */
   async configuration() {
     return getLaunchConfiguration(await this.database());
   }
 
+  /** Делегируем валидацию, проверку текущего исполнителя и сравнение ревизии единому транзакционному сохранению настроек. */
   async save(
     actor: LaunchSettingsActor,
     expectedRevision: number,

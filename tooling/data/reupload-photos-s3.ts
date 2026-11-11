@@ -35,6 +35,8 @@ interface Progress {
 }
 
 function loadProgress(): Progress {
+  // Читает локальную отметку обработанных записей; наличие отметки не доказывает целостность всех вложений.
+
   if (fs.existsSync(PROGRESS_FILE)) {
     return JSON.parse(fs.readFileSync(PROGRESS_FILE, "utf-8"));
   }
@@ -42,15 +44,21 @@ function loadProgress(): Progress {
 }
 
 function saveProgress(progress: Progress) {
+  // Сохраняет локальный прогресс для следующего ручного запуска; это не SQL-транзакция.
+
   progress.lastRun = new Date().toISOString();
   fs.writeFileSync(PROGRESS_FILE, JSON.stringify(progress, null, 2));
 }
 
 function sleep(ms: number) {
+  // Выдерживает паузу между внешними запросами; это ограничение темпа, а не повтор неуспешной операции.
+
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function getS3Client(): S3Client {
+  // Создаёт S3-клиент из окружения оператора; значения ключей не должны попадать в отчёт.
+
   const endpoint = process.env.S3_ENDPOINT;
   const accessKey = process.env.S3_ACCESS_KEY;
   const secretKey = process.env.S3_SECRET_KEY;
@@ -71,16 +79,22 @@ function getS3Client(): S3Client {
 }
 
 function isInstagramUrl(url: string): boolean {
+  // Применяет историческую проверку доменного фрагмента ссылки, чтобы выбрать фотографии для переноса.
+
   return url.includes("instagram.com") || url.includes("cdninstagram.com") || url.includes("fbcdn.net");
 }
 
 function getContentType(url: string): string {
+  // Определяет формат фото по расширению URL с JPEG по умолчанию; сигнатуру тела здесь не проверяют.
+
   if (url.includes(".webp")) return "image/webp";
   if (url.includes(".png")) return "image/png";
   return "image/jpeg";
 }
 
 async function downloadPhoto(url: string): Promise<Buffer | null> {
+  // Скачивает исходную фотографию целиком в память; это пакетный исторический инструмент, не API загрузки.
+
   try {
     const response = await fetch(url, {
       headers: {
@@ -110,6 +124,8 @@ async function uploadToS3(
   data: Buffer,
   contentType: string,
 ): Promise<string> {
+  // Публикует отдельную копию public-read и возвращает её URL; исходный файл не удаляет.
+
   await client.send(
     new PutObjectCommand({
       Bucket: bucket,
@@ -124,6 +140,8 @@ async function uploadToS3(
 }
 
 async function main() {
+  // Последовательно переносит фото Instagram, сохраняет нескачанные URL и локальный прогресс; не удаляет исходные объекты.
+
   console.log("=== Re-upload Instagram Photos to Timeweb S3 ===\n");
 
   if (!process.env.DATABASE_URL) {

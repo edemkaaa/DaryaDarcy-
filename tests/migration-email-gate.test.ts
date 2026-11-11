@@ -1,3 +1,4 @@
+/** CLI preflight проверяет email-данные только после целого manifest и согласованной истории; все I/O заменены fixtures. */
 import { createHash } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
@@ -22,8 +23,10 @@ const migrations = [
   { idx: 1, when: 200, tag: "0027_user_email_identity", breakpoints: true },
 ];
 
+/** Ни один сценарий не подключает БД и не применяет DDL, но исполняется настоящий CLI entrypoint. */
 describe("CLI email migration gating", () => {
   let argv: string[], exitCode: typeof process.exitCode;
+  /** Сбрасываем import-cache, argv, exitCode, файловую систему и предустановленные результаты history/email. */
   beforeEach(() => {
     vi.resetModules();
     vi.resetAllMocks();
@@ -49,17 +52,20 @@ describe("CLI email migration gating", () => {
     vi.spyOn(console, "log").mockImplementation(() => {});
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
+  /** Восстанавливаем argv/exitCode/env и console spies. */
   afterEach(() => {
     process.argv = argv;
     process.exitCode = exitCode;
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
+  /** Импорт запускает CLI один раз, затем разбираем его безопасный JSON-отчёт. */
   async function run() {
     await import("../tooling/scripts/migration-preflight");
     await vi.waitFor(() => expect(console.log).toHaveBeenCalledOnce());
     return JSON.parse(vi.mocked(console.log).mock.calls[0][0]);
   }
+  /** Pending 0027 требует отдельный email scan; найденные issues ставят exit1, даже успешный preflight не равен releaseApproval. */
   it.each([[], ["email-identity-duplicates"], ["email-identity-noncanonical"]])(
     "checks pending identity data and refuses its issues %j",
     async (...issues: string[]) => {
@@ -76,6 +82,7 @@ describe("CLI email migration gating", () => {
       expect(process.exitCode).toBe(issues.length ? 1 : 0);
     },
   );
+  /** Повторно пройденный 0027 не запускает неуместную проверку данных. */
   it("does not inspect identities when the migration is already applied", async () => {
     mocks.history.mockResolvedValue(
       migrations.map((m) => ({
@@ -86,6 +93,7 @@ describe("CLI email migration gating", () => {
     expect(await run()).toMatchObject({ issues: [], pending: [] });
     expect(mocks.email).not.toHaveBeenCalled();
   });
+  /** Hash mismatch останавливает дальнейший email scan. */
   it("stops before data inspection on a history mismatch", async () => {
     mocks.history.mockResolvedValue([
       { created_at: 100, hash: "0".repeat(64) },
@@ -93,6 +101,7 @@ describe("CLI email migration gating", () => {
     expect(await run()).toMatchObject({ issues: ["hash-mismatch:0000_first"] });
     expect(mocks.email).not.toHaveBeenCalled();
   });
+  /** Отсутствующий SQL файл блокирует уже metadata connection. */
   it("stops before any database connection on a manifest gap", async () => {
     mocks.names.mockResolvedValue(["0000_first.sql"]);
     expect(await run()).toMatchObject({
@@ -102,6 +111,7 @@ describe("CLI email migration gating", () => {
     expect(mocks.history).not.toHaveBeenCalled();
     expect(mocks.email).not.toHaveBeenCalled();
   });
+  /** Ошибка scan даёт exit1 без JSON-успеха и email в stderr. */
   it("keeps a rejected data inspection fail-closed and withholds its error details", async () => {
     mocks.email.mockRejectedValue(
       new Error("fixture-sensitive-address@example.test"),

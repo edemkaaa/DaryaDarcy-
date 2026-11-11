@@ -8,16 +8,19 @@ export DEBIAN_FRONTEND=noninteractive
 APP=/var/www/daryadarcy
 TGZ_URL="https://s3.twcstorage.ru/daryadarcy-s3/deploy/daryadarcy-src.tgz"
 
+# Сохраняется только env; контент каталога приложения и локальные резервные копии этой защитой не охватываются.
 if [ -f "$APP/.env" ]; then
   cp "$APP/.env" /root/daryadarcy.env.bak
   echo "Saved $APP/.env -> /root/daryadarcy.env.bak"
 fi
 
+# Разрушительная историческая стадия удаляет весь APP-каталог; не использовать для нынешнего сервера.
 pm2 delete daryadarcy-api >/dev/null 2>&1 || true
 pm2 save >/dev/null 2>&1 || true
 rm -rf "$APP"
 mkdir -p "$APP"
 
+# Устанавливается старый системный Node/PM2 стек, не контейнерный runtime.
 apt-get update
 apt-get install -y curl nginx
 
@@ -34,6 +37,7 @@ if ! command -v pnpm >/dev/null 2>&1; then
   npm install -g pnpm
 fi
 
+# Скачивается фиксированный старый архив без проверки digest; это не современный порядок выпуска.
 cd /tmp
 curl -fsSL -o daryadarcy-src.tgz "$TGZ_URL"
 tar -xzf daryadarcy-src.tgz -C "$APP"
@@ -47,6 +51,7 @@ if [ ! -f "$APP/.env" ]; then
   exit 1
 fi
 
+# Принудительно меняется публичный origin на прежний IP перед запуском установщика.
 sed -i 's|^PUBLIC_APP_URL=.*|PUBLIC_APP_URL=http://200.165.234.36|' "$APP/.env"
 
 bash "$APP/infrastructure/deploy/install.sh"

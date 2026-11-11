@@ -1,3 +1,4 @@
+// Архив Expo. Запрашивает письмо восстановления через REST; клиент не создаёт токен сам.
 import { getApiBaseUrl } from "@/constants/oauth";
 import * as Auth from "./auth";
 import type { LaunchCapabilities } from "../../../../packages/shared/src/capabilities";
@@ -5,12 +6,16 @@ import type { LaunchCapabilities } from "../../../../packages/shared/src/capabil
 export async function requestPasswordInstructions(
   email: string,
 ): Promise<{ ok: boolean; message: string }> {
+  // Запрашивает письмо восстановления через REST; клиент не создаёт токен сам.
+
   return apiCall("/api/auth/password/request", {
     method: "POST",
     body: JSON.stringify({ email }),
   });
 }
 export async function getAppCapabilities(): Promise<LaunchCapabilities> {
+  // Оставляет включёнными только явно true флаги старого контракта, неизвестные поля игнорирует.
+
   const result =
     await apiCall<Partial<LaunchCapabilities>>("/api/capabilities");
   return {
@@ -25,6 +30,8 @@ export async function apiCall<T>(
   endpoint: string,
   options: RequestInit = {},
 ): Promise<T> {
+  // Добавляет платформенную авторизацию и cookie, разбирает ошибку/JSON; старый wrapper не имеет общего timeout.
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...((options.headers as Record<string, string>) || {}),
@@ -99,6 +106,8 @@ export async function apiCall<T>(
 
 // Logout
 export async function logout(): Promise<void> {
+  // Отправляет серверный POST выхода; очисткой локального состояния занимается владелец сессии.
+
   await apiCall<void>("/api/auth/logout", {
     method: "POST",
   });
@@ -122,6 +131,8 @@ export async function loginWithEmail(
   password: string,
   totp?: string,
 ): Promise<{ sessionToken: string; user: AuthUser }> {
+  // Выполняет старый email-вход и сохраняет токен только если API его вернул.
+
   const result = await apiCall<{ sessionToken: string; user: AuthUser }>(
     "/api/auth/login",
     {
@@ -140,6 +151,8 @@ export async function registerWithEmail(
   name?: string,
   consentVersion?: string,
 ): Promise<{ ok: boolean; message: string }> {
+  // Передаёт email, имя и версию согласия серверу без локальной выдачи аккаунта.
+
   return apiCall("/api/auth/register", {
     method: "POST",
     body: JSON.stringify({ email, name, consentVersion }),
@@ -149,6 +162,8 @@ export async function registerWithEmail(
 export async function sendSmsCode(
   phone: string,
 ): Promise<{ ok: true; retryAfterSec: number }> {
+  // Исторический необязательный SMS-путь запрашивает код и серверную задержку повтора.
+
   return apiCall<{ ok: true; retryAfterSec: number }>("/api/auth/sms/send", {
     method: "POST",
     body: JSON.stringify({ phone }),
@@ -161,6 +176,8 @@ export async function verifySmsCode(
   consentVersion?: string,
   totp?: string,
 ): Promise<{ sessionToken: string; user: AuthUser }> {
+  // Подтверждает код/согласие через сервер и принимает профиль старого формата.
+
   const result = await apiCall<{ sessionToken: string; user: AuthUser }>(
     "/api/auth/sms/verify",
     {
@@ -187,6 +204,8 @@ export async function getMe(): Promise<{
   lastSignedIn: string;
   role: string;
 } | null> {
+  // Исторически сводит любую ошибку проверки к null; это ограничение архивного клиента, не нынешний контракт временных ошибок.
+
   try {
     const result = await apiCall<{ user: any }>("/api/auth/me");
     return result.user || null;
@@ -198,6 +217,8 @@ export async function getMe(): Promise<{
 // Establish session cookie on the backend (3000-xxx domain)
 // Called after receiving token via postMessage to get a proper Set-Cookie from the backend
 export async function establishSession(token: string): Promise<boolean> {
+  // Обменивает переданный Bearer на серверную cookie отдельным credentialed POST; false включает сетевые ошибки.
+
   try {
     const baseUrl = getApiBaseUrl();
     const url = `${baseUrl}/api/auth/session`;

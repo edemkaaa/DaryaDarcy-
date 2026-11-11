@@ -31,10 +31,12 @@ export class IntervalJobs {
   private phase: "idle" | "running" | "stopped" = "idle";
   private readonly jobs: JobState[];
 
+  /** Создаём независимое локальное состояние каждого задания без запуска таймеров или доменных действий. */
   constructor(jobs: readonly IntervalJob[]) {
     this.jobs = jobs.map((definition) => ({ definition }));
   }
 
+  /** Один раз включаем расписание и запускаем первый тик каждой задачи; повторный start после запуска или остановки ничего не создаёт. */
   start(): void {
     if (this.phase !== "idle") return;
     this.phase = "running";
@@ -63,6 +65,7 @@ export class IntervalJobs {
     return pending;
   }
 
+  /** Не допускаем наложения одинаковой локальной задачи, сохраняем Promise до callback и очищаем его после безопасного логирования ошибки. */
   private launch(job: JobState): void {
     if (this.phase !== "running" || job.pending) return;
     // Запоминаем Promise до вызова кода задачи, чтобы повторный stop увидел и эту работу.

@@ -59,6 +59,7 @@ import {
 } from "./feed-screen.content";
 import type { TagSlug, Tag, FeedPost } from "./feed-screen.content";
 type ViewMode = "feed" | "grid";
+/** Согласуем SSR-дату с последующим локальным календарём браузера без смены порядка API. */
 function formatDate(date: Date | string, browserCalendar: boolean): string {
   const d = new Date(date);
   const months = [
@@ -77,6 +78,7 @@ function formatDate(date: Date | string, browserCalendar: boolean): string {
   ];
   return `${browserCalendar ? d.getDate() : d.getUTCDate()} ${months[browserCalendar ? d.getMonth() : d.getUTCMonth()]} ${browserCalendar ? d.getFullYear() : d.getUTCFullYear()}`;
 }
+/** Адаптируем API к карточке: фильтруем фото, санитизируем richText и извлекаем источник статьи, сохраняя серверную дату и ID. */
 function normalizeFeedPost(
   p: ApiOutputs["feed"]["listPaginated"]["posts"][number],
   browserCalendar: boolean,
@@ -112,6 +114,7 @@ function normalizeFeedPost(
     ),
   };
 }
+/** Один набор фильтров управляет ограниченным cursor-окном, сеткой и лентой; отметки и retained карточки принадлежат аккаунту. */
 export default function FeedScreen() {
   const active = useScreenActive();
   const browserCalendar = useBrowserReady();
@@ -204,13 +207,16 @@ export default function FeedScreen() {
   );
   const interactions = usePostInteractions(posts.map((post) => post.id));
   const [refreshing, setRefreshing] = useState(false);
+  /** Отдельно отражаем pull-to-refresh, не очищая подтверждённые страницы до результата чтения. */
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     void refetch().finally(() => setRefreshing(false));
   }, [refetch]);
+  /** Меняем фильтр по стабильному slug; новый query-key сам отделяет старую cursor-цепочку. */
   const handleTagPress = (slug: TagSlug) => {
     setSelectedTag(slug);
   };
+  /** Гость сначала входит в аккаунт, а подтверждённый пользователь использует общий controller лайков. */
   const handleLike = (postId: number) => {
     if (!user) {
       router.login("/feed");
@@ -218,6 +224,7 @@ export default function FeedScreen() {
     }
     interactions.like(postId);
   };
+  /** Сохранение требует сессию, но не клубную подписку; неизвестный исход обрабатывает interactions hook. */
   const handleSave = (postId: number) => {
     if (!user) {
       router.login("/feed");
@@ -225,15 +232,18 @@ export default function FeedScreen() {
     }
     interactions.save(postId);
   };
+  /** Фиксируем набор фото и индекс одного открытия, не связывая viewer с последующим изменением страниц списка. */
   const openViewer = useCallback((photos: string[], index: number) => {
     setViewerPhotos(photos);
     setViewerInitialIndex(index);
     setViewerVisible(true);
   }, []);
+  /** Закрываем локальный просмотр; исходный cursor-список и его положение сохраняются. */
   const closeViewer = useCallback(() => {
     setViewerVisible(false);
   }, []);
   // ── Seasonal Banner ──
+  /** Рисуем верхний ресурс eager/high-priority, независимо от запроса страниц постов. */
   const renderBanner = () => (
     <div
       className={["ui-stack ", classes.bannerContainer]
@@ -251,6 +261,7 @@ export default function FeedScreen() {
     </div>
   );
   // ── Search Bar + View Toggle (same row) ──
+  /** Связываем строку поиска и переключатель представления с одной моделью фильтра, не заводя отдельный поиск для сетки. */
   const renderSearchRow = () => (
     <div className={["ui-stack ", classes.searchRow].filter(Boolean).join(" ")}>
       <div
@@ -337,6 +348,7 @@ export default function FeedScreen() {
     </div>
   );
   // ── Tag Chips (full-width row) ──
+  /** Показываем API-теги либо согласованный fallback, сохраняя slug для запроса и русскую подпись для интерфейса. */
   const renderTagChips = () => (
     <ScrollArea
       horizontal
@@ -373,10 +385,12 @@ export default function FeedScreen() {
     </ScrollArea>
   );
   // ── Grid Item ──
+  /** Учитываем новый media-формат и legacy-признаки для компактного маркера видео. */
   const isVideoPost = (post: FeedPost) =>
     (post.tags || []).includes("video") ||
     (post.media || []).some((item) => item.type === "video") ||
     (post.photos || []).some((url) => /\.(mp4|mov|webm)$/i.test(url));
+  /** Плитка статьи ведёт в библиотеку, обычная публикация — в publicId-aware маршрут. */
   const renderGridItem = ({ item }: { item: FeedPost }) => (
     <GridItem
       item={item}
@@ -389,6 +403,7 @@ export default function FeedScreen() {
     />
   );
   // ── Header ──
+  /** Объединяем поиск, теги, ошибки отметок и доступ к вытесненным предыдущим страницам над общей коллекцией. */
   const renderHeader = () => (
     <div className={["ui-stack ", classes.div].filter(Boolean).join(" ")}>
       {renderBanner()}
@@ -412,6 +427,7 @@ export default function FeedScreen() {
       )}
     </div>
   );
+  /** Разрешаем текущую карточку по ID и выбираем маршрут статьи или поста; отсутствующая карточка сохраняет числовой fallback. */
   const handlePostPress = (postId: number) => {
     const post = posts.find((item) => item.id === postId);
     if (post?.articleId) {
@@ -423,6 +439,7 @@ export default function FeedScreen() {
   // Post management (owner only)
   const { openMenu, ManagementModals } = usePostManagement(onRefresh);
   // ── Feed Item ──
+  /** Передаём карточке подтверждённые отметки, блокировки и owner-only меню, оставляя логику записи координаторам. */
   const renderFeedItem = ({ item }: { item: FeedPost }) => (
     <PostCard
       post={item}
@@ -460,11 +477,13 @@ export default function FeedScreen() {
       }
     />
   );
+  /** Автоподгрузка не дублирует выполняющееся чтение и останавливается на ошибке до явного повтора. */
   const handleLoadMore = useCallback(() => {
     if (hasNextPage && !isFetching && !isError) {
       void fetchNextPage();
     }
   }, [hasNextPage, isFetching, isError, fetchNextPage]);
+  /** Различаем ожидающую следующую страницу, её ошибку и конец данных; ошибка хвоста не очищает уже видимые карточки. */
   const renderFooter = () => {
     if (posts.length > 0 && isFetchNextPageError) {
       return (

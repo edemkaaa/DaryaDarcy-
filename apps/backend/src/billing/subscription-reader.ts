@@ -7,6 +7,7 @@ import {
 } from "../../../../packages/database/src/schema";
 
 /** Читает на переданном пуле/транзакции без повторного получения глобальной БД. */
+/** На переданном reader выбирает paid-периоды по убыванию expiry и возвращает первый ещё действующий; опциональный share-read видит актуальное состояние под блокировкой. */
 export async function readActiveClubSubscription(
   db: Pick<MySql2Database, "select">,
   userId: number,

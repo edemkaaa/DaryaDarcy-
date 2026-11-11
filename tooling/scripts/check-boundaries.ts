@@ -4,16 +4,22 @@ import { builtinModules } from "node:module";
 import { dirname, relative, resolve, sep } from "node:path";
 
 const layers = ["apps/frontend", "apps/backend", "apps/video-service", "apps/legacy-web", "packages/shared", "packages/database", "infrastructure", "tooling"];
-function layer(path: string) { return layers.find(value => path === value || path.startsWith(`${value}/`)); }
+function layer(path: string) {
+  // Относит нормализованный путь к известному слою по границе каталога, а не похожему префиксу имени.
+ return layers.find(value => path === value || path.startsWith(`${value}/`)); }
 
 /** Check actual syntax, including export/dynamic import/require, not source grep. */
 export function inspectBoundary(file: string, source: string, root: string): string[] {
-  const normalized = (path: string) => relative(root, path).split(sep).join("/");
+  // Разбирает реальные формы import/export/require и применяет допустимые зависимости, не выполняя импортируемые модули.
+
+  const normalized = (path: string) => /* Приводит путь к одному относительному виду независимо от разделителя ОС для сопоставления архитектурных правил. */ relative(root, path).split(sep).join("/");
   const owner = layer(normalized(file));
   if (!owner) return [];
   const ast = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true);
   const violations: string[] = [];
   function check(specifier: string, node: ts.Node, routerTypeOnly = false) {
+    // Разрешает aliases в слой назначения и учитывает только узкие согласованные исключения type-only AppRouter и конфигурации сборки.
+
     let targetPath: string | undefined;
     if (specifier.startsWith(".")) targetPath = resolve(dirname(file), specifier);
     else if (specifier.startsWith("@shared/")) targetPath = resolve(root, "packages/shared/src", specifier.slice(8));
@@ -38,6 +44,8 @@ export function inspectBoundary(file: string, source: string, root: string): str
     }
   }
   function visit(node: ts.Node) {
+    // Обходит синтаксические формы зависимостей; нестроковый динамический импорт требует отдельного ревью вместо молчаливого пропуска.
+
     if (ts.isImportDeclaration(node) && ts.isStringLiteralLike(node.moduleSpecifier)) {
       const clause = node.importClause;
       const bindings = clause?.namedBindings;

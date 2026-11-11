@@ -1,3 +1,4 @@
+// Архив Expo. Возвращает первые 51 готовых изображения только осеннего каталога, остальные сезоны пусты.
 import type { MoodboardCatalogImage } from "@/lib/moodboard/types";
 import generated from "@/lib/moodboard/autumn-catalog.generated.json";
 
@@ -7,6 +8,8 @@ export const AUTUMN_CATALOG: MoodboardCatalogImage[] = (
 ).slice(0, 51);
 
 export function catalogForSeason(season: string): MoodboardCatalogImage[] {
+  // Возвращает первые 51 готовых изображения только осеннего каталога, остальные сезоны пусты.
+
   if (season === "autumn") return AUTUMN_CATALOG;
   return [];
 }

@@ -2,6 +2,7 @@
 @use "../../shared/styles/layers";
 
 @layer components {
+  /* Повтор класса повышает специфичность состояния переноса над базовым оформлением плитки без !important. */
   .dragging.dragging {
     opacity: 0.62;
     box-shadow: 0 4px 10px rgba(74, 55, 40, 0.35);
@@ -10,11 +11,13 @@
     border-width: 2px;
     border-color: #8fa87a;
   }
+  /* Изображение и его поверхность имеют одинаковый размер, чтобы рамка выбора совпадала с фотографией. */
   .thumbImage.thumbImage,
   .thumbSurface.thumbSurface {
     width: 100%;
     height: 100%;
   }
+  /* Высота крупного предпросмотра отделена от размеров маленькой сетки; контейнер обрезает скруглённые края. */
   .carouselImage.carouselImage {
     height: 240px;
     border-radius: 10px;

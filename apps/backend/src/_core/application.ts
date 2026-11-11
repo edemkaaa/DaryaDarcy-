@@ -41,7 +41,7 @@ export async function createBackendApplication(
   // Nest's defaults must not parse a webhook or allocate an upload before auth.
   http.post(
     "/api/prodamus/webhook",
-    express.raw({ type: () => true, limit: "2mb" }),
+    express.raw({ /** Raw-парсер принимает любое объявление Content-Type: подписанные байты webhook не должны зависеть от него. */ type: () => true, limit: "2mb" }),
   );
   http.post("/api/yookassa/webhook", (req, res, next) => {
     express.json({ limit: "64kb" })(req, res, error => {
@@ -51,7 +51,7 @@ export async function createBackendApplication(
   });
   registerProdamusSandboxBody(http);
   http.post("/api/prodamus/test/webhook", (req, res, next) => {
-    express.raw({ type: () => true, limit: "64kb" })(req, res, error => {
+    express.raw({ /** Raw-парсер принимает любое объявление Content-Type: подписанные байты webhook не должны зависеть от него. */ type: () => true, limit: "64kb" })(req, res, error => {
       if (error) { res.status(error.status === 413 ? 413 : 400).send("invalid test notification"); return; }
       next();
     });
@@ -76,6 +76,7 @@ export async function createBackendApplication(
         maxBodySize: MEDIA_JSON_BODY_LIMIT,
         router: trpc.router,
         createContext: trpc.createContext,
+        /** Журналирует только проверенное имя процедуры и код ошибки, не SQL, JWT и входной payload. */
         onError({ path, error }) {
           const safePath =
             path && /^[a-zA-Z0-9._-]{1,128}$/.test(path) ? path : "?";

@@ -1,3 +1,4 @@
+// Архив Expo. Архивная монолитная админка читает полный список постов и содержит старые CRUD/uploadPhoto без operation keys и ревизий; текущий web admin вынесен в отдельные файлы.
 import { useRef, useState } from "react";
 import {
   Text,
@@ -70,6 +71,8 @@ const EMPTY_FORM: PostFormData = {
 };
 
 export default function AdminScreen() {
+  // Архивная монолитная админка читает полный список постов и содержит старые CRUD/uploadPhoto без operation keys и ревизий; текущий web admin вынесен в отдельные файлы.
+
   const router = useRouter();
   const { isOwner, isAuthenticated, loading: authLoading } = useAuth();
   const [showForm, setShowForm] = useState(false);
@@ -93,6 +96,8 @@ export default function AdminScreen() {
   const utils = trpc.useUtils();
 
   const invalidatePublicFeeds = () => {
+    // Перечитывает admin.posts и инвалидирует публичные списки после изменения поста.
+
     void refetch();
     void utils.feed.list.invalidate();
     void utils.feed.listPaginated.invalidate();
@@ -100,6 +105,8 @@ export default function AdminScreen() {
   };
 
   const notifyAdminError = (message: string) => {
+    // Выбирает web alert либо native диалог, не очищая введённую форму.
+
     if (Platform.OS === "web") {
       window.alert(message);
       return;
@@ -110,23 +117,27 @@ export default function AdminScreen() {
   // Mutations
   const createMutation = trpc.admin.createPost.useMutation({
     onSuccess: () => {
+      // После создания обновляет выдачу и сбрасывает редактор.
+
       invalidatePublicFeeds();
       resetForm();
     },
-    onError: (err) => notifyAdminError(err.message || "Не удалось сохранить пост"),
+    onError: (err) => /* Показывает серверное пояснение конкретной неудавшейся мутации без слепого повтора. */ notifyAdminError(err.message || "Не удалось сохранить пост"),
   });
 
   const updateMutation = trpc.admin.updatePost.useMutation({
     onSuccess: () => {
+      // После update обновляет выдачу и закрывает редактор.
+
       invalidatePublicFeeds();
       resetForm();
     },
-    onError: (err) => notifyAdminError(err.message || "Не удалось сохранить пост"),
+    onError: (err) => /* Показывает серверное пояснение конкретной неудавшейся мутации без слепого повтора. */ notifyAdminError(err.message || "Не удалось сохранить пост"),
   });
 
   const deleteMutation = trpc.admin.deletePost.useMutation({
-    onSuccess: () => invalidatePublicFeeds(),
-    onError: (err) => notifyAdminError(err.message || "Не удалось удалить пост"),
+    onSuccess: () => /* После delete инвалидирует каталоги без изменения других записей. */ invalidatePublicFeeds(),
+    onError: (err) => /* Показывает серверное пояснение конкретной неудавшейся мутации без слепого повтора. */ notifyAdminError(err.message || "Не удалось удалить пост"),
   });
 
   const membersQuery = trpc.admin.members.useQuery(undefined, {
@@ -137,6 +148,8 @@ export default function AdminScreen() {
   });
   const grantClub = trpc.admin.grantClub.useMutation({
     onSuccess: (result) => {
+      // После выдачи доступа перечитывает участников/платежи и показывает подтверждённую дату.
+
       void membersQuery.refetch();
       void paymentsQuery.refetch();
       const until = result?.expiresAt
@@ -148,29 +161,31 @@ export default function AdminScreen() {
       }
       Alert.alert("Готово", until ? `Клуб продлён до ${until}` : "Клуб продлён");
     },
-    onError: (err) => notifyAdminError(err.message || "Не удалось продлить клуб"),
+    onError: (err) => /* Показывает серверное пояснение конкретной неудавшейся мутации без слепого повтора. */ notifyAdminError(err.message || "Не удалось продлить клуб"),
   });
   const blockUser = trpc.moderation.blockUser.useMutation({
-    onSuccess: () => void membersQuery.refetch(),
-    onError: (err) => notifyAdminError(err.message || "Не удалось заблокировать"),
+    onSuccess: () => /* После блокировки перечитывает участников. */ void membersQuery.refetch(),
+    onError: (err) => /* Показывает серверное пояснение конкретной неудавшейся мутации без слепого повтора. */ notifyAdminError(err.message || "Не удалось заблокировать"),
   });
   const unblockUser = trpc.moderation.unblockUser.useMutation({
-    onSuccess: () => void membersQuery.refetch(),
-    onError: (err) => notifyAdminError(err.message || "Не удалось разблокировать"),
+    onSuccess: () => /* После разблокировки перечитывает участников. */ void membersQuery.refetch(),
+    onError: (err) => /* Показывает серверное пояснение конкретной неудавшейся мутации без слепого повтора. */ notifyAdminError(err.message || "Не удалось разблокировать"),
   });
   const reportsQuery = trpc.moderation.listCommentReports.useQuery(undefined, {
     enabled: isOwner && viewTab === "reports",
   });
   const dismissReport = trpc.moderation.dismissCommentReport.useMutation({
-    onSuccess: () => void reportsQuery.refetch(),
-    onError: (err) => notifyAdminError(err.message || "Не удалось закрыть жалобу"),
+    onSuccess: () => /* После закрытия жалобы перечитывает очередь модерации. */ void reportsQuery.refetch(),
+    onError: (err) => /* Показывает серверное пояснение конкретной неудавшейся мутации без слепого повтора. */ notifyAdminError(err.message || "Не удалось закрыть жалобу"),
   });
   const deleteReportedComment = trpc.moderation.deleteReportedComment.useMutation({
-    onSuccess: () => void reportsQuery.refetch(),
-    onError: (err) => notifyAdminError(err.message || "Не удалось удалить комментарий"),
+    onSuccess: () => /* После удаления комментария перечитывает связанные жалобы. */ void reportsQuery.refetch(),
+    onError: (err) => /* Показывает серверное пояснение конкретной неудавшейся мутации без слепого повтора. */ notifyAdminError(err.message || "Не удалось удалить комментарий"),
   });
 
   const resetForm = () => {
+    // Возвращает общий EMPTY_FORM, закрывает редактор и меняет ключ formatting-поля; дата EMPTY_FORM исторически создана при импорте.
+
     setForm(EMPTY_FORM);
     setEditingId(null);
     setShowForm(false);
@@ -180,6 +195,8 @@ export default function AdminScreen() {
   };
 
   const handleCreate = () => {
+    // Открывает пустую форму с новым ключом richText редактора.
+
     setEditingId(null);
     setForm(EMPTY_FORM);
     setRichText(undefined);
@@ -189,6 +206,8 @@ export default function AdminScreen() {
   };
 
   const handleEdit = (post: any) => {
+    // Копирует серверные поля, видео и даты в локальный снимок редактирования.
+
     setEditingId(post.id);
     setRichTextSeed(post.richText ?? null);
     setRichText(post.richText ?? undefined);
@@ -214,6 +233,8 @@ export default function AdminScreen() {
   };
 
   const handleDelete = (id: number) => {
+    // Отправляет удаление одного post id только после платформенного подтверждения.
+
     if (Platform.OS === "web") {
       if (confirm("Удалить этот пост?")) {
         deleteMutation.mutate({ id });
@@ -221,12 +242,14 @@ export default function AdminScreen() {
     } else {
       Alert.alert("Удалить пост?", "Это действие нельзя отменить", [
         { text: "Отмена", style: "cancel" },
-        { text: "Удалить", style: "destructive", onPress: () => deleteMutation.mutate({ id }) },
+        { text: "Удалить", style: "destructive", onPress: () => /* После native подтверждения вызывает удаление выбранного id. */ deleteMutation.mutate({ id }) },
       ]);
     }
   };
 
   const handleGrantClub = (userId: number, label: string) => {
+    // Спрашивает подтверждение ручной выдачи клуба выбранному аккаунту.
+
     const message = `Выдать клуб на 31 день: ${label}?`;
     if (Platform.OS === "web") {
       if (confirm(message)) grantClub.mutate({ userId });
@@ -234,11 +257,13 @@ export default function AdminScreen() {
     }
     Alert.alert("Выдать клуб", message, [
       { text: "Отмена", style: "cancel" },
-      { text: "Выдать", onPress: () => grantClub.mutate({ userId }) },
+      { text: "Выдать", onPress: () => /* После native подтверждения вызывает выдачу доступа одному userId. */ grantClub.mutate({ userId }) },
     ]);
   };
 
   const formatAdminDate = (value: Date | string | null | undefined) => {
+    // Показывает русскую дату либо тире для отсутствующего/невалидного значения.
+
     if (!value) return "—";
     const date = value instanceof Date ? value : new Date(value);
     if (Number.isNaN(date.getTime())) return "—";
@@ -246,6 +271,8 @@ export default function AdminScreen() {
   };
 
   const handleSubmit = () => {
+    // Проверяет текст/даты, читает последний richText снимок и отправляет create/update со статусом и target.
+
     if (!form.text.trim()) {
       notifyAdminError("Текст поста не может быть пустым");
       return;
@@ -312,6 +339,8 @@ export default function AdminScreen() {
   const uploadMutation = trpc.admin.uploadPhoto.useMutation();
 
   const addVideoUrl = (url: string, posterUrl?: string) => {
+    // Добавляет уникальный video URL, тег video и необязательный poster в форму.
+
     setForm((prev) => ({
       ...prev,
       videos: prev.videos.includes(url) ? prev.videos : [...prev.videos, url],
@@ -321,6 +350,8 @@ export default function AdminScreen() {
   };
 
   const uploadVideoPoster = async (videoUrl: string, source: Blob): Promise<string | null> => {
+    // Извлекает JPEG-кадр Blob и загружает старым photo API под сопоставимым _thumb именем.
+
     const posterBlob = await extractVideoPosterBlob(source);
     if (!posterBlob) return null;
     const videoBase = mediaBasename(videoUrl).replace(/\.[^.]+$/, "");
@@ -333,6 +364,8 @@ export default function AdminScreen() {
   };
 
   const pickVideoFromLibrary = async () => {
+    // Загружает native видео, опционально получает web poster и обновляет только локальную форму.
+
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["videos"],
@@ -365,6 +398,8 @@ export default function AdminScreen() {
   };
 
   const onWebVideoPicked = async (event: any) => {
+    // Сбрасывает file-input, загружает видео и poster последовательно; сбой poster может оставить непривязанное видео в архивном пути.
+
     const file = event?.target?.files?.[0] as File | undefined;
     if (event?.target) event.target.value = "";
     if (!file) return;
@@ -381,10 +416,14 @@ export default function AdminScreen() {
   };
 
   const removeVideo = (index: number) => {
+    // Убирает URL из локальной формы, не удаляя исходный объект.
+
     setForm((prev) => ({ ...prev, videos: prev.videos.filter((_, i) => i !== index) }));
   };
 
   const pickPhotosFromGallery = async () => {
+    // Последовательно загружает фото, сохраняет успехи и сообщает число ошибок без удаления оригиналов.
+
     try {
       const uploadedUrls: string[] = [];
       const failed: string[] = [];
@@ -455,10 +494,14 @@ export default function AdminScreen() {
   };
 
   const removePhoto = (index: number) => {
+    // Убирает только выбранный URL формы по индексу.
+
     setForm((prev) => ({ ...prev, photos: prev.photos.filter((_, i) => i !== index) }));
   };
 
   const movePhoto = (fromIndex: number, direction: "up" | "down") => {
+    // Меняет соседние URL после проверки границ массива.
+
     setForm((prev) => {
       const newPhotos = [...prev.photos];
       const toIndex = direction === "up" ? fromIndex - 1 : fromIndex + 1;
@@ -472,6 +515,8 @@ export default function AdminScreen() {
   };
 
   const reorderPhotos = (fromIndex: number, toIndex: number) => {
+    // Переносит фото в допустимый индекс, сохраняя остальные URL.
+
     setForm((prev) => {
       if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0) return prev;
       if (fromIndex >= prev.photos.length || toIndex >= prev.photos.length) return prev;
@@ -483,6 +528,8 @@ export default function AdminScreen() {
   };
 
   const toggleTag = (slug: string) => {
+    // Переключает slug в локальном наборе тегов.
+
     setForm((prev) => ({
       ...prev,
       tags: prev.tags.includes(slug)
@@ -492,7 +539,7 @@ export default function AdminScreen() {
   };
 
   // ── Post list item ──
-  const renderPostItem = ({ item }: { item: any }) => (
+  const renderPostItem = ({ item }: { item: any }) => /* Показывает краткий admin-снимок со статусом, целью и действиями редактирования/удаления. */ (
     <View style={styles.postItem}>
       <View style={styles.postItemHeader}>
         {item.photos && (item.photos as string[]).length > 0 && (
@@ -563,6 +610,8 @@ export default function AdminScreen() {
 
   // ── Form Modal ──
   const renderForm = () => {
+    // Монтирует Modal только для открытой формы и сохраняет скрытый editor при preview, чтобы не потерять его refs.
+
     if (!showForm) return null;
     return (
     <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={resetForm}>
@@ -1234,6 +1283,7 @@ export default function AdminScreen() {
   );
 }
 
+// При preview редактор скрывается вне экрана с отключёнными жестами, сохраняя refs форматирования до явного закрытия формы.
 const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", gap: 12 },
   loadingText: { fontSize: 14, color: BROWN_LIGHT },

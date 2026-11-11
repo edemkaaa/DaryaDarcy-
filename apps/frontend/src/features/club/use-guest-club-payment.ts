@@ -32,6 +32,7 @@ type PurchaseState = {
   error: string | null;
   foreignRecipient?: boolean;
 };
+/** Поясняем статус исходного гостевого заказа; успешная оплата не выполняет вход и не заменяет проверку текущего доступа. */
 function describe(result: NormalCheckoutStatus, authenticated: boolean) {
   switch (result.state) {
     case "notRecorded":
@@ -45,7 +46,7 @@ function describe(result: NormalCheckoutStatus, authenticated: boolean) {
   }
 }
 
-/** A guest purchase survives login; changing identity never changes its proof. */
+/** Восстанавливаем гостевую покупку до и после входа, сохраняя получателя, секрет и паузу между проверками. */
 export function useGuestClubPayment({
   enabled,
   active,
@@ -78,14 +79,17 @@ export function useGuestClubPayment({
     identity: string;
     intent: GuestCheckoutIntent;
   } | null>(null);
+  /** Берём последнее известное намерение только той же identity, даже если поздний storage-read завершился ошибкой. */
   const expectedIntent = () =>
     current?.intent ??
     (known.current?.identity === identityKey ? known.current.intent : null);
   const identity = useRef({ ready, key: identityKey });
   identity.current = { ready, key: identityKey };
   const departing = useRef(false);
+  /** Создаём журнал с текущим подтверждённым аккаунтом либо гостем, не меняя сам секрет покупки. */
   const makeJournal = () =>
     new GuestCheckoutJournal(user ? { id: user.id, email: user.email } : null);
+  /** Право завершить действие зависит от прежней identity, видимости и отсутствия начавшегося ухода со страницы. */
   const begin = (name: string) => {
     if (!ready || document.hidden) return null;
     departing.current = false;
@@ -102,6 +106,7 @@ export function useGuestClubPayment({
   };
   useEffect(() => () => scope.cancel(), [scope, ready, identityKey, returnKey]);
   useEffect(() => {
+    /** Отменяем незавершённую операцию при переходе документа в фон. */
     const hidden = () => {
       if (document.hidden) scope.cancel();
     };
@@ -117,6 +122,7 @@ export function useGuestClubPayment({
     });
   }, [scope, enabled, active, identityKey, returnKey]);
 
+  /** Запоминаем исходную квитанцию; действующий доступ обновляем отдельно только для вошедшего владельца. */
   const apply = async (
     intent: GuestCheckoutIntent,
     result: NormalCheckoutStatus,
@@ -158,6 +164,7 @@ export function useGuestClubPayment({
         });
     }
   };
+  /** Различаем чужого получателя и ошибку сессии, сохраняя известные ключи для дальнейшего восстановления. */
   const rememberError = (
     cause: unknown,
     journal: GuestCheckoutJournal,
@@ -196,6 +203,7 @@ export function useGuestClubPayment({
     });
   };
   // Гостевой заказ сохраняет своего получателя даже после входа; проверка не подменяет его заказом текущего аккаунта.
+  /** Проверяем существующую гостевую запись без автоматической подмены покупкой вошедшего аккаунта. */
   const check = async () => {
     const task = begin("check-payment");
     if (!task) return;
@@ -238,6 +246,7 @@ export function useGuestClubPayment({
   }, [ready, identityKey, returnKey]);
   useEffect(() => {
     if (!ready) return;
+    /** Изменение журнала другой вкладкой прекращает старую операцию и запускает чтение актуального состояния. */
     const changed = (event: StorageEvent) => {
       if (event.key === GUEST_CHECKOUT_STORAGE_KEY || event.key === null) {
         scope.cancel();
@@ -262,6 +271,7 @@ export function useGuestClubPayment({
     current?.result?.state === "succeeded" ||
     current?.result?.state === "failed";
   // Перед новой отправкой сверяем сохранённое намерение: контакт и ключ покупки нельзя менять в фоне.
+  /** Восстанавливаем неизменные контакты; новая покупка после возврата без ключей требует явного подтверждения. */
   const prepare = async () => {
     const task = begin("prepare-payment");
     if (!task) return;

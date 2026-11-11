@@ -15,6 +15,7 @@ BLACK_FEATHER = 22
 
 
 def replace_black_background(im: Image.Image) -> Image.Image:
+    # Заменяет почти чёрный фон на кремовый с мягким переходом, чтобы не оставить резкий чёрный край.
     out = im.convert("RGB")
     px = out.load()
     w, h = out.size
@@ -33,12 +34,14 @@ def replace_black_background(im: Image.Image) -> Image.Image:
 
 
 def save_webp(im: Image.Image, dst: Path) -> None:
+    # Создаёт каталог назначения и сохраняет отдельную непрозрачную WebP-копию с выбранным quality.
     dst.parent.mkdir(parents=True, exist_ok=True)
     im.save(dst, "WEBP", quality=88, method=6)
     print(f"OK {dst.name} ({im.size[0]}x{im.size[1]})")
 
 
 def main() -> None:
+    # Обрабатывает только согласованные промо-пары; остальные локальные изображения не обходятся.
     pairs = [
         ("promo-club-src.jpg", "promo-club-flat.webp"),
         ("promo-quiz-src.jpg", "promo-quiz-flat.webp"),

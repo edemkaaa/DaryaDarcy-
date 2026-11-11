@@ -17,9 +17,11 @@ const personalKeys = new Set([
   "@darcy_last_seen_club_id",
 ]);
 let personalDataOwner: number | null = null;
+/** Именное пространство добавляется только известным персональным ключам; глобальные UI-предпочтения сохраняют прежние имена. */
 const scopedKey = (key: string, owner = personalDataOwner) =>
   personalKeys.has(key) ? `darcy:user:${owner ?? "guest"}:${key}` : key;
 
+/** Асинхронный результат проверяет этого владельца до применения, включая отдельное гостевое пространство null. */
 export function isPersonalDataOwner(userId: number | null): boolean {
   return personalDataOwner === userId;
 }
@@ -33,7 +35,7 @@ export const requiredStorage = {
   removeItem: (key: string) => window.localStorage.removeItem(scopedKey(key)),
 };
 
-/** Unowned legacy data must never be assigned to the next person who signs in. */
+/** Удаляем непривязанные legacy-данные и старые scoped-ключи при смене владельца, чтобы следующий вход не наследовал персональный ввод. */
 export function setPersonalDataOwner(owner: number | null): void {
   for (const key of personalKeys) {
     try {
@@ -48,6 +50,7 @@ export function setPersonalDataOwner(owner: number | null): void {
 }
 
 const storage = {
+  /** Optional reader трактует запрет хранилища как отсутствие значения; обязательные черновики используют requiredStorage. */
   async getItem(key: string) {
     try {
       return window.localStorage.getItem(scopedKey(key));
@@ -55,6 +58,7 @@ const storage = {
       return null;
     }
   },
+  /** Optional запись предпочтения не останавливает навигацию при quota/privacy отказе браузера. */
   async setItem(key: string, value: string) {
     try {
       window.localStorage.setItem(scopedKey(key), value);
@@ -62,11 +66,13 @@ const storage = {
       // Optional UI preferences must not prevent navigation or sign-in.
     }
   },
+  /** Удаляем scoped optional значение по возможности; результат не служит доказательством серверного удаления данных. */
   async removeItem(key: string) {
     try {
       window.localStorage.removeItem(scopedKey(key));
     } catch {}
   },
+  /** Пакетная совместимая очистка пользуется тем же scoped optional методом для каждого переданного ключа. */
   async multiRemove(keys: readonly string[]) {
     await Promise.all(keys.map((k) => storage.removeItem(k)));
   },

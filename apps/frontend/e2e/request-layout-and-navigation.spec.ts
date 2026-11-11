@@ -3,6 +3,7 @@ import { gotoWithSession, layoutApi } from "./layout-fixtures";
 
 const menu = 'nav[aria-label="Разделы"]';
 
+/** Измеряем всю карточку ошибки внутри QueryRetryState, а не декоративную иконку; проверяем центрирование, overflow и hit-testing кнопки между шапкой и меню. */
 async function centeredError(page: Page) {
   const alert = page.locator("main").getByRole("alert");
   await expect(alert).toBeVisible();
@@ -41,6 +42,7 @@ async function centeredError(page: Page) {
   expect(card.y + card.height).toBeLessThanOrEqual(tabs.y);
 }
 
+/** Начальная API-ошибка в ленте и видео сохраняет геометрию шапки и доступный recovery; soft-check не мешает проверить действие повтора. */
 for (const [width, height] of [
   [390, 844],
   [1440, 844],
@@ -114,6 +116,7 @@ for (const [width, height] of [
   }
 }
 
+/** Ошибка проверки сессии профиля/клуба занимает доступную область контента и оставляет навигацию. */
 for (const path of ["/profile", "/club"]) {
   test(`session failure remains centered in the available ${path} content area`, async ({
     page,
@@ -140,6 +143,7 @@ for (const path of ["/profile", "/club"]) {
   });
 }
 
+/** Разделяем задержку RSC-перехода и destination-query: меню даёт немедленный feedback, отменяемая смена раздела не двигает его и не ждёт API. */
 test("a delayed tab transition gives feedback without shifting the menu or waiting for API data", async ({
   page,
 }) => {

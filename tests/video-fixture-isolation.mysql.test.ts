@@ -8,18 +8,22 @@ import {
 import { testDatabaseUrl } from "./helpers/backend-mysql";
 import { openVideoTestDatabase } from "./helpers/video-mysql";
 
+/** Проверяет, что автоинкремент нового видео не попадает в зарезервированный диапазон очистки фиксированных фикстур. */
 describe.skipIf(!testDatabaseUrl)("video SQL fixture isolation", () => {
   let conn: Connection;
+  /** Удаляет только два собственных synthetic youtubeId. */
   async function cleanup() {
     await conn.query(
       "DELETE FROM videos WHERE youtubeId IN ('isolation-fixed','isolation-created')",
     );
   }
+  /** Открывает изолированную videos-схему, подключает прикладной пул и очищает прежний запуск suite. */
   beforeAll(async () => {
     conn = await openVideoTestDatabase();
     vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
     await cleanup();
   });
+  /** Удаляет собственные строки, закрывает соединения и восстанавливает окружение. */
   afterAll(async () => {
     if (conn) {
       await cleanup();
@@ -30,6 +34,7 @@ describe.skipIf(!testDatabaseUrl)("video SQL fixture isolation", () => {
     )?.$client.end();
     vi.unstubAllEnvs();
   });
+  /** После вставки высокого фиксированного ID новая импортированная строка переживает очистку зарезервированного диапазона. */
   it("keeps an imported row when an independent connection cleans fixed fixture IDs", async () => {
     await conn.query(
       "INSERT INTO videos (id,youtubeId,title) VALUES (999998,'isolation-fixed','Fixed fixture')",

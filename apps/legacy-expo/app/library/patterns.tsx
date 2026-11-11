@@ -1,3 +1,4 @@
+// Архив Expo. Архивный экран четырёх выкроек использует публичные URI и UI-gate; действующий защищённый API Библиотеки реализован в новом frontend.
 import { useState, useCallback } from "react";
 import {
   View,
@@ -87,6 +88,8 @@ const LOSHADKA_COVER_URL =
 const LOSHADKA_YANDEX_URL = "https://disk.yandex.ru/i/nDfsd5ptLO1xRA";
 
 export default function PatternsScreen() {
+  // Архивный экран четырёх выкроек использует публичные URI и UI-gate; действующий защищённый API Библиотеки реализован в новом frontend.
+
   const insets = useSafeAreaInsets();
   const { isSubscribed } = useClub();
 
@@ -96,6 +99,8 @@ export default function PatternsScreen() {
   const [downloading, setDownloading] = useState(false);
 
   const handleBack = () => {
+    // Возвращает в Библиотеку с native haptic.
+
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -103,6 +108,8 @@ export default function PatternsScreen() {
   };
 
   const handleClubCTA = () => {
+    // Открывает страницу подписки Клуба.
+
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -110,6 +117,8 @@ export default function PatternsScreen() {
   };
 
   const handleQuizCTA = () => {
+    // Исторически ведёт на главную приложения по CTA определения эстетики.
+
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -117,6 +126,8 @@ export default function PatternsScreen() {
   };
 
   const openPattern = (pattern: PatternItem) => {
+    // Запоминает URI/название выкройки и открывает viewer.
+
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -126,6 +137,8 @@ export default function PatternsScreen() {
   };
 
   const handleDownload = useCallback(async () => {
+    // На web открывает исходный URI, на native скачивает копию и сохраняет в галерею после разрешения; оригинал не меняет.
+
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
@@ -170,6 +183,8 @@ export default function PatternsScreen() {
   }, [viewerImage]);
 
   const handleOpenLoshadka = async () => {
+    // Открывает исходный бесплатный PDF во встроенном browser.
+
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -177,6 +192,8 @@ export default function PatternsScreen() {
   };
 
   const closeViewer = () => {
+    // Закрывает preview и очищает выбранный URI/название.
+
     setViewerVisible(false);
     setViewerImage("");
     setViewerTitle("");
@@ -364,6 +381,8 @@ function FullScreenViewer({
   onDownload,
   downloading,
 }: FullScreenViewerProps) {
+  // Даёт pinch/pan/double-tap zoom с ограничением 1–4 и отдельным действием скачивания.
+
   const insets = useSafeAreaInsets();
 
   // Pinch-to-zoom
@@ -444,6 +463,8 @@ function FullScreenViewer({
   }));
 
   const handleClose = () => {
+    // Сбрасывает все shared значения увеличения перед закрытием viewer.
+
     // Reset zoom state
     scale.value = 1;
     savedScale.value = 1;
@@ -519,6 +540,7 @@ function FullScreenViewer({
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 100,

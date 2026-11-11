@@ -6,6 +6,7 @@ import { createBackendApplication } from "./application";
 import { WorkerJobs } from "../workers/worker-jobs.service";
 import { registerApiShutdown } from "./api-shutdown";
 
+/** Пробует занять TCP-порт и сразу освобождает его; ошибка bind означает занятый или недоступный порт. */
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
     const server = net.createServer();
@@ -16,6 +17,7 @@ function isPortAvailable(port: number): Promise<boolean> {
   });
 }
 
+/** Для локального запуска ищет свободный порт среди двадцати последовательных, иначе завершает подбор ошибкой. */
 async function findAvailablePort(startPort: number = 3000): Promise<number> {
   for (let port = startPort; port < startPort + 20; port++) {
     if (await isPortAvailable(port)) {
@@ -25,6 +27,7 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
   throw new Error(`No available port found starting from ${startPort}`);
 }
 
+/** После сборки приложения выбирает адрес, ограничивает HTTP-таймауты и включает workers только после успешного listen. */
 async function startServer() {
   const application = await createBackendApplication();
   const server = application.getHttpServer() as Server;

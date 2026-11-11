@@ -36,9 +36,11 @@ const pendingAccess =
 const checkingAccess =
   "Проверяем оплату… Доступ откроется после подтверждения.";
 
+/** Ставим отменяемую паузу между последовательными проверками доступа, не оставляя таймер после отмены. */
 function wait(signal: AbortSignal) {
   signal.throwIfAborted();
   return new Promise<void>((resolve, reject) => {
+    /** Отмена сигнала снимает ожидание, сохраняя исходную причину прерывания. */
     const abort = () => {
       clearTimeout(timer);
       reject(signal.reason);
@@ -51,7 +53,7 @@ function wait(signal: AbortSignal) {
   });
 }
 
-/** Legacy Prodamus flow: URL flags are hints, never proof of a paid order. */
+/** Выбираем гостевой recovery, NORMAL аккаунта или прежний протокол; все hooks сохраняют одинаковый порядок вызова React. Параметры URL не доказывают оплату. */
 export function useClubPayment({
   active,
   returnKey,
@@ -117,6 +119,7 @@ export function useClubPayment({
         };
 }
 
+/** Для старого API ведём локальный guard неизвестного результата; он не обещает серверную идемпотентность повторной заявки. */
 function useLegacyClubPayment({
   active,
   returnKey,
@@ -156,6 +159,7 @@ function useLegacyClubPayment({
       user?.id ?? null,
       prodamusTest ? "prodamus-test" : "legacy",
     );
+    /** Восстанавливаем предупреждение unknown из журнала без запроса нового checkout. */
     const restore = () => {
       try {
         unknownCheckout.current = journal.read()?.state === "unknown";
@@ -169,6 +173,7 @@ function useLegacyClubPayment({
       }
     };
     restore();
+    /** Следим за журналом этого владельца и режима, чтобы другая вкладка не скрыла неизвестный исход. */
     const changed = (event: StorageEvent) => {
       if (event.key === journal.storageKey || event.key === null) restore();
     };
@@ -189,6 +194,7 @@ function useLegacyClubPayment({
     }
   }, [active, retryLabel]);
   const ready = active && !loading && !error && !refreshError;
+  /** Закрепляем локальную операцию за текущим аккаунтом и активным экраном. */
   const begin = (name: string) => {
     if (!ready) return null;
     const id = user?.id;
@@ -202,6 +208,7 @@ function useLegacyClubPayment({
     );
   };
 
+  /** Проверяем контакты и локальный guard; при неизвестном исходе новый legacy-запрос требует явного выбора. */
   const prepare = async () => {
     if (!ready || scope.getSnapshot()) return;
     const email = (isAuthenticated ? (user?.email ?? "") : guestEmail)
@@ -301,6 +308,7 @@ function useLegacyClubPayment({
     }
   };
 
+  /** Проверяем claim и доступ в ограниченной кампании; URL возврата остаётся подсказкой, а не свидетельством оплаты. */
   const check = async (poll = false) => {
     if (!isAuthenticated) return;
     const task = begin("check-payment");

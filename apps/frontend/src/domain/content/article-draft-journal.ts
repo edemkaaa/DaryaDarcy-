@@ -25,10 +25,12 @@ export type ArticleDraftInspection = {
   records: ArticleDraftRecord[];
   damaged: DamagedArticleDraft[];
 };
+/** Отказ локального хранилища требует сохранить открытый редактор, а не продолжить без recoverable snapshot. */
 const storageError = () =>
   new Error(
     "Не удалось сохранить или прочитать черновик статьи на устройстве. Не закрывайте редактор.",
   );
+/** Проверяем владельца, ревизию, поля и используемые File; лишний или потерянный исходник считается повреждением. */
 function parse(value: unknown, ownerId: number): ArticleDraftRecord {
   const record = value as ArticleDraftRecord;
   if (
@@ -49,19 +51,24 @@ function parse(value: unknown, ownerId: number): ArticleDraftRecord {
 
 /** Drafts are separate per account/article; revisions protect concurrent tabs. */
 export class ArticleDraftJournal {
+  /** Экземпляр журнала обслуживает только черновики одного аккаунта. */
   constructor(readonly ownerId: number) {}
+  /** Разделяем новый черновик и редакторы существующих статей в пространстве владельца. */
   private key(editingId: number | null) {
     return `${this.ownerId}:${editingId ?? "new"}`;
   }
+  /** Физический ключ должен совпадать с editingId внутри записи, иначе черновик нельзя подменять между статьями. */
   private parseEntry(key: string, value: unknown) {
     const record = parse(value, this.ownerId);
     if (key !== this.key(record.snapshot.editingId)) throw storageError();
     return record;
   }
+  /** После смены аккаунта прежний редактор теряет право на чтение и запись локального слота. */
   private assertOwner() {
     if (!isPersonalDataOwner(this.ownerId))
       throw new Error("Аккаунт редактора изменился. Откройте статьи заново.");
   }
+  /** Открываем ограниченную IndexedDB-транзакцию; поддерживаем чтение одного слота либо cursor только префикса владельца. */
   private transaction<T>(
     mode: IDBTransactionMode,
     work: (
@@ -78,6 +85,7 @@ export class ArticleDraftJournal {
       let tx: IDBTransaction | undefined;
       let result: T;
       let settled = false;
+      /** Один раз снимаем дедлайн, abort и соединение; DOM-ошибку хранилища переводим в понятное состояние редактора. */
       const fail = (error: unknown = storageError()) => {
         if (settled) return;
         settled = true;
@@ -125,6 +133,7 @@ export class ArticleDraftJournal {
               resolve(result);
             };
             const store = tx.objectStore("drafts");
+            /** Проверяем владельца непосредственно перед обработкой прочитанных данных в открытой транзакции. */
             const apply = (value: unknown, exists = true) => {
               try {
                 this.assertOwner();
@@ -174,6 +183,7 @@ export class ArticleDraftJournal {
       }
     });
   }
+  /** Возвращаем пригодные и повреждённые слоты отдельно, не скрывая потерянный черновик как отсутствие данных. */
   inspect(): Promise<ArticleDraftInspection> {
     return this.transaction("readonly", (_store, value, finish) => {
       const result: ArticleDraftInspection = { records: [], damaged: [] };
@@ -187,10 +197,11 @@ export class ArticleDraftJournal {
       finish(result);
     });
   }
+  /** Совместимый путь возвращает только проверенные записи из полной инспекции. */
   async load(): Promise<ArticleDraftRecord[]> {
     return (await this.inspect()).records;
   }
-  /** Keep the original structured clone (including File bytes) atomically. */
+  /** Атомарно архивируем исходную повреждённую копию с File-байтами; уже восстановленную другой вкладкой запись не удаляем. */
   archiveDamaged(key: string): Promise<void> {
     if (!key.startsWith(`${this.ownerId}:`)) throw storageError();
     return this.transaction(
@@ -220,6 +231,7 @@ export class ArticleDraftJournal {
       key,
     );
   }
+  /** Создаём новую локальную ревизию только при совпадении ожидаемой старой, сохраняя вместе snapshot и реально используемые файлы. */
   save(
     snapshot: ArticleDraftSnapshot,
     files: PrivateArticleFile[],
@@ -245,6 +257,7 @@ export class ArticleDraftJournal {
       snapshot.editingId,
     );
   }
+  /** Удаляем только ожидаемую ревизию конкретной статьи, защищая новый ввод другой вкладки. */
   clear(editingId: number | null, expected: string | null): Promise<void> {
     return this.transaction(
       "readwrite",
@@ -256,6 +269,7 @@ export class ArticleDraftJournal {
       editingId,
     );
   }
+  /** Отсутствие и существование слота различаются; несовпадение expected требует явного повторного чтения. */
   private requireRevision(
     value: unknown,
     expected: string | null,

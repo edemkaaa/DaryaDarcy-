@@ -19,7 +19,7 @@ import classes from "./password-screen.module.scss";
 
 type Phase = "loading" | "ready" | "invalid" | "success" | "unknown";
 
-/** An isolated, public form: the one-time proof lives only in this component. */
+/** Одноразовый proof живёт только в ref, сразу удаляется из адреса; неизвестный результат не повторяем автоматически. */
 export default function PasswordScreen() {
   const token = useRef<string | null>(null);
   const initialized = useRef(false);
@@ -64,6 +64,7 @@ export default function PasswordScreen() {
 
   useEffect(() => {
     alive.current = true;
+    /** При уходе страницы удаляем proof и пароль из памяти/поля и отменяем ожидание; bfcache не должен сохранить пригодную форму. */
     const leave = () => {
       token.current = null;
       request.current?.abort();
@@ -107,6 +108,7 @@ export default function PasswordScreen() {
     return () => clearInterval(timer);
   }, [retryAt]);
 
+  /** Проверяем форму и cooldown до POST; после результата, кроме 429, proof расходуется локально, а неизвестный исход предлагает проверить вход. */
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (

@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "Администрирование",
   robots: { index: false, follow: false },
 };
+/** Подключаем административный экран без индексации; проверка роли выполняется его контекстом и серверным API. */
 export default function Page() {
   return <Screen />;
 }

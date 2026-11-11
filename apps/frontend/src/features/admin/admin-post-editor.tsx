@@ -70,6 +70,8 @@ import {
 import type { PostFormData } from "./admin-screen.content";
 
 function formForPost(post: AdminPost): PostFormData {
+  // Переводит административный снимок в поля формы: видео берёт из полной media, архивную дату сохраняет отдельно от расписания.
+
   return {
     text: post.text,
     photos: post.photos as string[],
@@ -105,6 +107,8 @@ type AdminPostEditorProps = {
 
 /** A different account must never inherit the previous editor's File/coordinator state. */
 export function AdminPostEditor(props: AdminPostEditorProps) {
+  // Ключ аккаунта и ID поста не даёт новому владельцу унаследовать File или фазу сохранения предыдущего редактора.
+
   const { user } = useAuth();
   return (
     <AdminPostEditorBody
@@ -121,6 +125,8 @@ function AdminPostEditorBody({
   onClose,
   onSaved,
 }: AdminPostEditorProps) {
+  // Изолирует частый ввод от административных списков и держит координатор, ревизию и durable черновик в одной области.
+
   const viewport = useViewport();
   const capabilities = useCapabilities();
   const { stylesLayout } = getAdminScreenLayout(viewport);
@@ -139,6 +145,7 @@ function AdminPostEditorBody({
           }
         : EMPTY_FORM,
   );
+  // Область операции отделена от полей: отмена закрывает ожидание, а исходный durable журнал остаётся для проверки результата.
   const operation = useSessionOperation(showForm, editingId);
   const videoUploading = operation.kind === "video";
   const uploading = operation.kind === "photos";
@@ -167,6 +174,8 @@ function AdminPostEditorBody({
   const utils = trpc.useUtils();
   const invalidatePublicFeeds = onSaved;
   const notifyAdminError = (message: string) => {
+    // Показывает ошибку, не очищая введённые поля и выбранные файлы.
+
     {
       window.alert(message);
       return;
@@ -176,7 +185,7 @@ function AdminPostEditorBody({
   const privatePhotos = usePrivatePostPhotos(showForm, editingId ?? "new");
   const privateVideos = usePrivatePostVideos(showForm, editingId ?? "new");
   const editorSnapshot = useMemo(
-    () => ({
+    () => /* Объединяет текст, форматирование, File, удаления и неподтверждённые выборы в одну контрольную точку. */ ({
       draft: { ...form, richText: richText ?? null },
       attachments: attachments.attachments,
       removedIds: attachments.removedIds,
@@ -200,6 +209,8 @@ function AdminPostEditorBody({
     editor: editorSnapshot,
     coordinator: saveCoordinator,
     onRestore: (snapshot) => {
+      // Возвращает refs файлов и поля из одного снимка; новый ключ rich text убирает диапазоны прежнего содержимого.
+
       privatePhotos.restore(
         snapshot.privatePhotos ?? [],
         snapshot.draft.photos,
@@ -229,9 +240,13 @@ function AdminPostEditorBody({
   );
   const resetAttachments = attachments.reset;
   useEffect(() => {
+    // Подключает существующие аудио и документы из полной media при выборе поста, не запуская повторную загрузку.
+
     resetAttachments(post?.media);
   }, [post, resetAttachments]);
   const resetForm = () => {
+    // Освобождает превью и локальное состояние только после завершения или явного отказа; серверные файлы не удаляет.
+
     privatePhotos.reset();
     privateVideos.reset();
     operation.cancel();
@@ -248,6 +263,8 @@ function AdminPostEditorBody({
     setDraftKey((key) => key + 1);
   };
   const handleSubmit = async () => {
+    // Требует полные медиа исходного поста, валидную дату и контрольную точку до координированной записи файлов и поста.
+
     if (recovery.blocked) return;
     if (post && !Array.isArray(post.media)) {
       notifyAdminError(
@@ -284,6 +301,7 @@ function AdminPostEditorBody({
       uploadSelection.assertReady();
       await recovery.checkpoint();
       task.assertCurrent();
+      // Перед сетью берём форматирование непосредственно у поля, чтобы ещё не завершившийся React-эффект не потерял ссылки.
       const payload = serializePostDraft({
         ...form,
         richText:
@@ -317,6 +335,8 @@ function AdminPostEditorBody({
     }
   };
   const addVideoUrl = (url: string) => {
+    // Добавляет ссылку без дубля и серверный slug video, не публикуя пост самостоятельно.
+
     setForm((prev) => ({
       ...prev,
       videos: prev.videos.includes(url) ? prev.videos : [...prev.videos, url],
@@ -324,6 +344,8 @@ function AdminPostEditorBody({
     }));
   };
   const pickVideo = async () => {
+    // Проверяет capability и лимит до выбора; локальный оригинал и необязательный кадр остаются для общего сохранения.
+
     if (recovery.blocked) return;
     const task = operation.begin("video");
     if (!task) return;
@@ -350,6 +372,8 @@ function AdminPostEditorBody({
     }
   };
   const removeVideo = (index: number) => {
+    // Снимает локальный постер и записывает ID удаления лишь для реально связанного серверного вложения.
+
     if (operation.busy || recovery.blocked) return;
     const reference = form.videos[index];
     if (!reference) return;
@@ -378,6 +402,8 @@ function AdminPostEditorBody({
     }),
   ];
   const pickPhotosFromGallery = async () => {
+    // Сохраняет ожидание выбора перед последовательной подготовкой фото; частичный успех не теряется при ошибке следующего файла.
+
     const task = operation.begin("photos");
     if (!task) return;
     let uploaded = 0;
@@ -415,6 +441,8 @@ function AdminPostEditorBody({
     }
   };
   const removePhoto = (index: number) => {
+    // Освобождает превью выбранного фото и удаляет его ссылку из формы вне текущей операции.
+
     if (operation.busy) return;
     privatePhotos.removePreview(form.photos[index]);
     setForm((prev) => ({
@@ -423,6 +451,8 @@ function AdminPostEditorBody({
     }));
   };
   const movePhoto = (fromIndex: number, direction: "up" | "down") => {
+    // Меняет местами соседние ссылки, сохраняя остальные вложения и исходные файлы.
+
     if (operation.busy) return;
     setForm((prev) => {
       const newPhotos = [...prev.photos];
@@ -436,6 +466,8 @@ function AdminPostEditorBody({
     });
   };
   const reorderPhotos = (fromIndex: number, toIndex: number) => {
+    // Применяет drag-перемещение только между допустимыми индексами, не создавая новых загрузок.
+
     setForm((prev) => {
       if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0) return prev;
       if (fromIndex >= prev.photos.length || toIndex >= prev.photos.length)
@@ -447,6 +479,8 @@ function AdminPostEditorBody({
     });
   };
   const toggleTag = useCallback((slug: string) => {
+    // Функциональное обновление не теряет другие выбранные теги при быстрых нажатиях.
+
     setForm((prev) => ({
       ...prev,
       tags: prev.tags.includes(slug)
@@ -455,6 +489,8 @@ function AdminPostEditorBody({
     }));
   }, []);
   const discardRecovery = async () => {
+    // Требует явного отказа от локальной копии после проверки сервера; неизвестный запрос мог уже записаться.
+
     if (
       !window.confirm(
         "Удалить локальную копию? Если сохранение или загрузка не подтверждены, сначала проверьте список публикаций в другой вкладке. Файлы на сервере не удаляются.",
@@ -469,6 +505,8 @@ function AdminPostEditorBody({
     }
   };
   const finishRecovery = async () => {
+    // Завершает подтверждённую фазу и обновляет связанные списки перед закрытием.
+
     try {
       await recovery.clear();
       invalidatePublicFeeds();
@@ -478,6 +516,8 @@ function AdminPostEditorBody({
     }
   };
   const recoverCreation = async () => {
+    // Продолжает исходную фазу координатора: файлы проверяются отдельно, создание завершается с прежним ключом.
+
     const task = operation.begin("save");
     if (!task) return;
     try {
@@ -499,6 +539,8 @@ function AdminPostEditorBody({
     }
   };
   const closeForm = async () => {
+    // Не разрешает закрытие опасной фазы координатора; удаление локального черновика выполняется отдельно от отмены ожидания.
+
     if (recovery.status === "loading" || recovery.status === "offered") {
       resetForm();
       return;
@@ -531,6 +573,8 @@ function AdminPostEditorBody({
   };
   // ── Form Modal ──
   const renderForm = () => {
+    // Форма редактирования остаётся смонтированной при предпросмотре, но inert запрещает скрытый фокус и изменения во время операции.
+
     if (!showForm) return null;
     return (
       <Dialog
@@ -590,7 +634,7 @@ function AdminPostEditorBody({
             onDiscard={() => void discardRecovery()}
           />
           {editComparison}
-          {/* Preview/Edit toggle */}
+          {/* Предпросмотр не размонтирует textarea: сохраняются выделение и диапазоны, но скрытая форма исключена из фокуса и ввода. */}
           <PostUploadStatus selection={uploadSelection} busy={operation.busy} />
           <div
             className={["ui-stack ", classes.previewToggleRow]

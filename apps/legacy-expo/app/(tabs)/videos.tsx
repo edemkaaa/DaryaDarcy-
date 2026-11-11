@@ -1,3 +1,4 @@
+// Архив Expo. Размещает заголовок и шиповник в отдельном header списка со стабильной минимальной высотой.
 import { useCallback, useState } from "react";
 import {
   View,
@@ -56,6 +57,8 @@ type Video = {
 };
 
 function VideosBannerHeader() {
+  // Размещает заголовок и шиповник в отдельном header списка со стабильной минимальной высотой.
+
   return (
     <Animated.View entering={FadeIn.duration(600)} style={styles.headerSection}>
       <Image
@@ -80,6 +83,8 @@ function VideosBannerHeader() {
 }
 
 function VideosScreenInner() {
+  // Архивный список читает videos.list целиком и сохраняет полученные карточки при фоновом сбое.
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
@@ -87,16 +92,22 @@ function VideosScreenInner() {
   const { data: videos, isLoading, isError, refetch } = trpc.videos.list.useQuery(undefined, { retry: 1 });
 
   const onRefresh = useCallback(async () => {
+    // Перечитывает каталог и снимает индикатор pull-to-refresh после ответа.
+
     setRefreshing(true);
     await refetch();
     setRefreshing(false);
   }, [refetch]);
 
   const handleVideoPress = useCallback((video: Video) => {
+    // Открывает внутренний экран по id выбранного ролика.
+
     router.push(`/video/${video.id}` as any);
   }, [router]);
 
   const renderVideoCard = useCallback(({ item }: { item: Video }) => {
+    // Предпочитает сохранённую внешнюю обложку и иначе старый YouTube thumbnail proxy.
+
     const stored = item.thumbnailUrl?.trim() ?? "";
     const thumbnailUrl =
       stored && !/ytimg\.com|img\.youtube\.com/i.test(stored)
@@ -179,6 +190,8 @@ function VideosScreenInner() {
 }
 
 export default function VideosScreen() {
+  // Оборачивает каталог совместимым контейнером вкладки.
+
   return (
     <TabFocusGate>
       <VideosScreenInner />
@@ -186,6 +199,7 @@ export default function VideosScreen() {
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,

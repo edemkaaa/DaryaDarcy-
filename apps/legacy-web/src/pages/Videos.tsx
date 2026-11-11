@@ -1,7 +1,9 @@
+/** Архивный непагинированный YouTube-каталог Vite. */
 import { Link } from "react-router-dom";
 import { trpc } from "../trpc";
 import { videoCoverUrl } from "../videoCover";
 
+/** Читает старый videos.list, выбирает прежний адрес обложки и строит числовые маршруты. */
 export default function Videos() {
   const { data: videos, isLoading, isError } = trpc.videos.list.useQuery();
 

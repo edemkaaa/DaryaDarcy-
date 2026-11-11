@@ -2,6 +2,7 @@
 import { userConsentEvents } from "../../../../packages/database/src/schema";
 import { getDb } from "../database/connection";
 
+/** Добавляем событие предоставления или отзыва с версией и ограниченным сохранённым текстом; совместимый вызов без БД не выполняет запись. */
 export async function logUserConsent(
   userId: number,
   consentKey: string,

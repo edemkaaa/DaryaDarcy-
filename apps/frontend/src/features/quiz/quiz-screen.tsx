@@ -1,9 +1,5 @@
 "use client";
 /** Поток теста последовательно сохраняет ответы и проверяет изменения другой вкладки; смена аккаунта создаёт новый локальный контекст. */
-/**
- * Quiz Entry Screen — "Тест: Какая твоя сказка?"
- * Shows welcome/intro, question flow, and results all managed via QuizContext.
- */
 import { useEffect, useRef, useState } from "react";
 import AsyncStorage, {
   requiredStorage,
@@ -30,6 +26,7 @@ import { QuizQuestion } from "@/features/quiz/quiz-question";
 import { QuizResultScreen } from "@/features/quiz/quiz-result";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
 import RouteLoading from "@/shared/ui/route-loading";
+/** Ждём установления владельца сессии и пересоздаём поток для каждого аккаунта и режима просмотра результата. */
 export default function QuizScreen({
   showSavedResult = false,
 }: {
@@ -46,6 +43,7 @@ export default function QuizScreen({
   );
 }
 
+/** Владеем очередью действий теста, сохранением под межвкладочной блокировкой и защитой от поздних операций предыдущего прохода. */
 function QuizFlow({
   ownerId,
   showSavedResult,
@@ -67,10 +65,12 @@ function QuizFlow({
   const epoch = useRef(0);
   const mounted = useRef(true);
   const queue = useRef(Promise.resolve());
+  /** Обновляем синхронный снимок вместе с React-состоянием, чтобы очередь читала уже применённый ответ. */
   const setCurrent = (next: QuizState) => {
     current.current = next;
     setState(next);
   };
+  /** Восстанавливаем проверенный прогресс и метаданные прохода, сохраняя исходный текст для сравнения перед записью. */
   const restoreProgress = (raw: string | null) => {
     const restored = parseQuizProgress(raw);
     stored.current = raw;
@@ -83,6 +83,7 @@ function QuizFlow({
   };
   const renderedEpoch = epoch.current;
   // Действия проходят одну очередь и сравнение сохранённой версии; быстрые нажатия не перескакивают через чужой вопрос.
+  /** Сериализуем действия и сверяем владельца, эпоху и содержимое хранилища; ответ с устаревшего вопроса не применяем. */
   const dispatch = (action: QuizAction) => {
     if (!isPersonalDataOwner(ownerId) || renderedEpoch !== epoch.current)
       return;
@@ -90,6 +91,7 @@ function QuizFlow({
     const question = current.current.currentQuestion;
     queue.current = queue.current.then(async () => {
       let next: QuizState | null = null;
+      /** Отсекаем завершения после размонтирования, смены аккаунта или начала другого прохода. */
       const isCurrent = () =>
         mounted.current &&
         isPersonalDataOwner(ownerId) &&
@@ -179,6 +181,7 @@ function QuizFlow({
       }
     });
   };
+  /** При первом открытии обычного теста читаем незавершённый проход; сбой хранилища показываем отдельно от пустого прогресса. */
   useEffect(() => {
     if (showSavedResult) return;
     try {
@@ -194,8 +197,10 @@ function QuizFlow({
     }
     setInspectedOnce(true);
   }, [showSavedResult]);
+  /** Подписываемся на межвкладочные изменения и возврат фокуса; cleanup запрещает поздние действия очереди. */
   useEffect(() => {
     mounted.current = true;
+    /** Сообщаем о чужом изменении прогресса без автоматического перезаписывания текущих ответов. */
     const inspect = (event?: StorageEvent) => {
       if (
         event &&
@@ -211,6 +216,7 @@ function QuizFlow({
         setStorageError(true);
       }
     };
+    /** После возврата в окно повторяем ту же проверку сохранённого прогресса. */
     const onFocus = () => inspect();
     window.addEventListener("storage", inspect);
     window.addEventListener("focus", onFocus);
@@ -221,6 +227,7 @@ function QuizFlow({
     };
   }, [ownerId]);
   // Конфликт вкладок разрешается чтением сохранённого варианта под блокировкой, а не перезаписью текущим экраном.
+  /** По явному выбору читаем сохранённый прогресс или результат под блокировкой и начинаем новую эпоху текущего экрана. */
   const continueSaved = () => {
     const actionEpoch = epoch.current;
     queue.current = queue.current.then(async () => {
@@ -260,15 +267,18 @@ function QuizFlow({
       }
     });
   };
+  /** Активный экран результата следит за storage/focus/pageshow; при уходе снимаем подписки и обесцениваем незавершённые чтения. */
   useEffect(() => {
     if (!showSavedResult || !active) return;
     let cancelled = false;
     let readVersion = 0;
+    /** Следуем сохранённому результату только пока экран активен, владелец прежний и пользователь не начал новый тест. */
     const canRead = () =>
       !cancelled &&
       followingSavedResult.current &&
       isPersonalDataOwner(ownerId) &&
       current.current.phase !== "question";
+    /** Поколение чтения и эпоха не позволяют позднему ответу заменить уже выбранный результат. */
     const load = () => {
       if (!canRead()) return;
       const version = ++readVersion;
@@ -293,6 +303,7 @@ function QuizFlow({
         setInspectedOnce(true);
       });
     };
+    /** Реагируем на результат только текущего владельца либо очистку хранилища целиком. */
     const onStorage = (event: StorageEvent) => {
       if (
         event.key === null ||
@@ -339,6 +350,7 @@ function QuizFlow({
   );
 }
 
+/** Открываем тот же поток в режиме наблюдения за сохранённым результатом вместо восстановления незавершённых вопросов. */
 export function SavedQuizScreen() {
   return <QuizScreen showSavedResult />;
 }

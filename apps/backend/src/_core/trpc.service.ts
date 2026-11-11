@@ -20,6 +20,7 @@ export class TrpcService {
   readonly router: AppRouter;
   readonly createContext: ReturnType<typeof createContextFactory>;
 
+  /** Принимает доменные сервисы Nest и связывает с ними router/context данного приложения без глобального service locator. */
   constructor(
     @Inject(ContentReadService) content: ContentReadService,
     @Inject(ContentWriteService) posts: ContentWriteService,

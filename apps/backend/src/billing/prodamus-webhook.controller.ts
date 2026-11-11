@@ -10,16 +10,19 @@ export type ProdamusWebhookHandler = {
 /** Только транспортный вход; проверкой и settlement владеет существующий обработчик. */
 @Controller("api/prodamus/webhook")
 export class ProdamusWebhookController {
+  /** Принимает handler конкретного приложения через символ-порт, не связываясь с глобальным mutable обработчиком. */
   constructor(
     @Inject(PRODAMUS_WEBHOOK_HANDLER)
     private readonly webhook: ProdamusWebhookHandler,
   ) {}
 
+  /** Делегирует совместимый GET тому же handler, который проверяет подпись и долговечную привязку. */
   @Get()
   get(@Req() request: Request, @Res() response: Response) {
     return this.webhook.handle(request, response);
   }
 
+  /** Передаёт исходный POST handler без самостоятельного изменения состояния или преждевременного подтверждения. */
   @Post()
   post(@Req() request: Request, @Res() response: Response) {
     return this.webhook.handle(request, response);

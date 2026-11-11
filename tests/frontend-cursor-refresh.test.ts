@@ -1,3 +1,4 @@
+/** Refresh ограниченной cursor-chain не должен мутировать подтверждённый cache или перечитывать весь посещённый архив. */
 import { describe, expect, it, vi } from "vitest";
 import {
   appendCursorPage,
@@ -10,11 +11,13 @@ import {
 type Page = Omit<CursorPage, "items"> & {
   items: { id: number; text: string }[];
 };
+/** Синтетический reader отдаёт12строк и позволяет менять набор между чтениями. */
 function fixture(count = 120) {
   let rows = Array.from({ length: count }, (_, i) => ({
     id: i + 1,
     text: `post ${i + 1}`,
   }));
+  /** Читаем текущее окно строк по числовому fixture cursor, записывая вызовы для assertions. */
   const read = vi.fn(async (cursor: string | null): Promise<Page> => {
     const start = Number(cursor ?? 0);
     return {
@@ -22,6 +25,7 @@ function fixture(count = 120) {
       nextCursor: start + 12 < rows.length ? String(start + 12) : null,
     };
   });
+  /** Строим исходную подтверждённую цепочку и очищаем счётчик подготовительных reads. */
   const chain = async (pages = 4) => {
     let result = await refreshCursorChain<Page>(
       undefined,
@@ -45,7 +49,9 @@ function fixture(count = 120) {
   };
 }
 
+/** Сверяем объём перезагрузки, связность границ и поведение при вставках/удалениях. */
 describe("post page refresh", () => {
+  /** Фоновое обновление читает head и видимую дальнюю страницу, сохраняя невидимые ссылки cache. */
   it("refreshes only the head and visible later pages when boundaries are stable", async () => {
     const f = fixture(),
       before = await f.chain(6);
@@ -60,6 +66,7 @@ describe("post page refresh", () => {
     expect(after.pages[3].items[0].text).toBe("updated");
     expect(after.pages[1]).toBe(before.pages[1]);
   });
+  /** Изменённая граница требует перестроить удерживаемый хвост, а не только убрать дубли. */
   it("rebuilds the retained chain after insertion and deletion without duplicates or gaps", async () => {
     const f = fixture(),
       before = await f.chain();
@@ -86,6 +93,7 @@ describe("post page refresh", () => {
       ...Array.from({ length: 48 }, (_, i) => i + 1).filter((id) => id !== 15),
     ]);
   });
+  /** Удалённая средняя страница сокращает цепочку без повторного чтения одного cursor. */
   it("detects deletion beyond the head and truncates an exhausted tail", async () => {
     const f = fixture(30),
       before = await f.chain(3);
@@ -104,6 +112,7 @@ describe("post page refresh", () => {
       f.read.mock.calls.length,
     );
   });
+  /** Пользовательский all обновляет весь retained window; restart начинает с одной страницы. */
   it("explicit refresh updates all retained pages; restart reads just the head", async () => {
     const f = fixture(),
       before = await f.chain();
@@ -119,6 +128,7 @@ describe("post page refresh", () => {
     ).toHaveLength(1);
     expect(f.read).toHaveBeenCalledTimes(1);
   });
+  /** Неполученный хвост не заменяет старый cache частично свежими данными. */
   it("keeps the old confirmed chain intact when a later read fails", async () => {
     const f = fixture(),
       before = await f.chain(),
@@ -134,6 +144,7 @@ describe("post page refresh", () => {
     ).rejects.toThrow("offline");
     expect(before).toEqual(copy);
   });
+  /** Сохраняем восьмистраничное окно и необходимые opaque границы без старых payload. */
   it("bounds forward and backward windows and refreshes a deep window without reading the discarded archive", async () => {
     const f = fixture(240);
     let chain = boundCursorChain(await f.chain(10), 8, "next");
@@ -176,6 +187,7 @@ describe("post page refresh", () => {
     ]);
     expect(chain.pages.at(-1)!.nextCursor).toBe("108");
   });
+  /** Непродвигающийся reader не зацикливает refresh. */
   it("rejects looping cursors during refresh as well as pagination", async () => {
     const f = fixture(),
       before = await f.chain();

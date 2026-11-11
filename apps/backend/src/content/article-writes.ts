@@ -30,6 +30,7 @@ export type CreateArticleInput = {
 };
 export type UpdateArticleInput = Partial<CreateArticleInput>;
 
+/** Нормализует legacy blocks и удаляет пустой текст, пустые ссылки/фото и пустые карусели перед SQL-сохранением. */
 function sectionsForStorage(value: unknown): ArticleBlock[] {
   return normalizeArticleBlocks(value).filter((block) => {
     if (block.type === "photo" || block.type === "png")
@@ -40,6 +41,7 @@ function sectionsForStorage(value: unknown): ArticleBlock[] {
   });
 }
 
+/** После блокировки статьи ищет связанные article:id посты без locking source-scan, чтобы не блокировать чужие публикации на неиндексированном поле. */
 async function findTeasers(tx: ContentTransaction, articleId: number) {
   // Article writers acquire the article PK first. source has no index: a locking
   // source scan would block unrelated posts. Read IDs, then write by primary key.
@@ -50,6 +52,7 @@ async function findTeasers(tx: ContentTransaction, articleId: number) {
     .orderBy(asc(posts.id));
 }
 
+/** В той же транзакции удаляет teasers неопубликованной статьи либо синхронизирует title/cover и сохраняет обсуждения исторических дубликатов. */
 async function syncTeaser(
   tx: ContentTransaction,
   article: Pick<Article, "id" | "title" | "coverUrl" | "published">,
@@ -78,6 +81,7 @@ async function syncTeaser(
 }
 
 /** Article and teaser become visible together, only after the transaction commits. */
+/** Под текущим actor и уникальным creation-intent атомарно пишет статью, private bindings, teaser и результат; replay проверяет immutable payload/window и не присваивает чужую незавершённую заявку. */
 export async function createArticle(
   database: MySql2Database,
   data: CreateArticleInput,
@@ -150,6 +154,7 @@ export async function createArticle(
 }
 
 /** Проверяем ожидаемую версию и сохраняем изменение статьи вместе с её зависимостями. */
+/** Блокирует текущую статью, проверяет ожидаемый hash, сохраняет partial и private refs, затем синхронизирует teaser до коммита. */
 export async function updateArticle(
   database: MySql2Database,
   id: number,
@@ -186,6 +191,7 @@ export async function updateArticle(
 }
 
 /** Удаляем статью через её текущие связи; доступ проверяется на административной границе. */
+/** Под actor/article-блокировками удаляет связанные teasers через общий cascade и статью; orphan-teaser очищается даже при отсутствии parent. */
 export async function deleteArticle(
   database: MySql2Database,
   id: number,

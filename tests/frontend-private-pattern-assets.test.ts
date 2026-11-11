@@ -1,7 +1,9 @@
+/** Проверка состава сборочных ресурсов: закрытые выкройки убраны, публичные обложки сохранены. */
 import { readdir, readFile, access } from "node:fs/promises";
 import { resolve } from "node:path";
 import { expect, it } from "vitest";
 
+/** Ищем известные старые имена в public/каталоге вариантов и отдельно подтверждаем наличие двух допустимых обложек. */
 it("ships private patterns only through authenticated API bindings, retaining public covers", async () => {
   const frontend = resolve(import.meta.dirname, "../apps/frontend");
   const retired = /18c14e47537e-|958b97c139fc-|ded750bddbeb-|9b32f7b0c8f1-/;

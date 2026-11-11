@@ -16,6 +16,7 @@ import { SessionService } from "./session.service";
 export type AuthenticatedRequest = Request & { authenticatedUser: User };
 
 class SessionAccessRejection extends Error {
+  /** Храним разрешённый HTTP-статус и вариант нейтрального ответа для guard без внутренних данных аутентификации. */
   constructor(
     readonly status: 401 | 403 | 415,
     readonly jsonError = false,
@@ -28,6 +29,7 @@ class SessionAccessRejection extends Error {
 // Guard выполняется до @Header, поэтому no-store для отказов устанавливаем здесь.
 @Catch(SessionAccessRejection)
 export class SessionAccessFilter implements ExceptionFilter {
+  /** Устанавливаем no-store на отказах guard до контроллера, сохраняя прежний JSON либо пустой HTTP-формат маршрута. */
   catch(error: SessionAccessRejection, host: ArgumentsHost) {
     const response = host.switchToHttp().getResponse<Response>();
     response.setHeader("Cache-Control", "no-store");
@@ -42,10 +44,12 @@ export class SessionAccessFilter implements ExceptionFilter {
 @Injectable()
 /** Загружает актуального пользователя и разрешает только роль администратора; отказ не кэшируется. */
 export class AdministratorGuard implements CanActivate {
+  /** Получаем сервис текущих сессий для проверки роли на нативных HTTP-маршрутах админки. */
   constructor(
     @Inject(SessionService) private readonly sessions: SessionService,
   ) {}
 
+  /** Проверяем JSON для PUT до сессии, затем текущего администратора; прикладываем authenticatedUser только после успешной проверки. */
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     // Сохраняем прежний порядок PUT настроек: content-type проверяется до сессии.
@@ -64,10 +68,12 @@ export class AdministratorGuard implements CanActivate {
 @Injectable()
 /** Повтор писем ограничен staff-ролью, JSON-телом и доверенным browser origin. */
 export class AccessEmailStaffGuard implements CanActivate {
+  /** Получаем сервис сессий для отдельной staff-границы повторной отправки писем. */
   constructor(
     @Inject(SessionService) private readonly sessions: SessionService,
   ) {}
 
+  /** Требуем JSON, проверенный browser Origin и текущую служебную роль; только guard устанавливает authenticatedUser, поле из тела не учитывается. */
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     if (!request.is("application/json")) throw new SessionAccessRejection(415);

@@ -1,3 +1,4 @@
+/** Адрес берётся из специально подготовленного checkout fixture; собственный webServer не запускаем и прекращаем прогон после первого отказа. */
 import { readFileSync } from "node:fs";
 import { defineConfig } from "@playwright/test";
 import base from "./playwright.config";

@@ -216,7 +216,7 @@ Pen Pals/offline/автоматическая оплата Магазина не
 - [Завершённый перенос 388/отзыв 386](../operations/guest-checkout-and-legacy-retirement-2026-10-27.md).
 - [Mini-выпуск и сохранность 42 таблиц](../operations/telegram-mini-release-2026-11-01.md).
 - [DNS-инцидент](../operations/dns-incident-2026-11-02.md).
-- [Сборка, backup/preflight и откат](../../infrastructure/deploy/teamassist/README.build.md).
+- [Сборка, backup/preflight и откат](../../infrastructure/build/README.md).
 - [Память и подготовка ресурсов](../operations/production-devops-handoff-2026-10-26.md).
 - [Инструкция менеджеру](../operations/manager-guide.md),
   [сценарий пилота](mail-devices-pilot-vk-2026-10-22.md).

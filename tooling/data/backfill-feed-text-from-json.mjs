@@ -12,6 +12,8 @@ import { fileURLToPath } from "node:url";
 import mysql from "mysql2/promise";
 
 async function ensureUtf8Mb4(conn) {
+  // Устанавливает кодировку соединения перед переносом текста с emoji, не меняя схему таблицы.
+
   await conn.query("SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci");
 }
 
@@ -34,6 +36,8 @@ const JSON_PATH =
   process.env.IG_JSON_PATH || path.join(root, "ig_posts_processed.json");
 
 async function main() {
+  // Сопоставляет подписи JSON по shortcode и меняет выбранные строки; FORCE разрешает перезапись, dry-run должен выбираться явно.
+
   if (!env.DATABASE_URL) {
     console.error("DATABASE_URL missing");
     process.exit(1);

@@ -1,3 +1,4 @@
+/** Собранный executable проверяется отдельными локальными процессами со всеми effects, подменёнными внутри child payload. */
 import { expect, it } from "vitest";
 import { build } from "esbuild";
 import { execFileSync, spawnSync } from "node:child_process";
@@ -8,6 +9,7 @@ import { join, resolve } from "node:path";
 
 // Removing executable activation, starting before listen, or retaining both
 // schedulers must fail these real child-process observations.
+/** Успешный listen запускает один runner с ожидаемыми интервалами; занятый порт даёт exit1 без worker effects. Loader env и внешние данные не используются. */
 it("executable activates one owned scheduler only after successful listen; occupied port runs none", async () => {
   const directory = mkdtempSync(resolve(".tmp-worker-entrypoint-"));
   const entry = join(directory, "index.mjs");
@@ -62,6 +64,7 @@ it("executable activates one owned scheduler only after successful listen; occup
       plugins: [
         {
           name: "no-deployment-env",
+          /** Esbuild-plugin исключает реальный load-env из child probe, сохраняя настоящий executable порядок. */
           setup(builder) {
             // The executable's legacy loader must never read actual env files.
             builder.onLoad({ filter: /[/\\]load-env\.ts$/ }, () => ({
@@ -77,6 +80,7 @@ it("executable activates one owned scheduler only after successful listen; occup
       format: "esm",
       outfile: entry,
     });
+    /** Child получает только synthetic env, loopback host и заданный порт; cwd не является проектным env-каталогом. */
     const options = (port: number) => ({
       cwd: tmpdir(),
       env: {
@@ -90,6 +94,7 @@ it("executable activates one owned scheduler only after successful listen; occup
       encoding: "utf8" as const,
       timeout: 10_000,
     });
+    /** Разбираем только собственный RESULT marker, не произвольный startup output. */
     const result = (output: string) => {
       const line = output
         .split("\n")

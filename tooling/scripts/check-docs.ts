@@ -34,6 +34,9 @@ const currentDocuments = [...files]
       /^apps\/[^/]+\/README\.md$/.test(file) ||
       /^packages\/[^/]+\/README\.md$/.test(file) ||
       /^tooling\/(?:[^/]+\/)?README\.md$/.test(file) ||
+      // Навигация инфраструктуры и тестов тоже должна переживать переносы файлов.
+      /^infrastructure\/(?:[^/]+\/)*README(?:\.[^/]+)?\.md$/.test(file) ||
+      file === "tests/README.md" ||
       /^tasks\/[^/]+\.md$/.test(file),
   )
   .sort();

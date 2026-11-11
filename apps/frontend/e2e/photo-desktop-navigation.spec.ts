@@ -3,6 +3,7 @@ import { editorApi, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 import { validateReadResponse } from "../src/shared/api/read-response-contracts";
 
+/** Создаём альбом и сначала проверяем его реальным read-validator: drift fixture должен упасть до навигации, а не выглядеть UI-багом. */
 async function fixtures(page: Page, count = 10) {
   const photos = Array.from(
     { length: count },
@@ -42,9 +43,11 @@ async function fixtures(page: Page, count = 10) {
   if (count > 9) await album.waitFor();
   return album;
 }
+/** Адресуем отдельный fullscreen-dialog просмотра фотографий. */
 function viewer(page: Page) {
   return page.getByRole("dialog", { name: "Просмотр фотографий" });
 }
+/** Сверяем scroll-область viewer с полным viewport после жеста или resize, ловя оставшийся translateY. */
 async function centered(dialog: Locator) {
   const scroll = dialog.locator(".ui-scroll-horizontal");
   await expect
@@ -70,6 +73,7 @@ async function centered(dialog: Locator) {
       viewportHeight: (await dialog.boundingBox())!.height,
     });
 }
+/** Листаем мышью по относительной ширине текущей области без программного изменения индекса. */
 async function mouseDrag(page: Page, scroll: Locator, direction = -1) {
   await scroll.scrollIntoViewIfNeeded();
   const box = (await scroll.boundingBox())!;
@@ -81,6 +85,7 @@ async function mouseDrag(page: Page, scroll: Locator, direction = -1) {
   await page.mouse.up();
 }
 
+/** Проверяем click после drag, keyboard границы, focus возврата, outside-release, blur, resize и single-photo без лишних controls. */
 test.describe("desktop photo navigation", () => {
   test.use({
     viewport: { width: 1440, height: 900 },
@@ -263,6 +268,7 @@ test.describe("desktop photo navigation", () => {
   });
 });
 
+/** Touch-профиль скрывает desktop-стрелки и отдельно проверяет native CDP-swipe и закрытие вниз. */
 test.describe("mobile photo gestures", () => {
   test.use({
     viewport: { width: 390, height: 844 },
@@ -303,6 +309,7 @@ test.describe("mobile photo gestures", () => {
     await scroll.scrollIntoViewIfNeeded();
     const box = (await scroll.boundingBox())!;
     const session = await page.context().newCDPSession(page);
+    /** Посылаем отдельные стадии касания; end/cancel удаляют touch-points и не создают новое касание в нулевой точке. */
     const touch = async (
       type: "touchStart" | "touchMove" | "touchEnd" | "touchCancel",
       x = 0,
@@ -314,6 +321,7 @@ test.describe("mobile photo gestures", () => {
           type === "touchEnd" || type === "touchCancel" ? [] : [{ x, y }],
       });
     };
+    /** Горизонтальный жест разбит на последовательные samples, чтобы задействовать браузерный scroll-snap. */
     const swipe = async (y: number) => {
       await touch("touchStart", 350, y);
       for (let i = 1; i <= 10; i++) {

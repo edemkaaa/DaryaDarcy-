@@ -47,6 +47,8 @@ try {
     PLAYWRIGHT_JSON_OUTPUT_FILE: report,
   };
   function run(args) {
+    // Запускает сборку или Playwright с одним выбранным профилем и прерывает при ошибке до разбора результатов.
+
     const child = spawnSync("pnpm", args, { env, stdio: "inherit" });
     if (child.error) throw new Error("Cannot start verification command");
     if (child.status !== 0) {
@@ -71,6 +73,8 @@ try {
   const passed = new Map(files.map((file) => [file, 0]));
   let skipped = 0;
   function inspect(suite) {
+    // Рекурсивно проверяет JSON-отчёт: обязательные suites должны действительно пройти без неизвестных skips, retries и flaky.
+
     for (const spec of suite.specs ?? [])
       for (const test of spec.tests ?? []) {
         const file = basename(spec.file ?? suite.file ?? "");

@@ -3,6 +3,7 @@ import type { ViewportSize } from "@/shared/browser/viewport";
 
 import { getHomeScreenContent } from "./home-screen.content";
 
+/** Собираем пропорциональные размеры иллюстраций, пересечений и блика из одной ширины viewport. */
 export function getHomeScreenLayout(viewport: ViewportSize) {
   const { SCREEN_WIDTH, HERO_HEIGHT } = getHomeScreenContent(viewport);
   const stylesLayout = {

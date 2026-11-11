@@ -1,3 +1,4 @@
+// Архив Expo. Показывает блокирующий loading/error только без данных, сохраняя уже загруженный контент при фоновом сбое.
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type ViewStyle } from "react-native";
 
 type Props = {
@@ -22,6 +23,8 @@ export function QueryRetryState({
   style,
   children,
 }: Props) {
+  // Показывает блокирующий loading/error только без данных, сохраняя уже загруженный контент при фоновом сбое.
+
   if (isLoading && !hasData) {
     return (
       <View style={[styles.center, style]}>
@@ -48,6 +51,7 @@ export function QueryRetryState({
   return <>{children}</>;
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   center: {
     flex: 1,

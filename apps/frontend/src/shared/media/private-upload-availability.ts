@@ -8,7 +8,7 @@ export type PrivateUploadStatus = (
   signal: AbortSignal,
 ) => Promise<unknown>;
 
-/** Read-only probe before a new upload intent. It never resolves an older write. */
+/** Пробуем новый случайный ключ только читающим status: допустим ровно notRecorded; результат не разрешает повтор прежней записи. */
 export async function checkPrivateUploadAvailability(
   status: PrivateUploadStatus,
   operation: ScopedOperation,

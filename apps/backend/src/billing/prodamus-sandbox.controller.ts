@@ -6,11 +6,13 @@ import { ProdamusSandboxService } from "./prodamus-sandbox.service";
 /** Отдельный диагностический вход без GET, сессий, покупок и settlement. */
 @Controller("api/prodamus/sandbox/webhook")
 export class ProdamusSandboxController {
+  /** Получает диагностический сервис через Nest, без запуска оплаты или подключения БД. */
   constructor(
     @Inject(ProdamusSandboxService)
     private readonly sandbox: ProdamusSandboxService,
   ) {}
 
+  /** Отсекает query/cookie и посторонний MIME, затем передаёт исходные bytes/sign в sandbox-проверку и возвращает её безопасный результат. */
   @Post()
   notification(@Req() request: Request, @Res() response: Response) {
     if (Object.keys(request.query).length || request.headers.cookie) {

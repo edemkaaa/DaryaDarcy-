@@ -17,6 +17,7 @@ export const postInteractionsInput = z
   .strict();
 
 /** Возвращаем только ограниченный пакет состояний взаимодействий, не тела публикаций. */
+/** Для максимум 50 известных ID сначала отбираем опубликованные доступные посты в транзакции, затем читаем только собственные лайки и сохранения без выдачи тел. */
 export async function postInteractionsForIds(
   database: MySql2Database | null,
   actor: User,
@@ -45,6 +46,7 @@ export async function postInteractionsForIds(
     if (!visible.length)
       return { likedIds: [] as number[], savedIds: [] as number[] };
     const readable = visible.map((row) => row.id);
+    /** Получаем уникальные ID реакций текущего пользователя только для разрешённой части запрошенной страницы. */
     async function marks(table: typeof likes | typeof savedPosts) {
       const rows = await tx
         .selectDistinct({ postId: table.postId })

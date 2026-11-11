@@ -3,6 +3,7 @@
 @use "../../shared/styles/search";
 
 @layer components {
+  /* Обложка и название занимают полную ширину своей колонки; кнопка файла отделена от перехода в материал. */
   .cardWrapper {
     width: 100%;
   }
@@ -26,6 +27,7 @@
     line-height: 18px;
   }
 
+  /* Кнопки открытого и закрытого состояния различаются типографикой, но решение о доступе приходит из модели/API. */
   .actionButtonLocked {
     margin-top: 2px;
     padding-top: 7px;
@@ -63,6 +65,7 @@
     padding-bottom: var(--page-end-gap);
   }
 
+  /* Баннер резервирует пропорцию 2.8:1, заголовок находится на отдельном затемняющем слое. */
   .heroBanner {
     width: 100%;
     aspect-ratio: 2.8;
@@ -91,6 +94,7 @@
     text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.6);
   }
 
+  /* Поиск использует общий mixin, сохраняя одинаковые боковые поля с сеткой. */
   .div {
     @include search.container;
     margin-left: 16px;
@@ -115,6 +119,7 @@
     color: var(--muted);
   }
 
+  /* Две flex-колонки выравниваются по верху и растут независимо, не принуждая карточки к одной высоте. */
   .masonry {
     flex-direction: row;
     align-items: flex-start;
@@ -128,6 +133,7 @@
     flex: 1;
     gap: 12px;
   }
+  /* Визуальные состояния нажатия и подложки не меняют ширину колонок. */
   .opacityState {
     opacity: 0.85;
     --action-base-opacity: 0.85;

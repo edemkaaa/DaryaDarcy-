@@ -2,6 +2,7 @@
 @use "../styles/layers";
 
 @layer elements {
+  /* Управление и информация делят строку: кнопка имеет фиксированный размер, имя и шкала занимают остаток. */
   .container {
     flex-direction: row;
     align-items: center;
@@ -33,6 +34,7 @@
     margin-bottom: 6px;
   }
 
+  /* Столбики выровнены по нижней границе и ограничены высотой; это оформление шкалы, не анализ аудиофайла. */
   .waveformContainer {
     flex-direction: row;
     align-items: flex-end;
@@ -46,6 +48,7 @@
     min-width: 2px;
   }
 
+  /* Текущее и полное время стоят по краям, а условные классы ниже отмечают нажатие и активную часть шкалы. */
   .timeRow {
     flex-direction: row;
     justify-content: space-between;

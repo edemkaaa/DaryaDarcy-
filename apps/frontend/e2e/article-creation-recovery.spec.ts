@@ -6,8 +6,10 @@ import type { ArticleCreationRecord } from "@/domain/content/article-creation-jo
 test.setTimeout(45_000);
 const uuid =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+/** Адресуем заголовок текущей формы, чтобы проверить сохранность ввода после позднего ответа. */
 const titleField = (page: Page) =>
   page.getByPlaceholder("Что посмотреть осенью...");
+/** Читаем durable creation-operation выбранного владельца из IndexedDB; request.onerror и завершённый read всегда закрывают соединение БД. */
 const storedOperation = (page: Page, owner = 101) =>
   page.evaluate(
     (ownerId) =>
@@ -32,6 +34,7 @@ const storedOperation = (page: Page, owner = 101) =>
       }),
     owner,
   );
+/** Управляем завершением status/create независимо от состояния fixture. */
 const deferred = () => {
   let resolve!: () => void;
   const promise = new Promise<void>((done) => {
@@ -39,6 +42,7 @@ const deferred = () => {
   });
   return { promise, resolve };
 };
+/** Синтетический ledger привязан к owner+idempotencyKey; проверяем запись неизменяемого payload до POST, моделируем commit с потерей ответа и считаем teaser. */
 async function fixture(page: Page) {
   const state = {
     writes: [] as Record<string, unknown>[],
@@ -121,10 +125,12 @@ async function fixture(page: Page) {
   });
   return state;
 }
+/** Открываем admin-статьи через реальную вкладку. */
 async function openArticles(page: Page) {
   await gotoWithSession(page, "/admin");
   await page.getByRole("button", { name: "Статьи", exact: true }).click();
 }
+/** Создаём новую статью с пустым photo-блоком и теряем ответ после записи, дожидаясь явного unknown-state. */
 async function loseCreation(page: Page, title = "RECOVERY_ARTICLE") {
   await openArticles(page);
   await page
@@ -142,6 +148,7 @@ async function loseCreation(page: Page, title = "RECOVERY_ARTICLE") {
     page.getByRole("button", { name: "Проверить сохранение", exact: true }),
   ).toBeEnabled();
 }
+/** Восстанавливаем именно незавершённую creation-operation после reload. */
 async function restore(page: Page) {
   await page
     .getByRole("button", { name: "Восстановить создание статьи", exact: true })
@@ -149,6 +156,7 @@ async function restore(page: Page) {
   await expect(titleField(page)).toHaveValue("RECOVERY_ARTICLE");
 }
 
+/** Status после reload подтверждает один article и один teaser без второго POST и очищает operation только после подтверждения. */
 test("lost committed response and reload recover one article and teaser without another POST", async ({
   page,
 }) => {
@@ -178,6 +186,7 @@ test("lost committed response and reload recover one article and teaser without 
   expect(await storedOperation(page)).toBeNull();
 });
 
+/** notRecorded не разрешает автоматический replay: исходный ключ/payload сохраняются до отдельного действия пользователя. */
 test("notRecorded keeps the original operation and only an explicit replay sends the exact payload", async ({
   page,
 }) => {
@@ -206,6 +215,7 @@ test("notRecorded keeps the original operation and only an explicit replay sends
   expect(state.teasers.size).toBe(1);
 });
 
+/** Промежуточный notRecorded не доказывает, что первый POST не завершится; replay должен остаться тем же idempotent intent. */
 test("notRecorded can precede a late commit; replay still uses the original key", async ({
   page,
 }) => {
@@ -222,6 +232,7 @@ test("notRecorded can precede a late commit; replay still uses the original key"
   expect(state.teasers.size).toBe(1);
 });
 
+/** Подтверждённо удалённый результат не создаётся заново при recovery. */
 test("deleted result never automatically creates a replacement", async ({
   page,
 }) => {
@@ -238,6 +249,7 @@ test("deleted result never automatically creates a replacement", async ({
   expect(await storedOperation(page)).toBeNull();
 });
 
+/** Конфликт replay оставляет прежний immutable intent и блокирует создание новой операции. */
 test("CONFLICT retains the key and immutable payload instead of starting another operation", async ({
   page,
 }) => {
@@ -261,6 +273,7 @@ test("CONFLICT retains the key and immutable payload instead of starting another
   ).toBeDisabled();
 });
 
+/** Отмена неизвестного create требует свежего списка; ошибка чтения сохраняет форму и журнал на всех трёх размерах. */
 for (const viewport of [
   { width: 320, height: 568 },
   { width: 390, height: 844 },
@@ -296,6 +309,7 @@ for (const viewport of [
   });
 }
 
+/** Навигация к другой статье делает прежний status-reply устаревшим; он не сбрасывает новую форму и её ввод. */
 test("a late status reply cannot reset a different form after navigation", async ({
   page,
 }) => {
@@ -335,6 +349,7 @@ test("a late status reply cannot reset a different form after navigation", async
   expect(await storedOperation(page)).not.toBeNull();
 });
 
+/** Смена аккаунта изолирует старую operation и поздний ответ от нового владельца. */
 test("a late status reply cannot enter the new account's form or clear its operation", async ({
   page,
 }) => {
@@ -385,6 +400,7 @@ test("a late status reply cannot enter the new account's form or clear its opera
   expect(await storedOperation(page, 102)).toBeNull();
 });
 
+/** Outstanding-operation имеет приоритет над новым payload другой вкладки: второй POST не уходит. */
 test("another tab cannot overwrite the outstanding operation with a new payload", async ({
   page,
   context,
@@ -415,6 +431,7 @@ test("another tab cannot overwrite the outstanding operation with a new payload"
   expect(await storedOperation(page)).toEqual(original);
 });
 
+/** Без доступного durable-хранилища отправка создания запрещена до POST. */
 test("storage failure prevents creation before any POST", async ({ page }) => {
   const state = await fixture(page);
   await page.addInitScript(() =>
@@ -432,6 +449,7 @@ test("storage failure prevents creation before any POST", async ({ page }) => {
   expect(state.writes).toHaveLength(0);
 });
 
+/** Клиентский timeout не повторяет POST; после снятия сетевой задержки явная сверка завершает исходную operation. */
 test("a real client timeout retains the persisted operation without automatically repeating the POST", async ({
   page,
 }) => {

@@ -1,3 +1,4 @@
+// Архив Expo. Запускает упаковщик только внутри созданной временной fixture.
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { spawnSync } from "node:child_process";
 import {
@@ -19,6 +20,8 @@ const originalHtml = '<html><head></head><body><div id="root"></div></body></htm
 let fixture: string;
 
 function packageFixture() {
+  // Запускает упаковщик только внутри созданной временной fixture.
+
   return spawnSync(process.execPath, [join(fixture, "tooling/scripts/compress-web-dist.mjs")], {
     encoding: "utf8",
     cwd: fixture,
@@ -26,6 +29,8 @@ function packageFixture() {
 }
 
 function publicSource(name: string) {
+  // Находит исходный public-ресурс в историческом layout и читает его для побайтового сравнения.
+
   const directory = publicDirectories.find((candidate) => existsSync(join(repository, candidate, name)));
   if (!directory) throw new Error(`Repository public resource missing: ${name}`);
   return readFileSync(join(repository, directory, name));
@@ -59,6 +64,8 @@ afterEach(() => {
 
 describe("web public resource packaging", () => {
   it("ships manifest, unchanged privacy page and mobile icon alongside HTML references", () => {
+    // Сценарий: Сверяет упаковку manifest/privacy/icon побайтово внутри временной fixture.
+
     const result = packageFixture();
     expect(result.status, result.stderr).toBe(0);
     for (const name of ["manifest.webmanifest", "privacy.html"]) {
@@ -78,6 +85,8 @@ describe("web public resource packaging", () => {
   it.each(["privacy.html", "manifest.webmanifest"])(
     "fails before modifying build output if required %s is absent",
     (name) => {
+    // Сценарий: Для каждого отсутствующего обязательного public-файла проверяет отказ до изменения output.
+
       for (const directory of publicDirectories) {
         rmSync(join(fixture, directory, name), { force: true });
       }

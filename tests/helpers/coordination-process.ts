@@ -8,10 +8,13 @@ import {
 import { runExclusiveWorker } from "../../apps/backend/src/database/coordination";
 
 async function main() {
+  // Отдельный процесс проверяет shared rate limit и MySQL-lock настоящего API через IPC; доменная внешняя отправка не запускается.
+
   const app = await createBackendApplication();
   await app.listen(0, "127.0.0.1");
   let release: (() => void) | undefined;
   let holding: Promise<void> | undefined;
+  // IPC-команды разделяют захват lease, её освобождение и проверку второго процесса; это тестовый протокол, не публичный HTTP API.
   process.on("message", (input: { action: string; key: string }) => {
     void (async () => {
       switch (input.action) {

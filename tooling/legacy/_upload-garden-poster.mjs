@@ -1,3 +1,4 @@
+// Заменяет фиксированный постер сада в S3: расширение ключа jpg исторически не совпадает с ContentType PNG.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -24,6 +25,7 @@ const client = new S3Client({
 
 const file = path.join(root, ".tmp-media", "secret-garden-poster-new.png");
 const body = fs.readFileSync(file);
+// Ниже начинается внешняя запись S3 по историческим фиксированным ключам; исходные объекты и ACL нужно проверить до запуска.
 await client.send(
   new PutObjectCommand({
     Bucket: env.S3_BUCKET,

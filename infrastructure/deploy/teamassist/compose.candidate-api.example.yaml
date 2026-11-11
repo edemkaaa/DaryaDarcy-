@@ -3,6 +3,7 @@
 # Keep STAGING_IMAGE at the recorded baseline: it still controls the web image.
 # Requires Docker Compose >=2.24.4 for !override (otherwise refuse, do not merge env files).
 services:
+# Меняется только API-образ и полный список env_file; web продолжает брать исходный STAGING_IMAGE.
   api:
     image: ${CANDIDATE_BACKEND_IMAGE:?Set the verified immutable backend image ID}
     env_file: !override

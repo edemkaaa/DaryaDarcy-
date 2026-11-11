@@ -1,3 +1,4 @@
+/** Опциональный Chromium-прогон зависшего тела картинки; включается только RUN_PICTURE_BROWSER_TESTS=1. */
 import { expect, it } from "vitest";
 import { chromium, expect as ui, type Browser } from "@playwright/test";
 import { startPictureHttpFixture } from "./helpers/picture-http-fixture";

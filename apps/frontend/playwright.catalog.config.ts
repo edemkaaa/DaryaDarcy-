@@ -1,3 +1,4 @@
+/** Тестовые ожидания каталога должны совпадать со сборочными VK/thumbnail-флагами; конфигурация сама frontend не пересобирает. */
 import { defineConfig } from "@playwright/test";
 import base from "./playwright.config";
 

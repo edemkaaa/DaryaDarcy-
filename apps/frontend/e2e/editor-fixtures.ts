@@ -3,7 +3,9 @@ import { layoutApi } from "./layout-fixtures";
 import { cursorFixture, legacyCursorFixture } from "./cursor-fixture";
 import { interactionFixture } from "./interaction-fixture";
 
+/** Формируем прежний tRPC JSON-конверт успешного синтетического ответа. */
 export const ok = (data: unknown) => ({ result: { data: { json: data } } });
+/** Отделяем безопасную бизнес-ошибку 400 от намеренно приватных деталей 5xx, которые UI обязан скрыть. */
 export const failure = (status = 400) => ({
   error: {
     json: {
@@ -19,6 +21,7 @@ export const failure = (status = 400) => ({
     },
   },
 });
+/** Настраиваем полностью синтетический редактор: текущий администратор, включённые private-загрузки и контролируемые tRPC ответы. */
 export async function editorApi(
   page: Page,
   answer?: (

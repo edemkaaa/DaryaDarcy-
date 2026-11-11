@@ -1,3 +1,4 @@
+/** Проверяем владение object URL выбранных фото комментария: стабильность, замена и очистка. */
 import { afterEach, expect, it, vi } from "vitest";
 import {
   syncCommentPhotoPreviews,
@@ -5,8 +6,10 @@ import {
   type CommentPhotoPreviews,
 } from "../apps/frontend/src/features/club/comment-photo-previews";
 
+/** Восстанавливаем URL-spies после каждого сценария. */
 afterEach(() => vi.restoreAllMocks());
 
+/** Добавление соседнего файла не пересоздаёт прежнее превью; удаление и общий cleanup освобождают только принадлежащие им URL. */
 it("keeps an unchanged selected file's URL when another photo is added or removed", () => {
   let sequence = 0;
   vi.spyOn(URL, "createObjectURL").mockImplementation(
@@ -30,6 +33,7 @@ it("keeps an unchanged selected file's URL when another photo is added or remove
   expect(urls.size).toBe(0);
 });
 
+/** Одинаковый ключ с новым File должен заменить байты и освободить старый URL; пустой список завершает scope. */
 it("releases the previous bytes on replacement and every URL on scope cleanup", () => {
   let sequence = 0;
   vi.spyOn(URL, "createObjectURL").mockImplementation(

@@ -1,6 +1,8 @@
+/** Архивный просмотр YouTube по числовому ID. Не описывает действующий VK-плеер. */
 import { Link, useParams } from "react-router-dom";
 import { trpc } from "../trpc";
 
+/** Читает прежнюю запись и строит YouTube iframe и внешнюю ссылку по youtubeId. */
 export default function Video() {
   const { id } = useParams();
   const videoId = Number(id);

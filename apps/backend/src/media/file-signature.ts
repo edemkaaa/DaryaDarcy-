@@ -12,6 +12,7 @@ export interface BinaryFileType {
 const DETECTOR_CHUNK_BYTES = 64 * 1024;
 // Fixed trusted code. Random-access reads retain full-file detection semantics,
 // but only bounded independent byte copies cross the worker boundary.
+// Строковый worker реализует random-access tokenizer: readBuffer двигает позицию, peekBuffer запрашивает ограниченные диапазоны, supportsRandomAccess/setPosition сохраняют контракт file-type. Код строки неизменяем как исполняемые данные.
 const DETECTOR_SOURCE = `
 const { parentPort, workerData } = require("node:worker_threads");
 (async () => {
@@ -57,6 +58,7 @@ const MAX_OUTSTANDING_BYTES = 128 * 1024 * 1024;
 let outstandingDetections = 0;
 let outstandingBytes = 0;
 
+/** Запускаем фиксированный детектор в отдельном worker без окружения, передаём только запрошенные копии диапазонов до 64 КиБ и ограничиваем время/память; завершение worker дожидаемся до освобождения очереди. */
 async function detectInWorker(
   bytes: Buffer,
 ): Promise<BinaryFileType | undefined> {
@@ -148,6 +150,7 @@ async function detectInWorker(
 }
 
 /** One active detector with bounded pending requests and retained input bytes. */
+/** Сериализуем распознавание одним активным worker и ограничиваем очередь числом запросов и суммарными байтами; ошибка одного файла не блокирует следующую проверку. */
 export function detectBinaryFileType(
   bytes: Buffer,
 ): Promise<BinaryFileType | undefined> {

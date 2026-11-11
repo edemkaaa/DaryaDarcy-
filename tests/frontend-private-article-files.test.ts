@@ -1,3 +1,4 @@
+/** Private article files сохраняют локальные bytes/keys до upload, заменяя только используемые local-content ссылки. */
 import { expect, it, vi } from "vitest";
 import { OperationScope } from "../apps/frontend/src/shared/browser/operation-scope";
 import {
@@ -17,11 +18,13 @@ vi.mock("../apps/frontend/src/shared/media/read-attachment", () => ({
 
 const assetId = "3af23d8c-140f-454b-a123-123456789abc";
 const url = `/api/media/content-files/${assetId}`;
+/** Собственный File описывает одно articlePhoto намерение. */
 const photo = (): PrivateArticleFile => ({
   key: "article-photo-intent-0001",
   usage: "articlePhoto",
   file: new File(["png bytes"], "photo.png", { type: "image/png" }),
 });
+/** Создаём допустимый canonical receipt с MIME нормализацией для фото/документа. */
 const receipt = (file: PrivateArticleFile, patch = {}) => ({
   state: "ready",
   assetId,
@@ -33,8 +36,10 @@ const receipt = (file: PrivateArticleFile, patch = {}) => ({
   url,
   ...patch,
 });
+/** Начинаем отдельное отменяемое operation-владение. */
 const task = () =>
   new OperationScope().begin("save", new AbortController().signal, () => true)!;
+/** Только реально используемые refs выбирают upload; старые URL, порядок и повторы sections сохраняются без мутации. */
 it("resolves only referenced photos/documents and preserves old URLs, block order and repeated references", () => {
   const file = photo();
   file.attempted = true;
@@ -56,6 +61,7 @@ it("resolves only referenced photos/documents and preserves old URLs, block orde
     selectArticleFiles([{ type: "text", text: "removed" }], [file]),
   ).toEqual([]);
 });
+/** Нет файла, неверный section usage или ready receipt блокируют final payload. */
 it("refuses missing bytes, wrong usage and unresolved receipts before article submission", () => {
   const file = photo(),
     ref = articleFileReference(file);
@@ -67,6 +73,7 @@ it("refuses missing bytes, wrong usage and unresolved receipts before article su
     resolveArticleFiles([{ type: "photo", url: ref }], [file]),
   ).toThrow();
 });
+/** Первый checkpoint предшествует dispatch; lost reply восстанавливает status исходного key без повторного upload. */
 it("checkpoints bytes/key before upload and recovers a lost reply status-first without another upload", async () => {
   const file = photo(),
     states: unknown[] = [];
@@ -98,6 +105,7 @@ it("checkpoints bytes/key before upload and recovers a lost reply status-first w
   expect(file.receipt?.url).toBe(url);
   expect(file.receipt?.fileSize).toBe(80);
 });
+/** NotRecorded допускает только прежние bytes/key; документный receipt обязан совпасть по размеру. */
 it("replays notRecorded with identical key and bytes and accepts exact document length with normalized MIME", async () => {
   const file: PrivateArticleFile = {
     key: "article-document-intent-0001",
@@ -133,6 +141,7 @@ it("replays notRecorded with identical key and bytes and accepts exact document 
     ),
   ).toThrow();
 });
+/** Чужой usage, external URL/objectKey и pending-with-url не принимаются. */
 it.each([
   { usage: "postPhoto" },
   { url: "https://external.test/file" },
@@ -144,6 +153,7 @@ it.each([
     requirePrivateContentReceipt(receipt(file, patch), file.file, file.usage),
   ).toThrow();
 });
+/** После cancel поздний receipt не присваивается файлу и не пишется вторым checkpoint. */
 it("a cancelled/account-switched upload cannot accept a late receipt or write a checkpoint", async () => {
   const file = photo(),
     scope = new OperationScope(),
@@ -162,6 +172,7 @@ it("a cancelled/account-switched upload cannot accept a late receipt or write a 
   expect(file.receipt).toBeUndefined();
   expect(checkpoint).toHaveBeenCalledTimes(1);
 });
+/** Не удалось сохранить журнал — отправки нет. */
 it("storage failure prevents any upload", async () => {
   const file = photo(),
     api = { upload: vi.fn(), status: vi.fn() };

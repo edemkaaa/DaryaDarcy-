@@ -36,6 +36,7 @@ interface ClubContextType {
   monthlyPrice: string;
 }
 const ClubContext = createContext<ClubContextType | null>(null);
+/** Разделяем платную подписку и служебный доступ; подтверждённое состояние переживает временный фоновой сбой, но срок локально не продлевается. */
 export function ClubProvider({ children }: { children: ReactNode }) {
   const { user, isOwner, invalidateAccess } = useAuth();
   const subscription = trpc.club.subscription.useQuery(undefined, {
@@ -61,6 +62,7 @@ export function ClubProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (deadline === null) return;
     let timer: ReturnType<typeof setTimeout>;
+    /** Сверяем абсолютный deadline с текущим временем и перечитываем права после истечения; длинный таймер разбиваем в предел setTimeout. */
     const check = () => {
       clearTimeout(timer);
       const time = Date.now();
@@ -68,6 +70,7 @@ export function ClubProvider({ children }: { children: ReactNode }) {
       if (time >= deadline) void refetchSubscription();
       else timer = setTimeout(check, Math.min(deadline - time, 2_147_483_647));
     };
+    /** Возврат видимой страницы перепроверяет срок после приостановки фоновых таймеров. */
     const visible = () => {
       if (!document.hidden) check();
     };
@@ -81,6 +84,7 @@ export function ClubProvider({ children }: { children: ReactNode }) {
       document.removeEventListener("visibilitychange", visible);
     };
   }, [deadline, refetchSubscription]);
+  /** Перечитываем права только при наличии пользователя; совместимый setter тоже направляется сюда вместо локального назначения доступа. */
   const refreshSubscription = useCallback(async () => {
     if (user) await refetchSubscription();
   }, [user, refetchSubscription]);
@@ -152,6 +156,7 @@ export function ClubProvider({ children }: { children: ReactNode }) {
   };
   return <ClubContext.Provider value={value}>{children}</ClubContext.Provider>;
 }
+/** Получаем единый статус прав из провайдера; экран не создаёт собственную трактовку подписки. */
 export function useClub() {
   const value = useContext(ClubContext);
   if (!value) throw new Error("Subscription provider is missing");

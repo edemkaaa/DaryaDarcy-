@@ -1,3 +1,4 @@
+/** Клиентская граница сезонных snapshot валидирует даты/URL/ревизии и считает следующую московскую полночь. */
 import { describe, expect, it } from "vitest";
 import {
   parseLaunchSnapshot,
@@ -8,6 +9,7 @@ import {
 } from "../apps/frontend/src/domain/launch/settings";
 
 const appearance = { startsOn: "11-20", backgroundUrl: null, bannerUrl: null };
+/** Создаём полный синтетический снимок четырёх сезонов с отдельным manager email. */
 const snapshot = () => ({
   revision: 7,
   config: {
@@ -23,11 +25,14 @@ const snapshot = () => ({
     },
   },
 });
+/** Проверки не сохраняют настройки и не запрашивают картинки; это контракт данных и времени. */
 describe("season configuration boundary", () => {
+  /** Допускаем MM-DD обычного невисокосного календаря. */
   it.each(["01-01", "02-28", "03-20", "06-01", "09-01", "11-20", "12-31"])(
     "accepts annual date %s",
     (value) => expect(validAnnualDate(value)).toBe(true),
   );
+  /** Невозможные даты, 29 февраля и другой формат не нормализуются молча. */
   it.each([
     "02-29",
     "02-30",
@@ -40,6 +45,7 @@ describe("season configuration boundary", () => {
   ])("rejects annual date %s", (value) =>
     expect(validAnnualDate(value)).toBe(false),
   );
+  /** Null означает встроенное оформление; прямой HTTPS с query разрешён. */
   it.each([
     null,
     "https://assets.example.test/image.webp",
@@ -47,6 +53,7 @@ describe("season configuration boundary", () => {
   ])("accepts configured image %s", (value) =>
     expect(validSeasonUrl(value)).toBe(true),
   );
+  /** HTTP, scripts, credentials, relative и чрезмерно длинные URL отвергаются. */
   it.each([
     undefined,
     "",
@@ -58,11 +65,13 @@ describe("season configuration boundary", () => {
   ])("rejects unsafe or malformed image %s", (value) =>
     expect(validSeasonUrl(value)).toBe(false),
   );
+  /** Клиент доверяет проверенному season из API, не угадывая его по startsOn. */
   it("uses the server season rather than inferring it from the appearance start date", () => {
     expect(
       parsePublicAppearance({ revision: 7, season: "summer", appearance }),
     ).toEqual({ revision: 7, season: "summer", appearance });
   });
+  /** Public snapshot требует известный сезон, целую неотрицательную ревизию и валидное оформление. */
   it.each([
     undefined,
     {},
@@ -77,13 +86,16 @@ describe("season configuration boundary", () => {
   ])("rejects malformed public snapshot %#", (value) =>
     expect(() => parsePublicAppearance(value)).toThrow(),
   );
+  /** Полный parse не теряет соседнюю почтовую настройку. */
   it("preserves all four seasons and the unrelated manager email", () =>
     expect(parseLaunchSnapshot(snapshot())).toEqual(snapshot()));
+  /** Два сезона не могут начинаться в один MM-DD. */
   it("rejects duplicate start dates", () => {
     const value = snapshot();
     value.config.seasons.spring.startsOn = "11-20";
     expect(() => parseLaunchSnapshot(value)).toThrow();
   });
+  /** Неполная конфигурация и UTC вместо Moscow отклоняются. */
   it("rejects a missing season and a different time zone", () => {
     const value = snapshot();
     expect(() =>
@@ -99,6 +111,7 @@ describe("season configuration boundary", () => {
       }),
     ).toThrow();
   });
+  /** Проверяем остаток дня в UTC+3, включая точную границу и Новый год. */
   it.each([
     ["2026-11-19T20:59:59.750Z", 250],
     ["2026-11-19T21:00:00.000Z", 86400000],

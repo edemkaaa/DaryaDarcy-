@@ -29,11 +29,13 @@ const detail = z.object({ editRevision: z.string().regex(/^[a-f0-9]{64}$/) });
 const postId = 99341,
   articleId = 99344,
   teaserId = 99345;
+/** Проверяет ревизии двух редакторов постов и статей через HTTP без изменения данных stale-запросом. */
 describe.skipIf(!testDatabaseUrl)(
   "editor concurrency on disposable MySQL and real HTTP",
   () => {
     let conn: Connection, app: INestApplication, base: string;
     const tokens: string[] = [];
+    /** Создаёт tRPC-клиент одного из двух администраторов suite. */
     const client = (which = 0) =>
       createTRPCProxyClient<AppRouter>({
         links: [
@@ -44,6 +46,7 @@ describe.skipIf(!testDatabaseUrl)(
           }),
         ],
       });
+    /** Читает admin postDetail и проверяет формат 64-символьной editRevision. */
     const postVersion = async () => {
       const row = await client().admin.postDetail.query({ id: postId });
       expect(row).toHaveProperty(
@@ -52,6 +55,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       return detail.parse(row).editRevision;
     };
+    /** Читает admin articleDetail и проверяет формат содержательной editRevision. */
     const articleVersion = async () => {
       const row = await client().admin.articleDetail.query({ id: articleId });
       expect(row).toHaveProperty(
@@ -60,8 +64,10 @@ describe.skipIf(!testDatabaseUrl)(
       );
       return detail.parse(row).editRevision;
     };
+    /** Читает фактические посты, статьи и media для независимой сверки после конфликтов. */
     const query = async (sql: string, args: unknown[] = []) =>
       (await conn.query<RowDataPacket[]>(sql, args))[0];
+    /** Удаляет только собственные реакции, post-media, пост, тизер и статью. */
     async function clear() {
       await conn.query("DELETE FROM likes WHERE postId IN (?,?)", [
         postId,
@@ -74,6 +80,7 @@ describe.skipIf(!testDatabaseUrl)(
       ]);
       await conn.query("DELETE FROM articles WHERE id=?", [articleId]);
     }
+    /** Создаёт изолированную content-схему, двух редакторов и настоящий локальный Nest API. */
     beforeAll(async () => {
       conn = await openContentTestDatabase();
       await conn.query(`CREATE TABLE IF NOT EXISTS articles (
@@ -98,6 +105,7 @@ describe.skipIf(!testDatabaseUrl)(
           await sdk.createSessionToken(openId, { sessionVersion: 0 }),
         );
     });
+    /** Включает обязательные ревизии и восстанавливает черновик поста и опубликованную статью с тизером. */
     beforeEach(async () => {
       vi.stubEnv("CONTENT_EDIT_REVISIONS_REQUIRED", "true");
       await clear();
@@ -117,6 +125,7 @@ describe.skipIf(!testDatabaseUrl)(
         [teaserId, "article:" + articleId],
       );
     });
+    /** Закрывает API, удаляет fixture и пользователей, закрывает пул и восстанавливает окружение. */
     afterAll(async () => {
       await app?.close();
       if (conn) {
@@ -129,12 +138,14 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** Повторное admin-чтение даёт стабильные ревизии, публичный detail не получает внутреннее edit-поле. */
     it("returns stable edit versions without changing public detail shape", async () => {
       expect(await postVersion()).toBe(await postVersion());
       expect(await articleVersion()).toBe(await articleVersion());
       const publicPost = await client().feed.getById.query({ id: postId });
       expect(publicPost ?? {}).not.toHaveProperty("editRevision");
     });
+    /** Stale-правка текста, фото и публикации отклоняется целиком после принятой новой версии. */
     it("rejects a stale post body and publication together without side effects", async () => {
       const expectedRevision = await postVersion();
       await client().admin.updatePost.mutate({
@@ -164,6 +175,7 @@ describe.skipIf(!testDatabaseUrl)(
           .photos,
       ).toEqual([]);
     });
+    /** Два независимых администратора одной ревизии дают ровно один успех и один 409. */
     it("serializes two independent admins: exactly one stale snapshot wins", async () => {
       const expectedRevision = await postVersion();
       const results = await Promise.allSettled(
@@ -182,6 +194,7 @@ describe.skipIf(!testDatabaseUrl)(
         reason: { data: { httpStatus: 409 } },
       });
     });
+    /** Замена media без изменения timestamp поста всё равно меняет содержательную ревизию. */
     it("detects attachment changes even with an unchanged parent timestamp", async () => {
       await conn.query(
         "INSERT INTO post_media(id,postId,type,url,sortOrder) VALUES(99347,?,'video','https://example.test/old.mp4',0)",
@@ -202,6 +215,7 @@ describe.skipIf(!testDatabaseUrl)(
         (await query("SELECT text FROM posts WHERE id=?", [postId]))[0].text,
       ).toBe("Original");
     });
+    /** Добавленный лайк не вызывает ложный конфликт редактирования содержимого. */
     it("reactions do not invalidate the content revision", async () => {
       const expectedRevision = await postVersion();
       await conn.query("INSERT INTO likes(userId,postId) VALUES(99346,?)", [
@@ -215,6 +229,7 @@ describe.skipIf(!testDatabaseUrl)(
         }),
       ).resolves.toEqual({ success: true });
     });
+    /** Stale-снятие публикации статьи не затирает новую статью или синхронизированный тизер. */
     it("rejects a stale article and preserves its synchronized teaser", async () => {
       const expectedRevision = await articleVersion();
       await client().admin.updateArticle.mutate({
@@ -243,6 +258,7 @@ describe.skipIf(!testDatabaseUrl)(
         )[0],
       ).toMatchObject({ text: "Fresh article", published: 1 });
     });
+    /** Strict-режим требует revision даже для изменения только sortOrder. */
     it("requires a version in strict mode, including flag-only edits", async () => {
       await expect(
         client().admin.updatePost.mutate({ id: postId, sortOrder: 1 }),
@@ -251,6 +267,7 @@ describe.skipIf(!testDatabaseUrl)(
         client().admin.updateArticle.mutate({ id: articleId, sortOrder: 1 }),
       ).rejects.toMatchObject({ data: { httpStatus: 412 } });
     });
+    /** При выключенном strict legacy-запись разрешена, но переданная revision всё равно проверяется. */
     it("keeps legacy compatibility explicit while still validating supplied versions", async () => {
       vi.stubEnv("CONTENT_EDIT_REVISIONS_REQUIRED", "false");
       await client().admin.updatePost.mutate({ id: postId, text: "Legacy" });
@@ -267,6 +284,7 @@ describe.skipIf(!testDatabaseUrl)(
         }),
       ).rejects.toMatchObject({ data: { httpStatus: 409 } });
     });
+    /** Неверный формат revision даёт 400, некорректный rollout-флаг закрывает запись с 503. */
     it("does not let malformed versions or an invalid rollout flag bypass checks", async () => {
       await expect(
         client().admin.updatePost.mutate({
@@ -281,6 +299,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).rejects.toMatchObject({ data: { httpStatus: 503 } });
     });
 
+    /** ASCII, кириллица и emoji сохраняются ровно на UTF-8 границе MySQL TEXT 65535 байт. */
     it.each([
       ["ASCII", "a".repeat(65_535)],
       ["Cyrillic", "я".repeat(32_767) + "a"],
@@ -302,6 +321,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(row.bytes).toBe(65_535);
       },
     );
+    /** После неизвестного клиенту результата чтение подтверждает запись, а повтор старой revision отклоняется. */
     it("reconciles an unobserved write by read; a stale retry cannot overwrite it", async () => {
       const expectedRevision = await postVersion();
       await client().admin.updatePost.mutate({
@@ -320,6 +340,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(row?.text).toBe("Committed response lost");
       expect(detail.parse(row).editRevision).not.toBe(expectedRevision);
     });
+    /** Текущее удаление media работает при strict и делает прежнюю content-revision устаревшей. */
     it("keeps current-state media deletion working in strict mode and invalidates old edits", async () => {
       await conn.query(
         "INSERT INTO post_media(id,postId,type,url,sortOrder) VALUES(99347,?,'video','https://example.test/video.mp4',0)",
@@ -338,6 +359,7 @@ describe.skipIf(!testDatabaseUrl)(
         }),
       ).rejects.toMatchObject({ data: { httpStatus: 409 } });
     });
+    /** Блокировка администратора имеет приоритет над edit-precondition и не меняет пост. */
     it("retains authorization before the edit precondition", async () => {
       const expectedRevision = await postVersion();
       await conn.query(
@@ -354,6 +376,7 @@ describe.skipIf(!testDatabaseUrl)(
         (await query("SELECT text FROM posts WHERE id=?", [postId]))[0].text,
       ).toBe("Original");
     });
+    /** Превышение TEXT в байтах отклоняется и на create, и на update без SQL-обрезки или потери старого текста. */
     it("returns 400 for oversized UTF-8 text and preserves the old row", async () => {
       const expectedRevision = await postVersion();
       const text = "я".repeat(40_000);

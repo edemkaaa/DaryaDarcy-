@@ -18,6 +18,8 @@ interface QuizBrowserFixture {
 }
 
 async function completeCottagecoreQuiz(page: Page) {
+  // Проходит десять заранее выбранных ответов независимо от production scoring, проверяя блокировку перехода без выбора.
+
   await page
     .getByRole("button", { name: "Начать путешествие", exact: true })
     .click();
@@ -58,6 +60,8 @@ async function completeCottagecoreQuiz(page: Page) {
 }
 
 export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
+  // Проверяет чистые и смешанные эстетики, восстановление, повтор теста и изоляцию guest/member storage при гонках входа.
+
   it.each([
     {
       key: "lightAcademia",
@@ -134,6 +138,8 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
       sacrifice,
       evening,
     }) => {
+    // Сценарий: Независимые буквальные ответы дают 21 балл каждой чистой эстетике; возвраты по вопросам и reload сохраняют выбор и результат.
+
       const { rows, context, frontend } = fixture();
       const identitySql =
         "SELECT id,email,passwordHash,role,sessionVersion FROM users WHERE id IN (91401,91402) ORDER BY id";
@@ -148,7 +154,7 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
       await browserExpect(back).toBeDisabled();
       // Literal expected fixtures, independent of production QUESTIONS/scoring.
       // Landscape/companion/shelter order differs from the aesthetic order.
-      const image = (index: number) => `Выбрать изображение ${index}`;
+      const image = (index: number) => /* Строит доступное имя выбранной картинки из независимого массива ожидаемых ответов. */ `Выбрать изображение ${index}`;
       const choices = [
         first,
         image(images[0]),
@@ -234,7 +240,7 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
       });
       await browserExpect(title).toBeVisible();
       const stored = () =>
-        page.evaluate(() => {
+        /* Читает гостевой завершённый результат для проверки баллов и восстановления чистой эстетики. */ page.evaluate(() => {
           const raw = localStorage.getItem(
             "darcy:user:guest:@darcy_quiz_result",
           );
@@ -269,6 +275,8 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
   it.each([true, false])(
     "C3 isolates quiz ownership after a delayed native previous-session response (accepted login: %s)",
     async (accepted) => {
+    // Сценарий: Удержанный ответ старого /me не переносит результаты между владельцами при успешном или отклонённом новом входе.
+
       const { rows, connection, context, frontend, base, memberId } = fixture();
       const password = "Synthetic-C3-concurrent-login-only-2026!";
       const email = "c3.concurrent-login@example.test";
@@ -304,7 +312,7 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
         page.getByPlaceholder("Email", { exact: true }),
       ).toBeEnabled();
       const raw = (primaryKey: string) =>
-        JSON.stringify({
+        /* Формирует независимый валидный результат для двух владельцев до гонки входа. */ JSON.stringify({
           primaryKey,
           secondaryKey: null,
           isBlend: false,
@@ -378,7 +386,7 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
           page.getByRole("button", { name: "Войти", exact: true }).click(),
           page.waitForEvent("requestfailed", {
             predicate: (request) =>
-              new URL(request.url()).pathname === "/api/auth/me" &&
+              /* Ждёт именно отменённый предыдущий /me, чтобы не перепутать его с отказом нового логина. */ new URL(request.url()).pathname === "/api/auth/me" &&
               request.failure()?.errorText === "net::ERR_ABORTED",
           }),
         ]);
@@ -461,6 +469,8 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
     30_000,
   );
   it("C3 validates the profile quiz card with the same canonical result as the saved-result page", async () => {
+    // Сценарий: Профиль и отдельная страница результата используют одну проверку canonical ключа; недоверенный заголовок и повреждённые данные не отображаются.
+
     const { rows, context, frontend } = fixture();
     const identitySql =
       "SELECT id,email,passwordHash,role,sessionVersion FROM users WHERE id IN (91401,91402) ORDER BY id";
@@ -485,7 +495,7 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
       completedAt: "2026-10-10T00:00:00.000Z",
     };
     const setStored = (raw: string | null) =>
-      page.evaluate((value) => {
+      /* Подставляет только личный тестовый ключ результата для проверки отказа на повреждённый или недоверенный JSON. */ page.evaluate((value) => {
         const key = "darcy:user:91401:@darcy_quiz_result";
         if (value === null) localStorage.removeItem(key);
         else localStorage.setItem(key, value);
@@ -582,6 +592,8 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
     expect(await rows(identitySql)).toEqual(before);
   }, 30_000);
   it("C3 preserves both blend aesthetics when switching tabs and reopening the saved result", async () => {
+    // Сценарий: Смешанный результат хранит обе эстетики и баллы, переключение вкладок и reload не записывают новое завершение.
+
     const { rows, context, frontend } = fixture();
     const identitySql =
       "SELECT id,email,passwordHash,role,sessionVersion FROM users WHERE id IN (91401,91402) ORDER BY id";
@@ -626,7 +638,7 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
     );
     await browserExpect(primary).toBeVisible();
     const stored = () =>
-      page.evaluate(() => {
+      /* Проверяет сохранность обоих ключей смешанного результата при переключении вкладок эстетик. */ page.evaluate(() => {
         const raw = localStorage.getItem("darcy:user:guest:@darcy_quiz_result");
         return raw ? JSON.parse(raw) : null;
       });
@@ -665,6 +677,8 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
     expect(await rows(identitySql)).toEqual(before);
   }, 30_000);
   it("C3 opens the quiz welcome instead of crashing when the saved result is absent or invalid", async () => {
+    // Сценарий: Отсутствующий или повреждённый guest-результат открывает начало теста вместо падения или ложного завершения.
+
     const { context, frontend } = fixture();
     await context.clearCookies();
     const page = await context.newPage();
@@ -685,6 +699,8 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
     }
   }, 30_000);
   it("C3 completes the guest quiz with a persisted result and restarts without reusing answers", async () => {
+    // Сценарий: Повтор теста получает новый runId и пустые ответы, сохраняя прежнее завершение до получения нового результата.
+
     const { rows, context, frontend } = fixture();
     const identitySql =
       "SELECT id,email,passwordHash,role,sessionVersion FROM users WHERE id IN (91401,91402) ORDER BY id";
@@ -697,7 +713,7 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
       page.getByRole("button", { name: "Вступить в клуб", exact: true }),
     ).toBeVisible();
     const stored = () =>
-      page.evaluate(() => {
+      /* Читает завершённый результат отдельно от прогресса нового прохождения после команды пройти ещё раз. */ page.evaluate(() => {
         const value = localStorage.getItem(
           "darcy:user:guest:@darcy_quiz_result",
         );
@@ -734,7 +750,7 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
     ).toHaveAttribute("aria-pressed", "false");
     expect(await stored()).toEqual(completed);
     const progress = () =>
-      page.evaluate(() =>
+      /* Проверяет новый runId и пустые ответы, не удаляя прежний завершённый результат. */ page.evaluate(() =>
         JSON.parse(
           localStorage.getItem("darcy:user:guest:@darcy_quiz_progress")!,
         ),
@@ -759,6 +775,8 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
   }, 30_000);
 
   it("C3 shows the member quiz result in the profile after navigation and reload", async () => {
+    // Сценарий: Результат участницы виден в профиле и после reload, сохраняется при навигации Клуба; новое прохождение создаёт новое завершение.
+
     const { rows, connection, context, frontend, memberId } = fixture();
     const password = "Synthetic-C3-quiz-only-2026!";
     const email = "c3.quiz@example.test";
@@ -795,7 +813,7 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
       await completeCottagecoreQuiz(page);
       // Catches a wrong owner key or a profile reader that drops the completed result.
       const stored = () =>
-        page.evaluate((id) => {
+        /* Читает результат текущей участницы, чтобы навигация и reload не подменили его guest-ключом. */ page.evaluate((id) => {
           const raw = localStorage.getItem(
             `darcy:user:${id}:@darcy_quiz_result`,
           );
@@ -913,6 +931,8 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
   }, 30_000);
 
   it("C3 clears the completed quiz on logout and does not transfer it to the next account", async () => {
+    // Сценарий: Выход физически очищает личный результат и отзывает прежний JWT; следующий аккаунт видит пустой раздел.
+
     const { rows, connection, context, frontend, base, memberId } = fixture();
     const actorId = 91401;
     const password = "Synthetic-C3-quiz-switch-only-2026!";
@@ -939,6 +959,8 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
       await context.clearCookies();
       const page = await context.newPage();
       const signIn = async (email: string, id: number, next: string) => {
+        // Выполняет реальный вход и ждёт нужный маршрут для проверки очистки предыдущего владельца.
+
         await page.goto(frontend + `login?next=${next}`);
         await page.getByPlaceholder("Email", { exact: true }).fill(email);
         await page.getByPlaceholder("Пароль", { exact: true }).fill(password);
@@ -959,7 +981,7 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
       )!.value;
       await completeCottagecoreQuiz(page);
       const memberResult = () =>
-        page.evaluate(
+        /* Проверяет физическое удаление результата прежней участницы, даже если разделение ключей уже скрывает его в UI. */ page.evaluate(
           (id) => localStorage.getItem(`darcy:user:${id}:@darcy_quiz_result`),
           memberId,
         );
@@ -1020,6 +1042,8 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
   }, 30_000);
 
   it("C3 does not assign an anonymous quiz result to the member who signs in next", async () => {
+    // Сценарий: Гостевой результат не присваивается участнице, которая входит позднее; оба ключа остаются раздельными и очищаются по переходу владельца.
+
     const { rows, connection, context, frontend, memberId } = fixture();
     const email = "c3.quiz.guest-transition@example.test";
     const password = "Synthetic-C3-guest-transition-only-2026!";
@@ -1043,7 +1067,7 @@ export function registerQuizBrowserCases(fixture: () => QuizBrowserFixture) {
       await page.goto(frontend + "quiz");
       await completeCottagecoreQuiz(page);
       const guestResult = () =>
-        page.evaluate(() =>
+        /* Подтверждает, что анонимный результат удалён при входе и не присвоен новому аккаунту. */ page.evaluate(() =>
           localStorage.getItem("darcy:user:guest:@darcy_quiz_result"),
         );
       await browserExpect.poll(guestResult).not.toBeNull();

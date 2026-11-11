@@ -3,6 +3,7 @@ import type { ViewportSize } from "@/shared/browser/viewport";
 
 import { getPatternsScreenContent } from "./patterns-screen.content";
 
+/** Разводим геометрию двух колонок и области просмотра: полотно изображения занимает 70% высоты экрана. */
 export function getPatternsScreenLayout(viewport: ViewportSize) {
   const { SCREEN_WIDTH, SCREEN_HEIGHT } = getPatternsScreenContent(viewport);
   const stylesLayout = {

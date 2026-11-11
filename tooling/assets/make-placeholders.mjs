@@ -16,6 +16,8 @@ const JPG = Buffer.from(
 );
 
 function writeIfMissing(rel, buf) {
+  // Сохраняет заглушку только для отсутствующего либо слишком малого файла; это не восстановление настоящего изображения.
+
   const full = path.join(assets, rel);
   if (fs.existsSync(full) && fs.statSync(full).size > 100) return false;
   fs.mkdirSync(path.dirname(full), { recursive: true });

@@ -5,6 +5,7 @@ import sharp from "sharp";
 
 // A real HTTP transport is essential here: Playwright routing disables the
 // browser cache and cannot reproduce joining an unfinished image response.
+/** Создаём настоящий HTTP-прокси: первый image-response отдаёт начало байтов и остаётся незавершённым, следующий возвращает весь файл; routing Playwright не воспроизводит такой cache-join. */
 async function photoServer(upstream: string, optimized: boolean) {
   const bytes = await sharp({
     create: { width: 640, height: 800, channels: 3, background: "#e4cfb4" },
@@ -25,6 +26,7 @@ async function photoServer(upstream: string, optimized: boolean) {
     webPush: false,
     privateContentUploads: false,
   };
+  /** Выбираем прямой подписанный URL либо public-источник image processor, сохраняя одинаковый пост. */
   const post = () => ({
     id: 1,
     text: "Фото с незавершённым ответом",
@@ -40,6 +42,7 @@ async function photoServer(upstream: string, optimized: boolean) {
   });
   const server = createServer((req, res) => {
     const url = new URL(req.url!, origin);
+    /** Синтетические API всегда no-store, чтобы измерялся только настоящий image-cache. */
     const json = (value: unknown, status = 200) => {
       res.writeHead(status, {
         "Content-Type": "application/json",
@@ -121,9 +124,12 @@ async function photoServer(upstream: string, optimized: boolean) {
   return {
     origin,
     photoPath,
+    /** Отдаём счётчик сетевых запросов, который отличает новый retry от присоединения к зависшему ответу. */
     requests: () => requests,
+    /** Сохраняем ссылку на первый незавершённый ответ для проверки его отмены. */
     first: () => first,
     requestedPaths,
+    /** Закрываем все соединения перед ожиданием server.close, иначе зависшая fixture удержала бы сам тест. */
     close: async () => {
       server.closeAllConnections();
       await new Promise<void>((resolve, reject) =>
@@ -133,6 +139,7 @@ async function photoServer(upstream: string, optimized: boolean) {
   };
 }
 
+/** Проверяем direct, optimized preview и viewer на реальном времени: ручной retry отменяет старую загрузку, сохраняет точный URL и делает успешный ответ кешируемым после reload. */
 for (const mode of ["direct", "preview", "viewer"] as const) {
   test(`manual retry recovers an unfinished HTTP response with cache enabled (${mode})`, async ({
     page,

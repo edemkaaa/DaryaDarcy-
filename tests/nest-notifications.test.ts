@@ -69,7 +69,7 @@ describe("notifications over native HTTP", () => {
     sessionVersion: member.sessionVersion,
   });
   const client = () =>
-    createTRPCProxyClient<AppRouter>({
+    /* Создаёт настоящий локальный tRPC-клиент для проверки Nest-композиции уведомлений. */ createTRPCProxyClient<AppRouter>({
       links: [httpLink({ url: base + "/api/trpc", transformer: superjson })],
     });
   const operations = [
@@ -78,7 +78,7 @@ describe("notifications over native HTTP", () => {
       method: "registerToken" as const,
       helper: "registerPushToken" as const,
       run: () =>
-        client().notifications.registerToken.mutate({
+        /* Вызывает регистрацию синтетического push-токена. */ client().notifications.registerToken.mutate({
           token: "ExpoPushToken[synthetic-token]",
         }),
       want: { success: true },
@@ -87,7 +87,7 @@ describe("notifications over native HTTP", () => {
       name: "marketingConsent",
       method: "marketingConsent" as const,
       helper: "hasMarketingPushConsent" as const,
-      run: () => client().notifications.marketingConsent.query(),
+      run: () => /* Читает согласие на маркетинговые уведомления. */ client().notifications.marketingConsent.query(),
       want: {
         enabled: false,
         label:
@@ -100,14 +100,14 @@ describe("notifications over native HTTP", () => {
       method: "setMarketingConsent" as const,
       helper: "logPushConsentEvent" as const,
       run: () =>
-        client().notifications.setMarketingConsent.mutate({ enabled: false }),
+        /* Отзывает согласие через серверную процедуру. */ client().notifications.setMarketingConsent.mutate({ enabled: false }),
       want: { success: true, enabled: false },
     },
     {
       name: "purgeUserPushData",
       method: "purgeUserPushData" as const,
       helper: "deletePushTokensForUser" as const,
-      run: () => client().admin.purgeUserPushData.mutate({ userId: 9601 }),
+      run: () => /* Вызывает административную очистку токенов выбранного пользователя. */ client().admin.purgeUserPushData.mutate({ userId: 9601 }),
       want: { success: true },
     },
   ];
@@ -120,6 +120,7 @@ describe("notifications over native HTTP", () => {
     await application.listen(0, "127.0.0.1");
     base = `http://127.0.0.1:${(application.getHttpServer().address() as AddressInfo).port}`;
   });
+  // Capability и квоты здесь намеренно допускают запрос: этот набор проверяет композицию сервисов, права actor и persistence; admission покрыт отдельным набором.
   beforeEach(() => {
     vi.spyOn(capabilities, "requireCapability").mockImplementation(() => {});
     vi.spyOn(rateLimit, "checkRequestRateLimit").mockResolvedValue({ ok: true });
@@ -152,6 +153,8 @@ describe("notifications over native HTTP", () => {
     };
 
     it("uses the actual injected content provider's latest outcome", async () => {
+      // Сценарий: Latest-ответ определяется фактически внедрённым ContentReadService.
+
       let received: unknown;
       const want = {
         feedId: 9801,
@@ -168,6 +171,8 @@ describe("notifications over native HTTP", () => {
       Object.defineProperty(content, "latestNotification", {
         configurable: true,
         value: async (user: User | null) => {
+          // Возвращает заданный latest-результат внедрённого сервиса, фиксируя переданного пользователя.
+
           received = user;
           return want;
         },
@@ -183,6 +188,8 @@ describe("notifications over native HTTP", () => {
     });
 
     it("preserves the actual injected content provider's latest refusal", async () => {
+      // Сценарий: Доменный отказ фактически внедрённого latest-провайдера сохраняется через HTTP.
+
       const descriptor = Object.getOwnPropertyDescriptor(
         content,
         "latestNotification",
@@ -190,6 +197,8 @@ describe("notifications over native HTTP", () => {
       Object.defineProperty(content, "latestNotification", {
         configurable: true,
         value: async () => {
+          // Отказывает внедрённому latest-чтению доменным CONFLICT.
+
           throw new TRPCError({
             code: "CONFLICT",
             message: "synthetic latest refusal",
@@ -270,6 +279,8 @@ describe("notifications over native HTTP", () => {
     ])(
       "keeps public/club boundaries and read ordering for $name",
       async (fixture) => {
+        // Сценарий: Роль, блокировка и подписка определяют видимость клубного анонса и порядок чтений.
+
         actor = fixture.user;
         const reads: string[] = [];
         vi.spyOn(db, "getLatestPublishedPost").mockImplementation(
@@ -330,6 +341,8 @@ describe("notifications over native HTTP", () => {
         want: { feedId: 0, feedText: "", clubId: 0, clubText: "" },
       },
     ])("preserves nullish defaults: $name", async (fixture) => {
+      // Сценарий: Отсутствующие публикации используют nullish-defaults, сохраняя даже нулевой ID и пустой текст.
+
       actor = { ...member, role: "admin" };
       vi.spyOn(db, "getLatestPublishedPost").mockImplementation(
         async (target) => (target === "feed" ? fixture.feed : fixture.club),
@@ -338,6 +351,8 @@ describe("notifications over native HTTP", () => {
     });
 
     it("keeps empty content defaults without a database", async () => {
+      // Сценарий: Существующий контракт без БД сохраняет пустые latest-значения.
+
       expect(await client().notifications.latest.query()).toEqual({
         feedId: null,
         feedText: "",
@@ -349,6 +364,8 @@ describe("notifications over native HTTP", () => {
     it.each(["feed", "subscription", "club"] as const)(
       "fails safely on a %s read without partial content",
       async (failure) => {
+        // Сценарий: Сбой feed/subscription/club не возвращает частичный закрытый текст или SQL-детали.
+
         const reads: string[] = [];
         vi.spyOn(db, "getLatestPublishedPost").mockImplementation(
           async (target) => {
@@ -413,8 +430,12 @@ describe("notifications over native HTTP", () => {
   ])(
     "$name uses the supplied notification service, not hidden/global state",
     async ({ name, want, argument }) => {
+      // Сценарий: Явно переданный сервис уведомлений получает actor и определяет результат без скрытого глобального состояния.
+
       let received: unknown;
       const unexpected = async () => {
+        // Падает при обходном вызове не выбранной операции уведомлений.
+
         throw new Error("unexpected notification operation");
       };
       const notifications = {
@@ -423,6 +444,8 @@ describe("notifications over native HTTP", () => {
         setMarketingConsent: unexpected,
         purgeUserPushData: unexpected,
         [name]: async (...args: unknown[]) => {
+          // Фиксирует аргументы выбранной операции и возвращает предписанный результат сервиса.
+
           received = args;
           return want;
         },
@@ -449,14 +472,14 @@ describe("notifications over native HTTP", () => {
       } as TrpcContext);
       const results = {
         registerToken: () =>
-          caller.notifications.registerToken({
+          /* Вызывает регистрацию токена через явно собранный tRPC-контекст. */ caller.notifications.registerToken({
             token: "ExpoPushToken[synthetic-token]",
           }),
-        marketingConsent: () => caller.notifications.marketingConsent(),
+        marketingConsent: () => /* Вызывает чтение согласия через явно собранный tRPC-контекст. */ caller.notifications.marketingConsent(),
         setMarketingConsent: () =>
-          caller.notifications.setMarketingConsent({ enabled: false }),
+          /* Вызывает изменение согласия через явно собранный tRPC-контекст. */ caller.notifications.setMarketingConsent({ enabled: false }),
         purgeUserPushData: () =>
-          caller.admin.purgeUserPushData({ userId: 9601 }),
+          /* Вызывает очистку токенов через явно собранный tRPC-контекст. */ caller.admin.purgeUserPushData({ userId: 9601 }),
       };
       expect(await results[name as keyof typeof results]()).toEqual(want);
       expect(received).toEqual(argument);
@@ -466,6 +489,8 @@ describe("notifications over native HTTP", () => {
   it.each(operations)(
     "$name preserves a native service refusal",
     async ({ method, run }) => {
+      // Сценарий: Отказ фактического Nest-сервиса не теряется в HTTP-адаптере.
+
       actor = { ...member, role: "admin" };
       vi.spyOn(notificationsService, method).mockRejectedValue(
         new TRPCError({
@@ -500,6 +525,8 @@ describe("notifications over native HTTP", () => {
   ])(
     "registers a $name device using session ownership, not client ownership",
     async ({ authenticated, input, want }) => {
+      // Сценарий: Собственность push-токена берётся из сессии, не из клиентского userId; capability/quota здесь отдельно подменены.
+
       actor = authenticated ? { ...member } : null;
       let received: unknown;
       vi.spyOn(db, "registerPushToken").mockImplementation(async (...args) => {
@@ -515,6 +542,8 @@ describe("notifications over native HTTP", () => {
   it.each([true, false])(
     "reads the actor's marketing consent (%s)",
     async (enabled) => {
+      // Сценарий: Маркетинговое согласие читается только для actor.
+
       let received: unknown;
       vi.spyOn(db, "hasMarketingPushConsent").mockImplementation(async (id) => {
         received = id;
@@ -561,6 +590,8 @@ describe("notifications over native HTTP", () => {
   ])(
     "appends the matching consent event with server-owned actor and legal copy (%#)",
     async ({ input, want }) => {
+      // Сценарий: Событие согласия получает серверные actor, версию и текст, игнорируя клиентскую подмену.
+
       let received: unknown;
       vi.spyOn(db, "logPushConsentEvent").mockImplementation(
         async (...args) => {
@@ -575,6 +606,8 @@ describe("notifications over native HTTP", () => {
   );
 
   it("purges the requested user's tokens, not the administrator's tokens", async () => {
+    // Сценарий: Администратор удаляет токены выбранного пользователя, а не собственные.
+
     actor = { ...member, role: "admin" };
     let received: unknown;
     vi.spyOn(db, "deletePushTokensForUser").mockImplementation(
@@ -589,6 +622,8 @@ describe("notifications over native HTTP", () => {
   });
 
   it("keeps marketing disabled by default when no database is available", async () => {
+    // Сценарий: При отсутствии БД маркетинговое согласие остаётся выключенным по умолчанию.
+
     expect(await operations[1].run()).toEqual(operations[1].want);
   });
 
@@ -599,7 +634,7 @@ describe("notifications over native HTTP", () => {
       name: "consent grant",
       user: member,
       run: () =>
-        client().notifications.setMarketingConsent.mutate({ enabled: true }),
+        /* Отправляет положительное согласие для проверки отказа записи без БД. */ client().notifications.setMarketingConsent.mutate({ enabled: true }),
     },
     { name: "consent revocation", user: member, run: operations[2].run },
     {
@@ -610,6 +645,8 @@ describe("notifications over native HTTP", () => {
   ])(
     "rejects $name instead of reporting success when no database is available",
     async ({ user, run }) => {
+      // Сценарий: Записи регистрации, согласия и очистки без БД не сообщают успех.
+
       actor = user;
       await expect(run()).rejects.toMatchObject({
         message: "Внутренняя ошибка сервера",
@@ -621,6 +658,8 @@ describe("notifications over native HTTP", () => {
   it.each(operations)(
     "does not turn a $name persistence failure into success",
     async ({ helper, run }) => {
+      // Сценарий: Ошибки persistence не превращаются в успешные ответы.
+
       actor = { ...member, role: "admin" };
       vi.spyOn(db, helper).mockRejectedValue(
         new Error("synthetic private persistence error"),
@@ -635,23 +674,25 @@ describe("notifications over native HTTP", () => {
   it.each([
     {
       name: "empty token",
-      run: () => client().notifications.registerToken.mutate({ token: "" }),
+      run: () => /* Передаёт пустой push-токен для проверки входной схемы. */ client().notifications.registerToken.mutate({ token: "" }),
     },
     {
       name: "nonboolean consent",
       run: () =>
-        client().notifications.setMarketingConsent.mutate({
+        /* Передаёт строку вместо boolean согласия. */ client().notifications.setMarketingConsent.mutate({
           enabled: "yes" as unknown as boolean,
         }),
     },
     {
       name: "nonnumeric purge ID",
       run: () =>
-        client().admin.purgeUserPushData.mutate({
+        /* Передаёт строковый userId вместо числового ID очистки. */ client().admin.purgeUserPushData.mutate({
           userId: "9601" as unknown as number,
         }),
     },
   ])("rejects $name before persistence", async ({ run }) => {
+    // Сценарий: Неверные token/boolean/userId отклоняются до persistence.
+
     actor = { ...member, role: "admin" };
     const effects: string[] = [];
     vi.spyOn(db, "registerPushToken").mockImplementation(async () => {
@@ -678,6 +719,8 @@ describe("notifications over native HTTP", () => {
       httpStatus: 403,
     },
   ])("refuses both consent operations for $access", async (fixture) => {
+    // Сценарий: Оба действия согласия закрыты гостю и заблокированному пользователю до чтения/записи.
+
     actor = fixture.actor;
     const effects: string[] = [];
     vi.spyOn(db, "hasMarketingPushConsent").mockImplementation(async () => {
@@ -702,6 +745,8 @@ describe("notifications over native HTTP", () => {
   it.each(["guest", "user", "moderator", "blocked-admin"] as const)(
     "refuses administrator token purge for %s",
     async (access) => {
+      // Сценарий: Очистка токенов доступна только незаблокированному администратору.
+
       actor =
         access === "guest"
           ? null

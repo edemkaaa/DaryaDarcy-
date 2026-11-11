@@ -1,6 +1,7 @@
 /** Переходы по индексам фотографий выделены из рендера, чтобы одинаково обрабатывать крайние элементы и изменение набора. */
 import type { KeyboardEvent } from "react";
 
+/** Обрабатываем только немодифицированные стрелки/Home/End пригодной карусели, не перехватывая уже отменённое событие. */
 export function scrollPhotoWithKeyboard(
   event: KeyboardEvent<HTMLElement>,
   width: number,
@@ -39,6 +40,7 @@ export function scrollPhotoWithKeyboard(
   scrollPhotoTo(node, width, count, next);
 }
 
+/** Ограничиваем индекс существующими кадрами и синхронно ставим карусель в начало нужного слота. */
 export function scrollPhotoTo(
   node: HTMLDivElement | null,
   width: number,

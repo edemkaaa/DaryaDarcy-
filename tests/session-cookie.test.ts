@@ -1,3 +1,4 @@
+/** Cookie policy проверяется настоящими локальными headers и явными synthetic token spies, не реальным входом в БД. */
 import { afterAll, afterEach, beforeAll, expect, it, vi } from "vitest";
 import express, { type Request } from "express";
 import { createServer, request as httpRequest, type Server } from "node:http";
@@ -25,6 +26,7 @@ const user = {
   sessionVersion: 0,
   blockedAt: null,
 };
+/** Создаём отдельный issuance fixture и полный Nest app; fixture JSON-токен не является публичным login contract. */
 beforeAll(async () => {
   const app = express();
   registerHttpSecurity(app);
@@ -43,14 +45,17 @@ beforeAll(async () => {
   await application.listen(0, "127.0.0.1");
   base = `http://127.0.0.1:${(application.getHttpServer().address() as AddressInfo).port}`;
 });
+/** Возвращаем SDK/env spies. */
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
 });
+/** Закрываем оба owned listeners. */
 afterAll(async () => {
   await new Promise<void>((resolve) => server.close(() => resolve()));
   await application.close();
 });
+/** Минимальный Express request отделяет доверенный protocol от сырого forwarded-proto header. */
 function request(
   hostname: string,
   protocol = "https",
@@ -62,6 +67,7 @@ function request(
     headers: forwarded ? { "x-forwarded-proto": forwarded } : {},
   } as Request;
 }
+/** Node http позволяет задать Host и увидеть все Set-Cookie без browser/fetch нормализации. */
 function postFromSubdomain(
   path: string,
 ): Promise<{ status: number; cookies: string[] }> {
@@ -84,6 +90,7 @@ function postFromSubdomain(
     req.end();
   });
 }
+/** Новая session cookie HttpOnly/Secure/Lax без Domain не распространяется на parent host. */
 it.each([
   "api.example.test",
   "api.example.co.uk",
@@ -97,6 +104,7 @@ it.each([
   });
   expect(getSessionCookieOptions(request(hostname)).domain).toBeUndefined();
 });
+/** HTTPS в сыром header не меняет HTTP protocol вне настроенного trust proxy. */
 it("does not trust a raw forwarded-proto header outside Express proxy policy", () => {
   vi.stubEnv("NODE_ENV", "development");
   expect(
@@ -104,12 +112,14 @@ it("does not trust a raw forwarded-proto header outside Express proxy policy", (
       .secure,
   ).toBe(false);
 });
+/** Production принудительно ставит Secure даже при неверно определённом protocol. */
 it("never emits an insecure session cookie in production", () => {
   vi.stubEnv("NODE_ENV", "production");
   expect(
     getSessionCookieOptions(request("api.example.test", "http")).secure,
   ).toBe(true);
 });
+/** Сначала гасится old Domain cookie без нового token, затем выдаётся host-only token. */
 it("expires legacy parent-domain cookies before issuing a host-only cookie", async () => {
   vi.spyOn(sdk, "createSessionToken").mockResolvedValue(
     "LOCAL_SESSION_FIXTURE",
@@ -125,6 +135,7 @@ it("expires legacy parent-domain cookies before issuing a host-only cookie", asy
   expect(cookies[1]).not.toContain("Domain=");
   expect(cookies[1]).toContain("HttpOnly");
 });
+/** Оба транспорта удаляют два cookie scope без maxAge, который мог бы восстановить срок. */
 it("both REST and tRPC logout clear current and legacy cookie scopes", async () => {
   const response = await postFromSubdomain("/api/auth/logout");
   const cookies = response.cookies;
@@ -149,6 +160,7 @@ it("both REST and tRPC logout clear current and legacy cookie scopes", async () 
     clearCookie.mock.calls.every(([, options]) => !("maxAge" in options)),
   ).toBe(true);
 });
+/** Auth и Bearer-запросы сохраняют no-store, независимо от успешности handler. */
 it("does not cache auth responses or credential-bearing API responses", async () => {
   vi.spyOn(sdk, "authenticateRequest").mockRejectedValue(
     new Error("Fixture anonymous"),

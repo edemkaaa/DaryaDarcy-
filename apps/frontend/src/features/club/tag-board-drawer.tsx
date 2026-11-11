@@ -32,6 +32,7 @@ interface TagBoardDrawerProps {
   selectedTag: string | null;
   onSelectTag: (tag: string | null) => void;
 }
+/** Выдвижная панель хранит только открытость; выбранный тег остаётся у владельца списка, а скрытая панель исключена из фокуса. */
 export function TagBoardDrawer({
   selectedTag,
   onSelectTag,
@@ -50,6 +51,7 @@ export function TagBoardDrawer({
   // Extend the edge strip while keeping its right edge anchored.
   const peekAnim = useSharedValue(0);
   // Start peek animation loop (only when drawer is closed)
+  /** Периодически вытягиваем краевую ручку после паузы, не смещая её правую границу. */
   const startPeekAnimation = useCallback(() => {
     peekAnim.value = withDelay(
       2000,
@@ -64,14 +66,18 @@ export function TagBoardDrawer({
       ),
     );
   }, [peekAnim]);
+  /** Завершаем подсказку при открытии панели, возвращая ручку к обычной ширине. */
   const stopPeekAnimation = useCallback(() => {
     peekAnim.value = withTiming(0, { duration: 100 });
   }, [peekAnim]);
+  /** Открываем панель; перевод фокуса выполняется отдельным эффектом после обновления DOM. */
   const openDrawer = () => setIsOpen(true);
+  /** Запоминаем необходимость вернуть фокус на ручку после закрытия. */
   const closeDrawer = () => {
     returnFocus.current = true;
     setIsOpen(false);
   };
+  /** Согласуем положение с открытостью и шириной; отложенный перезапуск подсказки отменяется при повторном открытии или размонтировании. */
   useEffect(() => {
     translateX.value = withTiming(isOpen ? 0 : DRAWER_WIDTH, {
       duration: isOpen ? 300 : 280,
@@ -88,6 +94,7 @@ export function TagBoardDrawer({
     );
     return () => clearTimeout(timer);
   }, [isOpen, DRAWER_WIDTH, translateX, startPeekAnimation, stopPeekAnimation]);
+  /** После открытия фокус получает закрытие, а после явного закрытия возвращаем его исходной ручке. */
   useEffect(() => {
     if (isOpen) closeButton.current?.focus({ preventScroll: true });
     else if (returnFocus.current) {
@@ -111,6 +118,7 @@ export function TagBoardDrawer({
       ),
     };
   });
+  /** Повторное нажатие снимает текущий фильтр; другой тег заменяет выбор без собственной загрузки списка. */
   const handleTagPress = (tag: string) => {
     if (selectedTag === tag) {
       onSelectTag(null); // deselect

@@ -1,3 +1,4 @@
+/** Архивная браузерная сессия Vite. Не переносить её упрощённую политику ошибок в действующий клиент. */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
 export type AuthUser = {
@@ -19,6 +20,7 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+/** Читает ответ один раз и извлекает прежнее публичное сообщение, сохраняя текстовый fallback. */
 async function readError(res: Response) {
   const text = await res.text();
   try {
@@ -29,10 +31,12 @@ async function readError(res: Response) {
   }
 }
 
+/** Хранит старую модель пользователя и предоставляет действия входа. Этот архивный код не содержит современных журналов неопределённых операций. */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  /** Старое поведение очищает пользователя и при HTTP-ошибке, и при сетевом сбое; это ограничение архива, а не требование действующего клиента. */
   const refresh = useCallback(async () => {
     try {
       const res = await fetch("/api/auth/me", { credentials: "include" });
@@ -51,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refresh().finally(() => setLoading(false));
   }, [refresh]);
 
+  /** Передаёт пароль серверу с cookie и читает профиль из успешного JSON-ответа. */
   const login = useCallback(async (email: string, password: string) => {
     const res = await fetch("/api/auth/login", {
       method: "POST",
@@ -63,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(data.user ?? null);
   }, []);
 
+  /** Сохраняет прежнее ожидание профиля в ответе регистрации; современная регистрация может иметь другой публичный контракт. */
   const register = useCallback(async (email: string, password: string, name?: string, consentVersion?: string) => {
     const res = await fetch("/api/auth/register", {
       method: "POST",
@@ -75,11 +81,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(data.user ?? null);
   }, []);
 
+  /** Старый путь очищает локальный профиль без проверки успешного HTTP-статуса выхода. */
   const logout = useCallback(async () => {
     await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
     setUser(null);
   }, []);
 
+  /** Сохраняет ссылку на контекст между рендерами, пока пользователь и действия не изменились. */
   const value = useMemo(
     () => ({ user, loading, refresh, login, register, logout }),
     [user, loading, refresh, login, register, logout],
@@ -88,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
+/** Не допускает использования старого контекста вне его провайдера. */
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used inside AuthProvider");

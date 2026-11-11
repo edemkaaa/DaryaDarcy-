@@ -2,6 +2,7 @@
 @use "../../shared/styles/layers";
 
 @layer components {
+  /* Минимальные зазоры объединяют фото в один медиаблок; ячейки могут сжиматься благодаря min-width:0. */
   .stack {
     width: 100%;
     gap: 1px;
@@ -16,6 +17,7 @@
     overflow: hidden;
     background-color: #ede6da;
   }
+  /* Пара широких изображений располагается вертикально и не делит высоту как обычный flex-ряд. */
   .landscapePair {
     flex-direction: column;
   }
@@ -26,6 +28,7 @@
     flex: 0 0 auto;
     width: 100%;
   }
+  /* Поверхность открытия и картинка накрывают одну ячейку, сохраняя совпадение области нажатия. */
   .open,
   .picture {
     position: absolute;
@@ -33,6 +36,7 @@
     width: 100%;
     height: 100%;
   }
+  /* Карусельные слайды не сжимаются; счётчик лежит поверх и не перехватывает нажатия. */
   .carousel {
     width: 100%;
     background-color: #ede6da;

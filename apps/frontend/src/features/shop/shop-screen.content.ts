@@ -25,6 +25,7 @@ export const ASSETS = {
 
 export const BOOK_GAP = 8;
 
+/** Вычисляем пропорции полок, книг, цифровых товаров и табличек из одной ширины полотна. */
 export function getShopScreenContent(viewport: ViewportSize) {
   const { width: SCREEN_WIDTH } = viewport;
   const SHELF_SIDE = Math.round(SCREEN_WIDTH * 0.072);

@@ -1,3 +1,4 @@
+/** Независимые canonical строки проверяют HMAC-нормализацию, включая собственные prototype-like JSON ключи. */
 import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createProdamusSign as signPayload } from "../apps/backend/src/billing/prodamus-signature";
@@ -8,18 +9,23 @@ import {
 
 const secret = "signature-fixture-only-secret";
 // Canonical strings are hand-derived, not produced by the production normalizer.
+/** Ожидаемая подпись считается от вручную заданной строки, не от production normalizer. */
 function independentSign(canonical: string): string {
   return createHmac("sha256", secret).update(canonical, "utf8").digest("hex");
 }
 
+/** Настраиваем только synthetic merchant secret, очищая альтернативные keys. */
 beforeEach(() => {
   vi.stubEnv("PRODAMUS_SECRET", secret);
   vi.stubEnv("PRODAMUS_SHOP_SECRET", "");
   vi.stubEnv("PRODAMUS_SUBSCRIPTION_SECRET", "");
 });
+/** Возвращаем merchant env. */
 afterEach(() => vi.unstubAllEnvs());
 
+/** Проверяем sorting/scalar conversion/array order без потери подписанных own fields. */
 describe("Prodamus signature canonicalization", () => {
+  /** Корневой/nested/array __proto__ остаётся частью HMAC и не меняет исходный JSON. */
   it.each([
     {
       name: "ordinary nested values, array order, Unicode and escaped slashes",
@@ -68,6 +74,7 @@ describe("Prodamus signature canonicalization", () => {
     },
   );
 
+  /** Совместимое null/undefined canonical значение фиксируется независимо. */
   it.each([null, undefined])(
     "signs a nullish root as an empty string: %s",
     (input) => {
@@ -76,6 +83,7 @@ describe("Prodamus signature canonicalization", () => {
     },
   );
 
+  /** Inherited поля не подписываются, own undefined и frozen nested данные не мутируются. */
   it("signs only own enumerable fields without mutating frozen nested input", () => {
     const input = Object.freeze(
       Object.assign(Object.create({ inherited: "not-signed" }), {
@@ -91,6 +99,7 @@ describe("Prodamus signature canonicalization", () => {
     expect(input.z).toBeUndefined();
   });
 
+  /** Добавленный own __proto__ без пересчёта подписи делает проверку ложной. */
   it.each([
     {
       name: "root object",

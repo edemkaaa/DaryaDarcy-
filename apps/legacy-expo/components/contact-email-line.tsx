@@ -1,3 +1,4 @@
+// Архив Expo. Встраивает единый адрес поддержки в короткую строку с системным mailto.
 import { Linking, Pressable, StyleSheet, Text, type TextStyle } from "react-native";
 import { PUBLIC_CONTACT_EMAIL } from "@shared/contact";
 
@@ -12,6 +13,8 @@ export function ContactEmailLine({
   style,
   linkStyle,
 }: Props) {
+  // Встраивает единый адрес поддержки в короткую строку с системным mailto.
+
   return (
     <Text style={[styles.text, style]}>
       {prefix}{" "}
@@ -22,6 +25,7 @@ export function ContactEmailLine({
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   text: {
     fontFamily: "EBGaramond-Regular",

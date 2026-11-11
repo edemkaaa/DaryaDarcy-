@@ -13,6 +13,7 @@ import {
 } from "./checkout-result-controller";
 import styles from "./club-screen.module.scss";
 
+/** Переводим серверное состояние покупки и фазу проверки в сообщение, не приравнивая возврат или unknown к оплате. */
 function statusText(state: ClubCheckoutResultState): string {
   switch (state.phase) {
     case "idle":
@@ -42,6 +43,7 @@ function statusText(state: ClubCheckoutResultState): string {
 
 // Read-only unless the opt-in caller supplies a purchase configuration. Keep one
 // controller across retained-tab hides so its quota deadline cannot be reset.
+/** Сохраняем один контроллер на жизнь экрана, чтобы скрытие вкладки не сбрасывало паузу 429 и не создавало новую оплату. */
 export function ClubTestCheckoutResult({
   client,
   active = true,
@@ -66,6 +68,7 @@ export function ClubTestCheckoutResult({
   useEffect(() => {
     const controller = createClubCheckoutResultController(client, setState);
     controllerRef.current = controller;
+    /** Скрытие останавливает кампанию, а возвращение видимости само по себе не возобновляет её. */
     const visibilityChanged = () => {
       setHidden(document.hidden);
       if (document.hidden) controller.cancel();
@@ -86,6 +89,7 @@ export function ClubTestCheckoutResult({
   }, [active]);
 
   const retryAt = state.phase === "error" ? state.retryAt : 0;
+  /** Одним таймером разблокируем явную проверку после Retry-After; новый платеж таймер не начинает. */
   useEffect(() => {
     if (!retryAt) return;
     setNow(Date.now());

@@ -3,6 +3,7 @@
 export const PHOTO_RATIO_CACHE_LIMIT = 256;
 const ratios = new Map<string, number>();
 
+/** Читаем известную пропорцию и переносим URL в конец LRU, не создавая дополнительный сетевой запрос. */
 export function getCachedPhotoRatio(uri: string): number | undefined {
   const ratio = ratios.get(uri);
   if (ratio !== undefined) {
@@ -12,6 +13,7 @@ export function getCachedPhotoRatio(uri: string): number | undefined {
   return ratio;
 }
 
+/** Принимаем только положительные конечные размеры, сохраняем отношение сторон и ограничиваем число URL в памяти. */
 export function rememberPhotoRatio(
   uri: string,
   width: number,

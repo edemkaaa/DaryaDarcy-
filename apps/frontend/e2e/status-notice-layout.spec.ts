@@ -4,6 +4,7 @@ import { editorApi, failure, ok } from "./editor-fixtures";
 
 const catalogEnabled = process.env.VK_CATALOG_UI_ENABLED === "true";
 
+/** Сверяем notice и его действие с доступным main между шапкой и меню; standalone-404 измеряется отдельно, а при ошибке прикладываем геометрию для диагностики. */
 async function outsideNavigation(
   page: Page,
   notice: Locator,
@@ -77,6 +78,7 @@ async function outsideNavigation(
   }
 }
 
+/** Матрица размеров покрывает отсутствующий маршрут/материал, начальные API-ошибки, сессию, подписку, render-boundary и диалог файлов. */
 for (const [width, height] of [
   [320, 400],
   [390, 844],
@@ -184,11 +186,13 @@ for (const [width, height] of [
       );
     });
 
+    /** Точечно вызываем render-error только для fixture-даты, затем снимаем инъекцию и проверяем recovery boundary через настоящую кнопку. */
     test("a page render error keeps its recovery action below the header", async ({
       page,
     }) => {
       await page.addInitScript(() => {
         const nativeGetDate = Date.prototype.getDate;
+        /** Остальные даты проходят в native-метод; контролируемый throw нужен для проверки границы ошибки, а не отказа HTTP. */
         Date.prototype.getDate = function () {
           if (
             this.getTime() === Date.parse("2026-10-02T12:00:00Z") &&
@@ -238,6 +242,7 @@ for (const [width, height] of [
       ).toBeVisible();
     });
 
+    /** Некорректный read-response отклоняется до React-render, поэтому виден query-retry, а не render-error boundary. */
     test("a malformed initial list is rejected before rendering and retry stays reachable", async ({
       page,
     }) => {
@@ -278,6 +283,7 @@ for (const [width, height] of [
       );
     });
 
+    /** 401, 403 и инфраструктурная ошибка playback имеют разные действия; эти случаи работают только в catalog-профиле сборки. */
     for (const [status, message] of [
       [401, "Войдите, чтобы смотреть это видео"],
       [403, "Для просмотра нужен доступ к клубу"],
@@ -330,6 +336,7 @@ for (const [width, height] of [
       });
     }
 
+    /** В узком file-dialog retry и закрытие остаются внутри доступной области; основной экран при модальности inert. */
     test("a narrow file dialog keeps its message, retry and close action usable", async ({
       page,
     }) => {

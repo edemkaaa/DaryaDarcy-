@@ -27,6 +27,8 @@ if (existsSync(iconSrc)) {
 const compressExt = new Set([".js", ".css", ".html", ".json", ".svg", ".txt", ".xml", ".mjs"]);
 
 function walk(dir, files = []) {
+  // Перечисляет файлы только выбранного статического build-каталога для модификации HTML и создания gzip-соседей.
+
   for (const name of readdirSync(dir)) {
     const full = join(dir, name);
     if (statSync(full).isDirectory()) walk(full, files);

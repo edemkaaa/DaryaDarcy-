@@ -1,3 +1,4 @@
+// Архив Expo. Разворачивает светлые/тёмные оттенки конфигурации в две полные палитры.
 import { Platform } from "react-native";
 
 import themeConfig from "@/theme.config";
@@ -12,6 +13,8 @@ type SchemePalette = Record<ColorScheme, Record<ThemeColorName, string>>;
 type SchemePaletteItem = SchemePalette[ColorScheme];
 
 function buildSchemePalette(colors: ThemeColorTokens): SchemePalette {
+  // Разворачивает светлые/тёмные оттенки конфигурации в две полные палитры.
+
   const palette: SchemePalette = {
     light: {} as SchemePalette["light"],
     dark: {} as SchemePalette["dark"],
@@ -39,6 +42,8 @@ type RuntimePalette = SchemePaletteItem & {
 };
 
 function buildRuntimePalette(scheme: ColorScheme): RuntimePalette {
+  // Добавляет совместимые runtime-имена цветов к исходным токенам схемы.
+
   const base = SchemeColors[scheme];
   return {
     ...base,

@@ -28,6 +28,7 @@ export type ProdamusPaymentNotificationPorts = {
 };
 
 /** После аутентификации и отсева demo успешный ответ ждёт завершения settlement. */
+/** Игнорирует неплатёжный статус, связывает recurring/обычный club-платёж с конфигурацией и подписью, затем ждёт fulfil перед success. */
 export async function processProdamusPaymentNotification(
   body: Record<string, unknown>,
   signature: string,

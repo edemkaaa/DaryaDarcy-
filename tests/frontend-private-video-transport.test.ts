@@ -1,9 +1,11 @@
+/** Binary upload клиента проверяется перехваченным fetch с настоящей request lifecycle и валидацией receipt. */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { uploadAdminPrivateVideo } from "../apps/frontend/src/features/admin/media/private-video-upload";
 import { cancelSessionRequests } from "../apps/frontend/src/shared/api/request-lifecycle";
 vi.mock("../apps/frontend/src/shared/config/api", () => ({
   getApiBaseUrl: () => "http://127.0.0.1:19191",
 }));
+/** Создаём File с узнаваемыми исходными bytes и именем для URL-кодирования. */
 const file = () =>
   new File(["original video"], "lesson & one.mp4", { type: "video/mp4" });
 const key = "private-video-original-key";
@@ -16,6 +18,7 @@ const receipt = {
   fileSize: 14,
 };
 let requests: { url: RequestInfo | URL; init: RequestInit }[];
+/** Новый счётчик исходящих запросов возвращает synthetic ready receipt. */
 beforeEach(() => {
   requests = [];
   vi.stubGlobal("fetch", async (url: RequestInfo | URL, init: RequestInit) => {
@@ -23,10 +26,12 @@ beforeEach(() => {
     return Response.json(receipt);
   });
 });
+/** Отменяем session requests и возвращаем fetch. */
 afterEach(() => {
   cancelSessionRequests();
   vi.unstubAllGlobals();
 });
+/** Body остаётся исходным File; путь, Idempotency-Key, MIME, include credentials и no-store проверяются целиком. */
 it("sends the exact File/key to the private binary route with session-bound credentials", async () => {
   const selected = file();
   await expect(uploadAdminPrivateVideo(selected, key)).resolves.toEqual(
@@ -45,6 +50,7 @@ it("sends the exact File/key to the private binary route with session-bound cred
   expect(init.credentials).toBe("include");
   expect(init.cache).toBe("no-store");
 });
+/** Разрешённый status сохраняется, private server body не попадает в пользовательскую ошибку. */
 it.each([400, 401, 403, 404, 409, 413, 503])(
   "preserves HTTP %s without returning server details",
   async (status) => {
@@ -59,6 +65,7 @@ it.each([400, 401, 403, 404, 409, 413, 503])(
     expect((error as Error).message).not.toContain("PRIVATE_SERVER_DETAIL");
   },
 );
+/** 404 становится понятной недоступностью загрузки без повторной отправки. */
 it("explains that private video uploads are currently unavailable", async () => {
   const fetcher = vi.fn(async () =>
     Response.json({ error: "NOT_FOUND" }, { status: 404 }),
@@ -70,10 +77,12 @@ it("explains that private video uploads are currently unavailable", async () => 
   });
   expect(fetcher).toHaveBeenCalledTimes(1);
 });
+/** Короткий operation key останавливается до fetch. */
 it("refuses invalid keys before dispatch", async () => {
   await expect(uploadAdminPrivateVideo(file(), "short")).rejects.toThrow();
   expect(requests).toEqual([]);
 });
+/** Лишний public URL, другой размер/тип receipt не считаются успешной загрузкой. */
 it.each([
   { ...receipt, url: "https://storage.invalid/private.mp4" },
   { ...receipt, fileSize: 15 },
@@ -82,6 +91,7 @@ it.each([
   vi.stubGlobal("fetch", async () => Response.json(bad));
   await expect(uploadAdminPrivateVideo(file(), key)).rejects.toThrow();
 });
+/** Lost ACK даёт network error после одной попытки, не второй upload. */
 it("does not retry a request whose outcome is unknown", async () => {
   let sent = 0;
   vi.stubGlobal("fetch", async () => {
@@ -94,6 +104,7 @@ it("does not retry a request whose outcome is unknown", async () => {
   expect(sent).toBe(1);
 });
 
+/** Cooldown принимает только допустимый целый delta, сохраняет429 и не разлогинивает. */
 it.each(["2", " 2 ", "0", "-1", "1.5", "invalid", "999999999999999999999"])(
   "validates RAW Retry-After %s without retrying or treating 429 as logout",
   async (header) => {
@@ -112,6 +123,7 @@ it.each(["2", " 2 ", "0", "-1", "1.5", "invalid", "999999999999999999999"])(
   },
 );
 
+/** Абсолютная дата переводится в положительный остаток по фиксированным часам. */
 it("accepts a future HTTP-date Retry-After", async () => {
   vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-10-27T12:00:00Z"));
   try {

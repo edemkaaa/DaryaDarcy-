@@ -17,10 +17,12 @@ import {
 
 @Controller("api/admin")
 export class PrivateVideoUploadController {
+  /** Получаем текущего пользователя и административную роль до принятия готового бинарного тела в журнал загрузки. */
   constructor(
     @Inject(SessionService) private readonly identity: SessionService,
   ) {}
 
+  /** Проверяем флаги, админскую сессию, строгие метаданные и максимум 80 МиБ, распознаём контейнер и сохраняем через идемпотентную квитанцию; слот памяти освобождается после завершения или отмены S3. */
   @Post("private-video-uploads")
   @HttpCode(200)
   async upload(@Req() req: Request, @Res() res: Response) {
@@ -28,6 +30,7 @@ export class PrivateVideoUploadController {
     const controller = new AbortController();
     // Тело уже прочитано raw-парсером: req.close здесь не означает отмену.
     // Прерываем S3 только при незавершённом ответе клиенту.
+    /** Отменяем незавершённую обработку только при закрытии ответа, а не при штатном завершении чтения raw-тела. */
     const disconnect = () => {
       if (!res.writableFinished) controller.abort();
     };

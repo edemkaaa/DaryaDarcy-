@@ -4,12 +4,14 @@ import { adjustRangesOnTextChange, clampRanges } from "./rich-text-edit";
 import { sanitizePlainPostText, sanitizeRichTextForDisplay } from "./post-text-sanitize";
 import { rangesToRichText, richTextToRanges } from "./rich-text-ranges";
 
+/** Восстанавливаем plainText из дочерних фрагментов и одного переноса между блоками для сравнения с итоговым текстом. */
 function plainTextFromBlocks(blocks: RichTextBlock[]): string {
   return blocks
     .map((block) => (block.children || []).map((child) => child.text || "").join(""))
     .join("\n");
 }
 
+/** Сдвигаем ссылки по общей правке, а потерянные диапазоны пробуем найти по прежнему тексту якоря с дедупликацией; это восстановление разметки, а не проверка URL. */
 function adjustLinkRanges(
   oldText: string,
   newText: string,
@@ -76,6 +78,7 @@ export function realignRichTextBlocks(
 }
 
 /** Align plain text + richText before save (client + server). */
+/** Нормализуем plainText и блоки, сохраняем совпадающую разметку либо согласуем её диапазоны с новым текстом; общий результат используется клиентом и сервером. */
 export function preparePostRichTextForSave(
   plainText: string,
   richText: RichTextBlock[] | undefined | null,

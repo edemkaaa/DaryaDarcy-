@@ -7,6 +7,7 @@ import {
 import { ENV } from "../_core/env";
 
 /** Exact own-object resolution, never fetches a submitted/persisted URL. */
+/** Разрешаем лишь точную каноническую ссылку разрешённого каталога настроенного бакета без нормализованных алиасов, параметров и traversal; введённый URL не скачивается. */
 export function ownAttachmentKey(raw: string): string | undefined {
   try {
     const endpoint = new URL(ENV.s3Endpoint);
@@ -45,6 +46,7 @@ export function ownAttachmentKey(raw: string): string | undefined {
       )
     )
       return;
+    /** Повторно кодируем сегмент в строгую каноническую форму, чтобы отличить иной URL от того же текстового ключа. */
     const encode = (part: string) =>
       encodeURIComponent(part).replace(
         /[!'()*]/g,
@@ -60,6 +62,7 @@ export function ownAttachmentKey(raw: string): string | undefined {
 }
 
 /** Only the configured endpoint receives credentials; no fallback or redirects. */
+/** Создаём ограниченный S3-клиент только настроенного endpoint и возвращаем HEAD/условный GET/закрытие с общим сигналом отмены, без повторов и fallback. */
 export function privateObjectReader(key: string, signal: AbortSignal) {
   if (!ENV.s3Endpoint || !ENV.s3Bucket || !ENV.s3AccessKey || !ENV.s3SecretKey)
     throw new Error("Storage unavailable");
@@ -81,13 +84,16 @@ export function privateObjectReader(key: string, signal: AbortSignal) {
   });
   const object = { Bucket: ENV.s3Bucket, Key: key };
   return {
+    /** Читаем метаданные точного объекта с отменой запроса до передачи байтов. */
     head: () =>
       client.send(new HeadObjectCommand(object), { abortSignal: signal }),
+    /** Запрашиваем только объект с подтверждённым ETag и необязательным проверенным диапазоном. */
     get: (etag: string, range?: string) =>
       client.send(
         new GetObjectCommand({ ...object, IfMatch: etag, Range: range }),
         { abortSignal: signal },
       ),
+    /** Освобождаем соединения S3-клиента после завершения потоковой выдачи. */
     close: () => client.destroy(),
   };
 }

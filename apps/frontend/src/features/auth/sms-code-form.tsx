@@ -20,6 +20,7 @@ type Props = {
   purpose: "login" | "bind";
   onSuccess: (user: Api.AuthUser) => void | Promise<void>;
 };
+/** Совместимая SMS-форма отделяет отправку кода от подтверждения; видимость функции управляется capabilities родительского экрана. */
 export function SmsCodeForm({ purpose, onSuccess }: Props) {
   const router = useRouter();
   const [phoneInput, setPhoneInput] = useState("");
@@ -41,6 +42,7 @@ export function SmsCodeForm({ purpose, onSuccess }: Props) {
     );
     return () => clearTimeout(timer);
   }, [retryAfter]);
+  /** Проверяем номер и нужное согласие до запроса SMS; серверный retryAfter удерживает повторную отправку. */
   const send = async () => {
     setError(null);
     if (!phone) {
@@ -71,6 +73,7 @@ export function SmsCodeForm({ purpose, onSuccess }: Props) {
       setBusy(false);
     }
   };
+  /** Ref блокирует параллельную проверку при автозаполнении и ручном submit; результат передаём владельцу формы. */
   const verify = async (submittedCode = code) => {
     setError(null);
     if (!phone || submittedCode.trim().length < 4) {

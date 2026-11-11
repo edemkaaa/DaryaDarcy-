@@ -25,6 +25,7 @@ export const LINEN_TOP_RATIO = 0.23;
 export const LINEN_BOTTOM_RATIO = 0.2;
 export const LINEN_SIDE_RATIO = 0.125;
 
+/** Вычисляем положение рамки и внутреннего льняного поля от viewport; темы распределяются по заранее согласованным строкам. */
 export function getTagBoardDrawerContent(viewport: ViewportSize) {
   const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = viewport;
   const DRAWER_WIDTH = SCREEN_WIDTH;

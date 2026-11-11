@@ -29,6 +29,7 @@ import {
 const SESSION_EVENT_KEY = "darcy:session-change";
 const LOGOUT_PENDING_KEY = "darcy:logout-pending";
 const RESUME_CHECK_COOLDOWN_MS = 1000;
+/** Читаем общий маркер незавершённого выхода; недоступное localStorage не мешает памяти текущего контроллера. */
 function logoutIsPending(): boolean {
   try {
     return window.localStorage.getItem(LOGOUT_PENDING_KEY) === "true";
@@ -61,6 +62,7 @@ type SessionContext = {
   invalidateAccess: (resetScreens?: boolean) => void;
 };
 const Context = createContext<SessionContext | null>(null);
+/** Связываем контроллер с cookie API, QueryClient, владельцем storage и событиями вкладок; scope меняет React-идентичность персональных экранов. */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const cache = useQueryClient();
   const [controller] = useState(
@@ -69,6 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         getMe: Api.getMe,
         logout: Api.logout,
         // Сначала отменяем работу прежней личности, затем очищаем кеш и назначаем нового владельца хранилища.
+        /** Сначала отменяем старые запросы и очищаем кеш, затем назначаем владельца; валидные публичные capabilities можно сохранить с прежней свежестью. */
         resetIdentity: (owner) => {
           const publicCapabilities = cache.getQueryState<LaunchCapabilities>(
             APP_CAPABILITIES_QUERY_KEY,
@@ -91,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setPersonalDataOwner(owner);
           discardLegacyCredentials();
         },
+        /** Случайное значение гарантирует storage-событие в соседних вкладках; секретов и профиля в маркере нет. */
         broadcast: () => {
           try {
             window.localStorage.setItem(SESSION_EVENT_KEY, crypto.randomUUID());
@@ -98,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             /* Cross-tab coordination is optional when storage is unavailable. */
           }
         },
+        /** Сохраняем необходимость закончить серверный выход после обновления страницы, не называя локальную очистку успешным logout. */
         setLogoutPending: (pending) => {
           try {
             if (pending)
@@ -124,11 +129,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     discardLegacyCredentials();
     setPersonalDataOwner(null);
+    /** Незавершённый выход повторяем раньше обычной проверки пользователя, чтобы cookie не вернула закрытый аккаунт. */
     const recheck = () => {
       if (logoutIsPending()) void controller.logout();
       else void controller.refresh();
     };
     let lastResumeCheck = -Infinity;
+    /** Объединяем focus и visibilitychange одного возврата коротким cooldown; online и storage проверяются независимо. */
     const onResume = () => {
       if (document.visibilityState !== "visible") return;
       const now = performance.now();
@@ -138,6 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       lastResumeCheck = now;
       recheck();
     };
+    /** Реагируем только на маркеры сессии/выхода; смена cookie другой вкладкой заставляет повторно подтвердить личность. */
     const onStorage = (event: StorageEvent) => {
       if (event.key !== SESSION_EVENT_KEY && event.key !== LOGOUT_PENDING_KEY)
         return;
@@ -191,6 +199,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     </Context.Provider>
   );
 }
+/** Возвращаем уже управляемую провайдером сессию; совместимый autoFetch здесь не создаёт отдельного запроса. */
 export function useAuth(_options?: { autoFetch?: boolean }) {
   const value = useContext(Context);
   if (!value) throw new Error("Session provider is missing");

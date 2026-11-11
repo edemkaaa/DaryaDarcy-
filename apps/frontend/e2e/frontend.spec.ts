@@ -1,12 +1,14 @@
 import { test, expect, type Page } from "@playwright/test";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
 
+/** Отмечаем локальную install-guide как уже прочитанную, чтобы общий smoke не проверял её повторно на каждом маршруте. */
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() =>
     localStorage.setItem("@darcy_install_guide_seen", "1"),
   );
 });
 
+/** Публичные smoke-сценарии получают synthetic guest API; отдельная opt-in группа ниже работает с настоящим локальным API. */
 async function guestApi(page: Page) {
   await layoutApi(page);
 }
@@ -27,6 +29,7 @@ const publicPaths = [
   "/admin",
 ];
 
+/** На тринадцати маршрутах и трёх ширинах собираем runtime/hydration ошибки и проверяем app-shell без горизонтального overflow. */
 for (const width of [320, 390, 1440]) {
   for (const path of publicPaths) {
     test(`public route ${path} renders without hydration errors at ${width}px`, async ({
@@ -64,6 +67,7 @@ for (const width of [320, 390, 1440]) {
   }
 }
 
+/** Регистрация получает единое 202-подтверждение письма, сохраняет гостевую сессию и не ждёт декоративные изображения. */
 test("registration requests an email instruction and stays signed out", async ({
   page,
 }) => {
@@ -120,6 +124,7 @@ test("registration requests an email instruction and stays signed out", async ({
   ).toBeNull();
 });
 
+/** Отсутствующий SMS-flow и обычный 401 остаются понятной формой с доступным повтором входа. */
 test("disabled SMS stays hidden and a failed login offers an actionable error", async ({
   page,
 }) => {
@@ -145,6 +150,7 @@ test("disabled SMS stays hidden and a failed login offers an actionable error", 
   ).toBeEnabled();
 });
 
+/** Форма показывает инструкцию сервера после принятого запроса, не утверждая фактическую доставку письма. */
 test("password recovery displays the server instruction", async ({ page }) => {
   await guestApi(page);
   await page.route("**/api/auth/password/request", (route) =>
@@ -165,6 +171,7 @@ test("password recovery displays the server instruction", async ({ page }) => {
   await expect(page.getByRole("status")).toContainText("письмо с инструкцией");
 });
 
+/** Опциональная группа требует подготовленные локальные аккаунты/API: проверяет HttpOnly-вход, разграничение admin и полный CRUD только своего временного черновика. */
 test.describe("local development API", () => {
   test.skip(
     process.env.RUN_REAL_API_TESTS !== "1",
@@ -257,6 +264,7 @@ test.describe("local development API", () => {
     await expect(page.getByRole("button", { name: /Новый/ })).toHaveCount(0);
   });
 
+  /** Реальный local CRUD хранит созданный ID и в finally удаляет только его при незавершённом сценарии. */
   test("administrator creates, edits and deletes a draft through the real API", async ({
     page,
     context,

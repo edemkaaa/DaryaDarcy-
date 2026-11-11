@@ -27,6 +27,7 @@ const client = new S3Client({
   forcePathStyle: true,
 });
 
+// После чтения локального оригинала выполняется public-read запись иллюстрации лицензии; это операторская публикация.
 const body = fs.readFileSync(src);
 await client.send(
   new PutObjectCommand({

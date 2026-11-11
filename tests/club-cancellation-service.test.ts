@@ -1,3 +1,4 @@
+/** Оркестрация подтверждения отмены проверяется через непрозрачные порты БД без выполнения SQL. */
 import { expect, it, vi } from "vitest";
 import {
   ClubCancellationService,
@@ -14,6 +15,7 @@ const database = {} as NonNullable<
   Awaited<ReturnType<ClubCancellationPorts["getDb"]>>
 >;
 
+/** Сервис лениво получает handle и передаёт полный provider profile; возвращает ровно сохранённое true/false. */
 it.each([true, false])(
   "retains durable cancellation decision %s and the complete profile",
   async (confirmed) => {
@@ -38,6 +40,7 @@ it.each([true, false])(
   },
 );
 
+/** Без handle confirmation не вызывается. */
 it("fails on missing database before confirming a profile", async () => {
   const confirm = vi.fn<ClubCancellationPorts["confirm"]>();
   const service = new ClubCancellationService({
@@ -50,6 +53,7 @@ it("fails on missing database before confirming a profile", async () => {
   expect(confirm).not.toHaveBeenCalled();
 });
 
+/** Ошибка получения БД сохраняется, повторной попытки и confirmation нет. */
 it("propagates acquisition failure without confirming or retrying", async () => {
   const failure = new Error("synthetic acquisition failure");
   const getDb = vi.fn(async () => {
@@ -62,6 +66,7 @@ it("propagates acquisition failure without confirming or retrying", async () => 
   expect(confirm).not.toHaveBeenCalled();
 });
 
+/** Ошибка сохранения решения не маскируется успехом и не вызывает слепой повтор. */
 it("propagates durable failure without retry or acknowledgement", async () => {
   const failure = new Error("synthetic confirmation failure");
   const confirm = vi.fn<ClubCancellationPorts["confirm"]>(async () => {
@@ -75,6 +80,7 @@ it("propagates durable failure without retry or acknowledgement", async () => {
   expect(confirm).toHaveBeenCalledTimes(1);
 });
 
+/** Ответ caller появляется только после завершения promise долговечного подтверждения. */
 it("waits for durable completion before reporting a decision", async () => {
   let complete!: (confirmed: boolean) => void;
   const pending = new Promise<boolean>((resolve) => {

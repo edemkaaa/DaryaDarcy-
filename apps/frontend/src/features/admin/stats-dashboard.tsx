@@ -8,6 +8,8 @@ import { MaterialIcons } from "@/shared/ui/icons";
 import { trpc } from "@/shared/api/trpc";
 import { BROWN_LIGHT, ACCENT } from "./stats-dashboard.content";
 export function StatsDashboard() {
+  // Отображает отдельный серверный агрегат: счётчики не вычисляются по неполному окну административных страниц.
+
   const {
     data: stats,
     isLoading,
@@ -16,6 +18,8 @@ export function StatsDashboard() {
   } = trpc.admin.stats.useQuery(undefined, {});
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = async () => {
+    // Ручное обновление перечитывает только статистику и отражает его собственное состояние.
+
     setRefreshing(true);
     await refetch();
     setRefreshing(false);

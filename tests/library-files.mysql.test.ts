@@ -22,11 +22,13 @@ import {
   digest,
 } from "../apps/backend/src/media/private-upload-object";
 
+/** Проверяет защищённую выдачу файлов Библиотеки через native HTTP, JWT и SQL с loopback object storage. */
 describe.skipIf(!testDatabaseUrl)("library files native HTTP/JWT/SQL", () => {
   let conn: Connection, app: INestApplication, base: string, token: string;
   let wire: Awaited<ReturnType<typeof openPrivateUploadWire>>;
   const made: string[] = [];
   const bytes = Buffer.from("library fixture document");
+  /** Создаёт synthetic private-объект с digest и ready-evidence и привязывает его к устойчивому library fileKey. */
   async function seed(key = "holly", order = 0) {
     const assetId = randomUUID();
     made.push(assetId);
@@ -62,11 +64,13 @@ describe.skipIf(!testDatabaseUrl)("library files native HTTP/JWT/SQL", () => {
     );
     return assetId;
   }
+  /** Отправляет HTTP-запрос с сессией собственного library-reader, сохраняя дополнительные заголовки. */
   const read = (path: string, options: RequestInit = {}) =>
     fetch(base + path, {
       ...options,
       headers: { authorization: `Bearer ${token}`, ...options.headers },
     });
+  /** Открывает одноразовую схему, локальный storage-wire и Nest API с включёнными private-флагами. */
   beforeAll(async () => {
     conn = await openTestDatabase();
     vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -88,6 +92,7 @@ describe.skipIf(!testDatabaseUrl)("library files native HTTP/JWT/SQL", () => {
     await app.listen(0, "127.0.0.1");
     base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
   });
+  /** Удаляет только созданные assetId, сбрасывает wire и возвращает reader и library-флаг. */
   beforeEach(async () => {
     for (const id of made) {
       await conn.query("DELETE FROM library_file_bindings WHERE assetId=?", [
@@ -106,6 +111,7 @@ describe.skipIf(!testDatabaseUrl)("library files native HTTP/JWT/SQL", () => {
     await conn.query("DELETE FROM club_payments WHERE orderId='library-paid'");
     vi.stubEnv("PRIVATE_LIBRARY_FILES_ENABLED", "true");
   });
+  /** Закрывает API, удаляет свои bindings/files/период и reader, закрывает пул и wire. */
   afterAll(async () => {
     await app?.close();
     for (const id of made) {
@@ -125,6 +131,7 @@ describe.skipIf(!testDatabaseUrl)("library files native HTTP/JWT/SQL", () => {
     await wire?.close();
     vi.unstubAllEnvs();
   });
+  /** Выдаёт точные байты, HEAD, один Range и 416 через stable URL с no-store и nosniff без storage-address. */
   it("streams exact bytes, HEAD and single Range through the stable URL without disclosing a storage address", async () => {
     await seed();
     const listed = await read("/api/library/materials/patterns/files");
@@ -157,6 +164,7 @@ describe.skipIf(!testDatabaseUrl)("library files native HTTP/JWT/SQL", () => {
       (await read(path, { headers: { range: "bytes=99-100" } })).status,
     ).toBe(416);
   });
+  /** Гость, неоплаченный, expired, blocked и stale epoch не достигают storage; действующая paid-подписка читает файл. */
   it("denies guests, unpaid, expired, blocked and stale actors before storage and preserves paid access", async () => {
     await seed();
     const path = "/api/media/library-files/patterns/holly";
@@ -187,6 +195,7 @@ describe.skipIf(!testDatabaseUrl)("library files native HTTP/JWT/SQL", () => {
     expect(wire.effects.length).toBe(deniedEffects);
     expect(effects).toBeLessThan(deniedEffects);
   });
+  /** Выключенные флаги, отключённая binding, неизвестный материал и URL-параметры не обходят защищённый маршрут. */
   it("fails closed for disabled flags, unbound files, unknown keys and arbitrary query URLs", async () => {
     const asset = await seed();
     const effects = wire.effects.length;
@@ -216,6 +225,7 @@ describe.skipIf(!testDatabaseUrl)("library files native HTTP/JWT/SQL", () => {
     expect((await read(`/api/media/content-files/${asset}`)).status).toBe(404);
     expect(wire.effects.length).toBe(effects);
   });
+  /** Список следует sortOrder привязки, а не порядку импортированных объектов. */
   it("returns the agreed display order rather than insertion order", async () => {
     await seed("holly", 10);
     await seed("star", 0);
@@ -226,6 +236,7 @@ describe.skipIf(!testDatabaseUrl)("library files native HTTP/JWT/SQL", () => {
       ),
     ).toEqual(["star", "holly"]);
   });
+  /** Сломанная включённая binding даёт 503 авторизованному reader, не успешную пустоту; disabled запись исключается. */
   it("reports a broken enabled binding as unavailable instead of a successful empty list", async () => {
     const asset = await seed();
     await conn.query("DELETE FROM private_content_files WHERE assetId=?", [
@@ -250,6 +261,7 @@ describe.skipIf(!testDatabaseUrl)("library files native HTTP/JWT/SQL", () => {
     ).toEqual({ files: [], nextCursor: null });
     expect(wire.effects.length).toBe(effects);
   });
+  /** 52 файла с равным sortOrder обходятся без пропусков; поломка следующей страницы не маскируется пустым успехом. */
   it("pages over equal display orders without gaps or duplicates and does not hide a broken next-page binding", async () => {
     const hidden = await seed("hidden");
     await conn.query(
@@ -287,6 +299,7 @@ describe.skipIf(!testDatabaseUrl)("library files native HTTP/JWT/SQL", () => {
     expect((await read(next)).status).toBe(404);
     expect(wire.effects.length).toBe(effects);
   });
+  /** Некорректные, повторные cursor и неподдерживаемые параметры дают 404 без storage. */
   it("rejects malformed cursors without storage requests", async () => {
     for (const query of [
       "cursor=0",
@@ -302,6 +315,7 @@ describe.skipIf(!testDatabaseUrl)("library files native HTTP/JWT/SQL", () => {
     }
     expect(wire.effects).toEqual([]);
   });
+  /** Staff service-доступ читает пустой согласованный материал, не изображая paid-подписку. */
   it("allows a service-access reader to list an empty approved material without claiming a paid subscription", async () => {
     const response = await fetch(
       base + "/api/library/materials/patterns/files",

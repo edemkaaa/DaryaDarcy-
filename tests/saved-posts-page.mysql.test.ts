@@ -5,31 +5,39 @@ import {
   type ListPage,
 } from "./helpers/list-page-fixture";
 
+/** Проверяет keyset-страницы сохранённого, доступ к постам, исторические дубли и привязку cursor к пользователю. */
 describe.skipIf(!testDatabaseUrl)(
   "saved page over real HTTP/JWT/disposable MySQL",
   () => {
     let fixture: Awaited<ReturnType<typeof openListPageFixture>>;
     const base = 880000;
+    /** Читает savedPostsPage выбранного аккаунта с feed-target по умолчанию. */
     const read = (input: object, actor: number | null = 0) =>
       fixture.read("feed.savedPostsPage", { target: "feed", ...input }, actor);
+    /** Создаёт синтетическое сохранение с выбранной датой и владельцем. */
     const save = (postId: number, actor = 0, date = "2026-01-01") =>
       fixture.conn.query(
         "INSERT INTO saved_posts(userId,postId,createdAt) VALUES(?,?,?)",
         [base + actor, postId, date],
       );
+    /** Последовательно создаёт нужное число постов и сохранений с одинаковой датой. */
     const seed = async (count: number) => {
       for (let index = 0; index < count; index++)
         await save(await fixture.post(index));
     };
+    /** Запускает отдельную HTTP/JWT page-фикстуру. */
     beforeAll(async () => {
       fixture = await openListPageFixture("pagination-saved", base);
     });
+    /** Очищает собственные данные и возвращает исходные права пользователей. */
     beforeEach(async () => {
       await fixture.reset();
     });
+    /** Закрывает и удаляет изолированную page-фикстуру. */
     afterAll(async () => {
       await fixture?.close();
     });
+    /** Полный обход равнодатных сохранений ограничен двадцатью элементами и не повторяет cursor или посты. */
     it.each([0, 20, 21, 50, 51])(
       "pages all %i equal-date saves once with a bounded response",
       async (count) => {
@@ -55,6 +63,7 @@ describe.skipIf(!testDatabaseUrl)(
         );
       },
     );
+    /** Недоступные, скрытые и отсутствующие посты отбрасываются до LIMIT; сохранения другого владельца не раскрываются. */
     it("filters private/draft/missing rows before LIMIT and never leaks another owner's saves", async () => {
       const open = await fixture.post(0, "both");
       await save(open);
@@ -73,6 +82,7 @@ describe.skipIf(!testDatabaseUrl)(
         base + 127,
       ]);
     });
+    /** Лимит 50 не теряет последнюю запись за первой страницей. */
     it("honors the explicit 50-item maximum without truncating the last item", async () => {
       await seed(51);
       const first = await read({ limit: 50 });
@@ -82,6 +92,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(last.data.items.map((row) => row.id)).toEqual([base + 100]);
       expect(last.data.nextCursor).toBeNull();
     });
+    /** Дубли сохранений схлопываются по последней реальной строке с сохранением media и reaction-проекции. */
     it("deduplicates historical saves using the newest actual row, preserving media/reactions", async () => {
       const a = await fixture.post(0),
         b = await fixture.post(1);
@@ -109,6 +120,7 @@ describe.skipIf(!testDatabaseUrl)(
         ).data.items.map((x) => x.id),
       ).toEqual([b]);
     });
+    /** Истёкшая между страницами подписка возвращает пустую закрытую выборку без выдачи прежнего доступа. */
     it("checks current subscription on each page", async () => {
       await fixture.grant();
       await save(await fixture.post(0, "club"));
@@ -128,6 +140,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(next.status).toBe(200);
       expect(next.data).toEqual({ items: [], nextCursor: null });
     });
+    /** Удаление anchor и новое более свежее сохранение не сбивают продолжение keyset-обхода. */
     it("keeps keyset traversal valid after deleting the anchor and inserting a newer save", async () => {
       await seed(3);
       const first = await read({ limit: 1 });
@@ -143,6 +156,7 @@ describe.skipIf(!testDatabaseUrl)(
       ]);
       expect(next.data.nextCursor).toBeNull();
     });
+    /** Cursor другого пользователя, target или неверного формата отклоняется, а не сбрасывает страницу. */
     it("rejects cross-owner/filter and malformed cursors instead of resetting to the first page", async () => {
       await seed(2);
       const first = await read({ limit: 1 });
@@ -154,6 +168,7 @@ describe.skipIf(!testDatabaseUrl)(
       ] as const)
         expect((await read(input, actor)).status).toBe(400);
     });
+    /** Лимиты, oversized cursor и лишние поля отклоняются с 400. */
     it.each([
       { limit: 0 },
       { limit: 51 },
@@ -164,6 +179,7 @@ describe.skipIf(!testDatabaseUrl)(
     ])("rejects invalid input %j", async (input) => {
       expect((await read(input)).status).toBe(400);
     });
+    /** Сохранённое недоступно без сессии. */
     it("requires authentication", async () => {
       expect((await read({}, null)).status).toBe(401);
     });

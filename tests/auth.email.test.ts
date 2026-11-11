@@ -1,14 +1,18 @@
+/** Проверяем нормализацию email и формат scrypt на синтетических паролях, без создания аккаунтов. */
 import { describe, expect, it } from "vitest";
 import { scryptSync } from "node:crypto";
 import { hashPassword, isValidEmail, normalizeEmail, verifyPassword } from "../apps/backend/src/_core/password";
 
+/** Набор проверяет чистые helpers, а не доставку письма и не реальную пользовательскую сессию. */
 describe("email auth helpers", () => {
+  /** Убираем внешние пробелы и регистр, отклоняем строку без формы email. */
   it("normalizes and validates email", () => {
     expect(normalizeEmail("  DaryaDarcy19@gmail.com ")).toBe("daryadarcy19@gmail.com");
     expect(isValidEmail("daryadarcy19@gmail.com")).toBe(true);
     expect(isValidEmail("not-an-email")).toBe(false);
   });
 
+  /** Корректный пароль проверяется по хешу, другой пароль отклоняется. */
   it("hashes and verifies passwords", async () => {
     const hash = await hashPassword("cottagecore");
     expect(hash.startsWith("scrypt$")).toBe(true);
@@ -16,6 +20,7 @@ describe("email auth helpers", () => {
     expect(await verifyPassword("wrong-pass", hash)).toBe(false);
   });
 
+  /** Длина сохранённого digest должна совпадать с форматом; частичное сравнение недопустимо даже для правильного пароля. */
   it.each([0, 1, 31, 33])(
     "rejects a damaged stored digest of %i bytes instead of accepting a partial comparison",
     async (length) => {
@@ -33,6 +38,7 @@ describe("email auth helpers", () => {
   );
 
 
+  /** Повреждённые параметры старой записи дают false вместо исключения или опасной работы scrypt. */
   it.each([
     [1, "invalid"],
     [1, "3"],
@@ -46,6 +52,7 @@ describe("email auth helpers", () => {
   });
 
 
+  /** Поддерживаемая прежняя стоимость scrypt берётся из записи, а не заменяется новыми defaults. */
   it("retains supported encoded parameters rather than forcing the current hashing defaults", async () => {
     const salt = Buffer.alloc(16, 7);
     const digest = scryptSync("synthetic-password", salt, 32, { N: 8192, r: 8, p: 1 });

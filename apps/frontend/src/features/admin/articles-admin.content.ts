@@ -5,6 +5,7 @@ export const BROWN = "#4A3728";
 export const BROWN_LIGHT = "#7A6B5E";
 export const CREAM = "#FDF8F0";
 export const ACCENT = "#8B7355";
+// Панель разрешает только поддерживаемые серверным контрактом блоки; PDF прикрепляется ссылочным блоком, не отдельным типом.
 export const ADD_BLOCKS: {
   type: ArticleBlock["type"];
   label: string;
@@ -17,6 +18,7 @@ export const ADD_BLOCKS: {
   { type: "carousel", label: "Карусель", icon: "view-carousel" },
   { type: "link", label: "Ссылка", icon: "link" },
 ];
+// Все серверные типы имеют русскую подпись независимо от их технического значения в payload.
 export const BLOCK_LABELS: Record<ArticleBlock["type"], string> = {
   heading: "Заголовок",
   text: "Текст",

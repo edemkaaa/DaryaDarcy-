@@ -7,6 +7,7 @@ import classes from "./interactive-screen.module.scss";
 const keyDecor = { uri: "/assets/interactive/key-decor.webp" };
 const ivyLeft = { uri: "/assets/interactive/ivy-left.webp" };
 const ivyRight = { uri: "/assets/interactive/ivy-right.webp" };
+/** Собираем анимированную декоративную шапку; порядок ветвей и карточек согласуется слоями контейнера интерактива. */
 export function InteractiveBanner() {
   const content = (
     <>

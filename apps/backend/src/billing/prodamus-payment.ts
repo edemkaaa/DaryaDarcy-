@@ -12,6 +12,7 @@ export type ProdamusPaymentFields = {
 };
 
 /** Только разбор полей; подпись, привязка merchant и settlement должны пройти отдельно. */
+/** Собирает совместимые поля order/email/user/sum и вложенный subscription/profile в PaymentProof; order_id служит paymentId, но не доказательством оплаты без подписи. */
 export function readProdamusPayment(
   body: Record<string, unknown>,
 ): ProdamusPaymentFields {

@@ -11,6 +11,7 @@ import { MaterialIcons } from "@/shared/ui/icons";
 import { sanitizePlainPostText } from "@/domain/content/post-text-sanitize";
 import { truncateSelectionPreview } from "@shared/rich-text-edit";
 import type { FeedPost } from "./feed-screen.content";
+/** Сетка остаётся настоящей ссылкой; доступную подпись берём из очищенного текста, показывая отдельный маркер видео или нескольких фото. */
 export function GridItem({
   item,
   isVideo,

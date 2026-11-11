@@ -1,3 +1,4 @@
+// Архив Expo. Выбирает видео/аудио/документ по discriminator вложения и пропускает неизвестные типы.
 import React from "react";
 import { View } from "react-native";
 import { AudioPlayerCard } from "./audio-player";
@@ -21,6 +22,8 @@ interface PostMediaSectionProps {
 }
 
 export function PostMediaSection({ media, posterUrl, topAligned }: PostMediaSectionProps) {
+  // Выбирает видео/аудио/документ по discriminator вложения и пропускает неизвестные типы.
+
   if (!media || media.length === 0) return null;
 
   return (

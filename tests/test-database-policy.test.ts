@@ -1,6 +1,9 @@
+/** Guard одноразовой БД не позволяет тестовым флагам открыть production или изменить параметры подключения. */
 import { afterEach, expect, it, vi } from "vitest";
 import { assertTestDatabase } from "../tooling/scripts/test-database-policy";
+/** Убираем CI-флаги после каждого сценария. */
 afterEach(() => vi.unstubAllEnvs());
+/** Схема backend_test и разрешённый локальный/CI host обязательны одновременно. */
 it("refuses non-test and external databases even with the CI service flag", () => {
   vi.stubEnv("CI", "true");
   vi.stubEnv("BACKEND_TEST_CI_SERVICE", "true");
@@ -12,6 +15,7 @@ it("refuses non-test and external databases even with the CI service flag", () =
   ])
     expect(() => assertTestDatabase(uri)).toThrow();
 });
+/** Имя backend-mysql разрешается лишь при двух явных CI-флагах; loopback остаётся допустим. */
 it("accepts a CI service only when both explicit CI conditions are set", () => {
   vi.stubEnv("CI", "false");
   vi.stubEnv("BACKEND_TEST_CI_SERVICE", "true");
@@ -32,6 +36,7 @@ it("accepts a CI service only when both explicit CI conditions are set", () => {
   ).toBe("127.0.0.1");
 });
 
+/** Query, encoded socketPath и fragment запрещены, чтобы драйвер не сменил фактическую цель после проверки URL. */
 it.each([
   "?socketPath=/tmp/other-mysql.sock",
   "?%73ocketPath=%2Ftmp%2Fother-mysql.sock",

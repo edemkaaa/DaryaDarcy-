@@ -4,6 +4,7 @@ import { z } from "zod";
 export const MAX_PROFILE_REVISION = 2_147_483_647;
 
 // Колонки MySQL TEXT ограничены байтами, а не числом символов строки.
+/** Сверяем UTF-8 размер строки с пределом MySQL TEXT, чтобы имя и URL не проходили по числу символов при переполнении байт. */
 const fitsTextColumn = (value: string) =>
   Buffer.byteLength(value, "utf8") <= 65_535;
 

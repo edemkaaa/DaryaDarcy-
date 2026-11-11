@@ -26,6 +26,7 @@ import { privateUploadInput, privateUploadStatusInput, uploadPrivateAttachment, 
 import { privateContentInput, privateContentStatusInput, uploadPrivateContentFile, privateContentFileStatus } from "../content/private-content-uploads";
 import { editRevisionInput } from "../content/content-edit-revision";
 
+/** Собирает admin-only чтения, редакторы и загрузки с переданными сервисами; recovery-запросы и moderator actionStatus не повторяют изменения. */
 export const createAdminRouter = (
   content: ContentReadService,
   posts: ContentWriteService,

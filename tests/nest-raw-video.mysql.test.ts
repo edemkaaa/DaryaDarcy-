@@ -8,11 +8,13 @@ import { sdk } from "../apps/backend/src/_core/sdk";
 
 const storage = vi.hoisted(() => ({ put: vi.fn() }));
 vi.mock("../apps/backend/src/storage", () => ({ storagePut: storage.put }));
+/** Проверяет, что отключённый raw upload возвращает 404 до storage и любой активности сессии. */
 describe.skipIf(!testDatabaseUrl)(
   "raw public upload retirement with a real database",
   () => {
     let conn: Connection, app: INestApplication, base: string, bearer: string;
     let ownsFixture = false;
+    /** Проверяет свободный fixture-ID, создаёт своего администратора и локальный API с настоящим JWT. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       const [occupied] = await conn.query<RowDataPacket[]>(
@@ -32,6 +34,7 @@ describe.skipIf(!testDatabaseUrl)(
         sessionVersion: 0,
       });
     });
+    /** Удаляет аккаунт только при успешном владении fixture и закрывает API и соединение. */
     afterAll(async () => {
       await app?.close();
       if (ownsFixture)
@@ -41,6 +44,7 @@ describe.skipIf(!testDatabaseUrl)(
       await conn?.end();
       vi.unstubAllEnvs();
     });
+    /** Аноним, действующий администратор и неверный токен получают одинаковый 404 без S3-вызова и изменения пользователя. */
     it.each(["anonymous", "admin", "invalid"])(
       "%s receives 404 without storage or session activity",
       async (actor) => {

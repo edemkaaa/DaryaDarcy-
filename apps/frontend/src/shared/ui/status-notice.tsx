@@ -16,6 +16,7 @@ type StatusNoticeProps = {
   className?: string;
 };
 export const StatusNotice = forwardRef<HTMLDivElement, StatusNoticeProps>(
+  /** Выбираем роль сообщения по тону и отделяем действия от текста; значок не дублируется для экранного диктора. */
   function StatusNotice(
     {
       children,
@@ -67,6 +68,7 @@ export const StatusNotice = forwardRef<HTMLDivElement, StatusNoticeProps>(
   },
 );
 
+/** Оформляем обычное действие в стиле сообщения, сохраняя его обработчики и состояние disabled. */
 export function StatusNoticeAction(
   props: Omit<ComponentProps<typeof Action>, "className" | "style">,
 ) {
@@ -79,6 +81,7 @@ export function StatusNoticeAction(
   );
 }
 
+/** Даём переходу Next такое же оформление, как действиям сообщения; навигацию оставляем самому Link. */
 export function StatusNoticeLink(
   props: Omit<ComponentProps<typeof Link>, "className" | "style">,
 ) {

@@ -141,8 +141,10 @@ const stats = z.object({
   postsLastMonth: count,
   topLikedPosts: z.array(z.object({ id, text: z.string(), likeCount: count })),
 });
+/** Публичные offset-страницы сохраняют числовой nextCursor и поле posts; это отдельный wire-формат от cursorPage. */
 const numericPage = <T extends z.ZodType>(row: T) =>
   z.object({ posts: z.array(row), nextCursor: id.nullable() });
+/** Непрозрачный курсор остаётся строкой, items проверяются своей row-схемой; структура не объединяется с offset-страницами. */
 const cursorPage = <T extends z.ZodType>(row: T) =>
   z.object({ items: z.array(row), nextCursor: z.string().min(1).nullable() });
 const member = z.object({
@@ -234,7 +236,7 @@ const readContracts: Record<string, z.ZodType> = {
   "moderation.listCommentReports": z.array(commentReport),
 };
 
-/** Assert before caching; never strip unknown fields, coerce or replace data. */
+/** Проверяем зарегистрированные read-проекции без удаления unknown fields; detail, календарь и комментарии дополнительно связываем с исходным input. */
 export function validateReadResponse(
   path: string,
   value: unknown,

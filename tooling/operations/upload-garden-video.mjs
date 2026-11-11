@@ -28,6 +28,7 @@ const files = [
   { file: path.join(root, ".tmp-media", "secret-garden.jpg"), key: "app-assets/home/secret-garden.jpg", type: "image/jpeg" },
 ];
 
+// Каждый заранее выбранный локальный файл публикуется по фиксированному ключу, существующий объект может быть заменён.
 for (const item of files) {
   const body = fs.readFileSync(item.file);
   await client.send(

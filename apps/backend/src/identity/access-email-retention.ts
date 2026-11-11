@@ -6,6 +6,7 @@ import {
 } from "../../../../packages/database/src/schema";
 import type { Transaction } from "./access";
 
+/** Выбираем письма, где ещё есть адрес, зашифрованная ссылка, незавершённая отправка или активный lease, чтобы очистка не пропустила захваченное задание. */
 export const accessEmailNeedsScrub = () =>
   or(
     sql`LENGTH(${accessEmailOutbox.email}) > 0`,

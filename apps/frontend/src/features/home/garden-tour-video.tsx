@@ -16,6 +16,7 @@ import {
   GARDEN_VIDEO_URL,
   GARDEN_POSTER_URL,
 } from "./garden-tour-video.content";
+/** Постер сам не загружает видео; отдельная кнопка запуска передаёт намерение владельцу. */
 function GardenPoster({ onClick }: { onClick: () => void }) {
   return (
     <div className={["ui-stack ", classes.frame].filter(Boolean).join(" ")}>
@@ -41,6 +42,7 @@ function GardenPoster({ onClick }: { onClick: () => void }) {
     </div>
   );
 }
+/** Создаём ManagedVideo после явного выбора и сохраняем controls/playsInline для браузерного воспроизведения. */
 export function GardenTourVideo() {
   const [isPlaying, setIsPlaying] = useState(false);
   if (!isPlaying) {
@@ -64,6 +66,7 @@ type SectionProps = {
   scrollY?: SharedValue<number>;
   viewportHeight?: number;
 };
+/** Согласуем появление секции со scrollY или отложенным fallback, не связывая декоративное раскрытие с успешным запуском видео. */
 export function GardenTourSection({
   scrollY,
   viewportHeight = 800,
@@ -71,6 +74,7 @@ export function GardenTourSection({
   const [layoutY, setLayoutY] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [confetti, setConfetti] = useState(false);
+  /** Раскрываем секцию один раз на экземпляр и кратко включаем конфетти. */
   const triggerReveal = useCallback(() => {
     if (revealed) return;
     setRevealed(true);
@@ -92,6 +96,7 @@ export function GardenTourSection({
     const timer = setTimeout(triggerReveal, 400);
     return () => clearTimeout(timer);
   }, [scrollY, triggerReveal]);
+  /** Обновляем положение секции для порога раскрытия при изменении layout. */
   const onResize = (event: LayoutRect) => {
     setLayoutY(event.y);
   };

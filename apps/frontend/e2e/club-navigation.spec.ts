@@ -1,11 +1,14 @@
 import { expect, test, type Page } from "@playwright/test";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
 
+/** Различаем внутреннюю навигацию клуба по accessible-name, не считая её общей панелью приложения. */
 const clubMenu = (page: Page) =>
   page.getByRole("navigation", { name: "Разделы клуба", exact: true });
+/** Выбираем общую панель шести разделов отдельно от четырёх клубных рубрик. */
 const appMenu = (page: Page) =>
   page.getByRole("navigation", { name: "Разделы", exact: true });
 
+/** Меняем только серверное подтверждение доступа, сохраняя вошедший аккаунт для проверки смены меню. */
 async function memberApi(page: Page, hasAccess: () => boolean) {
   await layoutApi(page, true);
   await page.route("**/api/trpc/**", (route) => {
@@ -41,6 +44,7 @@ async function memberApi(page: Page, hasAccess: () => boolean) {
   });
 }
 
+/** На трёх ширинах клуб показывает одну внутреннюю строку, а выход возвращает общее меню и сохраняет выбранную рубрику. */
 for (const width of [320, 390, 1440]) {
   test(`club navigation has only four club items and restores the app menu on exit (${width}px)`, async ({
     page,
@@ -87,6 +91,7 @@ for (const width of [320, 390, 1440]) {
   });
 }
 
+/** Страница оформления сохраняет общее меню и для гостя, и для вошедшего без доступа. */
 for (const authenticated of [false, true]) {
   test(`club navigation keeps the app menu on the subscription landing (${authenticated ? "signed in" : "guest"})`, async ({
     page,
@@ -106,6 +111,7 @@ for (const authenticated of [false, true]) {
   });
 }
 
+/** Подтверждённая потеря доступа должна немедленно заменить внутреннее меню общей навигацией. */
 test("club navigation restores the app menu when confirmed club access is lost", async ({
   page,
 }) => {

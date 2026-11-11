@@ -137,6 +137,8 @@ const TAG_KEYWORDS: Record<string, string[]> = {
 
 // ── Season detection by date ──
 function getSeasonByMonth(month: number): string {
+  // Применяет историческую сезонную классификацию месяцев; это не расписание автосезонов Клуба.
+
   // month is 0-indexed
   if (month >= 2 && month <= 4) return "spring";
   if (month >= 5 && month <= 7) return "summer";
@@ -146,18 +148,24 @@ function getSeasonByMonth(month: number): string {
 
 // Check if text contains any keyword from the list (case-insensitive, partial match)
 function matchesKeywords(text: string, keywords: string[]): boolean {
+  // Проверяет словарь ключевых фраз в нормализованном тексте для назначения исторических тегов.
+
   const lower = text.toLowerCase();
   return keywords.some(kw => lower.includes(kw.toLowerCase()));
 }
 
 // Count how many keywords match
 function countKeywordMatches(text: string, keywords: string[]): number {
+  // Считает срабатывания словаря, чтобы отделить основной сюжет от случайного упоминания.
+
   const lower = text.toLowerCase();
   return keywords.filter(kw => lower.includes(kw.toLowerCase())).length;
 }
 
 // ── Main classification function ──
 function classifyPost(post: { id: number; text: string; sortOrder: number; instagramId: string | null }): string[] {
+  // Выбирает тематические и сезонные теги по тексту и карте исходных дат; результат предназначен для ручного backfill.
+
   const assignedTags: Set<string> = new Set();
   const text = post.text;
 
@@ -282,6 +290,8 @@ function classifyPost(post: { id: number; text: string; sortOrder: number; insta
 
 // ── Main execution ──
 async function main() {
+  // Пересчитывает теги всех выбранных постов по историческим словарям и записывает результат в БД окружения.
+
   console.log("Starting post classification v2 (with real dates)...\n");
   
   // Fetch all posts

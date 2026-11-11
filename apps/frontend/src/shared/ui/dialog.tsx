@@ -6,6 +6,7 @@ import { useScreenActive } from "@/shared/navigation/screen-activity";
 const dialogStack: HTMLElement[] = [];
 const originalInert = new Map<HTMLElement, boolean>();
 // Верхний диалог владеет фокусом; исходный inert возвращаем только после закрытия всего стека.
+/** Оставляем активным только верхний портал; после закрытия последнего окна восстанавливаем исходный inert каждого элемента. */
 function syncDialogBackground() {
   const top = dialogStack.at(-1);
   if (!top) {
@@ -27,6 +28,7 @@ type DialogProps = {
   className?: string;
   children: ReactNode;
 };
+/** Портал открывается только на активном экране, владеет фокусом и возвращает его источнику после закрытия. */
 export function Dialog({
   label,
   open,
@@ -47,16 +49,19 @@ export function Dialog({
   close.current = onClose;
   useEffect(() => {
     if (!active && open) close.current?.();
+    // Скрытый сохранённый экран отдаёт владение диалогом; вызывающий код должен сбросить свой open.
   }, [active, open]);
   useEffect(() => {
     const current = node.current;
     if (!visible || !current) return;
+    // Стек, observers и обработчики принадлежат этому открытию; cleanup снимает их и восстанавливает прежний фокус.
     // Запоминаем источник открытия до autofocus портала, чтобы вернуть фокус в правильное место.
     const previous = trigger.current;
     dialogStack.push(current);
     syncDialogBackground();
     const observer = new MutationObserver(syncDialogBackground);
     observer.observe(document.body, { childList: true });
+    /** Каждый раз читаем живые доступные элементы: disabled, inert и скрытые узлы исключаем из обхода Tab. */
     const focusables = () =>
       [
         ...(node.current?.querySelectorAll<HTMLElement>(
@@ -71,6 +76,7 @@ export function Dialog({
       );
     const first = focusables()[0];
     (first || node.current)?.focus();
+    /** Только верхнее окно обрабатывает Escape и замыкает Tab; вложенные диалоги не конкурируют за клавиатуру. */
     const key = (e: KeyboardEvent) => {
       if (dialogStack.at(-1) !== current) return;
       if (e.key === "Escape") {
@@ -101,6 +107,7 @@ export function Dialog({
       }
     };
     // Программный перенос фокуса за пределы верхнего окна тоже возвращаем внутрь, не только Tab.
+    /** Возвращаем программно уведённый фокус внутрь верхнего окна, в том числе без нажатия Tab. */
     const containFocus = (event: FocusEvent) => {
       if (
         dialogStack.at(-1) === current &&

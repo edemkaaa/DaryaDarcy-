@@ -29,6 +29,7 @@ type PurchaseState = {
   notice: string | null;
   error: string | null;
 };
+/** Различаем факт оплаты конкретного заказа и сегодняшний доступ; исторический expiresAt не выдаёт новую подписку. */
 function describePurchase(result: NormalCheckoutStatus): string {
   switch (result.state) {
     case "notRecorded":
@@ -42,7 +43,7 @@ function describePurchase(result: NormalCheckoutStatus): string {
   }
 }
 
-/** NORMAL intent recovery never uses subscription state as payment evidence. */
+/** Управляем NORMAL-покупкой текущего аккаунта через durable journal и отменяем право на redirect при уходе или смене сессии. Состояние подписки не заменяет квитанцию конкретного заказа. */
 export function useNormalClubPayment({
   enabled,
   active,
@@ -75,6 +76,7 @@ export function useNormalClubPayment({
   const identity = useRef({ ready, ownerId });
   identity.current = { ready, ownerId };
   const current = state?.ownerId === ownerId ? state : null;
+  /** Разрешаем одну операцию только живому видимому владельцу; новое явное действие может восстановить работу после неудавшейся навигации. */
   const begin = (name: string) => {
     if (!ready || !ownerId || document.hidden) return null;
     // A fresh explicit action may recover if an attempted navigation failed.
@@ -96,6 +98,7 @@ export function useNormalClubPayment({
     [scope, enabled, active, ownerId, returnKey],
   );
   useEffect(() => {
+    /** Прекращаем локальную операцию в фоне, сохраняя ключ покупки для последующей проверки. */
     const hidden = () => {
       if (document.hidden) scope.cancel();
     };
@@ -112,6 +115,7 @@ export function useNormalClubPayment({
   }, [scope, enabled, active, ownerId, returnKey]);
 
   // Оплаченный срок конкретного заказа может быть прошлым; действующий доступ узнаём отдельным чтением подписки.
+  /** Сначала показываем квитанцию заказа, затем отдельно обновляем действующий доступ, не теряя успешную оплату при сбое этого чтения. */
   const apply = async (
     intent: NormalCheckoutIntent,
     result: NormalCheckoutStatus,
@@ -151,6 +155,7 @@ export function useNormalClubPayment({
         });
     }
   };
+  /** Сохраняем известное намерение и объясняем неопределённый результат; повреждённую запись не заменяем новой покупкой. */
   const rememberError = (
     cause: unknown,
     journal: NormalCheckoutJournal,
@@ -179,6 +184,7 @@ export function useNormalClubPayment({
     });
   };
   // Сначала читаем исходное намерение аккаунта: один только параметр возврата из оплаты не доказывает покупку.
+  /** Читаем журнал аккаунта перед проверкой статуса; URL возврата без локального ключа не доказывает создание заказа. */
   const check = async () => {
     const task = begin("check-payment");
     if (!task || !ownerId) return;
@@ -219,6 +225,7 @@ export function useNormalClubPayment({
   }, [ready, ownerId, returnKey]);
 
   // Повтор получает прежнюю ссылку заказа; ротация ключа требует свежего терминального подтверждения.
+  /** Восстанавливаем прежнюю ссылку либо после свежего terminal создаём следующий ключ; проверяем телефон только для новой покупки. */
   const prepare = async () => {
     const task = begin("prepare-payment");
     if (!task || !ownerId) return;

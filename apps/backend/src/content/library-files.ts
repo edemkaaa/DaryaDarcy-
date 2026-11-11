@@ -11,17 +11,22 @@ import {
   privateAttachmentObjectKey,
 } from "../media/private-upload-object";
 
+/** Принимаем только серверный перечень материалов Библиотеки, а не произвольное имя каталога. */
 export const libraryMaterialKey = (key: string) =>
   (libraryMaterialKeys as readonly string[]).includes(key);
+/** Ограничиваем логический ключ файла коротким латинским идентификатором без сегментов пути. */
 export const libraryFileKey = (key: string) =>
   /^[a-z][a-z0-9-]{0,63}$/.test(key);
+/** Включаем библиотечную выдачу только при одновременном разрешении Библиотеки и приватного файлового хранилища. */
 export const libraryFilesEnabled = () =>
   process.env.PRIVATE_LIBRARY_FILES_ENABLED === "true" &&
   process.env.PRIVATE_CONTENT_FILES_ENABLED === "true";
+/** Строим адрес защищённой выдачи по логической паре материала и файла; адрес S3 клиенту не передаётся. */
 export const libraryFileUrl = (material: string, file: string) =>
   `/api/media/library-files/${material}/${file}`;
 
 /** A retained old version cannot be read by assetId after a binding switches. */
+/** Проверяем, что assetId всё ещё выбран включённой библиотечной привязкой: сохранённая старая версия не становится доступной по своему идентификатору. */
 export async function libraryFileActive(
   file: typeof privateContentFiles.$inferSelect,
 ) {
@@ -48,6 +53,7 @@ export async function libraryFileActive(
 }
 
 /** Разрешаем логическую пару материал/файл через актуальную серверную привязку. */
+/** Соединяем актуальную привязку с готовым файлом нужного пространства хранилища; возвращаем серверный ключ лишь после проверки состояния, роли и отсутствия отзыва. */
 export async function libraryFile(material: string, key: string) {
   const database = await getDb();
   if (!database) throw new Error("Database unavailable");
@@ -86,6 +92,7 @@ export async function libraryFile(material: string, key: string) {
 }
 
 /** Выдаём метаданные актуальных файлов материала; произвольный путь в бакете этим не разрешается. */
+/** Читаем до 50 привязок по устойчивой паре sortOrder/id; повреждённая готовность страницы вызывает ошибку целиком, а клиент получает только логические URL и метаданные. */
 export async function listLibraryFiles(
   material: string,
   cursor: [number, number] | null,

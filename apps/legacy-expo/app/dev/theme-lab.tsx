@@ -1,3 +1,4 @@
+// Архив Expo. Показывает имя и фактическое значение одного цветового токена.
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
@@ -13,6 +14,8 @@ type PaletteName = keyof typeof SchemeColors.light;
 const paletteNames: PaletteName[] = Object.keys(SchemeColors.light) as PaletteName[];
 
 function ColorSwatch({ name, value }: { name: PaletteName; value: string }) {
+  // Показывает имя и фактическое значение одного цветового токена.
+
   return (
     <View className="flex-row items-center justify-between rounded-xl border border-border px-3 py-2">
       <View className="flex-row items-center gap-3">
@@ -25,6 +28,8 @@ function ColorSwatch({ name, value }: { name: PaletteName; value: string }) {
 }
 
 export default function ThemeLabScreen() {
+  // Архивная диагностическая страница проверяет глобальную тему и нажатия без серверной записи.
+
   const [pressCount, setPressCount] = useState(0);
   const [lastAction, setLastAction] = useState<string>("None yet");
   const { colorScheme, setColorScheme } = useThemeContext();
@@ -32,7 +37,7 @@ export default function ThemeLabScreen() {
 
   const swatches = useMemo(
     () =>
-      paletteNames.map((name) => ({
+      /* Собирает список текущей палитры для визуальной проверки токенов. */ paletteNames.map((name) => ({
         name,
         value: SchemeColors[colorScheme][name],
       })),
@@ -40,7 +45,9 @@ export default function ThemeLabScreen() {
   );
 
   const tileStyles = useMemo(() => {
-    const build = (scheme: ColorScheme) => ({
+    // Готовит неизменные образцы light/dark переключателей.
+
+    const build = (scheme: ColorScheme) => /* Отображает палитру схемы в фон, рамку и оттенки текста плитки. */ ({
       background: SchemeColors[scheme].background,
       border: SchemeColors[scheme].border,
       text: SchemeColors[scheme].foreground,
@@ -222,6 +229,7 @@ export default function ThemeLabScreen() {
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   schemeToggle: {
     flex: 1,

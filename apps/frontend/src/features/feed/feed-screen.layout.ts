@@ -3,6 +3,7 @@ import type { ViewportSize } from "@/shared/browser/viewport";
 
 import { getFeedScreenContent } from "./feed-screen.content";
 
+/** Передаём вычисленные размеры сетки UI-компоненту без привязки к API или выбранному фильтру. */
 export function getFeedScreenLayout(viewport: ViewportSize) {
   const { GRID_ITEM_SIZE, GRID_ITEM_HEIGHT } = getFeedScreenContent(viewport);
   const stylesLayout = {

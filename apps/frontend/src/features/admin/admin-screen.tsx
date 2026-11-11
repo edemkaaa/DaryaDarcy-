@@ -62,6 +62,8 @@ import {
 
 import { AdminPostEditor } from "./admin-post-editor";
 export default function AdminScreen() {
+  // Разделяет административные вкладки и их запросы; модератору доступна только модерация, а проверки сервера остаются окончательными.
+
   const router = useRouter();
   const {
     user,
@@ -87,6 +89,8 @@ export default function AdminScreen() {
   >("posts");
   const staff = isOwner || user?.role === "moderator";
   useEffect(() => {
+    // На подтверждённого гостя переводит во вход; временная ошибка проверки сессии показывается отдельно.
+
     if (sessionStatus === "guest") router.login("/admin", true);
   }, [router, sessionStatus]);
   const viewTab = isOwner ? ownerViewTab : "reports";
@@ -99,22 +103,25 @@ export default function AdminScreen() {
       data: unknown;
     }>;
   }) => {
+    // Считает перечитывание успешным лишь при проверенном списке ID, иначе неопределённое действие остаётся заблокированным.
+
     const result = await query.refetch();
     if (!result.isSuccess || !Array.isArray(result.data))
       throw result.error ?? invalidResponse();
     requireIdList(result.data);
   };
+  // Краткие страницы читаются только во вкладке постов; календарь и статистика используют свои агрегаты.
   const postsQuery = trpc.admin.postsPage.useInfiniteQuery(
     { limit: 20 },
     {
       enabled: isOwner && viewTab === "posts" && !showForm,
       maxPages: 8,
       getPreviousPageParam: (_firstPage, _pages, firstParam) =>
-        typeof firstParam === "number" && firstParam > 0
+        /* Возвращает предыдущий offset в ограниченном окне страниц, не уходя ниже нуля. */ typeof firstParam === "number" && firstParam > 0
           ? Math.max(0, firstParam - 20)
           : undefined,
       getNextPageParam: (lastPage, _pages, lastParam, params) =>
-        lastPage.nextCursor !== null &&
+        /* Принимает только возрастающий ещё не посещённый курсор, предотвращая цикл пагинации. */ lastPage.nextCursor !== null &&
         lastPage.nextCursor > (typeof lastParam === "number" ? lastParam : 0) &&
         !params.includes(lastPage.nextCursor)
           ? lastPage.nextCursor
@@ -125,7 +132,7 @@ export default function AdminScreen() {
   const { isLoading } = postsQuery;
   const posts = useMemo(
     () =>
-      Array.from(
+      /* Склеивает ограниченное окно страниц по ID, не показывая дубли при смещении списка. */ Array.from(
         new Map(
           (postsQuery.data?.pages.flatMap((page) => page.posts) ?? []).map(
             (post) => [post.id, post],
@@ -142,6 +149,8 @@ export default function AdminScreen() {
   const utils = trpc.useUtils();
   const cache = useQueryClient();
   const invalidatePublicFeeds = () => {
+    // Обновляет связанные страницы и агрегаты после поста; неопределённый результат самой записи этим не подтверждается.
+
     void utils.admin.postsPage.invalidate();
     void utils.admin.postCounts.invalidate();
     void utils.admin.postCalendar.invalidate();
@@ -155,7 +164,7 @@ export default function AdminScreen() {
     scope: String(user?.id ?? "guest"),
     enabled: isOwner && viewTab === "members" && !showForm,
     fetchPage: (cursor, signal) =>
-      utils.client.admin.membersPage.query({ limit: 20, cursor }, { signal }),
+      /* Участницы загружаются короткими страницами с отменой в области текущего аккаунта. */ utils.client.admin.membersPage.query({ limit: 20, cursor }, { signal }),
   });
   const paymentsQuery = useCursorPages({
     key: getQueryKey(trpc.admin.paymentsPage, { limit: 20 }, "query"),
@@ -163,7 +172,7 @@ export default function AdminScreen() {
     enabled: isOwner && viewTab === "payments" && !showForm,
     poll: false,
     fetchPage: (cursor, signal) =>
-      utils.client.admin.paymentsPage.query({ limit: 20, cursor }, { signal }),
+      /* История оплат читается отдельными страницами без фонового polling всей таблицы. */ utils.client.admin.paymentsPage.query({ limit: 20, cursor }, { signal }),
   });
   const reportsQuery = trpc.moderation.listCommentReports.useQuery(undefined, {
     enabled: staff && viewTab === "reports",
@@ -175,14 +184,14 @@ export default function AdminScreen() {
     read: (input: T, signal: AbortSignal) => Promise<void>,
     commit: (result: unknown) => void,
     validate = requireOk,
-  ) => ({
+  ) => /* Оборачивает обычные административные действия в общий механизм perform, validate и read для восстановления неизвестного результата. */ ({
     isPending: adminActions.blocked,
     mutate: (input: T) =>
-      void adminActions.run({
+      /* Передаёт конкретный ввод в одну подтверждаемую команду вместо слепого повторного mutation. */ void adminActions.run({
         kind,
         label,
-        perform: (signal) => perform(input, signal),
-        read: (signal) => read(input, signal),
+        perform: (signal) => /* Сетевой этап получает сигнал действующей административной области. */ perform(input, signal),
+        read: (signal) => /* Восстановление перечитывает объект исходной команды, не выполняя её повторно. */ read(input, signal),
         commit,
         validate,
       }),
@@ -192,6 +201,8 @@ export default function AdminScreen() {
     input: { userId: number },
     signal: AbortSignal,
   ) => {
+    // Перечитывает ровно выбранную участницу и заменяет её во всех сохранённых страницах, сохраняя остальной список.
+
     const page = await utils.client.admin.membersPage.query(
       { userId: input.userId, limit: 1 },
       { signal },
@@ -215,7 +226,8 @@ export default function AdminScreen() {
         },
     );
   };
-  const readReports = () => readQuery(reportsQuery);
+  const readReports = () => /* Проверяет список жалоб после модераторского действия, не читая участниц без прав владельца. */ readQuery(reportsQuery);
+  // Продления и письма требуют durable ключей; обычное обновление списка не доказывает выполнение денежно значимой команды.
   const memberActions = useAdminActionRecovery(
     isOwner && viewTab === "members" && !showForm,
     async (outcome, signal) => {
@@ -300,6 +312,7 @@ export default function AdminScreen() {
       void utils.club.listByCategory.invalidate();
     },
   );
+  // Ошибка следующей страницы не должна скрывать уже загруженные данные; отказ доступа имеет приоритет над частичным кэшем.
   const selectedListQuery =
     viewTab === "posts"
       ? postsQuery
@@ -329,11 +342,15 @@ export default function AdminScreen() {
       (postsQuery.isFetchNextPageError || postsQuery.isFetchPreviousPageError)
     );
   const handleCreate = () => {
+    // Открывает чистую форму без прежнего ID или даты календаря.
+
     setEditingPost(null);
     setScheduledDate(null);
     setShowForm(true);
   };
   const handleEdit = async (post: { id: number }) => {
+    // Перед редактированием получает полный снимок с media; краткая карточка не годится для безопасного update.
+
     const task = detailRead.begin("post-detail");
     if (!task) return;
     adminActions.setError(null);
@@ -357,6 +374,8 @@ export default function AdminScreen() {
     }
   };
   const handleDelete = (id: number) => {
+    // Явное подтверждение запускает удаление; его результат затем проверяется отдельным чтением.
+
     {
       if (confirm("Удалить этот пост?")) {
         deleteMutation.mutate({ id });
@@ -364,6 +383,8 @@ export default function AdminScreen() {
     }
   };
   const handleGrantClub = (userId: number, label: string) => {
+    // Продление использует durable журнал и ключ операции, чтобы потеря ответа не продлила доступ дважды.
+
     const message = `Выдать клуб на 31 день: ${label}?`;
     {
       if (!adminActions.blocked && !memberActions.blocked && confirm(message))
@@ -372,6 +393,8 @@ export default function AdminScreen() {
     }
   };
   const formatAdminDate = (value: Date | string | null | undefined) => {
+    // Невалидная или отсутствующая дата отображается пустым значением, не выдавая ложный срок доступа.
+
     if (!value) return "—";
     const date = value instanceof Date ? value : new Date(value);
     if (Number.isNaN(date.getTime())) return "—";
@@ -388,7 +411,7 @@ export default function AdminScreen() {
   }: {
     item: AdminPostCard;
     index: number;
-  }) => (
+  }) => /* Карточка использует короткую серверную проекцию, русские подписи тегов и отдельное чтение полной версии при правке. */ (
     <div
       data-testid={`admin-post-${item.id}`}
       className={[

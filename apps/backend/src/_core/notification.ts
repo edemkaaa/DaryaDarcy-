@@ -10,10 +10,13 @@ export type NotificationPayload = {
 const TITLE_MAX_LENGTH = 1200;
 const CONTENT_MAX_LENGTH = 20000;
 
+/** Удаляет только внешние пробелы поля уведомления перед проверкой длины и отправкой. */
 const trimValue = (value: string): string => value.trim();
+/** Отсекает нестроковые и пробельные значения до trim и сетевой работы. */
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
 
+/** Разрешает фиксированный RPC-путь относительно настроенной базы сервиса, корректно сохраняя её каталог. */
 const buildEndpointUrl = (baseUrl: string): string => {
   const normalizedBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
   return new URL(
@@ -22,6 +25,7 @@ const buildEndpointUrl = (baseUrl: string): string => {
   ).toString();
 };
 
+/** Проверяет непустые заголовок/текст и лимиты длины; возвращает нормализованный payload либо BAD_REQUEST. */
 const validatePayload = (input: NotificationPayload): NotificationPayload => {
   if (!isNonEmptyString(input.title)) {
     throw new TRPCError({

@@ -27,7 +27,7 @@ import {
   type CommentPhotoPreviews,
 } from "./comment-photo-previews";
 
-/** The keyed comment thread owns selection, previews and this account/post journal. */
+/** Владеем выбранными файлами, object URL и durable journal одного аккаунта/поста; повтор отправки использует прежний текст, исходники и ключ. */
 export function usePrivateCommentFiles(
   enabled: boolean,
   postId: number,
@@ -45,9 +45,11 @@ export function usePrivateCommentFiles(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [, redraw] = useState(0);
+  /** Освобождаем ссылки браузерных превью, не изменяя сохранённые в журнале исходники. */
   const release = useCallback(() => {
     releaseCommentPhotoPreviews(urls);
   }, [urls]);
+  /** Читаем журнал только для включённой ветки; размонтированный владелец не получает поздний результат чтения. */
   useEffect(() => {
     let current = true;
     if (enabled)
@@ -72,6 +74,7 @@ export function usePrivateCommentFiles(
       current = false;
     };
   }, [enabled, journal]);
+  /** Согласуем карту превью с текущими File и освобождаем её, когда ветка перестаёт владеть выбором. */
   useEffect(() => {
     if (enabled) {
       syncCommentPhotoPreviews(urls, files);
@@ -79,15 +82,18 @@ export function usePrivateCommentFiles(
     redraw((value) => value + 1);
   }, [enabled, files, release, urls]);
   useEffect(() => release, [release]);
+  /** Очищаем свежий выбор файлов вместе с его object URL. */
   const reset = useCallback(() => {
     release();
     setFiles([]);
   }, [release]);
+  /** Подтверждаем актуальность операции до и после чтения обсуждения и нужной родительской ветки. */
   const read = async (task: ScopedOperation, parentId?: number) => {
     task.assertCurrent();
     await refreshComments(task, parentId);
     task.assertCurrent();
   };
+  /** Явный отказ удаляет только текущую локальную запись; существование родителя и доступность списка для этого не требуются. */
   const clear = async (
     current: PrivateCommentRecord,
     task: ScopedOperation,
@@ -104,9 +110,11 @@ export function usePrivateCommentFiles(
     record,
     loading: enabled && loading,
     error,
+    /** Локальную ссылку разрешаем через карту object URL; потерянный локальный исходник не превращаем в сетевой адрес. */
     preview: (url: string) =>
       urls.get(url)?.url ?? (url.startsWith("local-comment:") ? "" : url),
     reset,
+    /** Проверяем доступность загрузок до выбора, готовим ограниченный набор фото с удалением метаданных и даём каждому устойчивый локальный ключ. */
     pick: async (slots: number, task: ScopedOperation) => {
       await requirePrivateUpload("privateContentUploads", task.signal);
       const sources = await pickWebFiles(
@@ -127,6 +135,7 @@ export function usePrivateCommentFiles(
       setFiles((previous) => [...previous, ...prepared]);
       return prepared.map(reference);
     },
+    /** Освобождаем превью удалённого выбора и исключаем его File из свежего набора. */
     remove: (ref: string) => {
       const url = urls.get(ref);
       if (url) URL.revokeObjectURL(url.url);
@@ -135,11 +144,13 @@ export function usePrivateCommentFiles(
         previous.filter((file) => reference(file) !== ref),
       );
     },
+    /** Возвращаем сохранённые исходники и ссылки выбора без создания новой операции. */
     restore: () => {
       if (!record) return null;
       setFiles(record.files);
       return { record, photos: record.files.map(reference) };
     },
+    /** До создания журнала проверяем наличие каждого исходника и готовность приватного контракта; текстовый комментарий также получает ключ. */
     prepare: async (
       input: Pick<ApiInputs["club"]["addComment"], "text" | "parentId">,
       refs: string[],
@@ -171,6 +182,7 @@ export function usePrivateCommentFiles(
       setRecord(prepared.record);
       return prepared;
     },
+    /** Проходим upload/status/add по сохранённому ключу с checkpoint; очищаем журнал лишь после успешного чтения обсуждения. */
     save: async (current: PrivateCommentRecord, task: ScopedOperation) => {
       const id = await savePrivateComment(
         current,

@@ -14,6 +14,7 @@ export interface ScreenContainerProps extends BoxProps {
   backgroundColor?: CSSProperties["backgroundColor"];
   scrollable?: boolean;
 }
+/** Собираем безопасную область и необязательную прокрутку; текстура и однотонный фон используют одинаковую внутреннюю геометрию. */
 export function ScreenContainer({
   children,
   edges = ["top", "left", "right"],

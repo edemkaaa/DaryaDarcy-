@@ -6,6 +6,7 @@ import { Action } from "@/shared/ui/action";
 import { getVkVideoEmbedUrl } from "./vk-video-url";
 import classes from "./media-playback.module.scss";
 
+/** Подписываем внешний store видимости на события документа и bfcache; cleanup снимает ровно эти listeners. */
 const subscribe = (notify: () => void) => {
   document.addEventListener("visibilitychange", notify);
   window.addEventListener("pagehide", notify);
@@ -17,6 +18,7 @@ const subscribe = (notify: () => void) => {
   };
 };
 
+/** Создаём iframe только для проверенного VK URL на активном видимом экране; удаление плеера останавливает скрытый звук. */
 export function VkVideoEmbed({
   url,
   className,
@@ -48,6 +50,7 @@ export function VkVideoEmbed({
   );
 }
 
+/** Управляем одним адресом iframe и ручным повтором; onLoad подтверждает загрузку документа, а не успешный старт видео внутри VK. */
 function Player({
   src,
   className,
@@ -65,7 +68,9 @@ function Player({
   const [slow, setSlow] = useState(false);
   useEffect(() => {
     // pagehide can precede visibilitychange when entering the back/forward cache.
+    /** На pagehide сразу снимаем src до возможного visibilitychange, чтобы bfcache не сохранил звучащий iframe. */
     const hide = () => frame.current?.removeAttribute("src");
+    /** Прямое восстановление src допускается только без recheckOnResume; иначе новую проверку выполняет владелец. */
     const show = () => {
       if (!recheckOnResume && frame.current) frame.current.src = src;
     };
@@ -103,6 +108,7 @@ function Player({
             className={classes.retry}
             aria-label="Перезагрузить плеер VK"
             onClick={() => {
+              // Владелец может сначала обновить защищённый источник; локальный повтор пересоздаёт только iframe.
               if (onRetry) {
                 onRetry();
                 return;

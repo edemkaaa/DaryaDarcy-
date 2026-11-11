@@ -1,6 +1,7 @@
 /** Читает совместимые варианты полей Prodamus и различает paid, demo и действия подписки. */
 import { asProdamusRecord as asRecord } from "./prodamus-payload";
 
+/** Ищет первый непустой совместимый ключ сначала точно, затем без учёта регистра; нормализует лишь внешние пробелы значения. */
 export function pickString(
   body: Record<string, unknown>,
   keys: string[],
@@ -21,6 +22,7 @@ export function pickString(
   return "";
 }
 
+/** Читает совместимые прямые или _param userId и принимает положительное конечное число без самостоятельной проверки владельца. */
 export function pickUserId(body: Record<string, unknown>): number | null {
   const direct =
     body._param_userId ?? body.userId ?? asRecord(body._param).userId;
@@ -28,6 +30,7 @@ export function pickUserId(body: Record<string, unknown>): number | null {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
+/** Считает подтверждённым статусом только success из поддерживаемых имён поля. */
 export function isPaidStatus(body: Record<string, unknown>): boolean {
   const status = pickString(body, [
     "payment_status",
@@ -39,6 +42,7 @@ export function isPaidStatus(body: Record<string, unknown>): boolean {
 
 /** Правильная подпись обычным ключом не превращает demo-платёж в реальную оплату. */
 export function hasProdamusDemoMarker(body: Record<string, unknown>): boolean {
+  /** Находит включённый demo-marker независимо от регистра имени, исключая пустые/нулевые/false значения. */
   const enabled = (record: Record<string, unknown>, names: string[]) =>
     Object.entries(record).some(
       ([name, value]) =>
@@ -56,6 +60,7 @@ export function hasProdamusDemoMarker(body: Record<string, unknown>): boolean {
   );
 }
 
+/** Принимает только существующие префиксы club-, club6m- и shop-; сторонний order не превращается в локальный. */
 export function pickOrderId(body: Record<string, unknown>): string {
   const value = pickString(body, [
     "order",
@@ -73,6 +78,7 @@ export function pickOrderId(body: Record<string, unknown>): string {
   return "";
 }
 
+/** Объединяет верхний и вложенный subscription объект и нормализует совместимое имя действия к нижнему регистру. */
 export function subscriptionAction(body: Record<string, unknown>): string {
   const nested = asRecord(body.subscription);
   return pickString({ ...body, ...nested }, [

@@ -1,3 +1,4 @@
+// Архив Expo. Распознаёт установленный web-режим по iOS navigator и display-mode.
 import { useEffect, useState } from "react";
 import {
   Modal,
@@ -17,12 +18,16 @@ const BROWN_MUTED = "#8B7355";
 const CREAM = "#FDF8F0";
 
 function isStandaloneWeb(): boolean {
+  // Распознаёт установленный web-режим по iOS navigator и display-mode.
+
   if (Platform.OS !== "web" || typeof window === "undefined") return false;
   const nav = window.navigator as Navigator & { standalone?: boolean };
   return Boolean(nav.standalone) || window.matchMedia("(display-mode: standalone)").matches;
 }
 
 function isIosWeb(): boolean {
+  // Выбирает инструкцию Safari по iOS user agent.
+
   if (typeof navigator === "undefined") return false;
   return /iPad|iPhone|iPod/i.test(navigator.userAgent);
 }
@@ -34,6 +39,8 @@ function Step({
   icon: keyof typeof MaterialIcons.glyphMap;
   text: string;
 }) {
+  // Рисует один статический шаг установки со значком.
+
   return (
     <View style={styles.stepRow}>
       <View style={styles.stepIcon}>
@@ -45,10 +52,14 @@ function Step({
 }
 
 export function InstallGuide() {
+  // Один раз на устройство предлагает установку web-приложения на домашний экран.
+
   const [visible, setVisible] = useState(false);
   const ios = isIosWeb();
 
   useEffect(() => {
+    // Показывает инструкцию только web вне standalone и без seen; cleanup игнорирует позднее чтение хранилища.
+
     if (Platform.OS !== "web" || isStandaloneWeb()) return;
     let cancelled = false;
     AsyncStorage.getItem(SEEN_KEY).then((seen) => {
@@ -60,6 +71,8 @@ export function InstallGuide() {
   }, []);
 
   const dismiss = async () => {
+    // Скрывает инструкцию и сохраняет локальную отметку просмотра.
+
     setVisible(false);
     await AsyncStorage.setItem(SEEN_KEY, "1");
   };
@@ -104,6 +117,7 @@ export function InstallGuide() {
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,

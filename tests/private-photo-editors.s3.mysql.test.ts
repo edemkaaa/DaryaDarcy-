@@ -28,11 +28,14 @@ const endpoint = "https://s3.twcstorage.ru",
   Bucket = "daryadarcy-s3";
 const policyHash =
   "0484dfa2cc0164225db616bc516c53e8be377aca975d32701b6a6467ce1715e8";
+/** Вычисляет SHA-256 принятой bucket policy для проверки её неизменности. */
 const hash = (value: string) =>
   createHash("sha256").update(value).digest("hex");
 type Mode = "full" | "quick";
+/** Находит текстовое поле настоящего полного либо быстрого редактора публикации. */
 const field = (form: Locator) =>
   form.getByPlaceholder("Текст поста… Enter — новый абзац");
+/** Выбирает правильное сохранение или публикацию с учётом режима и редактирования. */
 const submit = (form: Locator, mode: Mode, editing = false) =>
   form
     .getByRole("button", {
@@ -42,6 +45,7 @@ const submit = (form: Locator, mode: Mode, editing = false) =>
     .first();
 
 // No API doubles: faults drop/hold only a completed response from the real Nest API.
+/** Опциональная приёмка проверяет реальные фото постов и статей через browser, Next, Nest, отдельную SQL-базу и новые объекты S3. */
 describe.skipIf(!enabled)(
   "private photos through both real editors, API and Timeweb S3",
   () => {
@@ -58,12 +62,16 @@ describe.skipIf(!enabled)(
       objects = new Map<string, RowDataPacket>();
     let contentReads = 0;
     let articleId: number;
+    /** Читает контрольные SQL-записи собственной одноразовой базы. */
     const rows = async (sql: string, values: unknown[] = []) =>
       (await conn.query<RowDataPacket[]>(sql, values))[0];
+    /** Считает реальные PUT API-процесса для обнаружения дублирующих загрузок. */
     const puts = () =>
       api.commands.filter((name) => name === "PutObjectCommand").length;
+    /** Отбирает завершённые вызовы конкретной admin-процедуры из fault-proxy. */
     const calls = (name: string) =>
       proxy.calls.filter((call) => call.pathname === `/api/trpc/admin.${name}`);
+    /** Устанавливает cookie выбранного синтетического владельца, другого администратора или участницы. */
     async function identity(id = 98920) {
       await browser.context.addCookies([
         {
@@ -75,6 +83,7 @@ describe.skipIf(!enabled)(
         },
       ]);
     }
+    /** Открывает настоящий редактор и ждёт завершения чтения локального журнала. */
     async function open(mode: Mode, editing = false) {
       const response = await page.goto(
         `${browser.origin}${mode === "full" ? "/admin" : editing ? "/club" : "/feed"}`,
@@ -104,6 +113,7 @@ describe.skipIf(!enabled)(
       );
       return form;
     }
+    /** Выбирает или заменяет синтетический PNG через filechooser и проверяет настоящую blob-картинку по naturalWidth. */
     async function choose(form: Locator, name: string, replace = false) {
       const chooser = page.waitForEvent("filechooser");
       await form
@@ -129,6 +139,7 @@ describe.skipIf(!enabled)(
         )
         .toBe(4);
     }
+    /** Заново открывает документ и явно восстанавливает черновик с локальными фото из журнала. */
     async function reload(mode: Mode, editing = false) {
       // A real document navigation, not remounting a fixture or in-memory snapshot.
       const form = await open(mode, editing);
@@ -138,22 +149,27 @@ describe.skipIf(!enabled)(
       await ui(form.locator('img[src^="blob:"]').first()).toBeVisible();
       return form;
     }
+    /** Запускает явную проверку сохранения после неопределённого ответа. */
     const recover = (form: Locator) =>
       form
         .getByRole("button", { name: "Проверить сохранение", exact: true })
         .click();
+    /** Выполняет GET, HEAD либо Range приватного URL через browser request с текущей cookie. */
     const read = (url: string, method = "GET", range?: string) =>
       browser.context.request.fetch(`${browser.origin}${url}`, {
         method,
         headers: range ? { range } : {},
         timeout: 20000,
       });
+    /** Читает квитанцию конкретного синтетического фото по префиксу имени. */
     const ledger = (name: string) =>
       rows("SELECT * FROM private_content_files WHERE filename LIKE ?", [
         `${prefix}-${name}.%`,
       ]);
+    /** Нормализует JSON-представление photos, которое MySQL может вернуть строкой либо массивом. */
     const photos = (row: RowDataPacket): string[] =>
       typeof row.photos === "string" ? JSON.parse(row.photos) : row.photos;
+    /** Проверяет одинаковый закрытый отказ GET, HEAD и Range без запросов S3. */
     async function denied(url: string) {
       const before = api.commands.length;
       for (const [method, range] of [
@@ -167,6 +183,7 @@ describe.skipIf(!enabled)(
       }
       expect(api.commands.length).toBe(before);
     }
+    /** Сверяет metadata, MIME, размер и ETag нового объекта с собственной квитанцией. */
     async function inspectObject(row: RowDataPacket) {
       const Key = `content/private-v1/${row.assetId}`;
       const meta = await storage.send(new HeadObjectCommand({ Bucket, Key }));
@@ -181,6 +198,7 @@ describe.skipIf(!enabled)(
         throw new Error("Own content metadata/ETag guard refused");
       return { Key, meta };
     }
+    /** Проверяет место, явные флаги, владение пустой tmpfs-базой и политику перед созданием синтетических ролей и browser-стенда. */
     beforeAll(async () => {
       const disk = await statfs(tmpdir());
       if (disk.bavail * disk.bsize < 2 * 1024 ** 3)
@@ -288,6 +306,7 @@ describe.skipIf(!enabled)(
         .toBuffer();
       workers = await privateAttachmentProcesses();
       browser = await privateFilesBrowser("", {
+        /** Поднимает отдельный API и fault-proxy до запуска Next с правильным origin. */
         beforeStart: async (origin) => {
           api = await workers.start({ contentFiles: true, appOrigin: origin });
           proxy = await httpResponseFaultProxy(api.base);
@@ -313,6 +332,7 @@ describe.skipIf(!enabled)(
           contentReads++;
       });
     }, 60000);
+    /** Возвращает срок собственной подписки, сессию владельца и пустой список alert перед сценарием. */
     beforeEach(async () => {
       if (!conn) return;
       await conn.query(
@@ -322,6 +342,7 @@ describe.skipIf(!enabled)(
       await identity();
       messages.length = 0;
     });
+    /** Останавливает стенд и удаляет только новые собственные объекты после сверки назначения, metadata и условного ETag-delete. */
     afterAll(async () => {
       await browser?.close();
       await proxy?.close();
@@ -401,12 +422,14 @@ describe.skipIf(!enabled)(
       png,
       proxy,
       rows,
+      /** Передаёт SQL-запись отдельной базы общим сценариям фотографий комментариев без подмены сервиса. */
       execute: (sql, args) => conn.query(sql, args),
       identity,
       puts,
       read,
       denied,
     }));
+    /** Открывает создание, редактирование либо восстановление статьи через настоящую административную форму. */
     async function openArticle(restore = false, editing = false) {
       await page.goto(`${browser.origin}/admin`);
       await page.getByRole("button", { name: "Статьи", exact: true }).click();
@@ -423,6 +446,7 @@ describe.skipIf(!enabled)(
         })
         .click();
     }
+    /** Передаёт синтетическое фото или документ в выбранный блок статьи через настоящий filechooser. */
     async function chooseArticle(
       button: string,
       name: string,
@@ -439,6 +463,7 @@ describe.skipIf(!enabled)(
         buffer: bytes,
       });
     }
+    /** Проверяет смешанные фото, прозрачный PNG, карусель и документ с потерей upload/create-ответов, восстановлением и точной закрытой выдачей. */
     it("article: mixed private photo/PNG/carousel/document recover upload/create response loss with actual SQL and S3", async () => {
       const beforePuts = puts(),
         beforeUploads = calls("uploadPrivateContentFile").length,
@@ -598,6 +623,7 @@ describe.skipIf(!enabled)(
       for (const file of files)
         await denied(`/api/media/content-files/${file.assetId}`);
     }, 180000);
+    /** Проверяет сохранность прежних привязок статьи и отсутствие слепого повторного update после потери успешного ответа. */
     it("article: editing retains previous file bindings and never replays a lost update response", async () => {
       expect(articleId).toBeTypeOf("number");
       const previous = await rows(
@@ -668,6 +694,7 @@ describe.skipIf(!enabled)(
     }, 120000);
 
     for (const mode of ["full", "quick"] as const) {
+      /** Проверяет оба редактора при потере upload/create-ответов и перезагрузке с одним WebP-объектом и постом, сохранённой прозрачностью и удалённым EXIF. */
       it(`${mode}: lost upload/create responses recover real photos across reload without duplicate rows or PUT`, async () => {
         const name = `${mode}-create`,
           text = `${prefix}-${name}`;
@@ -787,6 +814,7 @@ describe.skipIf(!enabled)(
         await direct.body?.cancel();
       }, 180000);
 
+      /** Проверяет одно новое фото при редактировании и отсутствие слепого повторного update, сохраняя локальное доказательство до явного удаления. */
       it(`${mode}: editing uses one new photo and never replays an unknown update`, async () => {
         const id = posts.get(mode)!;
         expect(id).toBeTypeOf("number");
@@ -854,6 +882,7 @@ describe.skipIf(!enabled)(
       }, 120000);
 
       for (const stage of ["upload", "status"] as const) {
+        /** Меняет аккаунт при позднем upload/status-ответе и проверяет отзыв blob URL, изоляцию ключа и восстановление только исходным владельцем. */
         it(`${mode}: account switch during ${stage} rejects a late receipt and restores only the original owner's photo`, async () => {
           const name = `${mode}-${stage}`,
             text = `${prefix}-${name}`,

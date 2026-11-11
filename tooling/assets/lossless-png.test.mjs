@@ -5,9 +5,10 @@ import { deflateSync, crc32 } from "node:zlib";
 import sharp from "sharp";
 import { optimizeLosslessPng } from "./lossless-png.mjs";
 
-const decode = (data) => sharp(data).ensureAlpha().raw().toBuffer();
+const decode = (data) => /* Сравнивает декодированный RGBA-результат, а не только метадату или размер нового файла. */ sharp(data).ensureAlpha().raw().toBuffer();
 const rgba = Buffer.from(Array.from({ length: 17 * 23 * 4 }, (_, i) => (i * 7) & 255));
 for (const palette of [false, true]) {
+  // Сценарий: PNG с палитрой и без неё сохраняет декодированные пиксели, alpha, density и ICC.
   test(`lossless PNG retains decoded pixels and alpha with palette=${palette}`, async () => {
     const original = await sharp(rgba, { raw: { width: 17, height: 23, channels: 4 } })
       .withMetadata({ density: 144 }).png({ compressionLevel: 0, palette, colours: 16 }).toBuffer();
@@ -19,8 +20,11 @@ for (const palette of [false, true]) {
     assert.deepEqual(meta.icc, (await sharp(original).metadata()).icc);
   });
 }
+// Сценарий: 16-битный PNG сохраняет глубину и младшие байты образцов.
 test("16-bit PNG retains low bytes and colour depth", async () => {
   const chunk = (type, data) => {
+    // Формирует валидный тестовый PNG-блок с CRC для точной проверки 16-битных младших байтов.
+
     const result = Buffer.alloc(data.length + 12);
     result.writeUInt32BE(data.length);
     result.write(type, 4);
@@ -42,9 +46,10 @@ test("16-bit PNG retains low bytes and colour depth", async () => {
   const output = optimizeLosslessPng(original);
   assert.ok(output.length < original.length);
   assert.equal((await sharp(output).metadata()).bitsPerSample, 16);
-  const native = (bytes) => sharp(bytes).toColourspace("rgb16").raw({ depth: "ushort" }).toBuffer();
+  const native = (bytes) => /* Декодирует образцы в ushort, чтобы 8-битное сравнение не скрывало потерю точности цвета. */ sharp(bytes).toColourspace("rgb16").raw({ depth: "ushort" }).toBuffer();
   assert.deepEqual(await native(output), await native(original));
 });
+// Сценарий: Interlaced PNG сохраняется побайтно вместо неподдерживаемого преобразования.
 test("interlaced PNG is retained unchanged", async () => {
   const original = await sharp(rgba, { raw: { width: 17, height: 23, channels: 4 } })
     .png({ progressive: true }).toBuffer();

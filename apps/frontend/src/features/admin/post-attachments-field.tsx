@@ -17,6 +17,8 @@ export function PostAttachmentsList({
   disabled,
   onRemove,
 }: ListProps) {
+  // Показывает аудио и документы с единым списком удаления; локальные File и серверные ID остаются в родительском состоянии.
+
   if (!attachments.length) return null;
   return (
     <div className={`ui-stack ${classes.list}`}>
@@ -60,6 +62,8 @@ export function PostAttachmentsField({
   onRemove: (index: number) => void;
   onPick: (type: PostAttachment["type"]) => void;
 }) {
+  // Отключает выбор при недоступной серверной capability и передаёт тип вложения общему обработчику.
+
   return (
     <div className={`ui-stack ${classes.section}`}>
       <Typography className={classes.label}>

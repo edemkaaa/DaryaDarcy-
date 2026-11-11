@@ -9,11 +9,13 @@ import type { ContentTransaction } from "./post-deletion";
 import { lockCurrentContentActor, type ContentWriteActor } from "./content-write-actor";
 
 /** Existing member/comment permissions, rechecked in the writer's transaction. */
+/** Блокируем текущего пользователя и сверяем сессию; запрос удаления аккаунта запрещает новую операцию с фото комментария. */
 export async function lockCommentFileActor(tx: ContentTransaction, actor: ContentWriteActor) {
   const current = await lockCurrentContentActor(tx, actor);
   if (current.accountDeletionRequestedAt) throw new TRPCError({ code: "FORBIDDEN" });
   return current;
 }
+/** В транзакции записи повторно проверяем пользователя, публикацию и срок открытых комментариев перед загрузкой или привязкой фото. */
 export async function requireCommentFilePost(tx: ContentTransaction, actor: ContentWriteActor, postId: number) {
   const current = await lockCommentFileActor(tx, actor);
   const post = await requireReadableCommentPost(tx, current, postId);
@@ -21,6 +23,7 @@ export async function requireCommentFilePost(tx: ContentTransaction, actor: Cont
 }
 
 /** Keep the post locked until the comment mutation commits. */
+/** Удерживаем разделяемую блокировку опубликованного поста и активной подписки до коммита комментария, чтобы доступ не опирался на устаревшую видимость. */
 export async function requireReadableCommentPost(tx: ContentTransaction, current: User, postId: number) {
   const [post] = await tx.select().from(posts).where(eq(posts.id, postId)).for("share");
   if (!post?.published || post.status !== "published") throw new TRPCError({ code: "NOT_FOUND" });

@@ -1,3 +1,4 @@
+// Архив Expo. Нормализует исторический русский хештег в известный внутренний slug.
 /**
  * Parse Telegram export entities into post text, richText, and tag slugs.
  * Footer tags in TG are doubled: #гардероб👒 — we keep chips, drop hashtag+emoji from body.
@@ -47,12 +48,16 @@ const HASHTAG_TO_SLUG = {
 const RUBRIC_SLUGS = new Set(["podborki", "community", "exclusive", "life"]);
 
 export function hashtagToSlug(raw) {
+  // Нормализует исторический русский хештег в известный внутренний slug.
+
   const normalized = raw.replace(/^#/, "").trim().toLowerCase();
   return HASHTAG_TO_SLUG[normalized] || null;
 }
 
 /** Tags mapped from section hashtags anywhere in the message. */
 export function resolveRubricTags(rawText) {
+  // Выделяет клубные рубрики из вхождений служебных хештегов.
+
   const tags = new Set();
   const lower = rawText.toLowerCase();
   if (/#(?:подборки?|кино)/i.test(rawText)) tags.add("podborki");
@@ -66,6 +71,8 @@ export function resolveRubricTags(rawText) {
 
 /** True when message should be imported with --filter=tagged. */
 export function isTaggedClubMessage(msg) {
+  // Определяет старый фильтр импорта по рубрикам и app_-меткам экспорта.
+
   const raw = msg.text_entities?.length
     ? msg.text_entities.map((p) => p.text || "").join("")
     : typeof msg.text === "string"
@@ -81,6 +88,8 @@ export function isTaggedClubMessage(msg) {
  * Returns index where footer starts (entities before this index are body).
  */
 export function footerTagBoundary(entities) {
+  // Идёт с конца entities и отделяет повторяющиеся hashtag/emoji от основного текста.
+
   if (!Array.isArray(entities) || entities.length === 0) {
     return { start: 0, footerTags: [] };
   }
@@ -117,6 +126,8 @@ export function footerTagBoundary(entities) {
 }
 
 export function entitiesToPlain(entities, end = entities.length) {
+  // Склеивает первые entities без разметки, сохраняя порядок символов.
+
   if (!Array.isArray(entities)) return typeof entities === "string" ? entities : "";
   return entities
     .slice(0, end)
@@ -125,6 +136,8 @@ export function entitiesToPlain(entities, end = entities.length) {
 }
 
 export function entitiesToRichText(entities, end = entities.length) {
+  // Преобразует entities в параграфы, переносит bold/italic/link и объединяет соседние одинаковые стили.
+
   if (!entities?.length) return null;
   const children = [];
   for (const part of entities.slice(0, end)) {
@@ -162,6 +175,8 @@ export function entitiesToRichText(entities, end = entities.length) {
   let bucket = [];
 
   const flushParagraph = () => {
+    // Закрывает накопленный непустой параграф и начинает следующий.
+
     if (!bucket.length) return;
     paragraphs.push({ type: "paragraph", children: bucket });
     bucket = [];
@@ -188,6 +203,8 @@ export function entitiesToRichText(entities, end = entities.length) {
 }
 
 export function cleanPlainText(text) {
+  // Нормализует переносы и удаляет управляющие/повреждённые символы без изменения обычного текста.
+
   return text
     .replace(/\r\n?/g, "\n")
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
@@ -199,6 +216,8 @@ export function cleanPlainText(text) {
 }
 
 export function mergeTags(...groups) {
+  // Убирает дубли, ставит рубрики перед темами и использует life при пустом результате.
+
   const rubric = [];
   const topics = [];
   const seen = new Set();
@@ -215,6 +234,8 @@ export function mergeTags(...groups) {
 }
 
 export function buildTelegramPostContent(msg) {
+  // Собирает тело, richText и теги из Telegram entities, исключая служебный footer.
+
   const entities = msg.text_entities?.length ? msg.text_entities : msg.text;
   const rawText = entitiesToPlain(Array.isArray(entities) ? entities : []);
   const { start, footerTags } = Array.isArray(entities)

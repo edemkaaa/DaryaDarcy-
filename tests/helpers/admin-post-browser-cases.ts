@@ -19,9 +19,13 @@ interface AdminPostBrowserFixture {
 export function registerAdminPostBrowserCases(
   fixture: () => AdminPostBrowserFixture,
 ) {
+  // Регистрирует полный браузерный цикл постов на родительских API и SQL, включая медиа, расписание, роли и потерю ACK.
+
   it.each([false, true])(
     "C2 preserves attachment metadata through cancel/removal and lost reply=%s",
     async (loseReply) => {
+    // Сценарий: Отмена снятия вложения не пишет SQL; подтверждённое удаление документа сохраняет аудио и его метаданные даже при потере ACK.
+
       const { rows, connection, context, frontend, base, actorId } = fixture();
       const text = "C2 existing attachment association fixture";
       let id: number | undefined;
@@ -65,6 +69,8 @@ export function registerAdminPostBrowserCases(
           name: "Редактор публикации",
         });
         const openEditor = async () => {
+          // Ждёт разрешённого редактора и обоих исходных вложений, чтобы проверка отмены не зависела от ещё не завершённого чтения.
+
           await card
             .getByRole("button", { name: "Редактировать пост" })
             .click();
@@ -171,6 +177,8 @@ export function registerAdminPostBrowserCases(
     30_000,
   );
   it("C2 publishes a due editor schedule once and exposes the committed post in the public feed", async () => {
+    // Сценарий: Созданное расписание остаётся скрытым до искусственного наступления срока только своей строки; повтор публикации не создаёт второй эффект.
+
     const { rows, connection, context, frontend, actorId, base } = fixture();
     const text = "C2 due schedule fixture";
     const stateSql =
@@ -211,6 +219,8 @@ export function registerAdminPostBrowserCases(
       const card = page.getByTestId(`admin-post-${created.id}`);
       await browserExpect(card).toContainText("Отложен");
       const publicFeed = async () => {
+        // Читает настоящий публичный API независимо от административного UI, проверяя видимость опубликованной строки.
+
         const response = await fetch(base + "/api/trpc/feed.list");
         expect(response.status).toBe(200);
         const body = await response.json();
@@ -258,6 +268,8 @@ export function registerAdminPostBrowserCases(
     }
   }, 30_000);
   it("C2 preserves a future Moscow schedule through create, edit and reload without early publication", async () => {
+    // Сценарий: Будущая московская дата сохраняется в UTC при создании, изменении и reload, не появляясь в публичной Ленте раньше срока.
+
     const { rows, connection, context, frontend, actorId, base } = fixture();
     const text = "C2 future schedule fixture";
     const stateSql =
@@ -297,6 +309,8 @@ export function registerAdminPostBrowserCases(
       const card = page.getByTestId(`admin-post-${created.id}`);
       await browserExpect(card).toContainText("Отложен");
       const publicFeed = async () => {
+        // Проверяет отсутствие будущего поста в публичном ответе до наступления срока.
+
         const response = await fetch(base + "/api/trpc/feed.list");
         expect(response.status).toBe(200);
         const body = await response.json();
@@ -347,6 +361,8 @@ export function registerAdminPostBrowserCases(
     }
   }, 30_000);
   it("C2 opens the editor after password login and removes admin controls after logout and member login", async () => {
+    // Сценарий: Настоящий парольный вход открывает редактор администратору; выход отзывает старый JWT, а обычный аккаунт не получает UI или API записи.
+
     const { rows, connection, context, frontend, base, actorId, memberId } =
       fixture();
     const password = "Synthetic-C2-login-only-2026!";
@@ -365,6 +381,8 @@ export function registerAdminPostBrowserCases(
     await context.clearCookies();
     const page = await context.newPage();
     const signIn = async (email: string, id: number, role: string) => {
+      // Использует реальную форму входа и проверяет HttpOnly-cookie без сохранения токена в localStorage.
+
       await page.goto(frontend + "login?next=/admin");
       await page.getByPlaceholder("Email", { exact: true }).fill(email);
       await page.getByPlaceholder("Пароль", { exact: true }).fill(password);
@@ -465,6 +483,8 @@ export function registerAdminPostBrowserCases(
     ).toBe(401);
   }, 30_000);
   it("C2 retries a committed draft after a lost HTTP reply without creating another post", async () => {
+    // Сценарий: Транспорт теряется после реального commit; восстановление использует тот же ключ, оставляя один пост и одну квитанцию создания.
+
     const { rows, connection, context, frontend, actorId, base } = fixture();
     const text = "C2 lost reply draft fixture";
     const keys: string[] = [];
@@ -559,6 +579,8 @@ export function registerAdminPostBrowserCases(
     }
   }, 30_000);
   it("C2 persists a draft through browser create, edit, reload and confirmed deletion", async () => {
+    // Сценарий: Черновик проходит создание, изменение и reload одним ID; отказ от confirm удаления сохраняет его, согласие удаляет только свою строку.
+
     const { rows, connection, context, frontend, actorId } = fixture();
     const text = "C2 native browser draft fixture";
     const edited = text + " — edited";

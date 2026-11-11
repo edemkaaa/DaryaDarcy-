@@ -35,6 +35,7 @@ import {
   LIGHTACADEMIA_MOODBOARDS,
   LIGHTACADEMIA_INTERIORS,
 } from "./quiz-result.content";
+/** По ключу эстетики выбираем порядок иллюстраций, затем заменяем исходные идентификаторы защищёнными URL; без привязок не показываем неполный расширенный результат. */
 export function ClubContentSection({
   content,
   aestheticKey,
@@ -45,6 +46,7 @@ export function ClubContentSection({
   const viewport = useViewport();
   const { stylesLayout } = getQuizResultLayout(viewport);
 
+  /** Массивы служат образцом порядка и состава, а не запасными публичными ссылками при отказе API. */
   const publicMoodboards =
     aestheticKey === "cottagecore"
       ? COTTAGECORE_MOODBOARDS

@@ -1,5 +1,7 @@
 // Launch the real executable with the parent's explicitly isolated environment.
+// Этот probe намеренно импортирует executable: родитель обязан передать изолированное окружение; готовность подтверждается настоящим health HTTP.
 import "../../apps/backend/src/_core/index";
+// Опрос сообщает готовность через IPC один раз; общий deadline и завершение процесса принадлежат родительскому тесту.
 const ready = setInterval(async () => {
   try {
     const res = await fetch(`http://127.0.0.1:${process.env.PORT}/api/health`);

@@ -4,6 +4,8 @@ import { setTimeout } from "node:timers/promises";
 import { assertTestDatabase } from "./test-database-policy";
 
 async function wait() {
+  // Проверяет целевой тестовый URL до подключения и ограниченно повторяет SELECT 1, закрывая соединение каждой попытки.
+
   const uri = process.env.BACKEND_TEST_DATABASE_URL;
   if (!uri) throw new Error("BACKEND_TEST_DATABASE_URL required");
   assertTestDatabase(uri);

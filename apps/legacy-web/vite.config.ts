@@ -1,3 +1,4 @@
+/** Конфигурация архивной сборки Vite. Результат web-dist отделён от действующей Next-сборки. */
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
@@ -20,6 +21,7 @@ export default defineConfig({
     cssMinify: true,
     rollupOptions: {
       output: {
+        /** Выносит React и транспорт запросов в общие chunks по прежней эвристике путей зависимостей. */
         manualChunks(id) {
           if (id.includes("node_modules/react") || id.includes("react-dom") || id.includes("react-router")) {
             return "react";

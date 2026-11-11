@@ -52,6 +52,7 @@ export type InsertUser = typeof users.$inferInsert;
 
 /** Durable intent receipts contain IDs/results only; never mail tokens or personal contacts. */
 /** Квитанции административных намерений хранят результат для восстановления после потери ответа. */
+// Уникальность actor/key фиксирует намерение и результат действия, но не заменяет проверку текущих прав исполнителя в транзакции.
 export const adminActionOperations = mysqlTable("admin_action_operations", {
   actorUserId: int("actorUserId").notNull(),
   operationKey: varchar("operationKey", { length: 36 }).notNull(),
@@ -179,6 +180,7 @@ export type InsertPostMedia = typeof postMedia.$inferInsert;
 
 // Recovery evidence survives detachment/deletion. Never auto-expire or rebind it.
 /** Квитанция закрытой загрузки связывает владельца, namespace, хеши и состояние объекта. */
+// pending/ready описывают техническую готовность объекта; фактический доступ дополнительно требует живой связи с материалом, ETag и текущей серверной политики.
 export const privateAttachmentUploads = mysqlTable("private_attachment_uploads", {
   requestKey: varchar("requestKey", { length: 64 }).primaryKey(),
   actorUserId: int("actorUserId"),
@@ -578,6 +580,7 @@ export const memberEmailBindingOutbox = mysqlTable("member_email_binding_outbox"
 }, (table) => [index("member_email_binding_outbox_due").on(table.sentAt, table.nextAttemptAt)]);
 
 /** Письма регистрации, пароля и доступа имеют долговечный журнал попыток. */
+// lease координирует попытки между процессами, sentAt хранит подтверждение транспорта; SQL-журнал и внешний SMTP не обеспечивают общую атомарную транзакцию.
 export const accessEmailOutbox = mysqlTable("access_email_outbox", {
   id: int("id").autoincrement().primaryKey(),
   eventKey: varchar("eventKey", { length: 128 }).notNull().unique(),

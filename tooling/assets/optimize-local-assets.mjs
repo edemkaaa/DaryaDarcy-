@@ -29,6 +29,8 @@ let saved = 0;
 let count = 0;
 
 async function walk(dir) {
+  // Обходит прежний assets-каталог и запускает обработку поддерживаемых файлов, пропуская зависимости и сборки.
+
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   await Promise.all(
     entries.map(async (name) => {
@@ -41,6 +43,8 @@ async function walk(dir) {
 }
 
 async function processFile(file) {
+  // Применяет историческую политику уменьшения/перекодирования только при достаточной экономии; это не доказательство сохранения пикселей.
+
   const ext = path.extname(file).toLowerCase();
   if (![".png", ".jpg", ".jpeg"].includes(ext)) return;
   if (SKIP_BASENAMES.has(path.basename(file))) return;
@@ -110,6 +114,8 @@ if (pathMap.length && !dryRun) {
   let changed = 0;
 
   function walkCode(dir) {
+    // Обновляет basename-ссылки после созданного WebP; область замены широкая и требует ручного контроля diff.
+
     for (const name of fs.readdirSync(dir, { withFileTypes: true })) {
       const full = path.join(dir, name.name);
       if (skip.test(full)) continue;

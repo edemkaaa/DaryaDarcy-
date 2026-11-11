@@ -30,6 +30,8 @@ const AESTHETIC_MAP = {
 };
 
 async function api(pathParam = "") {
+  // Запрашивает метадату заданного пути публичного диска и ограниченную страницу вложений.
+
   const url = new URL(API);
   url.searchParams.set("public_key", PUBLIC_KEY);
   if (pathParam) url.searchParams.set("path", pathParam);
@@ -40,6 +42,8 @@ async function api(pathParam = "") {
 }
 
 async function downloadHref(href, dest) {
+  // Скачивает подтверждённый href в выбранный локальный файл, создавая его родительский каталог.
+
   const res = await fetch(href);
   if (!res.ok) throw new Error(`download ${res.status}`);
   fs.mkdirSync(path.dirname(dest), { recursive: true });
@@ -47,6 +51,8 @@ async function downloadHref(href, dest) {
 }
 
 function parseAesthetic(filename) {
+  // Принимает только известное название эстетики в скобках, не создавая произвольные имена каталогов из внешнего файла.
+
   const m = filename.match(/\(([^)]+)\)/i);
   if (!m) return null;
   const key = m[1].trim().toLowerCase();
@@ -54,6 +60,8 @@ function parseAesthetic(filename) {
 }
 
 async function main() {
+  // Сопоставляет известные папки и эстетики, а dry-run оставляет скачивание выключенным даже при наличии href.
+
   const dryRun = process.argv.includes("--dry-run");
   const rootListing = await api("/");
   let count = 0;

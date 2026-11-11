@@ -1,3 +1,4 @@
+// Архив Expo. Палитра, лимит бесплатных локальных досок и доступность сезонных каталогов.
 import type { MoodboardSeason } from "@/lib/moodboard/types";
 
 export const MOODBOARD_FREE_LIMIT = 3;

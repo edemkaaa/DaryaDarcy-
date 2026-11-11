@@ -31,6 +31,7 @@ const unconfirmed =
 const requested =
   "Запрос на отмену сохранён. Провайдер пока не подтвердил отмену. Автосписание может оставаться активным. Проверьте статус позже.";
 
+/** Ответ отмены допускает null или пригодную абсолютную дату, не NaN/Infinity. */
 function validExpiration(value: unknown): boolean {
   return (
     value === null ||
@@ -39,11 +40,12 @@ function validExpiration(value: unknown): boolean {
   );
 }
 
+/** Повторное чтение прав проходит тот же runtime-контракт, что общий провайдер подписки. */
 function requireSubscription(value: ApiOutputs["club"]["subscription"]) {
   return parseClubAccess(value);
 }
 
-/** A timed-out write may already be queued by the server; retry only reads. */
+/** Храним неизвестный исход отмены выше экрана профиля; pending провайдера и подтверждённая отмена имеют разные состояния. После timeout повторяем чтение, а не команду отмены. */
 function useCancellationController(active: boolean) {
   const { isSubscribed, isOwner, cancelAtPeriodEnd, cancellationStatus } =
     useClub();
@@ -57,6 +59,7 @@ function useCancellationController(active: boolean) {
       setNotice(null);
     }
   }, [cancellationStatus]);
+  /** Синхронный ref блокирует повтор до React-render, state показывает то же сообщение пользователю. */
   const remember = (value: Notice | null) => {
     noticeRef.current = value;
     setNotice(value);
@@ -68,6 +71,7 @@ function useCancellationController(active: boolean) {
     !cancelAtPeriodEnd &&
     cancellationStatus === "none";
 
+  /** Отменяем старые фоновые чтения перед свежей проверкой и перед записью результата в кеш, чтобы не откатить confirmation. */
   const readStatus = async (task: ScopedOperation) => {
     // Do not let an older background read overwrite this verification.
     await utils.club.subscription.cancel();
@@ -93,6 +97,7 @@ function useCancellationController(active: boolean) {
     );
   };
 
+  /** Запрашиваем явное подтверждение, затем отправляем отмену один раз; только доказанный отказ до записи снимает unknown. */
   const cancel = async () => {
     if (!eligible || noticeRef.current?.status === "unknown" || operation.busy)
       return;
@@ -144,6 +149,7 @@ function useCancellationController(active: boolean) {
   };
 
   // Проверка результата не отправляет отмену повторно и не принимает ожидание провайдера за завершение.
+  /** Повторное действие читает subscription, не вызывает club.cancel и не принимает pending за confirmed. */
   const check = async () => {
     if (!serverPending && noticeRef.current?.status !== "unknown") return;
     const task = operation.begin("check-cancellation");
@@ -183,7 +189,7 @@ const CancellationContext = createContext<ReturnType<
   typeof useCancellationController
 > | null>(null);
 
-/** Keep an uncertain write across profile unmounts, inside the account scope. */
+/** Удерживаем controller в области аккаунта независимо от временного размонтирования профиля. */
 export function SubscriptionCancellationProvider({
   active,
   children,
@@ -199,6 +205,7 @@ export function SubscriptionCancellationProvider({
   );
 }
 
+/** Возвращаем единый controller отмены из провайдера, не создавая новый разрешённый повтор на каждом экране. */
 export function useSubscriptionCancellation() {
   const value = useContext(CancellationContext);
   if (!value) throw new Error("Cancellation provider is missing");

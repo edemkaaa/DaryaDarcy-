@@ -4,8 +4,10 @@ import { createHash } from "node:crypto";
 import { resolve } from "node:path";
 import { layoutApi, gotoWithSession } from "./layout-fixtures";
 
+/** Сопоставляем исходник, собранный файл и HTTP-тело по байтам, а не только по имени ресурса. */
 const sha256 = (bytes: Buffer) => createHash("sha256").update(bytes).digest("hex");
 
+/** Проверяем все импортированные изображения и перечисленные public-варианты: byte identity и immutable cache принадлежат именно версии с хешем. */
 test("all imported originals and public derivatives have intact bytes and immutable caching", async ({
   request,
 }) => {
@@ -59,6 +61,7 @@ test("all imported originals and public derivatives have intact bytes and immuta
   }
 });
 
+/** На двух ширинах браузер выбирает локальное превью нужного размера; отдельно проверяем MIME, Vary и TTL оптимизатора. */
 for (const width of [390, 1440]) {
   test(`club illustrations use smaller local previews at ${width}px`, async ({
     page,
@@ -109,6 +112,7 @@ for (const width of [390, 1440]) {
   });
 }
 
+/** Сценарии деталей различают лёгкое превью и исходный full-ресурс, открываемый явным просмотром; SHA берём из manifest. */
 for (const [path, button, dialog] of [
   ["/shop/book-1", "Открыть фото товара 1", "Просмотр фотографии товара"],
   ["/library/about-me", "Открыть фото 1", "Просмотр фотографий"],
@@ -159,6 +163,7 @@ for (const [path, button, dialog] of [
   });
 }
 
+/** На DPR3 проверяем выбранную ширину декодированной иллюстрации, чтобы экономия трафика не означала недогрузку пикселей. */
 test.describe("dense displays", () => {
   test.use({ deviceScaleFactor: 3 });
   for (const width of [390, 1440]) {

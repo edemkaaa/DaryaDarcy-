@@ -10,6 +10,7 @@ interface ScrollToTopButtonProps {
   scrollRef: RefObject<HTMLDivElement | null>;
   onScrollToTop?: () => Promise<boolean>;
 }
+/** Показываем возврат после порога прокрутки; при оконной пагинации сначала даём владельцу восстановить начальные данные. */
 export function ScrollToTopButton({
   scrollRef,
   onScrollToTop,
@@ -18,6 +19,7 @@ export function ScrollToTopButton({
   useEffect(() => {
     const scroll = scrollRef.current;
     if (!scroll) return;
+    /** Следим только за своей областью прокрутки; при уходе компонента подписка удаляется. */
     const update = () => setVisible(scroll.scrollTop > 360);
     update();
     scroll.addEventListener("scroll", update, { passive: true });
@@ -33,6 +35,7 @@ export function ScrollToTopButton({
       <Action
         aria-label="Наверх"
         onClick={async () => {
+          // Метка start запрещает автоподгрузку хвоста и компенсацию якоря до восстановления начала списка.
           const scroll = scrollRef.current;
           if (scroll?.hasAttribute("data-windowed-collection"))
             scroll.dataset.collectionScrollTarget = "start";

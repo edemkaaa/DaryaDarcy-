@@ -13,6 +13,7 @@ for (const line of fs.readFileSync(path.join(root, ".env"), "utf8").split(/\r?\n
 }
 
 const CLUB_ONLY = ["discussion", "books", "photomarathon", "letter", "podcast", "guide", "backstage"];
+// Запись target разрешается только явным --apply; совпадение тегов остаётся исторической эвристикой.
 const apply = process.argv.includes("--apply");
 
 const conn = await mysql.createConnection(env.DATABASE_URL.replace(/\r/g, "").trim());

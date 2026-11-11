@@ -18,9 +18,11 @@ import { testDatabaseUrl } from "./helpers/backend-mysql";
 const transport = vi.hoisted(() => ({ announcements: [] as number[] }));
 const stableVkCover = "https://s3.twcstorage.ru/daryadarcy-s3/covers/vk-v1/fixture.webp";
 vi.mock("../apps/backend/src/media/vk-poster-object", () => ({
+  /** Подменяет сохранение VK-постера стабильным синтетическим URL без обращения к настоящему S3. */
   saveVkPoster: async () => "https://s3.twcstorage.ru/daryadarcy-s3/covers/vk-v1/fixture.webp",
 }));
 vi.mock("../apps/backend/src/push", () => ({
+  /** Запоминает попытку анонса опубликованного поста вместо внешней push-отправки. */
   sendMarketingPostNotification: async (_text: string, id: number) => {
     transport.announcements.push(id);
   },
@@ -31,6 +33,7 @@ import { sdk } from "../apps/backend/src/_core/sdk";
 import { getDb } from "../apps/backend/src/db";
 import { compactContentRecovery } from "../apps/backend/src/content/recovery-compaction";
 
+/** Проверяет идемпотентное создание поста через настоящий HTTP, JWT и SQL с отдельной durable-квитанцией намерения. */
 describe.skipIf(!testDatabaseUrl)(
   "idempotent post creation over real HTTP/JWT/MySQL",
   () => {
@@ -47,6 +50,7 @@ describe.skipIf(!testDatabaseUrl)(
       source,
       idempotencyKey: "post-intent-00000001",
     };
+    /** Создаёт HTTP tRPC-клиент с выбранным JWT и управляемой потерей ответа транспорта. */
     const client = (token?: string, httpFetch: typeof fetch = fetch) =>
       createTRPCProxyClient<AppRouter>({
         links: [
@@ -58,6 +62,7 @@ describe.skipIf(!testDatabaseUrl)(
           }),
         ],
       });
+    /** Сначала находит свои посты без блокировки, затем удаляет только их вложения, записи, requests и recovery markers. */
     async function cleanup() {
       // A joined DELETE scans/locks other suites' media before filtering by source.
       // Resolve our own IDs with a nonlocking read, then delete only those fixtures.
@@ -85,6 +90,7 @@ describe.skipIf(!testDatabaseUrl)(
         "DELETE FROM content_recovery_markers WHERE kind='post' AND actorUserId IN (97401,97402,97403)",
       );
     }
+    /** Читает только посты собственного source-префикса для проверки числа созданий и сохранности более поздних правок. */
     async function created() {
       const [rows] = await conn.query<RowDataPacket[]>(
         "SELECT id,text FROM posts WHERE source=? ORDER BY id",
@@ -92,6 +98,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       return rows;
     }
+    /** Захватывает тестовый publication-lock и поднимает локальный API с тремя синтетическими ролями. */
     beforeAll(async () => {
       conn = await openContentTestDatabase();
       // These suites deliberately stall media transactions with database triggers.
@@ -113,6 +120,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       admin = client(adminToken);
     }, 35_000);
+    /** Очищает свои операции и анонсы, возвращая исходные полномочия и выключенную retention-политику. */
     beforeEach(async () => {
       await cleanup();
       vi.stubEnv("CONTENT_RECOVERY_RETENTION_ENABLED", "false");
@@ -121,6 +129,7 @@ describe.skipIf(!testDatabaseUrl)(
         "UPDATE users SET blockedAt=NULL,role='admin',sessionVersion=0 WHERE id=97401",
       );
     });
+    /** Закрывает приложение, удаляет свои данные и аккаунты и освобождает SQL-пул. */
     afterAll(async () => {
       await application?.close();
       await cleanup();
@@ -132,6 +141,7 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** Проверяет исходный ID и единственный анонс при последовательном повторе одного намерения. */
     it("returns the original numeric ID on a sequential retry without reannouncing", async () => {
       const id = await admin.admin.createPost.mutate(input);
       expect(await admin.admin.createPost.mutate(input)).toBe(id);
@@ -140,6 +150,7 @@ describe.skipIf(!testDatabaseUrl)(
     });
     const vk = "https://vkvideo.ru/video_ext.php?oid=-211171256&id=456239243&hash=a1b2c3d4e5f60708&autoplay=0";
     const vkCover = "https://sun9.userapi.com/vk.jpg?size=1280x720&sign=original";
+    /** Подменяет только внешние VK и userapi ответы, сохраняя настоящий loopback HTTP API. */
     function provider(response: () => Response) {
       const nativeFetch = globalThis.fetch;
       return vi.spyOn(globalThis, "fetch").mockImplementation(async (input, options) => {
@@ -150,6 +161,7 @@ describe.skipIf(!testDatabaseUrl)(
         return nativeFetch(input, options);
       });
     }
+    /** Формирует синтетическую VK embed-страницу с обложкой точного owner/video ID. */
     function vkPage(cover: string) {
       return new Response("window.cur = Object.assign(window.cur || {}, " + JSON.stringify({
         apiPrefetchCache: [{ method: "video.get", response: { items: [{
@@ -158,6 +170,7 @@ describe.skipIf(!testDatabaseUrl)(
         }] } }],
       }) + ", {screen: 'embed'});");
     }
+    /** Проверяет автоматический постер через HTTP и SQL и его сохранность при повторе создания и последующем редактировании. */
     it("returns an automatic VK cover through real HTTP/SQL and preserves it on retry/edit", async () => {
       let cover = vkCover;
       const external = provider(() => vkPage(cover));
@@ -177,6 +190,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(transport.announcements).toEqual([]);
       } finally { external.mockRestore(); }
     });
+    /** Проверяет заполнение отсутствующего VK-постера явным редактированием без замены самого вложения. */
     it("fills a missing VK cover on explicit video edit without replacing the attachment", async () => {
       let denied = true;
       const external = provider(() => denied ? new Response("Denied", { status: 403 }) : vkPage(vkCover));
@@ -191,6 +205,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(transport.announcements).toEqual([]);
       } finally { external.mockRestore(); }
     });
+    /** Проверяет приоритет ручной фотографии-обложки без обращения за автоматической VK-картинкой. */
     it("preserves existing photo-as-cover without a VK request", async () => {
       let requests = 0;
       const external = provider(() => { requests++; return vkPage(vkCover); });
@@ -204,6 +219,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(requests).toBe(0);
       } finally { external.mockRestore(); }
     });
+    /** Проверяет выдачу сохранённого VK-постера читателям Клуба и Ленты после публикации. */
     it("exposes the VK poster to both Club and feed readers after publication", async () => {
       const external = provider(() => vkPage(vkCover));
       try {
@@ -215,6 +231,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(transport.announcements).toEqual([id]);
       } finally { external.mockRestore(); }
     });
+    /** Проверяет отказ просроченного ключа без повторного создания и анонса. */
     it("refuses expired keyed creation without duplicating the post", async () => {
       const id = await admin.admin.createPost.mutate(input);
       await conn.query(
@@ -227,6 +244,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await created()).toEqual([{ id, text: "One creation intent" }]);
       expect(transport.announcements).toEqual([id]);
     });
+    /** Проверяет прежнее восстановление старого намерения при выключенной expiry-политике. */
     it("disabled expiry preserves aged keyed post recovery", async () => {
       const id = await admin.admin.createPost.mutate(input);
       await conn.query(
@@ -236,6 +254,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await created()).toEqual([{ id, text: "One creation intent" }]);
       expect(transport.announcements).toEqual([id]);
     });
+    /** Проверяет durable-маркер сжатого намерения: выключение expiry не превращает прежний ключ в новое создание. */
     it("a compacted intent never becomes new when expiry is switched off", async () => {
       const id = await admin.admin.createPost.mutate(input);
       await conn.query(
@@ -255,6 +274,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(keys).toEqual([]);
       expect(transport.announcements).toEqual([id]);
     });
+    /** Проверяет двенадцать конкурентных одинаковых запросов с единственным постом и анонсом. */
     it("serializes concurrent identical requests into one committed post", async () => {
       const ids = await Promise.all(
         Array.from({ length: 12 }, () => admin.admin.createPost.mutate(input)),
@@ -265,6 +285,7 @@ describe.skipIf(!testDatabaseUrl)(
       ]);
       expect(transport.announcements).toEqual([ids[0]]);
     });
+    /** Удерживает настоящую транзакцию через SQL-trigger и проверяет невидимость поста и ключа до коммита и ожидание конкурирующего владельца. */
     it("waits for an in-flight owner and exposes neither the post nor the key before commit", async () => {
       const gate = "backend_test_idempotency_gate";
       const [lock] = await conn.query<RowDataPacket[]>(
@@ -328,6 +349,7 @@ describe.skipIf(!testDatabaseUrl)(
           await conn.query("DROP TRIGGER backend_test_idempotency_gate");
       }
     });
+    /** Проверяет конфликт изменённого payload завершённого ключа без нового поста. */
     it("rejects a changed payload for a completed key without creating another post", async () => {
       const id = await admin.admin.createPost.mutate(input);
       await expect(
@@ -336,6 +358,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await created()).toEqual([{ id, text: "One creation intent" }]);
       expect(transport.announcements).toEqual([id]);
     });
+    /** Теряет успешный HTTP-ответ после коммита и проверяет восстановление исходного ID без повторного анонса. */
     it("replays a committed post after the client loses its successful HTTP response", async () => {
       const lossyClient = client(adminToken, async (url, options) => {
         const response = await fetch(url, options);
@@ -352,6 +375,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(transport.announcements).toEqual([post.id]);
     });
 
+    /** Проверяет одного победителя и один 409 при конкурирующих разных payload одного ключа. */
     it("one concurrent conflicting payload wins and the other receives 409", async () => {
       const results = await Promise.allSettled([
         admin.admin.createPost.mutate(input),
@@ -372,6 +396,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await created()).toHaveLength(1);
       expect(transport.announcements).toEqual([successes[0].value]);
     });
+    /** Проверяет единственный атомарный набор video/audio и хешированного результата durable-запроса без хранения сырого ключа. */
     it("commits videos, audio and the durable request result once", async () => {
       const request = {
         ...input,
@@ -403,6 +428,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(JSON.stringify(requests)).not.toContain(input.idempotencyKey);
       expect(transport.announcements).toEqual([id]);
     });
+    /** Проверяет откат поста и ключа при malformed video URL и допустимый исправленный повтор с тем же ключом. */
     it("rolls back the key with failed media and permits a corrected retry", async () => {
       await expect(
         admin.admin.createPost.mutate({
@@ -425,6 +451,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       expect(await created()).toEqual([{ id, text: "Corrected retry" }]);
     });
+    /** Проверяет изоляцию одинакового клиентского ключа по двум авторизованным администраторам. */
     it("scopes the same client key separately for different authenticated administrators", async () => {
       const other = client(
         await sdk.createSessionToken("idempotent-other-admin", {
@@ -439,6 +466,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await created()).toHaveLength(2);
       expect(transport.announcements).toHaveLength(2);
     });
+    /** Проверяет различие ключей, включая регистр, как разных намерений создания. */
     it("treats distinct keys, including differently cased keys, as distinct intentions", async () => {
       const ids = await Promise.all([
         admin.admin.createPost.mutate(input),
@@ -450,6 +478,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(new Set(ids).size).toBe(2);
       expect(await created()).toHaveLength(2);
     });
+    /** Фиксирует совместимость старых вызовов без ключа как независимых созданий. */
     it("preserves old unkeyed calls as independent creates", async () => {
       const { idempotencyKey: _key, ...legacy } = input;
       const ids = await Promise.all([
@@ -459,6 +488,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(new Set(ids).size).toBe(2);
       expect(await created()).toHaveLength(2);
     });
+    /** Проверяет канонизацию порядка свойств JSON rich text без изменения смысла намерения. */
     it("ignores object property order while preserving the same rich-text intent", async () => {
       const id = await admin.admin.createPost.mutate({
         ...input,
@@ -476,6 +506,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).toBe(id);
       expect(await created()).toHaveLength(1);
     });
+    /** Проверяет одинаковый хеш запроса с неявными и явно переданными schema-defaults. */
     it("applies existing schema defaults consistently on a retry", async () => {
       const id = await admin.admin.createPost.mutate(input);
       expect(
@@ -488,6 +519,7 @@ describe.skipIf(!testDatabaseUrl)(
         }),
       ).toBe(id);
     });
+    /** Проверяет значимость порядка массива фотографий и конфликт его изменения. */
     it("preserves array order in the accepted intent", async () => {
       const photos = [
         "https://assets.example.test/first.jpg",
@@ -502,6 +534,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).rejects.toMatchObject({ data: { code: "CONFLICT" } });
       expect(await created()).toEqual([{ id, text: input.text }]);
     });
+    /** Проверяет отказ non-JSON rich text до создания поста и захвата durable-ключа. */
     it("rejects non-JSON rich text before claiming a key", async () => {
       await expect(
         admin.admin.createPost.mutate({ ...input, richText: { amount: 1n } }),
@@ -513,6 +546,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(keys).toEqual([]);
       expect(transport.announcements).toEqual([]);
     });
+    /** Проверяет участие всех полей с побочными эффектами в идентичности операции, а не только текста. */
     it.each([
       { photos: ["https://assets.example.test/photo.jpg"] },
       { videos: ["https://assets.example.test/video.mp4"] },
@@ -533,6 +567,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await created()).toEqual([{ id, text: input.text }]);
       },
     );
+    /** Проверяет строгий формат ключа до любых записей и анонсов. */
     it.each([
       "",
       "too-short",
@@ -552,6 +587,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await created()).toEqual([]);
       expect(transport.announcements).toEqual([]);
     });
+    /** Проверяет повтор черновика и отложенного поста без немедленного анонса. */
     it.each(["draft", "scheduled"] as const)(
       "replays a %s create without an announcement",
       async (status) => {
@@ -565,6 +601,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(transport.announcements).toEqual([]);
       },
     );
+    /** Проверяет, что повтор успешного создания удалённого поста возвращает прежний результат и не воскрешает запись. */
     it("does not resurrect a deleted post when its successful creation is replayed", async () => {
       const id = await admin.admin.createPost.mutate(input);
       await conn.query("DELETE FROM posts WHERE id=? AND source=?", [
@@ -575,6 +612,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await created()).toEqual([]);
       expect(transport.announcements).toEqual([id]);
     });
+    /** Проверяет, что повтор первоначального создания не отменяет более позднюю редакторскую правку. */
     it("does not revert an edited post when replaying its original creation", async () => {
       const id = await admin.admin.createPost.mutate(input);
       await conn.query(
@@ -584,6 +622,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await admin.admin.createPost.mutate(input)).toBe(id);
       expect(await created()).toEqual([{ id, text: "Later correction" }]);
     });
+    /** Проверяет актуальную блокировку и роль администратора перед подтверждением завершённого ключа. */
     it.each(["blocked", "demoted"])(
       "rechecks %s administrator access before replay",
       async (change) => {
@@ -601,6 +640,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await created()).toEqual([{ id, text: input.text }]);
       },
     );
+    /** Проверяет запрет использования ключа администратора гостем и обычным участником. */
     it.each(["anonymous", "member"])(
       "does not let a %s use another administrator's completed key",
       async (role) => {
@@ -619,6 +659,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await created()).toEqual([{ id, text: input.text }]);
       },
     );
+    /** Проверяет текущую эпоху сессии перед восстановлением завершённого создания. */
     it("rejects a revoked session before replaying a committed creation", async () => {
       const id = await admin.admin.createPost.mutate(input);
       await conn.query("UPDATE users SET sessionVersion=1 WHERE id=97401");

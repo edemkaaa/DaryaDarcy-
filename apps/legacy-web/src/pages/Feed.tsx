@@ -1,9 +1,11 @@
+/** Архивная Лента Vite с постраничным чтением и выбором тега. */
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { DEFAULT_TAGS } from "../data";
 import { asPhotos, asTags, previewText } from "../lib";
 import { trpc } from "../trpc";
 
+/** Склеивает страницы в порядке API и загружает следующие по кнопке; права и опубликованность определяет сервер. */
 export default function Feed() {
   const [tag, setTag] = useState("all");
   const { data: apiTags } = trpc.feed.tags.useQuery(undefined, { retry: 1 });
@@ -12,6 +14,7 @@ export default function Feed() {
     { getNextPageParam: (last) => last.nextCursor ?? undefined },
   );
 
+  /** Использует серверные рубрики, а при пустом результате возвращает прежний фиксированный набор. */
   const tags = useMemo(() => {
     if (apiTags && apiTags.length > 0) {
       return [{ slug: "all", label: "Все" }, ...apiTags.map((t) => ({ slug: t.slug, label: t.label }))];

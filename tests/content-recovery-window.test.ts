@@ -1,12 +1,16 @@
+/** Проверяем точную временную границу повторов операций контента с подставленными часами. */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { assertContentRecoveryWindow } from "../apps/backend/src/content/recovery-window";
 
+/** Восстанавливаем Date.now и флаги retention. */
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
 });
 
+/** Матрица отделяет допустимую запись за границей срока от точного момента истечения. */
 describe("content recovery window", () => {
+  /** Одна миллисекунда вокруг границы должна давать правильный допуск или CONFLICT. */
   it.each([
     ["2026-09-14T00:00:00.001Z", undefined],
     ["2026-09-14T00:00:00.000Z", "CONFLICT"],
@@ -23,12 +27,14 @@ describe("content recovery window", () => {
       else expect(call).not.toThrow();
     },
   );
+  /** Неверная дата журнала не разрешает повтор и даёт инфраструктурный отказ. */
   it("an invalid recording timestamp fails closed when enabled", () => {
     vi.stubEnv("CONTENT_RECOVERY_RETENTION_ENABLED", "true");
     expect(() => assertContentRecoveryWindow(new Date(NaN))).toThrow(
       expect.objectContaining({ code: "SERVICE_UNAVAILABLE" }),
     );
   });
+  /** Неопределённое время сервера нельзя использовать как доказательство свежести операции. */
   it("an invalid server clock never approves replay", () => {
     vi.stubEnv("CONTENT_RECOVERY_RETENTION_ENABLED", "true");
     vi.spyOn(Date, "now").mockReturnValue(NaN);
@@ -36,6 +42,7 @@ describe("content recovery window", () => {
       expect.objectContaining({ code: "SERVICE_UNAVAILABLE" }),
     );
   });
+  /** Явно отключённый retention сохраняет согласованное старое восстановление. */
   it("disabled mode retains legacy recovery for old records", () => {
     vi.stubEnv("CONTENT_RECOVERY_RETENTION_ENABLED", "false");
     expect(() => assertContentRecoveryWindow(new Date(0))).not.toThrow();

@@ -2,10 +2,12 @@ import { test, expect } from "@playwright/test";
 import { flacFixtureBase64 } from "../../../tests/helpers/flac-fixture";
 import { layoutApi, gotoWithSession } from "./layout-fixtures";
 
+/** Первое чтение даёт короткий срок доступа, второе уже отказ; открытый клуб обязан сам перейти к подписке без навигации. */
 test("an open club screen rechecks an expired paid period without requiring navigation", async ({
   page,
 }) => {
   let reads = 0;
+  /** Отдаём истекающее право только в первом ответе, чтобы проверить запланированную перепроверку. */
   const expiry = () => ({
     hasClubAccess: reads === 1,
     subscribed: reads === 1,
@@ -29,6 +31,7 @@ test("an open club screen rechecks an expired paid period without requiring navi
 });
 
 // Exercises the browser decoder with the exact bytes used by SQL/wire upload tests.
+/** Те же синтетические FLAC-байты, что в серверных проверках, декодируем настоящим браузерным audio без подмены плеера. */
 test("the supported FLAC container decodes and plays", async ({ page }) => {
   await layoutApi(page);
   await page.route("**/api/test-audio.flac", (route) =>

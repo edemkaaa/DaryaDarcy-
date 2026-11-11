@@ -33,12 +33,14 @@ const Registry = createContext<{
   register: (id: string, notice: Notice) => () => void;
 } | null>(null);
 
+/** Храним сообщения по стабильному ID владельца; регистрация возвращает удаление только его записи. */
 export function BackgroundNoticeProvider({
   children,
 }: {
   children: ReactNode;
 }) {
   const [notices, setNotices] = useState(new Map<string, Notice>());
+  /** Публикуем новый экземпляр Map для React и возвращаем очистку регистрации при скрытии или размонтировании экрана. */
   const register = useCallback((id: string, notice: Notice) => {
     setNotices((previous) => new Map(previous).set(id, notice));
     return () => {
@@ -56,7 +58,7 @@ export function BackgroundNoticeProvider({
   );
 }
 
-/** Hidden retained screens must not report errors over another section. */
+/** Регистрируем ошибку только активного экрана; актуальные действия читаем через ref и сопоставляем по ID. */
 export function useBackgroundNotice({
   when,
   message,
@@ -72,6 +74,7 @@ export function useBackgroundNotice({
   const callbacks = useRef({ onRetry, actions });
   useLayoutEffect(() => {
     callbacks.current = { onRetry, actions };
+    // Храним актуальные обработчики без перерегистрации сообщения на каждый render.
   });
   const hasRetry = Boolean(onRetry);
   // Only presentation changes update the registry. Handlers use their current
@@ -81,6 +84,7 @@ export function useBackgroundNotice({
   );
   useEffect(() => {
     if (active && when && register)
+    // Регистрация живёт ровно пока сообщение относится к видимому экрану; возврат register удаляет запись при cleanup.
       return register(id, {
         message,
         priority,
@@ -109,6 +113,7 @@ export function useBackgroundNotice({
   ]);
 }
 
+/** Показываем одно сообщение с наибольшим приоритетом, но общий повтор запускает все доступные восстановления. */
 export function BackgroundNoticeSlot() {
   const registry = useContext(Registry);
   const [retrying, setRetrying] = useState(false);
@@ -126,9 +131,11 @@ export function BackgroundNoticeSlot() {
     const panel = card.current;
     const main = host?.parentElement;
     if (!host || !panel || !main || !visible) return;
+    // ResizeObserver следит за меню и карточкой; MutationObserver замечает замену меню сохранённых вкладок. Оба отключаем при скрытии.
     // Main already ends above the app tabs. The club menu lives inside main;
     // measure its actual size, including safe area and responsive changes.
     let menu: Element | undefined;
+    /** Измеряем живое внутреннее меню и высоту уведомления, чтобы оно не перекрывало контент при смене вкладки и размеров. */
     const measure = () => {
       const current = [
         ...main.querySelectorAll("[data-background-notice-menu]"),
@@ -183,6 +190,7 @@ export function BackgroundNoticeSlot() {
                   disabled={retrying || notice.busy}
                   aria-busy={retrying}
                   onClick={async () => {
+                    // Один повтор восстанавливает все совместимые ошибки; allSettled не отменяет остальные из-за одного отказа.
                     if (retrying) return;
                     setRetrying(true);
                     try {

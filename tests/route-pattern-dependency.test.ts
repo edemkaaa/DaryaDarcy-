@@ -1,7 +1,9 @@
+/** Проверяем path-to-regexp из Express с ограниченным дочерним процессом и синтетическим маршрутом. */
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { expect, it } from "vitest";
 
+/** Маршрут с несколькими параметрами должен быстро отклонить несовместимый путь; timeout завершает дочерний процесс, а не блокирует worker. */
 it("rejects a bounded adversarial multi-parameter path without runaway backtracking", () => {
   const expressRequire = createRequire(require.resolve("express"));
   // Characterize GHSA-37ch-88jc-xwx2 through Express's actual dependency.

@@ -13,6 +13,7 @@ import {
 } from "./private-upload-object";
 
 /** Exact ledger-owned private-v1 key only. Success requires a final HEAD404. */
+/** Только на локальном неверсионируемом S3 сверяем пространство, квитанцию, размер, MIME, метаданные и ETag, удаляем точный private-v1 объект условно и подтверждаем отсутствие итоговым HEAD404. */
 export async function deletePrivateOrphanObject(
   receipt: PrivateUploadObject & { etag: string | null },
 ) {
@@ -51,6 +52,7 @@ export async function deletePrivateOrphanObject(
     Bucket: namespace.bucket,
     Key: privateAttachmentObjectKey(receipt.type, receipt.assetId),
   };
+  /** Читаем метаданные цели и считаем отсутствием лишь настоящий S3 HTTP404; прочие сбои не доказывают удаление. */
   const head = async () => {
     try {
       return await client.send(new HeadObjectCommand(object), {

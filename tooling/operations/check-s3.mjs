@@ -25,14 +25,20 @@ const region = "ru-1";
 const service = "s3";
 
 function hmac(key, data) {
+  // Получает очередной бинарный ключ цепочки AWS Signature V4; секрет не выводится.
+
   return crypto.createHmac("sha256", key).update(data).digest();
 }
 
 function sha256Hex(data) {
+  // Считает шестнадцатеричный SHA-256 канонического запроса или тела.
+
   return crypto.createHash("sha256").update(data).digest("hex");
 }
 
 async function listPage(token) {
+  // Подписывает одну страницу ListObjectsV2 и извлекает продолжение; бакет не изменяет.
+
   const now = new Date();
   const amzDate = now.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
   const dateStamp = amzDate.slice(0, 8);

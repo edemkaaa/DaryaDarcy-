@@ -20,6 +20,7 @@ const boundary = z
     id: z.number().int().positive().safe(),
   })
   .strict();
+/** Декодирует ограниченный base64url cursor и проверяет версию, actor-scope и ключи order/date/id; повреждение даёт BAD_REQUEST без сброса страницы. */
 function readCursor(value: string | null | undefined, scope: string) {
   if (value == null) return null;
   try {
@@ -37,6 +38,7 @@ function readCursor(value: string | null | undefined, scope: string) {
   }
 }
 /** Выдаём ограниченную страницу редакторского списка с курсором следующей порции. */
+/** Читает editor-карточки без sections по keyset sortOrder ASC/createdAt DESC/id DESC; limit+1 даёт следующий actor-bound cursor. */
 export async function adminArticlesPage(
   database: MySql2Database | null,
   actorId: number,

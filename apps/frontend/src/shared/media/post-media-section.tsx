@@ -18,6 +18,7 @@ interface PostMediaSectionProps {
   posterUrl?: string;
   topAligned?: boolean;
 }
+/** Разделяем вложения по типу; для защищённого attachment URL не используем случайную общую обложку вместо персонального posterUrl. */
 export function PostMediaSection({
   media,
   posterUrl,

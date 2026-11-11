@@ -13,6 +13,7 @@ type Transaction = Parameters<Parameters<MySql2Database["transaction"]>[0]>[0];
 const HISTORY_MS = 30 * 24 * 60 * 60 * 1000;
 
 /** Вызывающий код удерживает блокировки получателя и затем заявки, именно в этом порядке. */
+/** Под блокировкой пользователя и заявки одновременно закрываем состояние и уничтожаем email/proof/cipher, снимая lease даже у ранее захваченного письма. */
 export async function completeMemberEmailBinding(
   tx: Transaction,
   requestKey: string,
@@ -41,6 +42,7 @@ export async function completeMemberEmailBinding(
 }
 
 /** Ограниченная внутренняя очистка; включение worker по-прежнему зависит от флага и схемы. */
+/** В ограниченной пачке повторно проверяем срок под user→binding, закрываем pending и удаляем завершённую историю старше 30 дней вместе с outbox. */
 export async function maintainMemberEmailBindings(
   database: MySql2Database,
   limit = 100,

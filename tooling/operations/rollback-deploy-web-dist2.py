@@ -14,6 +14,7 @@ backup = root / "web-dist-broken-20250917"
 if not (source / "index.html").exists():
     raise SystemExit(f"Missing rollback source: {source / 'index.html'}")
 
+# Перед заменой старой статики сохраняется только локальная web-dist; это не резервная копия БД или Docker-образа.
 if target.exists() and not backup.exists():
     print(f"backing up current web-dist -> {backup.name}")
     shutil.move(str(target), str(backup))
@@ -34,4 +35,5 @@ index.write_text(html, encoding="utf-8")
 print("rollback source:", source.name)
 print("deploy tag:", stamp)
 
+# Запускается исторический SSH-установщик с реальными изменениями сервера; сам этот файл не является безопасным контейнерным rollback.
 subprocess.run([sys.executable, str(root / "tooling" / "legacy" / "ssh-deploy-web-direct.py")], cwd=root, check=True)

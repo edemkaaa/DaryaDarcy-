@@ -18,6 +18,7 @@ declare global {
 const enabled = process.env.DARYADARCY_LOCAL_BROWSER === "1";
 let browser: Browser;
 let bundle: string;
+/** В явном browser-режиме собирает настоящий журнал и координатор и запускает Chromium. */
 beforeAll(async () => {
   if (!enabled) return;
   const root = new URL("../", import.meta.url).pathname;
@@ -40,10 +41,12 @@ beforeAll(async () => {
   bundle = result.outputFiles[0].text;
   browser = await chromium.launch();
 });
+/** Закрывает только браузер, созданный этим набором. */
 afterAll(async () => {
   await browser?.close();
 });
 
+/** Открывает синтетический документ origin и внедряет bundle; File/IndexedDB и storage остаются настоящими. */
 async function open(page: Page) {
   // Only the document transport is synthetic. File/IndexedDB/storage code is real.
   await page.route("**/*", (route) =>
@@ -56,6 +59,7 @@ async function open(page: Page) {
   await page.addScriptTag({ content: bundle });
 }
 const native = enabled ? it : it.skip;
+/** Сохраняет байты фото и общие ссылки editor/coordinator, затем проверяет восстановление File после reload. */
 native(
   "persists photo bytes without Blob storage and restores editor/coordinator aliases after reload",
   async () => {
@@ -157,6 +161,7 @@ native(
   },
 );
 
+/** Не выдаёт восстановленный черновик с поддельной квитанцией, содержащей прямую ссылку storage. */
 native(
   "rejects a forged recovered photo receipt before exposing the draft",
   async () => {
@@ -221,6 +226,7 @@ native(
   },
 );
 
+/** После смены владельца не читает и не перезаписывает чужое фото, сохраняя его исходные байты. */
 native(
   "switching account cannot read or overwrite the original owner's photo",
   async () => {
@@ -295,6 +301,7 @@ native(
   },
 );
 
+/** Не позволяет другому File подменить восстановленный upload intent под тем же ключом. */
 native(
   "a different File cannot replace a recovered upload intent through the same key",
   async () => {

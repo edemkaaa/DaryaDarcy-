@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
 import { editorApi, ok } from "./editor-fixtures";
 
+/** Проверяем несовместимый HTTP 200 на трёх списках: ошибка должна остаться внутри экрана и восстановиться к валидному пустому результату. */
 for (const scenario of [
   {
     path: "/library",
@@ -51,6 +52,7 @@ for (const scenario of [
   });
 }
 
+/** Некорректный блок статьи не должен попасть в JSX или показать приватный объект; явный повтор восстанавливает текст. */
 test("article detail rejects malformed blocks and recovers without a render crash", async ({
   page,
 }) => {
@@ -88,6 +90,7 @@ test("article detail rejects malformed blocks and recovers without a render cras
   expect(crashes).toEqual([]);
 });
 
+/** Проверяем типы счётчиков и карточек календаря независимо от HTTP-успеха, без автоматического повтора и падения страницы. */
 test("statistics reject incompatible counters and calendar rejects invalid cards", async ({
   page,
 }) => {

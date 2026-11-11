@@ -5,6 +5,7 @@ import { ScrollArea } from "@/shared/ui/elements";
 import Link from "next/link";
 import { ScreenContainer } from "@/shared/ui/screen-container";
 import { SECTIONS } from "./privacy-screen.content";
+/** Выводим неизменяемые разделы политики и переход к общему обзору, не смешивая их с фактом принятия согласия пользователем. */
 export default function PrivacyScreen() {
   return (
     <ScreenContainer backgroundColor="#FDF8F0">

@@ -34,13 +34,19 @@ export function usePostAttachments(
   operation: ReturnType<typeof useSessionOperation>,
   onError: (message: string) => void,
 ) {
+  // Оба редактора передают File координатору сохранения; удалённые серверные вложения учитываются отдельно от новых файлов.
+
   const [attachments, setAttachments] = useState<PostAttachment[]>([]);
   const removedIds = useRef<number[]>([]);
   const markRemoved = (id: number) => {
+    // Запоминает удаление существующего вложения один раз и только вне работающей операции.
+
     if (!operation.busy && !removedIds.current.includes(id))
       removedIds.current = [...removedIds.current, id];
   };
   const reset = useCallback((media?: readonly ExistingMedia[] | null) => {
+    // Восстанавливает аудио и документы из серверных медиа с безопасными подписями, очищая прежний список удалений.
+
     removedIds.current = [];
     setAttachments(
       (media ?? []).flatMap((item): PostAttachment[] =>
@@ -63,6 +69,8 @@ export function usePostAttachments(
     );
   }, []);
   const pick = async (type: PostAttachment["type"]) => {
+    // Проверяет доступность приватной загрузки и согласует расширение с MIME; выбранные байты пока остаются локальными.
+
     const task = operation.begin("attachment");
     if (!task) return;
     try {
@@ -119,6 +127,8 @@ export function usePostAttachments(
     }
   };
   const remove = (index: number) => {
+    // Убирает вложение из формы, сохраняя ID серверного файла для будущей атомарной записи поста.
+
     if (operation.busy) return;
     const attachment = attachments[index];
     if (!attachment) return;
@@ -126,6 +136,8 @@ export function usePostAttachments(
     setAttachments((previous) => previous.filter((_, i) => i !== index));
   };
   const restore = useCallback((items: PostAttachment[], removed: number[]) => {
+    // Возвращает одновременно выбранные файлы и список удалений из одной контрольной точки.
+
     removedIds.current = removed;
     setAttachments(items);
   }, []);

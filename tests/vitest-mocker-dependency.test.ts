@@ -1,3 +1,4 @@
+/** Проверяем политику файлов Vite через настоящий loopback WebSocket/HTTP и собственное временное дерево. */
 import * as fs from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -5,6 +6,7 @@ import { expect, it } from "vitest";
 import { createServer } from "vite";
 import { interceptorPlugin } from "@vitest/mocker/node";
 
+/** Регистрируем redirect после подключения HMR, ждём ACK, затем сверяем разрешённое содержимое. В finally закрываем socket/server и удаляем только принадлежащую тесту папку. */
 it.each([
   ["outside root", "opaque:../outside.js", "ORIGINAL"],
   ["denied synthetic file", "file:///denied-fixture.js", "ORIGINAL"],
@@ -61,7 +63,8 @@ it.each([
         );
       });
       const registered = new Promise<void>((resolve) => {
-        socket!.addEventListener("message", function ack(event) {
+        socket!.addEventListener("message", /** Завершает ожидание только для подтверждения регистрации interceptor и снимает свой message listener. */
+        function ack(event) {
           const message = JSON.parse(String(event.data));
           if (message.event === "vitest:interceptor:register:result") {
             socket!.removeEventListener("message", ack);

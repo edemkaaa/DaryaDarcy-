@@ -1,6 +1,9 @@
+// Архив Expo. Создаёт временный file-input и возвращает выбранные файлы, удаляя элемент при change/cancel.
 import { Platform } from "react-native";
 
 export function pickWebFiles(accept: string, multiple: boolean): Promise<File[]> {
+  // Создаёт временный file-input и возвращает выбранные файлы, удаляя элемент при change/cancel.
+
   return new Promise((resolve) => {
     const doc = (globalThis as { document?: Document }).document;
     if (!doc) {
@@ -13,6 +16,8 @@ export function pickWebFiles(accept: string, multiple: boolean): Promise<File[]>
     input.multiple = multiple;
     input.style.display = "none";
     const done = (files: File[]) => {
+      // Завершает выбор и освобождает временный DOM-input.
+
       resolve(files);
       input.remove();
     };
@@ -24,6 +29,8 @@ export function pickWebFiles(accept: string, multiple: boolean): Promise<File[]>
 }
 
 export function blobToBase64(blob: Blob): Promise<string> {
+  // Читает весь Blob как data URL и удаляет MIME-префикс; Base64 увеличивает объём данных.
+
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
@@ -37,15 +44,21 @@ export function blobToBase64(blob: Blob): Promise<string> {
 }
 
 function fileName(blob: Blob): string {
+  // Возвращает имя только настоящего File, у произвольного Blob имя неизвестно.
+
   return blob instanceof File ? blob.name : "";
 }
 
 function isHeicLike(blob: Blob): boolean {
+  // Учитывает MIME и расширение HEIC/HEIF для выбора совместимого декодирования.
+
   const name = fileName(blob);
   return /heic|heif/i.test(blob.type) || /\.heic$|\.heif$/i.test(name);
 }
 
 function isLikelyImage(blob: Blob): boolean {
+  // Предварительно распознаёт изображение по MIME/имени; сигнатуру проверяет сервер.
+
   if (blob.type.startsWith("image/")) return true;
   if (isHeicLike(blob)) return true;
   return /\.(jpe?g|png|webp|gif|heic|heif)$/i.test(fileName(blob));
@@ -54,6 +67,8 @@ function isLikelyImage(blob: Blob): boolean {
 async function loadDrawableFromBlob(
   blob: Blob,
 ): Promise<{ width: number; height: number; draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void }> {
+  // Пробует ImageBitmap и fallback img для Safari/HEIC, освобождая временный object URL.
+
   const doc = (globalThis as { document?: Document }).document;
   if (!doc) throw new Error("Нет доступа к изображению");
 
@@ -63,7 +78,7 @@ async function loadDrawableFromBlob(
       return {
         width: bitmap.width,
         height: bitmap.height,
-        draw: (ctx, w, h) => ctx.drawImage(bitmap, 0, 0, w, h),
+        draw: (ctx, w, h) => /* Рисует декодированный источник в запрошенном размере Canvas; это операция ресэмплинга. */ ctx.drawImage(bitmap, 0, 0, w, h),
       };
     } catch {
       // Safari/iOS HEIC often fails here — fall back to <img>.
@@ -81,7 +96,7 @@ async function loadDrawableFromBlob(
     return {
       width: img.naturalWidth,
       height: img.naturalHeight,
-      draw: (ctx, w, h) => ctx.drawImage(img, 0, 0, w, h),
+      draw: (ctx, w, h) => /* Рисует декодированный источник в запрошенном размере Canvas; это операция ресэмплинга. */ ctx.drawImage(img, 0, 0, w, h),
     };
   } finally {
     URL.revokeObjectURL(url);
@@ -89,6 +104,8 @@ async function loadDrawableFromBlob(
 }
 
 export async function compressImageBlob(blob: Blob, maxEdge = 1920, quality = 0.82): Promise<Blob> {
+  // Готовит JPEG с ограниченной стороной, сохраняя исходный Blob при ошибке; это сжатие с потерями.
+
   const doc = (globalThis as { document?: Document }).document;
   if (!doc || !isLikelyImage(blob)) return blob;
   if (/gif|svg/i.test(blob.type) || /\.gif$/i.test(fileName(blob))) return blob;
@@ -114,6 +131,8 @@ export async function compressImageBlob(blob: Blob, maxEdge = 1920, quality = 0.
 }
 
 export async function uriToBase64(uri: string, opts?: { preserveAlpha?: boolean }): Promise<string> {
+  // На web читает URI и опционально сжимает, на native использует FileSystem Base64.
+
   if (Platform.OS === "web" || /^(blob:|data:|https?:)/i.test(uri)) {
     const response = await fetch(uri);
     const raw = await response.blob();
@@ -128,6 +147,8 @@ export async function fileToUpload(
   file: File,
   opts?: { preserveAlpha?: boolean },
 ): Promise<{ base64: string; filename: string; mimeType: string }> {
+  // Готовит исторический Base64 payload с именем/MIME и отдельными исключениями для GIF и alpha.
+
   const isGif = /gif/i.test(file.type || file.name);
   const keepPng = Boolean(opts?.preserveAlpha && /png|webp/i.test(file.type || file.name));
 

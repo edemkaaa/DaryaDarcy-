@@ -1,6 +1,7 @@
 # Базовый staging-стек разделяет API, Next, MySQL и edge по сетям. Локальные egress/кеш/секретные overlays добавляются отдельно и не восстанавливаются одним этим файлом.
 name: daryadarcy-staging
 services:
+# Постоянный именованный том хранит данные; лимиты 512 МиБ/30 соединений относятся к базовому шаблону и не рассчитаны автоматически на две реплики.
   mysql:
     image: mysql:8.4@sha256:6ea90827b1100f8f2ae306a539f86d2c264a26ed435a2a9f75551dd5c3aeb242
     platform: linux/amd64
@@ -11,8 +12,10 @@ services:
         "--max-connections=30",
         "--performance-schema=OFF",
       ]
+    # Именованные database/backups переживают пересоздание контейнеров; удаление volumes уничтожает данные.
     volumes:
       - database:/var/lib/mysql
+    # Внутренняя сеть не даёт произвольный выход в интернет; egress добавляется согласованными overlays.
     networks: [isolated]
     mem_limit: 512m
     cpus: 0.4
@@ -25,6 +28,7 @@ services:
     logging: &logs
       driver: json-file
       options: { max-size: "5m", max-file: "2" }
+# API получает закрытый env при запуске и отдельный том бэкапов; миграции command здесь не выполняет.
   api:
     image: ${STAGING_IMAGE:?Set a versioned staging image}
     platform: linux/amd64
@@ -53,6 +57,7 @@ services:
       retries: 3
       start_period: 20s
     logging: *logs
+# Next запускается из того же закреплённого образа отдельным процессом; публичные флаги уже встроены при сборке.
   web:
     image: ${STAGING_IMAGE:?Set a versioned staging image}
     platform: linux/amd64
@@ -88,6 +93,7 @@ services:
       retries: 3
       start_period: 20s
     logging: *logs
+# Только loopback-порт 3050 выходит на хост; TLS и доверенные X-Forwarded заголовки задаёт внешний vhost.
   edge:
     image: nginx:stable-alpine@sha256:0985e772fb9f729e6fa0980da05fca5d9c468e870eed43071545afa9d2e27d94
     user: "101:101"

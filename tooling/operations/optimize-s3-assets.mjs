@@ -42,6 +42,8 @@ const skipDir = /node_modules|web-dist|\.git|\.tmp-/;
 const urls = new Set();
 
 function walkCode(dir) {
+  // Находит ссылки картинок в локальных исходниках, исключая сборки и служебные каталоги.
+
   for (const name of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, name.name);
     if (skipDir.test(full)) continue;
@@ -73,11 +75,15 @@ const widthHints = [
 ];
 
 function hintWidth(url) {
+  // Выбирает исторический предел ширины по известному ресурсу; это эвристика, а не анализ текущего CSS.
+
   for (const h of widthHints) if (h.match.test(url)) return h.width;
   return 1200;
 }
 
 async function optimize(url, bytes) {
+  // Готовит уменьшенную копию с потерями для JPEG/WebP; результат может заменить исходный ключ и требует отдельного согласования.
+
   const ext = path.extname(new URL(url).pathname).toLowerCase();
   const img = sharp(bytes).rotate();
   const meta = await img.metadata();

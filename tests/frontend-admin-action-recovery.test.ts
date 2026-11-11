@@ -19,9 +19,9 @@ let values: Map<string, string>;
 let receipts: Map<string, AdminActionOutcome>;
 let api: AdminActionApi;
 let effects: number;
-const signal = () => new AbortController().signal;
+const signal = () => /* Выдаёт независимый сигнал для очередного действия администратора. */ new AbortController().signal;
 const outcome = (r: AdminActionRequest): AdminActionOutcome =>
-  r.kind === "grantClub"
+  /* Строит квитанцию выдачи доступа или постановки письма в очередь без настоящих побочных действий. */ r.kind === "grantClub"
     ? {
         state: "succeeded",
         kind: r.kind,
@@ -29,6 +29,7 @@ const outcome = (r: AdminActionRequest): AdminActionOutcome =>
         expiresAt: "2040-12-01T00:00:00.000Z",
       }
     : { state: "succeeded", kind: r.kind, userId: r.userId, queued: true };
+// Каждый случай получает чистые localStorage, журнал серверных квитанций и последовательную имитацию Web Locks для двух вкладок.
 beforeEach(() => {
   values = new Map();
   receipts = new Map();
@@ -36,9 +37,9 @@ beforeEach(() => {
   vi.stubGlobal("window", {
     isSecureContext: true,
     localStorage: {
-      getItem: (key: string) => values.get(key) ?? null,
-      setItem: (key: string, value: string) => values.set(key, value),
-      removeItem: (key: string) => values.delete(key),
+      getItem: (key: string) => /* Читает синтетическое локальное хранилище текущего теста. */ values.get(key) ?? null,
+      setItem: (key: string, value: string) => /* Сохраняет сериализованное намерение в памяти вместо браузерного диска. */ values.set(key, value),
+      removeItem: (key: string) => /* Удаляет только запись синтетического хранилища. */ values.delete(key),
     },
   });
   let queue = Promise.resolve();
@@ -49,6 +50,8 @@ beforeEach(() => {
         options: { signal: AbortSignal },
         callback: () => Promise<unknown>,
       ) => {
+        // Последовательно запускает конкурирующие вкладки и освобождает имитируемый Web Lock даже при ошибке.
+
         const prior = queue;
         let release!: () => void;
         queue = new Promise<void>((resolve) => {
@@ -91,6 +94,8 @@ afterEach(() => {
 
 for (const kind of ["grantClub", "resendAccessEmail"] as const) {
   it(`${kind}: lost committed response recovers after reload by reading only`, async () => {
+    // Сценарий: Потерянный ответ после записи восстанавливается запросом статуса без повторного эффекта.
+
     const write = api.write;
     api.write = vi.fn(async (r, s) => {
       await write(r, s);
@@ -119,6 +124,8 @@ for (const kind of ["grantClub", "resendAccessEmail"] as const) {
     expect(api.write).toHaveBeenCalledTimes(1);
   });
   it(`${kind}: notFound retains original key and parameters for explicit replay`, async () => {
+    // Сценарий: Статус notFound сохраняет первоначальные параметры и ключ для явного повтора, блокируя новую цель.
+
     const write = api.write;
     api.write = vi
       .fn()
@@ -151,6 +158,8 @@ for (const kind of ["grantClub", "resendAccessEmail"] as const) {
     expect(effects).toBe(1);
   });
   it(`${kind}: two tabs share one intent; only an acknowledged new action gets another key`, async () => {
+    // Сценарий: Две вкладки разделяют одно намерение; новое действие получает ключ только после признанного результата.
+
     const a = new AdminActionJournal(101, api),
       b = new AdminActionJournal(101, api);
     const [first, second] = await Promise.all([
@@ -180,6 +189,8 @@ for (const fault of [
   "verify",
 ] as const) {
   it(`fails closed on ${fault} storage/coordination failure`, async () => {
+    // Сценарий: Отказ хранилища, проверки записи или межвкладочной координации запрещает отправку.
+
     if (fault === "write")
       vi.spyOn(window.localStorage, "setItem").mockImplementation(() => {
         throw Error("quota");
@@ -208,6 +219,8 @@ for (const fault of [
 }
 
 it("does not replace an intent that disappeared while this tab retained it", async () => {
+  // Сценарий: Исчезновение сохранённого намерения не разрешает молча создать замену из памяти вкладки.
+
   const journal = new AdminActionJournal(101, api);
   const first = await journal.start(
     "grantClub",
@@ -224,6 +237,8 @@ it("does not replace an intent that disappeared while this tab retained it", asy
 });
 
 it("does not apply a late reply to another account; the original actor can recover later", async () => {
+  // Сценарий: Поздний ответ после смены аккаунта не попадает новому пользователю; исходный владелец может восстановиться.
+
   let release!: () => void;
   const held = new Promise<void>((resolve) => {
     release = resolve;
@@ -248,6 +263,8 @@ it("does not apply a late reply to another account; the original actor can recov
 });
 
 it("ignores a reply after cancellation without discarding the saved key", async () => {
+  // Сценарий: Отмена ожидания не стирает сохранённый ключ и факт попытки отправки.
+
   const controller = new AbortController();
   api.write = vi.fn(async (r) => {
     controller.abort();
@@ -262,6 +279,8 @@ it("ignores a reply after cancellation without discarding the saved key", async 
 });
 
 it("persists rate limit across reload, permits status and forbids early email replay", async () => {
+  // Сценарий: Задержка после 429 переживает перезагрузку: статус читать можно, письмо раньше срока повторять нельзя.
+
   vi.useFakeTimers();
   const write = api.write;
   api.write = vi
@@ -286,6 +305,8 @@ it("persists rate limit across reload, permits status and forbids early email re
 });
 
 it("a conflict is resolved by its durable refusal, never by an automatic new key", async () => {
+  // Сценарий: Конфликт завершается сохранённым отказом без автоматической генерации нового ключа.
+
   api.write = vi.fn(async (r) => {
     receipts.set(r.idempotencyKey, {
       state: "rejected",
@@ -312,6 +333,8 @@ it.each([
   { state: "succeeded", kind: "resendAccessEmail", userId: 202, queued: true },
   { state: "succeeded", kind: "grantClub", userId: 201, expiresAt: "bad" },
 ])("rejects mismatched/malformed status %j", (value) => {
+  // Сценарий: Неверная форма или несовпадающий адресат квитанции отклоняются.
+
   expect(() =>
     parseAdminActionStatus(value, {
       kind: "resendAccessEmail",
@@ -322,6 +345,8 @@ it.each([
 });
 
 it("API adapter sends the saved UUID via both transports and validates the actual receipt", async () => {
+  // Сценарий: REST и tRPC передают сохранённый UUID, а адаптер проверяет фактическую квитанцию и код HTTP.
+
   const request = {
     kind: "grantClub" as const,
     userId: 201,

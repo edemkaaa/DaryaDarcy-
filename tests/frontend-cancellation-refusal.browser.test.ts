@@ -7,6 +7,7 @@ import { resolve } from "node:path";
 
 // Real providers/controller/client in Chromium; controlled HTTP billing replies,
 // not live provider/SQL/payment acceptance.
+/** Проверяет настоящий browser controller при безопасном business-отказе и неопределённой server/proxy/path/transport ошибке без слепого повторного cancel. */
 it
   .skipIf(!process.env.PLAYWRIGHT_EXECUTABLE_PATH)
   .each(["business", "server", "proxy", "wrong-path", "lost-response"])(
@@ -146,6 +147,7 @@ it
           : route.abort("blockedbyclient"),
       );
       page.on("dialog", (dialog) => dialog.accept());
+      /** Открывает новый документ и подключает собранные реальные providers и controller к локальным управляемым HTTP-ответам. */
       const open = async () => {
         await page.goto(origin);
         await page.addScriptTag({ content: bundle.outputFiles[0].text });

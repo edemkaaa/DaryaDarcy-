@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
 
+/** Проверяем настоящий HTML и hydration с request-nonce: подложенный заголовок не выбирает nonce, а внедрённый в ответ inline-script блокируется браузером. */
 test("document CSP permits hydration, changes per response and blocks injected inline scripts", async ({
   page,
   request,
@@ -66,6 +67,7 @@ test("document CSP permits hydration, changes per response and blocks injected i
   await expect.poll(() => violations.length).toBeGreaterThan(0);
 });
 
+/** Два закрытых материала проверяем с недоступным и восстановленным API; ни ошибка, ни выключенный старый UI-флаг не должны открыть внешний публичный fallback. */
 for (const [material, title] of [
   ["recipes", "Сборник рецептов"],
   ["peterburg", "Гид по Петербургу"],
@@ -128,6 +130,7 @@ for (const [material, title] of [
   });
 }
 
+/** Гость не отправляет запрос закрытого файла, а согласованный бесплатный сборник сохраняет отдельный внешний переход. */
 test("guests cannot request club downloads and the free collection retains its link", async ({
   page,
 }) => {

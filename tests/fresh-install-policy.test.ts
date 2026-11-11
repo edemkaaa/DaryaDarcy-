@@ -1,7 +1,9 @@
+/** Канонический/fresh migration manifest проверяется по локальным SQL, без применения к БД. */
 import { describe, expect, it } from "vitest";
 import { readFile, readdir } from "node:fs/promises";
 import * as policy from "../tooling/scripts/migration-policy";
 
+/** Читаем настоящий journal и полный набор SQL файлов в map, не изменяя их. */
 async function source() {
   const folder = new URL("../packages/database/drizzle/", import.meta.url);
   const journal = JSON.parse(
@@ -19,10 +21,13 @@ async function source() {
   );
   return { journal, files };
 }
+/** Проверяем текущие 52 шага и распознавание известной исторической дырки отдельно от неизвестных orphan-файлов. */
 describe("separate fresh-install migration manifest", () => {
+  /** Вызываем проверяемую политику fresh-install с переданными копиями входа. */
   async function fresh(journal: unknown, files: Map<string, string>) {
     return policy.inspectFreshInstallManifest(journal, files);
   }
+  /** Fresh сохраняет hash/when/tag канонических шагов и не мутирует journal; прежний неполный layout распознаётся явно. */
   it("keeps the canonical release/fresh identities and can still recognize the historical layout", async () => {
     const { journal, files } = await source();
     const before = JSON.stringify(journal);
@@ -48,6 +53,7 @@ describe("separate fresh-install migration manifest", () => {
     for (const row of baseline)
       expect(result.migrations.find((f) => f.tag === row.tag)).toEqual(row);
   });
+  /** Непросмотренный SQL не включается в план только потому, что лежит рядом. */
   it("refuses an unknown orphan instead of silently applying it", async () => {
     const { journal, files } = await source();
     files.set("0036_unreviewed.sql", "DROP TABLE users;");
@@ -55,6 +61,7 @@ describe("separate fresh-install migration manifest", () => {
       "untracked-file:0036_unreviewed.sql",
     );
   });
+  /** Отсутствующий файл обязательного шага блокирует fresh-план. */
   it("refuses a missing fresh migration", async () => {
     const { journal, files } = await source();
     files.delete("0018_push_consent_text.sql");

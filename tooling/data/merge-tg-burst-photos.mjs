@@ -36,6 +36,8 @@ const s3 = new S3Client({
 const S3_PUBLIC = `${env.S3_ENDPOINT}/${env.S3_BUCKET}/`;
 
 function dateSuffix(msg) {
+  // Формирует суффикс имени по локальному часовому поясу процесса; окружение должно совпадать с экспортом.
+
   const d = new Date(Number(msg.date_unixtime) * 1000);
   const dd = String(d.getDate()).padStart(2, "0");
   const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -47,6 +49,8 @@ function dateSuffix(msg) {
 }
 
 async function listDiskFiles(folder) {
+  // Читает полный список файлов публичного Диска страницами, чтобы сопоставлять имена из экспорта.
+
   const names = [];
   let offset = 0;
   while (true) {
@@ -69,6 +73,8 @@ async function listDiskFiles(folder) {
 }
 
 async function yandexDownload(diskPath) {
+  // Запрашивает временную ссылку скачивания конкретного файла публичного Диска.
+
   const url =
     "https://cloud-api.yandex.net/v1/disk/public/resources/download?public_key=" +
     encodeURIComponent(YANDEX_PUBLIC) +
@@ -82,6 +88,8 @@ async function yandexDownload(diskPath) {
 }
 
 async function getCachedOrDownload(diskPath) {
+  // Переиспользует локальную копию или скачивает исходник в кэш; этот исторический путь может обращаться к сети и в dry-run.
+
   fs.mkdirSync(CACHE_DIR, { recursive: true });
   const safe = diskPath.replace(/[^\w@.\-]+/g, "_");
   const cacheFile = path.join(CACHE_DIR, safe);
@@ -92,6 +100,8 @@ async function getCachedOrDownload(diskPath) {
 }
 
 async function uploadS3(key, body) {
+  // Историческая загрузка создаёт публичный объект public-read; не использовать как замену нынешнему защищённому переносу.
+
   if (DRY_RUN) return S3_PUBLIC + key;
   await s3.send(
     new PutObjectCommand({
@@ -106,6 +116,8 @@ async function uploadS3(key, body) {
 }
 
 function resolveBurstPhotoNames(diskPhotos, msg, albumCount) {
+  // Подбирает фотографии короткой серии по именам и дате; результат требует сверки количества оператором.
+
   const suffix = dateSuffix(msg);
   const matches = diskPhotos
     .filter((name) => name.startsWith("photo_") && name.includes(suffix))
@@ -119,10 +131,14 @@ function resolveBurstPhotoNames(diskPhotos, msg, albumCount) {
 }
 
 function urlBasename(url) {
+  // Сравнивает имя последнего сегмента URL без параметров; это сопоставление имени, а не проверка байтов.
+
   return decodeURIComponent(url.split("/").pop()?.split("?")[0] || "");
 }
 
 async function main() {
+  // Объединяет фото сообщений в пределах пяти секунд вокруг текстового поста; SQL-запись отключается только явным dry-run.
+
   const diskPhotos = await listDiskFiles("/фото из клуба");
   const data = JSON.parse(fs.readFileSync(RESULT_JSON, "utf8"));
   const messages = data.messages.filter((m) => m.type === "message");

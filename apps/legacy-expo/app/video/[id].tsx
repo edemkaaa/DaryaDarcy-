@@ -1,3 +1,4 @@
+// Архив Expo. Архивный экран предпочитает прямой videoUrl и иначе старый YouTube adapter; новый VK-каталог живёт в активном frontend.
 import { createElement } from "react";
 import {
   View,
@@ -36,6 +37,8 @@ try {
 }
 
 export default function VideoDetailScreen() {
+  // Архивный экран предпочитает прямой videoUrl и иначе старый YouTube adapter; новый VK-каталог живёт в активном frontend.
+
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -46,6 +49,8 @@ export default function VideoDetailScreen() {
   );
 
   const handleBack = () => {
+    // Возвращает пользователя к предыдущему экрану без изменения плеера на сервере.
+
     router.back();
   };
 
@@ -128,6 +133,8 @@ export default function VideoDetailScreen() {
 
 // Native video player component (used when videoUrl is available on S3)
 function VideoPlayerNative({ videoUrl }: { videoUrl: string }) {
+  // Создаёт native player прямого файла с системными controls и без loop.
+
   if (!VideoView || !useVideoPlayer) return null;
 
   const player = useVideoPlayer(videoUrl, (p: any) => {
@@ -145,6 +152,7 @@ function VideoPlayerNative({ videoUrl }: { videoUrl: string }) {
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   container: {
     flex: 1,

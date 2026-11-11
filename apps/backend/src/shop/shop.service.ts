@@ -9,6 +9,7 @@ import { buildShopCheckoutUrl, getShopProduct } from "../prodamus";
 /** Существующие операции магазина; вызывающая checkout-граница проверяет возможность выпуска. */
 @Injectable()
 export class ShopService {
+  /** Для гостя возвращаем отсутствие покупки, для текущего пользователя проверяем только его оплаченный цифровой товар. */
   async owned(
     actor: User | null,
     productId: string,
@@ -17,6 +18,7 @@ export class ShopService {
     return { owned: await db.userOwnsShopProduct(actor.id, productId) };
   }
 
+  /** Проверяем известный товар и почту профиля, строим подписанную ссылку и сохраняем заказ текущего пользователя до её возврата; capability онлайн-оплаты проверяет вызывающий роутер. */
   async createCheckout(
     actor: User,
     productId: string,

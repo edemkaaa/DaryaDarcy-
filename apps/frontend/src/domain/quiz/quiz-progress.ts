@@ -7,6 +7,7 @@ const questions = JSON.stringify(
   QUESTIONS.map((q) => [q.id, q.answers.map((a) => a.id)]),
 );
 
+/** Сохраняем ответы вместе с fingerprint набора вопросов; version=2 дополнительно несёт ID запуска и локальную ревизию. */
 export function serializeQuizProgress(
   state: QuizState,
   run?: { runId: string; revision: number },
@@ -20,7 +21,7 @@ export function serializeQuizProgress(
   });
 }
 
-/** Stored answers are untrusted and belong to a particular question set. */
+/** Принимаем только ограниченную запись текущего набора вопросов с допустимыми ответами и заполненной пройденной частью. */
 export function parseQuizProgress(raw: string | null): QuizState | null {
   if (!raw || raw.length > 16_384) return null;
   try {

@@ -31,6 +31,7 @@ type Swipe = {
   axis: "horizontal" | "vertical" | null;
 };
 
+/** Один индекс управляет слайдом, маршрутом и точками; автоматическое листание приостанавливаем во время ручного жеста и скрытого экрана. */
 export function HomePromoCarousel() {
   const active = useScreenActive();
   const viewport = useViewport();
@@ -45,6 +46,7 @@ export function HomePromoCarousel() {
   const slide = HOME_PROMO_SLIDES[index];
 
   // Отменённый жест завершает захват указателя без смены раздела и без случайного клика по слайду.
+  /** Отмена не меняет слайд; достаточный горизонтальный жест листает циклически и освобождает pointer capture. */
   const finishSwipe = useCallback((cancelled = false) => {
     const current = swipe.current;
     if (!current) return;
@@ -72,6 +74,7 @@ export function HomePromoCarousel() {
   }, []);
 
   useEffect(() => {
+    /** Потеря окна или resize завершают drag, не открывая раздел по остаточному клику. */
     const cancel = () => finishSwipe(true);
     window.addEventListener("blur", cancel);
     window.addEventListener("resize", cancel);

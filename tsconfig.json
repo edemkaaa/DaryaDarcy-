@@ -33,7 +33,6 @@
     "packages/**/*.ts",
     "tooling/scripts/**/*.ts",
     "tests/**/*.ts",
-    "__tests__/**/*.ts",
     "vitest.config.mts",
     "vitest.setup.ts"
   ],

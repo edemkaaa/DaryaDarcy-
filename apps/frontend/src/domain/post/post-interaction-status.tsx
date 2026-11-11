@@ -1,6 +1,7 @@
 "use client";
 /** Карточки используют одно представление ошибок отметок и повторного чтения подтверждённого состояния. */
 import { StatusNotice, StatusNoticeAction } from "@/shared/ui/status-notice";
+/** Сообщаем ошибку отметок с действием читающего восстановления; кнопка не повторяет toggle. */
 export function PostInteractionStatus({
   error,
   retry,

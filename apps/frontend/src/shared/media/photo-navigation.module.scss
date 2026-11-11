@@ -2,6 +2,7 @@
 @use "../styles/layers";
 
 @layer elements {
+  /* Стрелки центрируются поверх фото и по умолчанию скрыты, не занимая места в раскладке. */
   .button {
     display: none;
     position: absolute;
@@ -29,6 +30,7 @@
     right: 12px;
   }
 
+  /* Во время mouse drag блокируется выделение, а курсор grabbing распространяется на дочернее содержимое. */
   .draggable[data-photo-dragging] {
     cursor: grabbing;
     user-select: none;
@@ -38,6 +40,7 @@
     }
   }
 
+  /* Стрелки показываются только для точного указателя с hover; сенсорный просмотр сохраняет жестовое управление. */
   @media (hover: hover) and (pointer: fine) {
     .button {
       display: flex;

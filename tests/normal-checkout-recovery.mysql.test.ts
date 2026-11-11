@@ -24,14 +24,17 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 // Real HTTP/JWT/SQL; checkout only builds synthetic links, never visits a provider.
+/** Проверяет восстановление авторизованного LIVE-checkout по durable-намерению через настоящий HTTP, JWT и SQL без посещения провайдера. */
 describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
   let conn: Connection, app: INestApplication, base: string, bearer: string;
   const key = "ac7cb3a4-8c2e-4c87-9595-b2f5ec5b5201";
   const input = { idempotencyKey: key, plan: "monthly", contactPhone: "+79991234567" };
+  /** Читает контрольные строки платежей и журнала намерений отдельной базы. */
   async function rows(query: string, values: unknown[] = []) {
     const [data] = await conn.query<RowDataPacket[]>(query, values);
     return data;
   }
+  /** Отправляет создание либо чтение статуса настоящим tRPC HTTP с управляемой сессией и superjson. */
   async function request(
     method: "createNormalCheckout" | "normalCheckoutStatus",
     value: unknown = input,
@@ -62,6 +65,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
       cacheControl: response.headers.get("cache-control"),
     };
   }
+  /** Удаляет только намерения, квитанции и платежи двух собственных пользователей, учитывая сценарий отсутствующего журнала. */
   async function cleanup() {
     if ((await rows("SHOW TABLES LIKE 'normal_checkout_requests'")).length)
       await conn.query(
@@ -72,6 +76,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
     );
     await conn.query("DELETE FROM club_payments WHERE userId IN (9140,9141)");
   }
+  /** Сериализует fault-injection схемы общим тестовым lock и запускает API с синтетическими LIVE-настройками и двумя пользователями. */
   beforeAll(async () => {
     conn = await openTestDatabase();
     // This suite deliberately removes ledger guards/tables. Keep other users
@@ -96,6 +101,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
       sessionVersion: 0,
     });
   }, 45_000);
+  /** Возвращает роль, сессию, почту и конфигурационные флаги перед сценарием. */
   beforeEach(async () => {
     await cleanup();
     await conn.query(
@@ -106,6 +112,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
     vi.stubEnv("YOOKASSA_TEST_ENABLED", "false");
     vi.stubEnv("PRODAMUS_SECRET", "synthetic-merchant-key");
   });
+  /** Удаляет свои записи, освобождает общий lock и закрывает приложение, соединение и SQL-пул. */
   afterAll(async () => {
     await app?.close();
     if (conn) {
@@ -119,6 +126,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
     )?.$client.end();
     vi.unstubAllEnvs();
   });
+  /** Проверяет совместимость прежнего NULL-контакта без обязательной повторной передачи и изменения номера. */
   it("recovers an old nullable-contact order without requiring or changing a phone", async () => {
     const first = await request("createNormalCheckout", input);
     expect(first.code).toBe(200);
@@ -129,6 +137,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
     expect((await request("createNormalCheckout", oldInput)).data).toEqual(first.data);
     expect(await rows("SELECT contactPhone FROM club_payments WHERE userId=9140")).toEqual([{ contactPhone: null }]);
   });
+  /** Проверяет обязательный нормализованный контакт только нового заказа и неизменность содержимого операции при повторах. */
   it("requires contact only for a fresh order and freezes it across retries", async () => {
     const missing = { idempotencyKey: key, plan: "monthly" };
     expect((await request("createNormalCheckout", missing)).code).toBe(400);
@@ -142,6 +151,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
     expect(await rows("SELECT orderId FROM club_payments WHERE userId=9140")).toHaveLength(1);
     expect((await rows("SELECT phone FROM users WHERE id=9140"))[0].phone).toBeNull();
   });
+  /** Проверяет, что повтор старого намерения не возвращает прежний номер поверх контакта более нового намерения. */
   it("replaying an old intent cannot revert the contact saved by a newer intent", async () => {
     expect((await request("createNormalCheckout", input)).code).toBe(200);
     const newer = { ...input, idempotencyKey: "136f6bc5-e4c7-442a-b3df-68d44b7ee823", contactPhone: "+447700900123" };
@@ -151,6 +161,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
     expect(await rows("SELECT contactPhone FROM users WHERE id=9140")).toEqual([{ contactPhone: newer.contactPhone }]);
     expect(await rows("SELECT orderId FROM club_payments WHERE userId=9140")).toHaveLength(2);
   });
+  /** Проверяет единственный pending-заказ и исходную идентичность без новых cookie, токенов и писем при повторе. */
   it("replays one committed checkout without another pending order or identity effect", async () => {
     const identity = await rows(
       "SELECT id,openId,email,passwordHash,role,sessionVersion FROM users WHERE id=9140",
@@ -190,6 +201,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
       await rows("SELECT userId FROM password_tokens WHERE userId=9140"),
     ).toEqual([]);
   });
+  /** Проверяет сериализацию двенадцати одинаковых намерений в один заказ и одну ссылку. */
   it("serializes concurrent identical intentions into one order and link", async () => {
     const replies = await Promise.all(
       Array.from({ length: 12 }, () => request("createNormalCheckout")),
@@ -201,6 +213,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
       await rows("SELECT orderId FROM club_payments WHERE userId=9140"),
     ).toHaveLength(1);
   });
+  /** Проверяет конфликт изменённого тарифа под прежним ключом без второго заказа. */
   it("refuses a changed plan under the original key without a second order", async () => {
     expect((await request("createNormalCheckout")).code).toBe(200);
     expect(
@@ -210,6 +223,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
       await rows("SELECT orderId FROM club_payments WHERE userId=9140"),
     ).toHaveLength(1);
   });
+  /** Проверяет закрытый отказ выключенной функции и TEST-конфигурации до создания заказа. */
   it("fails closed when disabled or TEST mode is selected", async () => {
     vi.stubEnv("NORMAL_CHECKOUT_RECOVERY_ENABLED", "false");
     expect((await request("createNormalCheckout")).code).toBe(412);
@@ -220,6 +234,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
       await rows("SELECT orderId FROM club_payments WHERE userId=9140"),
     ).toHaveLength(0);
   });
+  /** Проверяет отказ повторной подписи изменившимся merchant-ключом при сохранении исходного заказа. */
   it("preserves the order when signing configuration changes", async () => {
     expect((await request("createNormalCheckout")).code).toBe(200);
     vi.stubEnv("PRODAMUS_SECRET", "changed-synthetic-key");
@@ -228,6 +243,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
       await rows("SELECT orderId FROM club_payments WHERE userId=9140"),
     ).toHaveLength(1);
   });
+  /** Проверяет безопасные pending и notRecorded при чтении статуса без генерации платёжной ссылки. */
   it("reads pending and notRecorded without issuing a payment link", async () => {
     expect(
       await request("normalCheckoutStatus", { idempotencyKey: key }),
@@ -244,6 +260,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
       (await request("normalCheckoutStatus", { idempotencyKey: key })).data,
     ).not.toHaveProperty("url");
   });
+  /** Проверяет сохранение failed-результата на создании и статусе без автоматической покупки-замены. */
   it("reports failed orders on create and status without recreating them", async () => {
     const created = await request("createNormalCheckout");
     await conn.query(
@@ -264,6 +281,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
       await rows("SELECT orderId FROM club_payments WHERE userId=9140"),
     ).toHaveLength(1);
   });
+  /** Проверяет обязательную квитанцию конкретного заказа и возврат срока именно этого заказа. */
   it("requires an order-specific receipt and returns that order's expiry", async () => {
     const created = await request("createNormalCheckout");
     await conn.query(
@@ -286,6 +304,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
       (await request("normalCheckoutStatus", { idempotencyKey: key })).data,
     ).toEqual(expected);
   });
+  /** Временно убирает уникальный guard отдельного журнала и проверяет закрытый отказ без записи, затем восстанавливает guard в finally. */
   it("fails closed when the ledger lacks its unique request guard", async () => {
     await conn.query("ALTER TABLE normal_checkout_requests DROP PRIMARY KEY");
     try {
@@ -302,6 +321,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
       );
     }
   });
+  /** Проверяет отказ при удалённом заказе вместо его воссоздания повтором исходного намерения. */
   it("fails closed on a deleted order instead of recreating it", async () => {
     await request("createNormalCheckout");
     await conn.query("DELETE FROM club_payments WHERE userId=9140");
@@ -313,6 +333,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
       await rows("SELECT orderId FROM club_payments WHERE userId=9140"),
     ).toHaveLength(0);
   });
+  /** Проверяет отдельное пространство одинакового ключа по аккаунтам и запрет гостевого чтения и создания. */
   it("isolates identical raw keys across accounts and denies unauthenticated access", async () => {
     const first = await request("createNormalCheckout");
     const other = await sdk.createSessionToken("normal-checkout-other", {
@@ -331,6 +352,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
         .code,
     ).toBe(401);
   });
+  /** Проверяет отказ повреждённого checkoutUrlHash даже при существующем pending-заказе. */
   it("rejects malformed durable evidence even when the pending order exists", async () => {
     await request("createNormalCheckout");
     await conn.query(
@@ -341,6 +363,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
     ).toBe(500);
     expect((await request("createNormalCheckout")).code).toBe(500);
   });
+  /** Проверяет отсутствие ложного success после изменения email заказа относительно сохранённого намерения. */
   it("does not report success when the stored order email no longer matches its intent", async () => {
     const created = await request("createNormalCheckout");
     await conn.query(
@@ -356,6 +379,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
     ).toBe(500);
     expect((await request("createNormalCheckout")).code).toBe(500);
   });
+  /** Отбрасывает успешный HTTP-ответ и восстанавливает закоммиченный заказ через статус и безопасный повтор. */
   it("recovers a committed checkout when the client discards the HTTP acknowledgement", async () => {
     const response = await fetch(`${base}/api/trpc/club.createNormalCheckout`, {
       method: "POST",
@@ -378,6 +402,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
       await rows("SELECT orderId FROM club_payments WHERE userId=9140"),
     ).toEqual([{ orderId: status.data.orderId }]);
   });
+  /** Проверяет общий откат заказа при отказе durable-журнала и допустимый новый повтор после удаления своего триггера. */
   it("rolls back the order when committing the durable ledger fails", async () => {
     await conn.query(
       "CREATE TRIGGER owned_normal_checkout_failure BEFORE INSERT ON normal_checkout_requests FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='owned synthetic ledger failure'",
@@ -396,6 +421,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
     expect((await request("createNormalCheckout")).code).toBe(200);
   });
   // Bundling plus two independent server processes needs more than the default 5s.
+  /** Собирает production ESM и проверяет одно намерение в двух независимых процессах API. */
   it("preserves the original intention across independent compiled server processes", async () => {
     const directory = mkdtempSync(resolve(".tmp-normal-checkout-"));
     const entry = join(directory, "application.mjs");
@@ -427,6 +453,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
         format: "esm",
         outfile: entry,
       });
+      /** Запускает отдельный собранный процесс и извлекает только маркированный checkout/status-результат. */
       const run = () => {
         const output = execFileSync(process.execPath, [entry], {
           cwd: tmpdir(),
@@ -465,6 +492,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
       rmdirSync(directory);
     }
   }, 30_000);
+  /** Проверяет запрет TEST-заголовка, поддельной идентичности, блокированной и отозванной сессии без заказов. */
   it("rejects TEST headers, blocked/revoked sessions, and client-controlled identity", async () => {
     expect(
       (
@@ -498,6 +526,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
       await rows("SELECT orderId FROM club_payments WHERE userId=9140"),
     ).toHaveLength(0);
   });
+  /** Проверяет конфликт изменённой почты аккаунта при сохранении возможности прочитать исходный заказ. */
   it("conflicts on changed account email but still reads the original order", async () => {
     const first = await request("createNormalCheckout");
     await conn.query(
@@ -511,6 +540,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
       await rows("SELECT orderId FROM club_payments WHERE userId=9140"),
     ).toHaveLength(1);
   });
+  /** Проверяет прежний полугодовой разовый контракт без recurring-параметра и с устойчивым повтором. */
   it("preserves the non-recurring semiannual checkout contract", async () => {
     const first = await request("createNormalCheckout", {
       ...input,
@@ -527,6 +557,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
       (await request("normalCheckoutStatus", { idempotencyKey: key })).data,
     ).toEqual({ state: "pending", orderId: first.data.orderId });
   });
+  /** Временно скрывает таблицу журнала и проверяет закрытый отказ, затем возвращает только собственную таблицу. */
   it("fails closed for an absent ledger and restores only the owned fixture", async () => {
     await conn.query(
       "RENAME TABLE normal_checkout_requests TO owned_hidden_normal_checkout_requests",
@@ -545,6 +576,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
       );
     }
   });
+  /** Проверяет, что другая оплаченная покупка пользователя не превращает выбранное pending-намерение в success. */
   it("does not mistake another paid order for this purchase", async () => {
     const first = await request("createNormalCheckout");
     await conn.query(
@@ -555,6 +587,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
     ).toEqual({ state: "pending", orderId: first.data.orderId });
     expect((await request("createNormalCheckout")).data).toEqual(first.data);
   });
+  /** Проверяет строгие канонические ключи и форму status-входа до записи. */
   it("rejects invalid keys and strict status inputs before writing", async () => {
     for (const invalid of [
       key.toUpperCase(),
@@ -575,6 +608,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
       await rows("SELECT orderId FROM club_payments WHERE userId=9140"),
     ).toHaveLength(0);
   });
+  /** Удерживает пользовательскую строку, отзывает сессию и проверяет повторную авторизацию внутри транзакции. */
   it("rechecks a revoked identity inside the transaction rather than trusting the actor snapshot", async () => {
     const actor = await getUserById(9140);
     expect(actor).toBeDefined();
@@ -599,6 +633,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
       await conn.rollback();
     }
   });
+  /** Проверяет отказ malformed-идентичности canonical-квитанции даже при paid-строке заказа. */
   it("does not accept malformed canonical receipt evidence", async () => {
     const created = await request("createNormalCheckout");
     await conn.query(
@@ -612,6 +647,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
       (await request("normalCheckoutStatus", { idempotencyKey: key })).code,
     ).toBe(500);
   });
+  /** Проверяет чтение прежнего LIVE-статуса при TEST-конфигурации без преобразования намерения и запрет выключенной recovery-функции. */
   it("reads status in TEST mode without converting a normal intent", async () => {
     const first = await request("createNormalCheckout");
     for (const mode of ["true", "malformed"]) {
@@ -629,6 +665,7 @@ describe.skipIf(!testDatabaseUrl)("normal checkout intent recovery", () => {
       await rows("SELECT orderId FROM club_payments WHERE userId=9140"),
     ).toHaveLength(1);
   });
+  /** Проверяет владельца и сумму квитанции независимо от paid-статуса и возвращает исторический срок конкретного подтверждённого заказа. */
   it("checks receipt ownership and amount independently of a paid row", async () => {
     const created = await request("createNormalCheckout");
     await conn.query(

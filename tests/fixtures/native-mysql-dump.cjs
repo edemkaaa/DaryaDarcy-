@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Test-only transport adapter: execute the actual MySQL 8.4 tool inside the
 // owned source container. Production gzip/filesystem/completion code stays real.
+// Adapter передаёт закрытый option-file по stdin настоящему mysqldump внутри указанного собственного контейнера; dump bytes и exit code остаются настоящими.
 const { spawn } = require("node:child_process");
 const fs = require("node:fs");
 const args = process.argv.slice(2);

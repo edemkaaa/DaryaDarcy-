@@ -1,3 +1,4 @@
+// Архив Expo. Отделяет фоновый полноэкранный слой от SafeArea; нижний inset обычно задаёт tab bar.
 import { View, ImageBackground, type ViewProps } from "react-native";
 import { SafeAreaView, type Edge } from "react-native-safe-area-context";
 
@@ -46,6 +47,8 @@ export function ScreenContainer({
   style,
   ...props
 }: ScreenContainerProps) {
+  // Отделяет фоновый полноэкранный слой от SafeArea; нижний inset обычно задаёт tab bar.
+
   const content = (
     <SafeAreaView
       edges={edges}

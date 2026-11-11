@@ -11,19 +11,11 @@
 | Блок | Строка | Назначение |
 | --- | --- | --- |
 | `busy` | 5 | Функция. Подробности и ограничения — в исходнике. |
-| `createVideoCache` | 10 | Owns only directories created inside a private, non-shared cache mount. |
-| `remove` | 32 | Вложенная функция. Подробности и ограничения — в исходнике. |
-| `prepareEntry` | 39 | Вложенная функция. Подробности и ограничения — в исходнике. |
-| `acquire` | 78 | Вложенная функция. Подробности и ограничения — в исходнике. |
-| `close` | 141 | Вложенная функция. Подробности и ограничения — в исходнике. |
-
-## [apps/video-service/Dockerfile](../../../apps/video-service/Dockerfile)
-
-Закрепляет runtime и контрольную сумму загрузчика, устанавливая FFmpeg из подписанного Debian-репозитория. Обновление бинарников при запуске контейнера не выполняется. Use Debian's signed security repositories, not a third-party media binary.
-
-## [apps/video-service/Dockerfile.dockerignore](../../../apps/video-service/Dockerfile.dockerignore)
-
-Ограничивает контекст самостоятельной сборки video-worker его исходниками, без тестовых и локальных операционных файлов.
+| `createVideoCache` | 12 | Owns only directories created inside a private, non-shared cache mount. |
+| `remove` | 36 | Вложенная функция. Подробности и ограничения — в исходнике. |
+| `prepareEntry` | 45 | Вложенная функция. Подробности и ограничения — в исходнике. |
+| `acquire` | 86 | Вложенная функция. Подробности и ограничения — в исходнике. |
+| `close` | 153 | Вложенная функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/video-service/main.mjs](../../../apps/video-service/main.mjs)
 
@@ -41,7 +33,7 @@
 | Блок | Строка | Назначение |
 | --- | --- | --- |
 | `runCommand` | 6 | Функция. Подробности и ограничения — в исходнике. |
-| `prepareVideo` | 59 | Функция. Подробности и ограничения — в исходнике. |
+| `prepareVideo` | 65 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/video-service/README.md](../../../apps/video-service/README.md)
 
@@ -54,8 +46,8 @@ Public-video worker. Инструкция или навигация по про�
 | Блок | Строка | Назначение |
 | --- | --- | --- |
 | `byteRange` | 6 | Функция. Подробности и ограничения — в исходнике. |
-| `error` | 19 | Функция. Подробности и ограничения — в исходнике. |
-| `createVideoServer` | 25 | Public catalog playback only; never accepts upstream URLs or credentials. |
+| `error` | 21 | Функция. Подробности и ограничения — в исходнике. |
+| `createVideoServer` | 29 | Public catalog playback only; never accepts upstream URLs or credentials. |
 
 ## [apps/video-service/test/cache.test.mjs](../../../apps/video-service/test/cache.test.mjs)
 
@@ -78,8 +70,8 @@ Public-video worker. Инструкция или навигация по про�
 | --- | --- | --- |
 | `directories` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `directory` | 14 | Функция. Подробности и ограничения — в исходнике. |
-| `media` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `metadata` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `media` | 21 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `metadata` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [apps/video-service/test/server.test.mjs](../../../apps/video-service/test/server.test.mjs)
 
@@ -111,14 +103,50 @@ Public-video worker. Инструкция или навигация по про�
 | Блок | Строка | Назначение |
 | --- | --- | --- |
 | `boundedBody` | 2 | Функция. Подробности и ограничения — в исходнике. |
-| `readPublicCatalog` | 19 | Функция. Подробности и ограничения — в исходнике. |
-| `readPublicYoutubeState` | 55 | Функция. Подробности и ограничения — в исходнике. |
-| `readThumbnail` | 72 | Функция. Подробности и ограничения — в исходнике. |
-| `createThumbnailReader` | 95 | Cache validated public thumbnail bytes only. Publication is still checked by the HTTP handler before AND after every read, including cache hits. |
+| `readPublicCatalog` | 21 | Функция. Подробности и ограничения — в исходнике. |
+| `readPublicYoutubeState` | 59 | Функция. Подробности и ограничения — в исходнике. |
+| `readThumbnail` | 78 | Функция. Подробности и ограничения — в исходнике. |
+| `createThumbnailReader` | 103 | Cache validated public thumbnail bytes only. Publication is still checked by the HTTP handler before AND after every read, including cache hits. |
+
+## [infrastructure/build/build.public.env.example](../../../infrastructure/build/build.public.env.example)
+
+Служебный файл проекта; назначение уточняется по каталогу и связанному README.
+
+## [infrastructure/build/compose.build.yaml](../../../infrastructure/build/compose.build.yaml)
+
+Только описание сборки образов с обязательной ревизией. Не объединять с runtime-стеком для up: базы и рабочие env при сборке не нужны. BUILD ONLY. Never merge this file into the runtime Compose or run 'up' with it. Build from a clean git archive; this file does not load any deployment secrets. Собир
+
+## [infrastructure/build/Dockerfile](../../../infrastructure/build/Dockerfile)
+
+Собирает общий web/API runtime из зафиксированного исходного среза. Публичные NEXT_PUBLIC-флаги встраиваются в Next при сборке; секреты в build args не передаются. Build from a git-archive context, not a working tree containing local secrets. Стадия зависимостей устанавливает строго frozen lockfile
+
+## [infrastructure/build/Dockerfile.backend](../../../infrastructure/build/Dockerfile.backend)
+
+Отдельный runtime содержит API и TEST-bundle, но не запускает миграции. Установка production-зависимостей отделена от сборочных инструментов, процесс работает без root. Separate API artifact; the existing combined web/API rollout is unchanged. Manifest-стадия содержит все workspace package-файлы для
+
+## [infrastructure/build/Dockerfile.backend.dockerignore](../../../infrastructure/build/Dockerfile.backend.dockerignore)
+
+Разрешает только исходники и manifest-файлы, необходимые API-образу. Локальные ключи, frontend assets и рабочие данные не должны попадать в контекст. По умолчанию исключён весь контекст; ниже открывается минимальный набор manifest и backend/shared-исходников.
+
+## [infrastructure/build/Dockerfile.dockerignore](../../../infrastructure/build/Dockerfile.dockerignore)
+
+Исключает локальные зависимости, результаты сборок и типовые секретные файлы из контекста. Для выпуска всё равно нужен чистый Git-архив, а не произвольная рабочая папка. Исключения защищают типовые локальные секреты и артефакты; неизвестные файлы надёжнее исключать чистым git archive.
+
+## [infrastructure/build/Dockerfile.video](../../../infrastructure/build/Dockerfile.video)
+
+Закрепляет runtime и контрольную сумму загрузчика, устанавливая FFmpeg из подписанного Debian-репозитория. Обновление бинарников при запуске контейнера не выполняется. Метка ревизии связывает образ с проверенным исходным срезом. Use Debian's signed security repositories, not a third-party media bina
+
+## [infrastructure/build/Dockerfile.video.dockerignore](../../../infrastructure/build/Dockerfile.video.dockerignore)
+
+Ограничивает контекст самостоятельной сборки video-worker его исходниками, без тестовых и локальных операционных файлов. Контекст закрыт по умолчанию: открыты только runtime mjs; тесты и локальные файлы исключены.
+
+## [infrastructure/build/README.md](../../../infrastructure/build/README.md)
+
+Сборка Daryadarcy для DevOps. Инструкция или навигация по проекту.
 
 ## [infrastructure/ci/gitlab-runner/compose.yaml](../../../infrastructure/ci/gitlab-runner/compose.yaml)
 
-Запускает только manager отдельного CI-runner. Docker socket даёт ему контроль выделенного хоста; рабочим job-контейнерам socket не передаётся.
+Запускает только manager отдельного CI-runner. Docker socket даёт ему контроль выделенного хоста; рабочим job-контейнерам socket не передаётся. Manager получает привилегированный по смыслу Docker socket только на выделенном CI-хосте; job-контейнерам он не выдаётся.
 
 ## [infrastructure/ci/gitlab-runner/config.toml.example](../../../infrastructure/ci/gitlab-runner/config.toml.example)
 
@@ -130,7 +158,7 @@ Public-video worker. Инструкция или навигация по про�
 
 ## [infrastructure/deploy/apply-ip-nginx.sh](../../../infrastructure/deploy/apply-ip-nginx.sh)
 
-Исторически настраивает Nginx для доступа по IP. Не применять поверх актуального доменного Docker-стека без сверки конфигурации.
+Исторически настраивает Nginx для доступа по IP. Не применять поверх актуального доменного Docker-стека без сверки конфигурации. Подменяет старый сайт Nginx и отключает default; перед reload ниже проверяется синтаксис.
 
 ## [infrastructure/deploy/ecosystem.config.cjs](../../../infrastructure/deploy/ecosystem.config.cjs)
 
@@ -138,15 +166,15 @@ Public-video worker. Инструкция или навигация по про�
 
 ## [infrastructure/deploy/fix-nginx.sh](../../../infrastructure/deploy/fix-nginx.sh)
 
-Исправляет прежнюю серверную конфигурацию Nginx. Перед применением требуется сравнение с фактическим доменным vhost.
+Исправляет прежнюю серверную конфигурацию Nginx. Перед применением требуется сравнение с фактическим доменным vhost. Самоподписанный сертификат создаётся для прежнего IP, а не для актуального домена Let’s Encrypt.
 
 ## [infrastructure/deploy/install.sh](../../../infrastructure/deploy/install.sh)
 
-Устанавливает прежний архив приложения в серверные каталоги. Это изменяющий систему сценарий, не сборка контейнерного runtime.
+Устанавливает прежний архив приложения в серверные каталоги. Это изменяющий систему сценарий, не сборка контейнерного runtime. До установки требуются env и готовые прежние артефакты; исходники здесь не собираются.
 
 ## [infrastructure/deploy/nginx-daryadarcy.conf](../../../infrastructure/deploy/nginx-daryadarcy.conf)
 
-Конфигурация прежнего статического сайта и API. Для актуального Next/Compose используется отдельный teamassist edge и доменный vhost. HTTP: ACME + redirect domain to HTTPS. IP stays on HTTP, but never serves API credentials.
+Конфигурация прежнего статического сайта и API. Для актуального Next/Compose используется отдельный teamassist edge и доменный vhost. HTTP: ACME + redirect domain to HTTPS. IP stays on HTTP, but never serves API credentials. Старый HTTP/IP-vhost выдаёт статику, но запрещает API, чтобы не передавать
 
 ## [infrastructure/deploy/restart.sh](../../../infrastructure/deploy/restart.sh)
 
@@ -162,15 +190,7 @@ Public-video worker. Инструкция или навигация по про�
 
 ## [infrastructure/deploy/start-api.sh](../../../infrastructure/deploy/start-api.sh)
 
-Запускает прежний API по серверным путям. Для нынешнего Compose порядок запуска и образ задаются отдельно.
-
-## [infrastructure/deploy/teamassist/build.public.env.example](../../../infrastructure/deploy/teamassist/build.public.env.example)
-
-Служебный файл проекта; назначение уточняется по каталогу и связанному README.
-
-## [infrastructure/deploy/teamassist/compose.build.yaml](../../../infrastructure/deploy/teamassist/compose.build.yaml)
-
-Только описание сборки образов с обязательной ревизией. Не объединять с runtime-стеком для up: базы и рабочие env при сборке не нужны. BUILD ONLY. Never merge this file into the runtime Compose or run 'up' with it. Build from a clean git archive; this file does not load any deployment secrets.
+Запускает прежний API по серверным путям. Для нынешнего Compose порядок запуска и образ задаются отдельно. До изменения PM2 проверяются только наличие bundle/env, а не миграции или содержимое БД. Прежний API заменяется новым процессом; ниже выполняются локальные HTTP-пробы.
 
 ## [infrastructure/deploy/teamassist/compose.candidate-api.example.yaml](../../../infrastructure/deploy/teamassist/compose.candidate-api.example.yaml)
 
@@ -178,7 +198,7 @@ Public-video worker. Инструкция или навигация по про�
 
 ## [infrastructure/deploy/teamassist/compose.images.yaml](../../../infrastructure/deploy/teamassist/compose.images.yaml)
 
-Даёт Next доступ к публичным источникам и отдельному image-cache. Сеть не открывает исходящий доступ API и не меняет защиту закрытых файлов. Opt-in: public S3 previews require outbound HTTPS from web, never from api. Use together with the SMTP/video overlays, not instead of them.
+Даёт Next доступ к публичным источникам и отдельному image-cache. Сеть не открывает исходящий доступ API и не меняет защиту закрытых файлов. Opt-in: public S3 previews require outbound HTTPS from web, never from api. Use together with the SMTP/video overlays, not instead of them. Только Next получае
 
 ## [infrastructure/deploy/teamassist/compose.multi-api.example.yaml](../../../infrastructure/deploy/teamassist/compose.multi-api.example.yaml)
 
@@ -186,11 +206,11 @@ Public-video worker. Инструкция или навигация по про�
 
 ## [infrastructure/deploy/teamassist/compose.private-uploads.yaml](../../../infrastructure/deploy/teamassist/compose.private-uploads.yaml)
 
-Добавляет ограниченный выход API к S3 через внутренний alias. Флаги загрузок остаются отдельным решением после проверки схемы, прав и TLS. Reviewed opt-in overlay. Keep flags false in private-uploads.env until the same-DB/schema/policy/identity/TLS preflight has passed. Never publish ports.
+Добавляет ограниченный выход API к S3 через внутренний alias. Флаги загрузок остаются отдельным решением после проверки схемы, прав и TLS. Reviewed opt-in overlay. Keep flags false in private-uploads.env until the same-DB/schema/policy/identity/TLS preflight has passed. Never publish ports. Закрытый
 
 ## [infrastructure/deploy/teamassist/compose.prodamus-test.yaml](../../../infrastructure/deploy/teamassist/compose.prodamus-test.yaml)
 
-Отдельный TEST ingress использует принятый runtime и versioned bundle. Наличие этого сервиса не разрешает реальные списания или автоматическое включение на боевом хосте. Append to existing dev overlays; never enable this service on a live-money host.
+Отдельный TEST ingress использует принятый runtime и versioned bundle. Наличие этого сервиса не разрешает реальные списания или автоматическое включение на боевом хосте. Append to existing dev overlays; never enable this service on a live-money host. Отдельный процесс обслуживает только согласованны
 
 ## [infrastructure/deploy/teamassist/compose.release-images.example.yaml](../../../infrastructure/deploy/teamassist/compose.release-images.example.yaml)
 
@@ -202,31 +222,15 @@ Public-video worker. Инструкция или навигация по про�
 
 ## [infrastructure/deploy/teamassist/compose.video.yaml](../../../infrastructure/deploy/teamassist/compose.video.yaml)
 
-Изолирует прежний YouTube-worker от БД и пользовательских секретов. Временные файлы живут в ограниченном tmpfs, VK iframe этот сервис не требует. Opt-in staging-only overlay. Preserve the existing SMTP/local override too.
+Изолирует прежний YouTube-worker от БД и пользовательских секретов. Временные файлы живут в ограниченном tmpfs, VK iframe этот сервис не требует. Opt-in staging-only overlay. Preserve the existing SMTP/local override too. Работает без БД и постоянного диска: cache и распаковка бинарника ограничены t
 
 ## [infrastructure/deploy/teamassist/compose.yaml](../../../infrastructure/deploy/teamassist/compose.yaml)
 
-Базовый staging-стек разделяет API, Next, MySQL и edge по сетям. Локальные egress/кеш/секретные overlays добавляются отдельно и не восстанавливаются одним этим файлом.
+Базовый staging-стек разделяет API, Next, MySQL и edge по сетям. Локальные egress/кеш/секретные overlays добавляются отдельно и не восстанавливаются одним этим файлом. Постоянный именованный том хранит данные; лимиты 512 МиБ/30 соединений относятся к базовому шаблону и не рассчитаны автоматически на
 
 ## [infrastructure/deploy/teamassist/compose.yookassa.yaml](../../../infrastructure/deploy/teamassist/compose.yookassa.yaml)
 
-Разрешает только отдельный TEST-выход к платёжному API. Сетевой доступ сам не включает checkout и не подтверждает боевые настройки. Opt-in TEST-only payment egress, not permission to enable checkout. Append to ALL existing SMTP/video/image overlays; do not replace them.
-
-## [infrastructure/deploy/teamassist/Dockerfile](../../../infrastructure/deploy/teamassist/Dockerfile)
-
-Собирает общий web/API runtime из зафиксированного исходного среза. Публичные NEXT_PUBLIC-флаги встраиваются в Next при сборке; секреты в build args не передаются. Build from a git-archive context, not a working tree containing local secrets.
-
-## [infrastructure/deploy/teamassist/Dockerfile.backend](../../../infrastructure/deploy/teamassist/Dockerfile.backend)
-
-Отдельный runtime содержит API и TEST-bundle, но не запускает миграции. Установка production-зависимостей отделена от сборочных инструментов, процесс работает без root. Separate API artifact; the existing combined web/API rollout is unchanged. All workspace manifests are required by the authoritativ
-
-## [infrastructure/deploy/teamassist/Dockerfile.backend.dockerignore](../../../infrastructure/deploy/teamassist/Dockerfile.backend.dockerignore)
-
-Разрешает только исходники и manifest-файлы, необходимые API-образу. Локальные ключи, frontend assets и рабочие данные не должны попадать в контекст.
-
-## [infrastructure/deploy/teamassist/Dockerfile.dockerignore](../../../infrastructure/deploy/teamassist/Dockerfile.dockerignore)
-
-Исключает локальные зависимости, результаты сборок и типовые секретные файлы из контекста. Для выпуска всё равно нужен чистый Git-архив, а не произвольная рабочая папка.
+Разрешает только отдельный TEST-выход к платёжному API. Сетевой доступ сам не включает checkout и не подтверждает боевые настройки. Opt-in TEST-only payment egress, not permission to enable checkout. Append to ALL existing SMTP/video/image overlays; do not replace them. Добавляется сеть контроля пла
 
 ## [infrastructure/deploy/teamassist/edge.conf](../../../infrastructure/deploy/teamassist/edge.conf)
 
@@ -238,11 +242,11 @@ Public-video worker. Инструкция или навигация по про�
 
 ## [infrastructure/deploy/teamassist/nginx.conf](../../../infrastructure/deploy/teamassist/nginx.conf)
 
-Внешний TLS-vhost staging направляет запросы в loopback edge. TEST-ограничения этого шаблона не следует переносить на боевую оплату без отдельного решения. Install only after expose-app has issued this test domain's certificate.
+Внешний TLS-vhost staging направляет запросы в loopback edge. TEST-ограничения этого шаблона не следует переносить на боевую оплату без отдельного решения. Install only after expose-app has issued this test domain's certificate. HTTP-вход перенаправляет на TLS того же домена; сертификат должен быть
 
-## [infrastructure/deploy/teamassist/README.build.md](../../../infrastructure/deploy/teamassist/README.build.md)
+## [infrastructure/deploy/teamassist/README.md](../../../infrastructure/deploy/teamassist/README.md)
 
-Сборка Daryadarcy для DevOps. Инструкция или навигация по проекту.
+Запуск сервисов. Инструкция или навигация по проекту.
 
 ## [infrastructure/deploy/teamassist/s3-egress.conf](../../../infrastructure/deploy/teamassist/s3-egress.conf)
 
@@ -255,6 +259,10 @@ TLS passthrough сохраняет проверку сертификата S3 н
 ## [infrastructure/deploy/vps-fresh.sh](../../../infrastructure/deploy/vps-fresh.sh)
 
 Историческая установка на новый VPS меняет системные пакеты и службы. Перед новым размещением нужен актуальный Docker-пакет и проверенный план восстановления данных. Wipe the previous app and install a fresh IP-only build. Run as root. Keeps /root/daryadarcy.env.bak
+
+## [infrastructure/README.md](../../../infrastructure/README.md)
+
+Инфраструктура. Инструкция или навигация по проекту.
 
 ## [tooling/assets/compress-garden-video.py](../../../tooling/assets/compress-garden-video.py)
 
@@ -288,9 +296,9 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `FOLDER_MAP` | 16 | Folder names on https://disk.yandex.ru/d/KJ2NPBMLMGoO6w |
 | `AESTHETIC_MAP` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `api` | 32 | Функция. Подробности и ограничения — в исходнике. |
-| `downloadHref` | 42 | Функция. Подробности и ограничения — в исходнике. |
-| `parseAesthetic` | 49 | Функция. Подробности и ограничения — в исходнике. |
-| `main` | 56 | Функция. Подробности и ограничения — в исходнике. |
+| `downloadHref` | 44 | Функция. Подробности и ограничения — в исходнике. |
+| `parseAesthetic` | 53 | Функция. Подробности и ограничения — в исходнике. |
+| `main` | 62 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/assets/fix-asset-webp-refs.mjs](../../../tooling/assets/fix-asset-webp-refs.mjs)
 
@@ -317,11 +325,11 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `retired` | 10 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `manifest` | 11 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `walk` | 16 | Функция. Подробности и ограничения — в исходнике. |
-| `uris` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `entries` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `imports` | 34 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `mapping` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `variants` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `uris` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `entries` | 32 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `imports` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `mapping` | 38 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `variants` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/assets/generate-private-library-retirement.mjs](../../../tooling/assets/generate-private-library-retirement.mjs)
 
@@ -350,12 +358,12 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `signature` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `channels` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `chunks` | 8 | Функция. Подробности и ограничения — в исходнике. |
-| `paeth` | 23 | Функция. Подробности и ограничения — в исходнике. |
-| `predictor` | 28 | Функция. Подробности и ограничения — в исходнике. |
-| `unfilter` | 38 | Функция. Подробности и ограничения — в исходнике. |
-| `refilter` | 52 | Функция. Подробности и ограничения — в исходнике. |
-| `idat` | 75 | Функция. Подробности и ограничения — в исходнике. |
-| `optimizeLosslessPng` | 83 | Функция. Подробности и ограничения — в исходнике. |
+| `paeth` | 25 | Функция. Подробности и ограничения — в исходнике. |
+| `predictor` | 32 | Функция. Подробности и ограничения — в исходнике. |
+| `unfilter` | 44 | Функция. Подробности и ограничения — в исходнике. |
+| `refilter` | 60 | Функция. Подробности и ограничения — в исходнике. |
+| `idat` | 85 | Функция. Подробности и ограничения — в исходнике. |
+| `optimizeLosslessPng` | 95 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/assets/lossless-png.test.mjs](../../../tooling/assets/lossless-png.test.mjs)
 
@@ -377,9 +385,9 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `PNG` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `JPG` | 13 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `writeIfMissing` | 18 | Функция. Подробности и ограничения — в исходнике. |
-| `list` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `created` | 32 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `icons` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `list` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `created` | 34 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `icons` | 41 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/assets/manus-cdn-urls.txt](../../../tooling/assets/manus-cdn-urls.txt)
 
@@ -403,8 +411,8 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `iconUris` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `pattern` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `isLosslessWebp` | 17 | Функция. Подробности и ограничения — в исходнике. |
-| `walk` | 27 | Функция. Подробности и ограничения — в исходнике. |
-| `normalizeFrontendImages` | 34 | Функция. Подробности и ограничения — в исходнике. |
+| `walk` | 29 | Функция. Подробности и ограничения — в исходнике. |
+| `normalizeFrontendImages` | 38 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/assets/optimize-frontend-external-images.mjs](../../../tooling/assets/optimize-frontend-external-images.mjs)
 
@@ -424,19 +432,19 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `attempts` | 21 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `hash` | 23 | Функция. Подробности и ограничения — в исходнике. |
 | `walk` | 24 | Функция. Подробности и ограничения — в исходнике. |
-| `sources` | 31 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `urls` | 34 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `dynamicPatterns` | 35 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `download` | 47 | Функция. Подробности и ограничения — в исходнике. |
-| `pixels` | 70 | Функция. Подробности и ограничения — в исходнике. |
-| `jpegtranAvailable` | 73 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `results` | 76 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `replacements` | 77 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `index` | 78 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `queue` | 79 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `before` | 154 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `after` | 155 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `report` | 156 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `sources` | 33 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `urls` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `dynamicPatterns` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `download` | 49 | Функция. Подробности и ограничения — в исходнике. |
+| `pixels` | 74 | Функция. Подробности и ограничения — в исходнике. |
+| `jpegtranAvailable` | 79 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `results` | 82 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `replacements` | 83 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `index` | 84 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `queue` | 85 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `before` | 160 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `after` | 161 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `report` | 162 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/assets/optimize-frontend-images.mjs](../../../tooling/assets/optimize-frontend-images.mjs)
 
@@ -450,14 +458,14 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `write` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `reportPath` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `walk` | 17 | Функция. Подробности и ограничения — в исходнике. |
-| `pixels` | 27 | Функция. Подробности и ограничения — в исходнике. |
-| `sources` | 32 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `results` | 35 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `tempDir` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `jpegtranAvailable` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `before` | 106 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `after` | 107 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `report` | 108 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `pixels` | 29 | Функция. Подробности и ограничения — в исходнике. |
+| `sources` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `results` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `tempDir` | 40 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `jpegtranAvailable` | 41 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `before` | 110 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `after` | 111 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `report` | 112 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/assets/optimize-local-assets.mjs](../../../tooling/assets/optimize-local-assets.mjs)
 
@@ -475,8 +483,8 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `saved` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `count` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `walk` | 31 | Функция. Подробности и ограничения — в исходнике. |
-| `processFile` | 43 | Функция. Подробности и ограничения — в исходнике. |
-| `walkCode` | 112 | Вложенная функция. Подробности и ограничения — в исходнике. |
+| `processFile` | 45 | Функция. Подробности и ограничения — в исходнике. |
+| `walkCode` | 116 | Вложенная функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/assets/optimize-site-images.mjs](../../../tooling/assets/optimize-site-images.mjs)
 
@@ -505,22 +513,22 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `sha` | 19 | Функция. Подробности и ограничения — в исходнике. |
 | `imagePattern` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `walk` | 21 | Функция. Подробности и ограничения — в исходнике. |
-| `sources` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `refs` | 31 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `audit` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `external` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `previousOutputs` | 38 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `previous` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `previousByFull` | 44 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `zoomable` | 45 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `about` | 46 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `patterns` | 50 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `products` | 52 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `replacements` | 57 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `images` | 58 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `widths` | 59 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `outputDir` | 60 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `existingNames` | 62 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `sources` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `refs` | 33 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `audit` | 38 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `external` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `previousOutputs` | 40 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `previous` | 41 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `previousByFull` | 46 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `zoomable` | 47 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `about` | 48 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `patterns` | 52 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `products` | 54 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `replacements` | 59 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `images` | 60 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `widths` | 61 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `outputDir` | 62 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `existingNames` | 64 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/assets/promo-bake-paper.py](../../../tooling/assets/promo-bake-paper.py)
 
@@ -529,8 +537,8 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | Блок | Строка | Назначение |
 | --- | --- | --- |
 | `load_paper` | 20 | Именованный блок инструмента. Побочные эффекты и условия запуска проверяются в исходнике. |
-| `bake` | 28 | Именованный блок инструмента. Побочные эффекты и условия запуска проверяются в исходнике. |
-| `main` | 42 | Именованный блок инструмента. Побочные эффекты и условия запуска проверяются в исходнике. |
+| `bake` | 29 | Именованный блок инструмента. Побочные эффекты и условия запуска проверяются в исходнике. |
+| `main` | 44 | Именованный блок инструмента. Побочные эффекты и условия запуска проверяются в исходнике. |
 
 ## [tooling/assets/promo-black-to-alpha.py](../../../tooling/assets/promo-black-to-alpha.py)
 
@@ -539,7 +547,7 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | Блок | Строка | Назначение |
 | --- | --- | --- |
 | `convert` | 13 | Именованный блок инструмента. Побочные эффекты и условия запуска проверяются в исходнике. |
-| `main` | 26 | Именованный блок инструмента. Побочные эффекты и условия запуска проверяются в исходнике. |
+| `main` | 27 | Именованный блок инструмента. Побочные эффекты и условия запуска проверяются в исходнике. |
 
 ## [tooling/assets/promo-flatten-cream.py](../../../tooling/assets/promo-flatten-cream.py)
 
@@ -548,8 +556,8 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | Блок | Строка | Назначение |
 | --- | --- | --- |
 | `replace_black_background` | 14 | Именованный блок инструмента. Побочные эффекты и условия запуска проверяются в исходнике. |
-| `save_webp` | 32 | Именованный блок инструмента. Побочные эффекты и условия запуска проверяются в исходнике. |
-| `main` | 38 | Именованный блок инструмента. Побочные эффекты и условия запуска проверяются в исходнике. |
+| `save_webp` | 33 | Именованный блок инструмента. Побочные эффекты и условия запуска проверяются в исходнике. |
+| `main` | 40 | Именованный блок инструмента. Побочные эффекты и условия запуска проверяются в исходнике. |
 
 ## [tooling/data/.s3-url-map.json](../../../tooling/data/.s3-url-map.json)
 
@@ -596,13 +604,13 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | Блок | Строка | Назначение |
 | --- | --- | --- |
 | `ensureUtf8Mb4` | 14 | Функция. Подробности и ограничения — в исходнике. |
-| `root` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `env` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `DRY_RUN` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `FORCE` | 31 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `LIMIT` | 32 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `JSON_PATH` | 33 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `main` | 36 | Функция. Подробности и ограничения — в исходнике. |
+| `root` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `env` | 21 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `DRY_RUN` | 32 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `FORCE` | 33 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `LIMIT` | 34 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `JSON_PATH` | 35 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `main` | 38 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/data/backfill-instagram-captions.mjs](../../../tooling/data/backfill-instagram-captions.mjs)
 
@@ -616,9 +624,9 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `DRY_RUN` | 27 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `DELAY_MS` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `sleep` | 30 | Функция. Подробности и ограничения — в исходнике. |
-| `decodeHtml` | 34 | Функция. Подробности и ограничения — в исходнике. |
-| `fetchCaption` | 45 | Функция. Подробности и ограничения — в исходнике. |
-| `main` | 87 | Функция. Подробности и ограничения — в исходнике. |
+| `decodeHtml` | 36 | Функция. Подробности и ограничения — в исходнике. |
+| `fetchCaption` | 49 | Функция. Подробности и ограничения — в исходнике. |
+| `main` | 93 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/data/backfill-tg-thumbnails.mjs](../../../tooling/data/backfill-tg-thumbnails.mjs)
 
@@ -634,9 +642,9 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `s3` | 27 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `S3_PUBLIC` | 33 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `yandexDiskPath` | 35 | Функция. Подробности и ограничения — в исходнике. |
-| `getCachedOrDownload` | 43 | Функция. Подробности и ограничения — в исходнике. |
-| `uploadS3` | 62 | Функция. Подробности и ограничения — в исходнике. |
-| `main` | 75 | Функция. Подробности и ограничения — в исходнике. |
+| `getCachedOrDownload` | 45 | Функция. Подробности и ограничения — в исходнике. |
+| `uploadS3` | 66 | Функция. Подробности и ограничения — в исходнике. |
+| `main` | 81 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/data/backfill-video-filenames.mjs](../../../tooling/data/backfill-video-filenames.mjs)
 
@@ -645,8 +653,8 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | Блок | Строка | Назначение |
 | --- | --- | --- |
 | `url` | 4 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `conn` | 10 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `[result]` | 11 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `conn` | 11 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `[result]` | 12 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/data/check-feed-media.mjs](../../../tooling/data/check-feed-media.mjs)
 
@@ -655,10 +663,10 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | Блок | Строка | Назначение |
 | --- | --- | --- |
 | `env` | 5 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `conn` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `[manyPhotos]` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `[videoPosts]` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `[firstPage]` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `conn` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `[manyPhotos]` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `[videoPosts]` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `[firstPage]` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/data/check-feed-posts.mjs](../../../tooling/data/check-feed-posts.mjs)
 
@@ -667,13 +675,13 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | Блок | Строка | Назначение |
 | --- | --- | --- |
 | `env` | 5 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `conn` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `[rows]` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `issues` | 21 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `[all]` | 78 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `nullText` | 81 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `nullPhotos` | 82 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `badPhotos` | 83 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `conn` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `[rows]` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `issues` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `[all]` | 79 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `nullText` | 82 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `nullPhotos` | 83 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `badPhotos` | 84 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/data/check-first-page.mjs](../../../tooling/data/check-first-page.mjs)
 
@@ -682,8 +690,8 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | Блок | Строка | Назначение |
 | --- | --- | --- |
 | `env` | 5 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `conn` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `[firstPage]` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `conn` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `[firstPage]` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/data/check-import.ts](../../../tooling/data/check-import.ts)
 
@@ -704,10 +712,10 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `timestampMap` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `TAG_KEYWORDS` | 34 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `getSeasonByMonth` | 139 | Функция. Подробности и ограничения — в исходнике. |
-| `matchesKeywords` | 148 | Функция. Подробности и ограничения — в исходнике. |
-| `countKeywordMatches` | 154 | Функция. Подробности и ограничения — в исходнике. |
-| `classifyPost` | 160 | Функция. Подробности и ограничения — в исходнике. |
-| `main` | 284 | Функция. Подробности и ограничения — в исходнике. |
+| `matchesKeywords` | 150 | Функция. Подробности и ограничения — в исходнике. |
+| `countKeywordMatches` | 158 | Функция. Подробности и ограничения — в исходнике. |
+| `classifyPost` | 166 | Функция. Подробности и ограничения — в исходнике. |
+| `main` | 292 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/data/collect-vk-oembed.ts](../../../tooling/data/collect-vk-oembed.ts)
 
@@ -716,22 +724,22 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | Блок | Строка | Назначение |
 | --- | --- | --- |
 | `parseSources` | 10 | Функция. Подробности и ограничения — в исходнике. |
-| `VideoMetadata` | 36 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `parseOembedPlayer` | 45 | Функция. Подробности и ограничения — в исходнике. |
-| `collectVideo` | 61 | Функция. Подробности и ограничения — в исходнике. |
-| `main` | 191 | Функция. Подробности и ограничения — в исходнике. |
+| `VideoMetadata` | 38 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `parseOembedPlayer` | 47 | Функция. Подробности и ограничения — в исходнике. |
+| `collectVideo` | 65 | Функция. Подробности и ограничения — в исходнике. |
+| `main` | 199 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/data/count-videos.mjs](../../../tooling/data/count-videos.mjs)
 
-Считает видео в локальных данных экспорта; такой отчёт не подтверждает опубликованный каталог или запуск плееров.
+Считает строки videos в выбранной БД и показывает пример старых youtubeId; такой отчёт не подтверждает опубликованный каталог или запуск плееров.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
 | `root` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `env` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `conn` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `[rows]` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `[sample]` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `conn` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `[rows]` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `[sample]` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/data/delete-test-posts.ts](../../../tooling/data/delete-test-posts.ts)
 
@@ -754,7 +762,7 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `S3_KEY` | 13 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `env` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `publicMeta` | 26 | Функция. Подробности и ограничения — в исходнике. |
-| `main` | 35 | Функция. Подробности и ограничения — в исходнике. |
+| `main` | 37 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/data/fix-tg-album-photos.mjs](../../../tooling/data/fix-tg-album-photos.mjs)
 
@@ -770,9 +778,9 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `s3` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `S3_PUBLIC` | 34 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `yandexDiskPath` | 36 | Функция. Подробности и ограничения — в исходнике. |
-| `getCachedOrDownload` | 44 | Функция. Подробности и ограничения — в исходнике. |
-| `uploadPhoto` | 63 | Функция. Подробности и ограничения — в исходнике. |
-| `main` | 81 | Функция. Подробности и ограничения — в исходнике. |
+| `getCachedOrDownload` | 46 | Функция. Подробности и ограничения — в исходнике. |
+| `uploadPhoto` | 67 | Функция. Подробности и ограничения — в исходнике. |
+| `main` | 87 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/data/fix-tg-missing-media.mjs](../../../tooling/data/fix-tg-missing-media.mjs)
 
@@ -789,17 +797,17 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `s3` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `S3_PUBLIC` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `guessContentType` | 38 | Функция. Подробности и ограничения — в исходнике. |
-| `listDiskFiles` | 52 | Функция. Подробности и ограничения — в исходнике. |
-| `yandexDownload` | 74 | Функция. Подробности и ограничения — в исходнике. |
-| `getCachedOrDownload` | 87 | Функция. Подробности и ограничения — в исходнике. |
-| `uploadS3` | 97 | Функция. Подробности и ограничения — в исходнике. |
-| `diskPathForFile` | 110 | Функция. Подробности и ограничения — в исходнике. |
-| `resolveMediaPaths` | 114 | Функция. Подробности и ограничения — в исходнике. |
-| `resolvePhotoPaths` | 131 | Функция. Подробности и ограничения — в исходнике. |
-| `dateSuffix` | 158 | Функция. Подробности и ограничения — в исходнике. |
-| `expectedPhotoName` | 169 | Функция. Подробности и ограничения — в исходнике. |
-| `resolveThumbPath` | 173 | Функция. Подробности и ограничения — в исходнике. |
-| `main` | 177 | Функция. Подробности и ограничения — в исходнике. |
+| `listDiskFiles` | 54 | Функция. Подробности и ограничения — в исходнике. |
+| `yandexDownload` | 78 | Функция. Подробности и ограничения — в исходнике. |
+| `getCachedOrDownload` | 93 | Функция. Подробности и ограничения — в исходнике. |
+| `uploadS3` | 105 | Функция. Подробности и ограничения — в исходнике. |
+| `diskPathForFile` | 120 | Функция. Подробности и ограничения — в исходнике. |
+| `resolveMediaPaths` | 126 | Функция. Подробности и ограничения — в исходнике. |
+| `resolvePhotoPaths` | 145 | Функция. Подробности и ограничения — в исходнике. |
+| `dateSuffix` | 174 | Функция. Подробности и ограничения — в исходнике. |
+| `expectedPhotoName` | 187 | Функция. Подробности и ограничения — в исходнике. |
+| `resolveThumbPath` | 193 | Функция. Подробности и ограничения — в исходнике. |
+| `main` | 199 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/data/fix-tg-post-tags.mjs](../../../tooling/data/fix-tg-post-tags.mjs)
 
@@ -828,18 +836,18 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `s3` | 31 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `S3_PUBLIC` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `dateSuffix` | 39 | Функция. Подробности и ограничения — в исходнике. |
-| `expectedPhotoName` | 50 | Функция. Подробности и ограничения — в исходнике. |
-| `resolveDiskPhotoNames` | 54 | Функция. Подробности и ограничения — в исходнике. |
-| `guessContentType` | 76 | Функция. Подробности и ограничения — в исходнике. |
-| `listDiskFiles` | 83 | Функция. Подробности и ограничения — в исходнике. |
-| `yandexDownload` | 105 | Функция. Подробности и ограничения — в исходнике. |
-| `getCachedOrDownload` | 118 | Функция. Подробности и ограничения — в исходнике. |
-| `uploadS3` | 128 | Функция. Подробности и ограничения — в исходнике. |
-| `albumSiblingMessages` | 142 | Функция. Подробности и ограничения — в исходнике. |
-| `expectedPhotoNamesForPost` | 148 | Функция. Подробности и ограничения — в исходнике. |
-| `urlBasename` | 161 | Функция. Подробности и ограничения — в исходнике. |
-| `photosMatch` | 165 | Функция. Подробности и ограничения — в исходнике. |
-| `main` | 170 | Функция. Подробности и ограничения — в исходнике. |
+| `expectedPhotoName` | 52 | Функция. Подробности и ограничения — в исходнике. |
+| `resolveDiskPhotoNames` | 58 | Функция. Подробности и ограничения — в исходнике. |
+| `guessContentType` | 82 | Функция. Подробности и ограничения — в исходнике. |
+| `listDiskFiles` | 91 | Функция. Подробности и ограничения — в исходнике. |
+| `yandexDownload` | 115 | Функция. Подробности и ограничения — в исходнике. |
+| `getCachedOrDownload` | 130 | Функция. Подробности и ограничения — в исходнике. |
+| `uploadS3` | 142 | Функция. Подробности и ограничения — в исходнике. |
+| `albumSiblingMessages` | 158 | Функция. Подробности и ограничения — в исходнике. |
+| `expectedPhotoNamesForPost` | 166 | Функция. Подробности и ограничения — в исходнике. |
+| `urlBasename` | 181 | Функция. Подробности и ограничения — в исходнике. |
+| `photosMatch` | 187 | Функция. Подробности и ограничения — в исходнике. |
+| `main` | 194 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/data/frontend-audits/frontend-external-image-audit-2026-10-06.json](../../../tooling/data/frontend-audits/frontend-external-image-audit-2026-10-06.json)
 
@@ -895,13 +903,13 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `tag` | 58 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `schema` | 65 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `preparePublicSnapshot` | 71 | Функция. Подробности и ограничения — в исходнике. |
-| `assertStagingDestination` | 98 | Функция. Подробности и ограничения — в исходнике. |
-| `tables` | 116 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `lockName` | 137 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `summary` | 138 | Функция. Подробности и ограничения — в исходнике. |
-| `importPublicContent` | 146 | Функция. Подробности и ограничения — в исходнике. |
-| `exportPublicSnapshot` | 206 | Функция. Подробности и ограничения — в исходнике. |
-| `main` | 226 | Функция. Подробности и ограничения — в исходнике. |
+| `assertStagingDestination` | 100 | Функция. Подробности и ограничения — в исходнике. |
+| `tables` | 120 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `lockName` | 141 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `summary` | 142 | Функция. Подробности и ограничения — в исходнике. |
+| `importPublicContent` | 150 | Функция. Подробности и ограничения — в исходнике. |
+| `exportPublicSnapshot` | 212 | Функция. Подробности и ограничения — в исходнике. |
+| `main` | 234 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/data/import-telegram-club.mjs](../../../tooling/data/import-telegram-club.mjs)
 
@@ -922,26 +930,26 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `s3` | 46 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `S3_PUBLIC` | 52 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `loadProgress` | 54 | Функция. Подробности и ограничения — в исходнике. |
-| `saveProgress` | 59 | Функция. Подробности и ограничения — в исходнике. |
-| `plainFromMessage` | 63 | Функция. Подробности и ограничения — в исходнике. |
-| `matchesFilter` | 67 | Функция. Подробности и ограничения — в исходнике. |
-| `FILE_NOT_INCLUDED` | 72 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `isMissingExportFile` | 74 | Функция. Подробности и ограничения — в исходнике. |
-| `yandexDiskPath` | 78 | Функция. Подробности и ограничения — в исходнике. |
-| `yandexDiskPathFromFileName` | 89 | When TG export omits file paths, map file_name to Yandex Disk folders. |
-| `ALT_DISK_PATHS` | 102 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `localMediaCandidates` | 111 | Функция. Подробности и ограничения — в исходнике. |
-| `loadMediaBody` | 119 | Функция. Подробности и ограничения — в исходнике. |
-| `resolveMediaFile` | 139 | Функция. Подробности и ограничения — в исходнике. |
-| `resolveThumbnailFile` | 156 | Функция. Подробности и ограничения — в исходнике. |
-| `yandexDownload` | 168 | Функция. Подробности и ограничения — в исходнике. |
-| `getCachedOrDownload` | 181 | Функция. Подробности и ограничения — в исходнике. |
-| `uploadS3` | 191 | Функция. Подробности и ограничения — в исходнике. |
-| `guessContentType` | 205 | Функция. Подробности и ограничения — в исходнике. |
-| `importThumbnail` | 216 | Функция. Подробности и ограничения — в исходнике. |
-| `importPhotoPath` | 224 | Функция. Подробности и ограничения — в исходнике. |
-| `importMedia` | 233 | Функция. Подробности и ограничения — в исходнике. |
-| `main` | 267 | Функция. Подробности и ограничения — в исходнике. |
+| `saveProgress` | 61 | Функция. Подробности и ограничения — в исходнике. |
+| `plainFromMessage` | 67 | Функция. Подробности и ограничения — в исходнике. |
+| `matchesFilter` | 73 | Функция. Подробности и ограничения — в исходнике. |
+| `FILE_NOT_INCLUDED` | 80 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `isMissingExportFile` | 82 | Функция. Подробности и ограничения — в исходнике. |
+| `yandexDiskPath` | 88 | Функция. Подробности и ограничения — в исходнике. |
+| `yandexDiskPathFromFileName` | 101 | When TG export omits file paths, map file_name to Yandex Disk folders. |
+| `ALT_DISK_PATHS` | 116 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `localMediaCandidates` | 125 | Функция. Подробности и ограничения — в исходнике. |
+| `loadMediaBody` | 135 | Функция. Подробности и ограничения — в исходнике. |
+| `resolveMediaFile` | 157 | Функция. Подробности и ограничения — в исходнике. |
+| `resolveThumbnailFile` | 176 | Функция. Подробности и ограничения — в исходнике. |
+| `yandexDownload` | 190 | Функция. Подробности и ограничения — в исходнике. |
+| `getCachedOrDownload` | 205 | Функция. Подробности и ограничения — в исходнике. |
+| `uploadS3` | 217 | Функция. Подробности и ограничения — в исходнике. |
+| `guessContentType` | 233 | Функция. Подробности и ограничения — в исходнике. |
+| `importThumbnail` | 246 | Функция. Подробности и ограничения — в исходнике. |
+| `importPhotoPath` | 256 | Функция. Подробности и ограничения — в исходнике. |
+| `importMedia` | 267 | Функция. Подробности и ограничения — в исходнике. |
+| `main` | 303 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/data/inspect-post-targets.mjs](../../../tooling/data/inspect-post-targets.mjs)
 
@@ -952,11 +960,11 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `root` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `env` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `CLUB_ONLY` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `apply` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `conn` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `[counts]` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `[rows]` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `leaky` | 27 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `apply` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `conn` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `[counts]` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `[rows]` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `leaky` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/data/legacy-audio-repair.ts](../../../tooling/data/legacy-audio-repair.ts)
 
@@ -972,9 +980,9 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `url` | 69 | Функция. Подробности и ограничения — в исходнике. |
 | `repaired` | 70 | Функция. Подробности и ограничения — в исходнике. |
 | `receiptMatches` | 78 | Функция. Подробности и ограничения — в исходнике. |
-| `repair` | 97 | Функция. Подробности и ограничения — в исходнике. |
-| `applyLegacyAudioRepair` | 231 | Changes four metadata fields and inserts bound receipts in one transaction; no storage writes. |
-| `rollbackLegacyAudioRepair` | 237 | Refuses later edits; restores originals, removes only own receipts and retains audit history. |
+| `repair` | 99 | Функция. Подробности и ограничения — в исходнике. |
+| `applyLegacyAudioRepair` | 235 | Changes four metadata fields and inserts bound receipts in one transaction; no storage writes. |
+| `rollbackLegacyAudioRepair` | 241 | Refuses later edits; restores originals, removes only own receipts and retains audit history. |
 
 ## [tooling/data/legacy-club-import.ts](../../../tooling/data/legacy-club-import.ts)
 
@@ -989,15 +997,15 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `asset` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `link` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `jsonField` | 43 | Функция. Подробности и ограничения — в исходнике. |
-| `richText` | 53 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `post` | 70 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `section` | 93 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `article` | 114 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `media` | 127 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `snapshot` | 141 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `LegacyClubContent` | 150 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `prepareLegacyClubStagingContent` | 153 | User approved only this known overdue source post to become an unscheduled draft. |
-| `prepareLegacyClubContent` | 181 | Content-only boundary; no source accounts, payments, settings or video catalog. |
+| `richText` | 55 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `post` | 72 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `section` | 95 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `article` | 116 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `media` | 129 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `snapshot` | 143 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `LegacyClubContent` | 152 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `prepareLegacyClubStagingContent` | 155 | User approved only this known overdue source post to become an unscheduled draft. |
+| `prepareLegacyClubContent` | 185 | Content-only boundary; no source accounts, payments, settings or video catalog. |
 
 ## [tooling/data/legacy-club-rehearsal.ts](../../../tooling/data/legacy-club-rehearsal.ts)
 
@@ -1012,20 +1020,20 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `LegacyClubPlan` | 22 | Контракт типов. Подробности и ограничения — в исходнике. |
 | `tables` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `canonical` | 31 | Функция. Подробности и ограничения — в исходнике. |
-| `hash` | 41 | Функция. Подробности и ограничения — в исходнике. |
-| `identifier` | 45 | Функция. Подробности и ограничения — в исходнике. |
-| `rows` | 49 | Функция. Подробности и ограничения — в исходнике. |
-| `connect` | 58 | Verify container identity, tmpfs and exact loopback port before opening SQL. |
-| `snapshot` | 121 | Функция. Подробности и ограничения — в исходнике. |
-| `fingerprints` | 159 | Функция. Подробности и ограничения — в исходнике. |
-| `mappedRows` | 182 | Функция. Подробности и ограничения — в исходнике. |
-| `sameValue` | 210 | Функция. Подробности и ограничения — в исходнике. |
-| `verifyImported` | 221 | Функция. Подробности и ограничения — в исходнике. |
-| `planLegacyClubMerge` | 237 | Функция. Подробности и ограничения — в исходнике. |
-| `applyLegacyClubMerge` | 303 | Caller guards identity and supplies dateStrings/jsonStrings/bigNumberStrings, supportBigNumbers and UTC; never pass an application's ordinary pool here. |
-| `planLegacyClubRehearsal` | 424 | Функция. Подробности и ограничения — в исходнике. |
-| `applyLegacyClubRehearsal` | 435 | Функция. Подробности и ограничения — в исходнике. |
-| `rollbackLegacyClubMerge` | 448 | Функция. Подробности и ограничения — в исходнике. |
+| `hash` | 43 | Функция. Подробности и ограничения — в исходнике. |
+| `identifier` | 47 | Функция. Подробности и ограничения — в исходнике. |
+| `rows` | 53 | Функция. Подробности и ограничения — в исходнике. |
+| `connect` | 64 | Verify container identity, tmpfs and exact loopback port before opening SQL. |
+| `snapshot` | 129 | Функция. Подробности и ограничения — в исходнике. |
+| `fingerprints` | 169 | Функция. Подробности и ограничения — в исходнике. |
+| `mappedRows` | 194 | Функция. Подробности и ограничения — в исходнике. |
+| `sameValue` | 224 | Функция. Подробности и ограничения — в исходнике. |
+| `verifyImported` | 237 | Функция. Подробности и ограничения — в исходнике. |
+| `planLegacyClubMerge` | 255 | Функция. Подробности и ограничения — в исходнике. |
+| `applyLegacyClubMerge` | 323 | Caller guards identity and supplies dateStrings/jsonStrings/bigNumberStrings, supportBigNumbers and UTC; never pass an application's ordinary pool here. |
+| `planLegacyClubRehearsal` | 446 | Функция. Подробности и ограничения — в исходнике. |
+| `applyLegacyClubRehearsal` | 459 | Функция. Подробности и ограничения — в исходнике. |
+| `rollbackLegacyClubMerge` | 474 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/data/legacy-media-inventory.ts](../../../tooling/data/legacy-media-inventory.ts)
 
@@ -1036,8 +1044,8 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `reference` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `snapshotSchema` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `identify` | 37 | Функция. Подробности и ограничения — в исходнике. |
-| `inventoryLegacyMedia` | 83 | Metadata only: no DB/S3 client, network requests, mutation mode or deletion approval. |
-| `main` | 138 | Функция. Подробности и ограничения — в исходнике. |
+| `inventoryLegacyMedia` | 85 | Metadata only: no DB/S3 client, network requests, mutation mode or deletion approval. |
+| `main` | 142 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/data/legacy-media-plan.ts](../../../tooling/data/legacy-media-plan.ts)
 
@@ -1063,13 +1071,13 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `s3` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `S3_PUBLIC` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `dateSuffix` | 38 | Функция. Подробности и ограничения — в исходнике. |
-| `listDiskFiles` | 49 | Функция. Подробности и ограничения — в исходнике. |
-| `yandexDownload` | 71 | Функция. Подробности и ограничения — в исходнике. |
-| `getCachedOrDownload` | 84 | Функция. Подробности и ограничения — в исходнике. |
-| `uploadS3` | 94 | Функция. Подробности и ограничения — в исходнике. |
-| `resolveBurstPhotoNames` | 108 | Функция. Подробности и ограничения — в исходнике. |
-| `urlBasename` | 121 | Функция. Подробности и ограничения — в исходнике. |
-| `main` | 125 | Функция. Подробности и ограничения — в исходнике. |
+| `listDiskFiles` | 51 | Функция. Подробности и ограничения — в исходнике. |
+| `yandexDownload` | 75 | Функция. Подробности и ограничения — в исходнике. |
+| `getCachedOrDownload` | 90 | Функция. Подробности и ограничения — в исходнике. |
+| `uploadS3` | 102 | Функция. Подробности и ограничения — в исходнике. |
+| `resolveBurstPhotoNames` | 118 | Функция. Подробности и ограничения — в исходнике. |
+| `urlBasename` | 133 | Функция. Подробности и ограничения — в исходнике. |
+| `main` | 139 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/data/merge-tg-tickets-post.mjs](../../../tooling/data/merge-tg-tickets-post.mjs)
 
@@ -1084,8 +1092,8 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `DOC_SIBLING` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `DRY_RUN` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `parseJson` | 27 | Функция. Подробности и ограничения — в исходнике. |
-| `urlBasename` | 39 | Функция. Подробности и ограничения — в исходнике. |
-| `main` | 43 | Функция. Подробности и ограничения — в исходнике. |
+| `urlBasename` | 41 | Функция. Подробности и ограничения — в исходнике. |
+| `main` | 47 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/data/remap-manus-to-s3.mjs](../../../tooling/data/remap-manus-to-s3.mjs)
 
@@ -1100,14 +1108,14 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `client` | 21 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `MANUS_PREFIX` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `listKeys` | 31 | Функция. Подробности и ограничения — в исходнике. |
-| `originalName` | 51 | Функция. Подробности и ограничения — в исходнике. |
-| `walk` | 56 | Функция. Подробности и ограничения — в исходнике. |
-| `keys` | 67 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `byName` | 68 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `resolveFile` | 76 | Функция. Подробности и ограничения — в исходнике. |
-| `files` | 80 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `replaced` | 81 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `missing` | 82 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `originalName` | 53 | Функция. Подробности и ограничения — в исходнике. |
+| `walk` | 60 | Функция. Подробности и ограничения — в исходнике. |
+| `keys` | 73 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `byName` | 74 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `resolveFile` | 82 | Функция. Подробности и ограничения — в исходнике. |
+| `files` | 88 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `replaced` | 89 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `missing` | 90 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/data/reupload-photos-s3.ts](../../../tooling/data/reupload-photos-s3.ts)
 
@@ -1121,14 +1129,14 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `PROGRESS_FILE` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `Progress` | 30 | Контракт типов. Подробности и ограничения — в исходнике. |
 | `loadProgress` | 37 | Функция. Подробности и ограничения — в исходнике. |
-| `saveProgress` | 44 | Функция. Подробности и ограничения — в исходнике. |
-| `sleep` | 49 | Функция. Подробности и ограничения — в исходнике. |
-| `getS3Client` | 53 | Функция. Подробности и ограничения — в исходнике. |
-| `isInstagramUrl` | 73 | Функция. Подробности и ограничения — в исходнике. |
-| `getContentType` | 77 | Функция. Подробности и ограничения — в исходнике. |
-| `downloadPhoto` | 83 | Функция. Подробности и ограничения — в исходнике. |
-| `uploadToS3` | 106 | Функция. Подробности и ограничения — в исходнике. |
-| `main` | 126 | Функция. Подробности и ограничения — в исходнике. |
+| `saveProgress` | 46 | Функция. Подробности и ограничения — в исходнике. |
+| `sleep` | 53 | Функция. Подробности и ограничения — в исходнике. |
+| `getS3Client` | 59 | Функция. Подробности и ограничения — в исходнике. |
+| `isInstagramUrl` | 81 | Функция. Подробности и ограничения — в исходнике. |
+| `getContentType` | 87 | Функция. Подробности и ограничения — в исходнике. |
+| `downloadPhoto` | 95 | Функция. Подробности и ограничения — в исходнике. |
+| `uploadToS3` | 120 | Функция. Подробности и ограничения — в исходнике. |
+| `main` | 142 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/data/sanitize-post-text.mjs](../../../tooling/data/sanitize-post-text.mjs)
 
@@ -1137,11 +1145,11 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | Блок | Строка | Назначение |
 | --- | --- | --- |
 | `sanitizePlainPostText` | 8 | Функция. Подробности и ограничения — в исходнике. |
-| `sanitizeRichTextForDisplay` | 19 | Функция. Подробности и ограничения — в исходнике. |
-| `url` | 42 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `conn` | 48 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `[rows]` | 49 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `updated` | 50 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `sanitizeRichTextForDisplay` | 21 | Функция. Подробности и ограничения — в исходнике. |
+| `url` | 46 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `conn` | 53 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `[rows]` | 54 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `updated` | 55 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/data/seed-videos.ts](../../../tooling/data/seed-videos.ts)
 
@@ -1164,13 +1172,13 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | --- | --- | --- |
 | `root` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `env` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `listed` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `videos` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `conn` | 35 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `[rows]` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `existing` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `imported` | 38 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `[count]` | 49 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `listed` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `videos` | 27 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `conn` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `[rows]` | 38 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `existing` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `imported` | 40 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `[count]` | 51 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/data/youtube-videos.json](../../../tooling/data/youtube-videos.json)
 
@@ -1186,17 +1194,17 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `Visibility` | 19 | Контракт типов. Подробности и ограничения — в исходнике. |
 | `ReferenceMap` | 20 | Контракт типов. Подробности и ограничения — в исходнике. |
 | `referenceReport` | 29 | Функция. Подробности и ограничения — в исходнике. |
-| `collectArticleReferences` | 122 | Offline reference evidence only: never an object inventory or ACL decision. |
-| `decorationSnapshot` | 200 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `postSnapshot` | 246 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `collectPostReferences` | 292 | Selected references only; omitted sources are never an inventory or ACL. |
-| `inventorySnapshot` | 452 | Presence of selected fields is not proof of all database rows or objects. |
-| `mapDeclaredObjects` | 468 | Функция. Подробности и ограничения — в исходнике. |
-| `collectMediaSnapshot` | 519 | Функция. Подробности и ограничения — в исходнике. |
+| `collectArticleReferences` | 132 | Offline reference evidence only: never an object inventory or ACL decision. |
+| `decorationSnapshot` | 212 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `postSnapshot` | 258 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `collectPostReferences` | 304 | Selected references only; omitted sources are never an inventory or ACL. |
+| `inventorySnapshot` | 466 | Presence of selected fields is not proof of all database rows or objects. |
+| `mapDeclaredObjects` | 482 | Функция. Подробности и ограничения — в исходнике. |
+| `collectMediaSnapshot` | 535 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/operations/bootstrap-vps.sh](../../../tooling/operations/bootstrap-vps.sh)
 
-Исторически настраивает системные службы и доступ VPS. Требует прав администратора; это не локальная проверка и не нынешний Docker-порядок выпуска.
+Исторически настраивает системные службы и доступ VPS. Требует прав администратора; это не локальная проверка и не нынешний Docker-порядок выпуска. Устанавливаются системные пакеты и глобальные инструменты; сценарий предназначен для прежнего выделенного VPS.
 
 ## [tooling/operations/check-club-checkout-url.mjs](../../../tooling/operations/check-club-checkout-url.mjs)
 
@@ -1211,11 +1219,11 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `secret` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `payform` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `sortDeep` | 21 | Функция. Подробности и ограничения — в исходнике. |
-| `stringifyValues` | 30 | Функция. Подробности и ограничения — в исходнике. |
-| `sign` | 40 | Функция. Подробности и ограничения — в исходнике. |
-| `payload` | 46 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `signature` | 56 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `params` | 57 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `stringifyValues` | 32 | Функция. Подробности и ограничения — в исходнике. |
+| `sign` | 44 | Функция. Подробности и ограничения — в исходнике. |
+| `payload` | 52 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `signature` | 62 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `params` | 63 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/operations/check-s3.mjs](../../../tooling/operations/check-s3.mjs)
 
@@ -1233,11 +1241,11 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `region` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `service` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `hmac` | 27 | Функция. Подробности и ограничения — в исходнике. |
-| `sha256Hex` | 31 | Функция. Подробности и ограничения — в исходнике. |
-| `listPage` | 35 | Функция. Подробности и ограничения — в исходнике. |
-| `prefixes` | 86 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `total` | 87 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `token` | 88 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `sha256Hex` | 33 | Функция. Подробности и ограничения — в исходнике. |
+| `listPage` | 39 | Функция. Подробности и ограничения — в исходнике. |
+| `prefixes` | 92 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `total` | 93 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `token` | 94 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/operations/check-shop-urls.mjs](../../../tooling/operations/check-shop-urls.mjs)
 
@@ -1247,13 +1255,13 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | --- | --- | --- |
 | `root` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `env` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `src` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `urls` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `unique` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `client` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `listed` | 33 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `missing` | 50 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `present` | 51 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `src` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `urls` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `unique` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `client` | 27 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `listed` | 34 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `missing` | 51 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `present` | 52 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/operations/deploy-api.mjs](../../../tooling/operations/deploy-api.mjs)
 
@@ -1273,7 +1281,7 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `root` | 11 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `frontendPackage` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `run` | 21 | Функция. Подробности и ограничения — в исходнике. |
-| `webDist` | 35 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `webDist` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/operations/find-shop-keys.mjs](../../../tooling/operations/find-shop-keys.mjs)
 
@@ -1285,9 +1293,9 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `env` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `needles` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `client` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `token` | 27 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `scanned` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `hits` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `token` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `scanned` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `hits` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/operations/generate-admin-totp.mjs](../../../tooling/operations/generate-admin-totp.mjs)
 
@@ -1312,8 +1320,8 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `SIZES` | 21 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `PROXY` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `s3Client` | 24 | Функция. Подробности и ограничения — в исходнике. |
-| `fetchThumb` | 33 | Функция. Подробности и ограничения — в исходнике. |
-| `main` | 45 | Функция. Подробности и ограничения — в исходнике. |
+| `fetchThumb` | 35 | Функция. Подробности и ограничения — в исходнике. |
+| `main` | 49 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/operations/import-legacy-club.ts](../../../tooling/operations/import-legacy-club.ts)
 
@@ -1322,10 +1330,10 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | Блок | Строка | Назначение |
 | --- | --- | --- |
 | `assertLegacyClubStagingIdentity` | 15 | Функция. Подробности и ограничения — в исходнике. |
-| `assertLegacyClubStagingConnection` | 32 | Функция. Подробности и ограничения — в исходнике. |
-| `Profile` | 45 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `assertLegacyClubSchemaProfile` | 46 | Функция. Подробности и ограничения — в исходнике. |
-| `main` | 61 | Функция. Подробности и ограничения — в исходнике. |
+| `assertLegacyClubStagingConnection` | 34 | Функция. Подробности и ограничения — в исходнике. |
+| `Profile` | 49 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `assertLegacyClubSchemaProfile` | 50 | Функция. Подробности и ограничения — в исходнике. |
+| `main` | 67 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/operations/list-shop-s3.mjs](../../../tooling/operations/list-shop-s3.mjs)
 
@@ -1352,13 +1360,13 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `PER_TARGET` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `TIMEOUT_MS` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `percentile` | 21 | Функция. Подробности и ограничения — в исходнике. |
-| `hit` | 27 | Функция. Подробности и ограничения — в исходнике. |
-| `runTarget` | 50 | Функция. Подробности и ограничения — в исходнике. |
-| `startedAt` | 83 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `wallStart` | 84 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `rows` | 85 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `summary` | 89 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `worker` | 53 | Вложенная функция. Подробности и ограничения — в исходнике. |
+| `hit` | 29 | Функция. Подробности и ограничения — в исходнике. |
+| `runTarget` | 54 | Функция. Подробности и ограничения — в исходнике. |
+| `startedAt` | 91 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `wallStart` | 92 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `rows` | 93 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `summary` | 97 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `worker` | 59 | Вложенная функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/operations/measure-frontend-loading.mjs](../../../tooling/operations/measure-frontend-loading.mjs)
 
@@ -1380,15 +1388,15 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `settings` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `apiSnapshots` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `localServer` | 40 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `proxy` | 55 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `browser` | 73 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `results` | 74 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `audit` | 75 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `originalSizes` | 76 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `localAudit` | 77 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `observe` | 80 | Функция. Подробности и ограничения — в исходнике. |
-| `measure` | 117 | Функция. Подробности и ограничения — в исходнике. |
-| `estimatedImageBytes` | 174 | Вложенная функция. Подробности и ограничения — в исходнике. |
+| `proxy` | 56 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `browser` | 74 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `results` | 75 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `audit` | 76 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `originalSizes` | 77 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `localAudit` | 78 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `observe` | 81 | Функция. Подробности и ограничения — в исходнике. |
+| `measure` | 120 | Функция. Подробности и ограничения — в исходнике. |
+| `estimatedImageBytes` | 179 | Вложенная функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/operations/optimize-s3-assets.mjs](../../../tooling/operations/optimize-s3-assets.mjs)
 
@@ -1406,12 +1414,12 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `skipDir` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `urls` | 42 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `walkCode` | 44 | Функция. Подробности и ограничения — в исходнике. |
-| `widthHints` | 62 | Per-asset max display width (px |
-| `hintWidth` | 75 | Функция. Подробности и ограничения — в исходнике. |
-| `optimize` | 80 | Функция. Подробности и ограничения — в исходнике. |
-| `urlMap` | 127 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `saved` | 128 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `processed` | 129 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `widthHints` | 64 | Per-asset max display width (px |
+| `hintWidth` | 77 | Функция. Подробности и ограничения — в исходнике. |
+| `optimize` | 84 | Функция. Подробности и ограничения — в исходнике. |
+| `urlMap` | 133 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `saved` | 134 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `processed` | 135 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/operations/pack-deploy.mjs](../../../tooling/operations/pack-deploy.mjs)
 
@@ -1422,11 +1430,11 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `root` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `deployDir` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `out` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `staging` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `copy` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `webDist` | 42 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `tar` | 47 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `stat` | 54 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `staging` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `copy` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `webDist` | 44 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `tar` | 50 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `stat` | 57 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/operations/prepare-audio-rendition.ts](../../../tooling/operations/prepare-audio-rendition.ts)
 
@@ -1437,14 +1445,14 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `execute` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `probeSchema` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `hash` | 33 | Функция. Подробности и ограничения — в исходнике. |
-| `probe` | 39 | Функция. Подробности и ограничения — в исходнике. |
-| `hasFastStart` | 71 | Функция. Подробности и ограничения — в исходнике. |
-| `prepareAudioRendition` | 92 | Offline operator only: no URL fetching, credentials, DB writes or runtime jobs. |
-| `main` | 206 | Функция. Подробности и ограничения — в исходнике. |
+| `probe` | 41 | Функция. Подробности и ограничения — в исходнике. |
+| `hasFastStart` | 75 | Функция. Подробности и ограничения — в исходнике. |
+| `prepareAudioRendition` | 98 | Offline operator only: no URL fetching, credentials, DB writes or runtime jobs. |
+| `main` | 214 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/operations/probe-video-thumbs.py](../../../tooling/operations/probe-video-thumbs.py)
 
-Проверяет доступность заданных внешних обложек. Сетевой статус зависит от маршрута и не доказывает работу плеера.
+Проверяет доступность заданных внешних обложек. Сетевой статус зависит от маршрута и не доказывает работу плеера. Читает публичный каталог прежнего домена и скачивает обложку первого ролика; запросов записи нет.
 
 ## [tooling/operations/probe-youtube-channel.mjs](../../../tooling/operations/probe-youtube-channel.mjs)
 
@@ -1454,13 +1462,13 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | --- | --- | --- |
 | `root` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `env` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `html` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ytInitial` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ids` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `conn` | 34 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `[rows]` | 35 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `existing` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `missing` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `html` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ytInitial` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ids` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `conn` | 35 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `[rows]` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `existing` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `missing` | 38 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/operations/rollback-deploy-web-dist2.py](../../../tooling/operations/rollback-deploy-web-dist2.py)
 
@@ -1475,20 +1483,20 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `root` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `envPath` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `loadEnv` | 20 | Функция. Подробности и ограничения — в исходнике. |
-| `env` | 34 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `endpoint` | 35 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `backupBucket` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `testPrefix` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `client` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `sampleKeys` | 49 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `pickSampleKeys` | 55 | Функция. Подробности и ограничения — в исходнике. |
-| `copySource` | 86 | Функция. Подробности и ограничения — в исходнике. |
-| `publicUrl` | 90 | Функция. Подробности и ограничения — в исходнике. |
-| `verifyObject` | 94 | Функция. Подробности и ограничения — в исходнике. |
-| `samples` | 122 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `restored` | 125 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `report` | 144 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `out` | 152 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `env` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `endpoint` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `backupBucket` | 38 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `testPrefix` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `client` | 41 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `sampleKeys` | 51 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `pickSampleKeys` | 57 | Функция. Подробности и ограничения — в исходнике. |
+| `copySource` | 90 | Функция. Подробности и ограничения — в исходнике. |
+| `publicUrl` | 96 | Функция. Подробности и ограничения — в исходнике. |
+| `verifyObject` | 102 | Функция. Подробности и ограничения — в исходнике. |
+| `samples` | 132 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `restored` | 135 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `report` | 154 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `out` | 162 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/operations/s3-media-backup.mjs](../../../tooling/operations/s3-media-backup.mjs)
 
@@ -1500,24 +1508,24 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `args` | 31 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `envPath` | 32 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `loadEnv` | 34 | Функция. Подробности и ограничения — в исходнике. |
-| `env` | 48 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `endpoint` | 50 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `sourceBucket` | 51 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `backupBucket` | 52 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `appAccessKey` | 53 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `client` | 55 | Функция. Подробности и ограничения — в исходнике. |
-| `sourceClient` | 64 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `backupClient` | 68 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `backupBucketPolicy` | 70 | Функция. Подробности и ограничения — в исходнике. |
-| `bucketExists` | 92 | Функция. Подробности и ограничения — в исходнике. |
-| `setupBackup` | 101 | Функция. Подробности и ограничения — в исходнике. |
-| `headEtag` | 163 | Функция. Подробности и ограничения — в исходнике. |
-| `runBackup` | 173 | Функция. Подробности и ограничения — в исходнике. |
-| `verifyBackup` | 244 | Функция. Подробности и ограничения — в исходнике. |
+| `env` | 50 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `endpoint` | 52 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `sourceBucket` | 53 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `backupBucket` | 54 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `appAccessKey` | 55 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `client` | 57 | Функция. Подробности и ограничения — в исходнике. |
+| `sourceClient` | 68 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `backupClient` | 72 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `backupBucketPolicy` | 74 | Функция. Подробности и ограничения — в исходнике. |
+| `bucketExists` | 98 | Функция. Подробности и ограничения — в исходнике. |
+| `setupBackup` | 109 | Функция. Подробности и ограничения — в исходнике. |
+| `headEtag` | 173 | Функция. Подробности и ограничения — в исходнике. |
+| `runBackup` | 185 | Функция. Подробности и ограничения — в исходнике. |
+| `verifyBackup` | 258 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/operations/server-inspect.sh](../../../tooling/operations/server-inspect.sh)
 
-Собирает системную диагностику на машине запуска. Выполнять только на согласованном сервере; вывод окружения и конфигурации может быть приватным.
+Собирает системную диагностику на машине запуска. Выполнять только на согласованном сервере; вывод окружения и конфигурации может быть приватным. Сведения об ОС и ресурсах читаются на машине запуска; команды ничего не устанавливают.
 
 ## [tooling/operations/set-hidemy-vps-bypass.py](../../../tooling/operations/set-hidemy-vps-bypass.py)
 
@@ -1525,7 +1533,7 @@ TLS passthrough сохраняет проверку сертификата S3 н
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `main` | 25 | Именованный блок инструмента. Побочные эффекты и условия запуска проверяются в исходнике. |
+| `main` | 28 | Именованный блок инструмента. Побочные эффекты и условия запуска проверяются в исходнике. |
 
 ## [tooling/operations/smoke-image-previews.mjs](../../../tooling/operations/smoke-image-previews.mjs)
 
@@ -1564,7 +1572,7 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `base` | 4 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `payments` | 21 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `read` | 27 | Функция. Подробности и ограничения — в исходнике. |
-| `emptyPost` | 38 | Функция. Подробности и ограничения — в исходнике. |
+| `emptyPost` | 40 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/operations/ssh-check-prodamus-env.py](../../../tooling/operations/ssh-check-prodamus-env.py)
 
@@ -1619,7 +1627,7 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `key` | 10 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `env` | 12 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `client` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `body` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `body` | 31 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/operations/upload-web-dist.mjs](../../../tooling/operations/upload-web-dist.mjs)
 
@@ -1629,12 +1637,12 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | --- | --- | --- |
 | `root` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `env` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `staging` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `out` | 21 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `webDist` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `tar` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `client` | 33 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `body` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `staging` | 21 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `out` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `webDist` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `tar` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `client` | 35 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `body` | 41 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/operations/verify-s3.ts](../../../tooling/operations/verify-s3.ts)
 
@@ -1654,7 +1662,7 @@ TLS passthrough сохраняет проверку сертификата S3 н
 
 ## [tooling/operations/vps-console-ssh-port-2222.sh](../../../tooling/operations/vps-console-ssh-port-2222.sh)
 
-Исторически добавляет дополнительный SSH-порт на сервере. Изменение доступных портов требует проверки firewall и согласования доступа. Timeweb web console (root): SSH on port 2222 in addition to 22 (VPN often blocks 22 only).
+Исторически добавляет дополнительный SSH-порт на сервере. Изменение доступных портов требует проверки firewall и согласования доступа. Timeweb web console (root): SSH on port 2222 in addition to 22 (VPN often blocks 22 only). Добавляется отдельный порт только при отсутствии строки; это изменение ssh
 
 ## [tooling/README.md](../../../tooling/README.md)
 
@@ -1669,7 +1677,7 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `root` | 10 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `args` | 11 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `accept` | 29 | Функция. Подробности и ограничения — в исходнике. |
-| `run` | 49 | Вложенная функция. Подробности и ограничения — в исходнике. |
+| `run` | 51 | Вложенная функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/scripts/accept-content-editors.mjs](../../../tooling/scripts/accept-content-editors.mjs)
 
@@ -1692,11 +1700,11 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `peakUsed` | 49 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `memoryLimit` | 50 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `usedMemory` | 51 | Функция. Подробности и ограничения — в исходнике. |
-| `launch` | 60 | Функция. Подробности и ограничения — в исходнике. |
-| `run` | 71 | Функция. Подробности и ограничения — в исходнике. |
-| `freePort` | 79 | Функция. Подробности и ограничения — в исходнике. |
-| `waitFor` | 87 | Функция. Подробности и ограничения — в исходнике. |
-| `cleanup` | 101 | Функция. Подробности и ограничения — в исходнике. |
+| `launch` | 62 | Функция. Подробности и ограничения — в исходнике. |
+| `run` | 75 | Функция. Подробности и ограничения — в исходнике. |
+| `freePort` | 85 | Функция. Подробности и ограничения — в исходнике. |
+| `waitFor` | 95 | Функция. Подробности и ограничения — в исходнике. |
+| `cleanup` | 111 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/scripts/api-load-fixture.ts](../../../tooling/scripts/api-load-fixture.ts)
 
@@ -1707,9 +1715,9 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `exec` | 13 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `root` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `inspectLoad` | 15 | Функция. Подробности и ограничения — в исходнике. |
-| `rows` | 30 | Функция. Подробности и ограничения — в исходнике. |
-| `seedLoad` | 36 | Функция. Подробности и ограничения — в исходнике. |
-| `startLoadApi` | 125 | Функция. Подробности и ограничения — в исходнике. |
+| `rows` | 32 | Функция. Подробности и ограничения — в исходнике. |
+| `seedLoad` | 38 | Функция. Подробности и ограничения — в исходнике. |
+| `startLoadApi` | 131 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/scripts/api-load-local.ts](../../../tooling/scripts/api-load-local.ts)
 
@@ -1718,13 +1726,13 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | Блок | Строка | Назначение |
 | --- | --- | --- |
 | `ensure` | 25 | Функция. Подробности и ограничения — в исходнике. |
-| `methods` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `mix` | 40 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `main` | 41 | Функция. Подробности и ограничения — в исходнике. |
-| `accessChecks` | 348 | Вложенная функция. Подробности и ограничения — в исходнике. |
-| `invariants` | 376 | Вложенная функция. Подробности и ограничения — в исходнике. |
-| `sample` | 431 | Вложенная функция. Подробности и ограничения — в исходнике. |
-| `baseline` | 521 | Вложенная функция. Подробности и ограничения — в исходнике. |
+| `methods` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `mix` | 42 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `main` | 43 | Функция. Подробности и ограничения — в исходнике. |
+| `accessChecks` | 358 | Вложенная функция. Подробности и ограничения — в исходнике. |
+| `invariants` | 388 | Вложенная функция. Подробности и ограничения — в исходнике. |
+| `sample` | 445 | Вложенная функция. Подробности и ограничения — в исходнике. |
+| `baseline` | 537 | Вложенная функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/scripts/api-load-policy.ts](../../../tooling/scripts/api-load-policy.ts)
 
@@ -1734,9 +1742,9 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | --- | --- | --- |
 | `LoadFixture` | 4 | Контракт типов. Подробности и ограничения — в исходнике. |
 | `assertLoadFixture` | 12 | Функция. Подробности и ограничения — в исходнике. |
-| `LoadSample` | 40 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `summarizeLoad` | 47 | Функция. Подробности и ограничения — в исходнике. |
-| `runArrivalStage` | 73 | Open arrivals: do not silently lower offered load when requests become slow. |
+| `LoadSample` | 42 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `summarizeLoad` | 49 | Функция. Подробности и ограничения — в исходнике. |
+| `runArrivalStage` | 77 | Open arrivals: do not silently lower offered load when requests become slow. |
 
 ## [tooling/scripts/build-normal-guest.mjs](../../../tooling/scripts/build-normal-guest.mjs)
 
@@ -1744,7 +1752,7 @@ TLS passthrough сохраняет проверку сертификата S3 н
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `child` | 11 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `child` | 12 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/scripts/candidate-api-environment.ts](../../../tooling/scripts/candidate-api-environment.ts)
 
@@ -1763,11 +1771,11 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `TransferColumn` | 11 | Контракт типов. Подробности и ограничения — в исходнике. |
 | `TransferTable` | 22 | Контракт типов. Подробности и ограничения — в исходнике. |
 | `transferIdentifier` | 23 | Функция. Подробности и ограничения — в исходнике. |
-| `transferColumnPlan` | 28 | Функция. Подробности и ограничения — в исходнике. |
-| `dataRows` | 75 | Функция. Подробности и ограничения — в исходнике. |
-| `rowDigest` | 78 | Функция. Подробности и ограничения — в исходнике. |
-| `transferColumns` | 102 | Функция. Подробности и ограничения — в исходнике. |
-| `copyCandidateData` | 116 | Caller guards containers, scoped grants and exact schema/history fingerprints. Connections must use dateStrings/jsonStrings/supportBigNumbers/bigNumberStrings with timezone Z; source values stay opaque. No files or providers are used. |
+| `transferColumnPlan` | 30 | Функция. Подробности и ограничения — в исходнике. |
+| `dataRows` | 79 | Функция. Подробности и ограничения — в исходнике. |
+| `rowDigest` | 84 | Функция. Подробности и ограничения — в исходнике. |
+| `transferColumns` | 110 | Функция. Подробности и ограничения — в исходнике. |
+| `copyCandidateData` | 126 | Caller guards containers, scoped grants and exact schema/history fingerprints. Connections must use dateStrings/jsonStrings/supportBigNumbers/bigNumberStrings with timezone Z; source values stay opaque. No files or providers are used. |
 
 ## [tooling/scripts/candidate-database.ts](../../../tooling/scripts/candidate-database.ts)
 
@@ -1777,7 +1785,7 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | --- | --- | --- |
 | `phase` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `main` | 26 | Функция. Подробности и ограничения — в исходнике. |
-| `checkApi` | 160 | Функция. Подробности и ограничения — в исходнике. |
+| `checkApi` | 162 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/scripts/check-boundaries.ts](../../../tooling/scripts/check-boundaries.ts)
 
@@ -1787,9 +1795,9 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | --- | --- | --- |
 | `layers` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `layer` | 7 | Функция. Подробности и ограничения — в исходнике. |
-| `inspectBoundary` | 10 | Check actual syntax, including export/dynamic import/require, not source grep. |
-| `check` | 16 | Вложенная функция. Подробности и ограничения — в исходнике. |
-| `visit` | 40 | Вложенная функция. Подробности и ограничения — в исходнике. |
+| `inspectBoundary` | 12 | Check actual syntax, including export/dynamic import/require, not source grep. |
+| `check` | 20 | Вложенная функция. Подробности и ограничения — в исходнике. |
+| `visit` | 46 | Вложенная функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/scripts/check-checkout-browser.mjs](../../../tooling/scripts/check-checkout-browser.mjs)
 
@@ -1800,7 +1808,7 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `legacyGuest` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `profiles` | 10 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `run` | 49 | Вложенная функция. Подробности и ограничения — в исходнике. |
-| `inspect` | 73 | Вложенная функция. Подробности и ограничения — в исходнике. |
+| `inspect` | 75 | Вложенная функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/scripts/check-chunks.mjs](../../../tooling/scripts/check-chunks.mjs)
 
@@ -1824,7 +1832,7 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `inventory` | 12 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `files` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `currentDocuments` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `failures` | 41 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `failures` | 44 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/scripts/check-prod-bundle.mjs](../../../tooling/scripts/check-prod-bundle.mjs)
 
@@ -1836,10 +1844,10 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `webDist` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `MARKERS` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `checkBundle` | 20 | Функция. Подробности и ограничения — в исходнике. |
-| `BASE` | 42 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `html` | 43 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `entryMatch` | 44 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `prodHits` | 47 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BASE` | 45 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `html` | 46 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `entryMatch` | 47 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `prodHits` | 51 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/scripts/check-prod-version.mjs](../../../tooling/scripts/check-prod-version.mjs)
 
@@ -1871,12 +1879,12 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `iconSrc` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `compressExt` | 27 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `walk` | 29 | Функция. Подробности и ограничения — в исходнике. |
-| `files` | 38 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `html` | 72 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `entryFiles` | 77 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `bytesIn` | 85 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `bytesOut` | 86 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `count` | 87 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `files` | 40 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `html` | 74 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `entryFiles` | 79 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `bytesIn` | 87 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `bytesOut` | 88 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `count` | 89 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/scripts/content-count-index-trial.ts](../../../tooling/scripts/content-count-index-trial.ts)
 
@@ -1885,7 +1893,7 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | Блок | Строка | Назначение |
 | --- | --- | --- |
 | `main` | 13 | Функция. Подробности и ограничения — в исходнике. |
-| `measure` | 51 | Вложенная функция. Подробности и ограничения — в исходнике. |
+| `measure` | 53 | Вложенная функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/scripts/copy-web-public.mjs](../../../tooling/scripts/copy-web-public.mjs)
 
@@ -1905,7 +1913,7 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | --- | --- | --- |
 | `BrokenDocumentationLink` | 4 | Контракт типов. Подробности и ограничения — в исходнике. |
 | `checkDocumentationLinks` | 12 | Checks local file/directory destinations; does not fetch URLs or check headings. |
-| `readDestination` | 88 | Функция. Подробности и ограничения — в исходнике. |
+| `readDestination` | 90 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/scripts/email-identity-preflight.ts](../../../tooling/scripts/email-identity-preflight.ts)
 
@@ -1914,7 +1922,7 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | Блок | Строка | Назначение |
 | --- | --- | --- |
 | `inspectEmailIdentityData` | 8 | Функция. Подробности и ограничения — в исходнике. |
-| `readEmailIdentityIssues` | 57 | Never load application .env files or repair identities during inspection. |
+| `readEmailIdentityIssues` | 59 | Never load application .env files or repair identities during inspection. |
 
 ## [tooling/scripts/extract-api-contract.cjs](../../../tooling/scripts/extract-api-contract.cjs)
 
@@ -1936,20 +1944,20 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `routerSymbol` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `router` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `prop` | 21 | Функция. Подробности и ограничения — в исходнике. |
-| `flags` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `count` | 31 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `render` | 32 | Функция. Подробности и ограничения — в исходнике. |
-| `schema` | 73 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `schemaExports` | 74 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `aliases` | 77 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `namespaceExports` | 78 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `localize` | 91 | Функция. Подробности и ограничения — в исходнике. |
-| `record` | 133 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `result` | 158 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `outputIndex` | 161 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `outputPath` | 162 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `dest` | 165 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `writeContract` | 168 | Функция. Подробности и ограничения — в исходнике. |
+| `flags` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `count` | 33 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `render` | 34 | Функция. Подробности и ограничения — в исходнике. |
+| `schema` | 77 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `schemaExports` | 78 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `aliases` | 81 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `namespaceExports` | 82 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `localize` | 95 | Функция. Подробности и ограничения — в исходнике. |
+| `record` | 139 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `result` | 164 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `outputIndex` | 167 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `outputPath` | 168 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `dest` | 171 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `writeContract` | 174 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/scripts/fresh-database.ts](../../../tooling/scripts/fresh-database.ts)
 
@@ -2004,8 +2012,8 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | Блок | Строка | Назначение |
 | --- | --- | --- |
 | `withReadOnlyConnection` | 4 | Функция. Подробности и ограничения — в исходнике. |
-| `readMigrationHistory` | 25 | Fixed metadata queries only; no creation of Drizzle's migration table. |
-| `readFeedListingIndexAvailable` | 45 | Функция. Подробности и ограничения — в исходнике. |
+| `readMigrationHistory` | 27 | Fixed metadata queries only; no creation of Drizzle's migration table. |
+| `readFeedListingIndexAvailable` | 49 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/scripts/migration-policy.ts](../../../tooling/scripts/migration-policy.ts)
 
@@ -2016,10 +2024,10 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `journalSchema` | 5 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `MigrationIdentity` | 18 | Контракт типов. Подробности и ограничения — в исходнике. |
 | `candidateIdentityAllowed` | 19 | Функция. Подробности и ограничения — в исходнике. |
-| `candidateTargetAllowed` | 37 | One reviewed new-database target; never an upgrade or a general server installer. |
-| `inspectFreshInstallManifest` | 69 | Canonical manifest, or the explicitly recognized historical fresh-only layout. |
-| `inspectMigrationManifest` | 123 | Функция. Подробности и ограничения — в исходнике. |
-| `inspectMigrationHistory` | 168 | Функция. Подробности и ограничения — в исходнике. |
+| `candidateTargetAllowed` | 39 | One reviewed new-database target; never an upgrade or a general server installer. |
+| `inspectFreshInstallManifest` | 73 | Canonical manifest, or the explicitly recognized historical fresh-only layout. |
+| `inspectMigrationManifest` | 129 | Функция. Подробности и ограничения — в исходнике. |
+| `inspectMigrationHistory` | 176 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/scripts/migration-preflight.ts](../../../tooling/scripts/migration-preflight.ts)
 
@@ -2041,7 +2049,7 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `connectionReserve` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `hostReserveMiB` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `seconds` | 25 | Функция. Подробности и ограничения — в исходнике. |
-| `inspectMultiApiDeployment` | 33 | Функция. Подробности и ограничения — в исходнике. |
+| `inspectMultiApiDeployment` | 35 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/scripts/multi-api-preflight.ts](../../../tooling/scripts/multi-api-preflight.ts)
 
@@ -2110,16 +2118,16 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `Group` | 21 | Контракт типов. Подробности и ограничения — в исходнике. |
 | `sourcePattern` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `otherTextPattern` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `commentText` | 25 | Функция. Подробности и ограничения — в исходнике. |
-| `summarizeSource` | 36 | Фиксируем имена и пояснения блоков; тела функций и значения переменных не публикуем. |
-| `sqlBlocks` | 128 | SQL-историю только читаем: описываем именованные DDL-операции без изменения их хешей. |
-| `scriptBlocks` | 144 | Имена Python/shell-блоков извлекаем как текст: импорт опасного инструмента не нужен. |
-| `groupFor` | 159 | Функция. Подробности и ограничения — в исходнике. |
-| `purposeFor` | 181 | Функция. Подробности и ограничения — в исходнике. |
-| `clean` | 258 | Функция. Подробности и ограничения — в исходнике. |
-| `fileLink` | 264 | Функция. Подробности и ограничения — в исходнике. |
-| `buildFileGuide` | 274 | Каждый путь попадает в один раздел. Сгенерированные страницы описывают себя без чтения своих тел. |
-| `main` | 343 | CLI читает только Git-инвентарь; записи ограничены каталогом справочника. |
+| `commentText` | 26 | Убирает маркеры комментария и теги, сводит пояснение к одной короткой строке; это извлечение уже написанного смысла, не генерация ревью. |
+| `summarizeSource` | 38 | Разбирает текст TypeScript без импорта модуля: собирает объявления, доступные JSDoc и статические имена тестовых сценариев. Тела функций и значения данных в отчёт не выводятся. |
+| `sqlBlocks` | 133 | Извлекает только именованные CREATE/ALTER/DROP шаги схемы; SQL не выполняется и история не переписывается. |
+| `scriptBlocks` | 150 | Из Python/shell читает имена объявлений регулярным выражением, не исполняя опасные операторские файлы. |
+| `groupFor` | 166 | Назначает каждому пути одну страницу: специальные тестовые, архивные и документальные каталоги проверяются раньше общих apps/tooling. |
+| `purposeFor` | 188 | Берёт содержательное пояснение из заголовка исходника или известного формата. Архивный статус не должен подменять уже написанное описание файла. |
+| `clean` | 266 | Экранирует разделитель таблицы, убирает переводы строк и краевые пробелы; кодовые значения не интерпретируются как Markdown. |
+| `fileLink` | 273 | Строит относительную ссылку из каталога справочника и кодирует каждый сегмент пути, сохраняя структуру папок. |
+| `buildFileGuide` | 284 | Удаляет повторы путей, формирует разделы и общую карту; автогенерация описывает своё назначение без рекурсивного чтения собственных страниц. |
+| `main` | 354 | CLI допускает только write/check, читает Git-инвентарь и разрешённые тексты, затем пишет только страницы справочника или сообщает устаревшие результаты. |
 
 ## [tooling/scripts/sql-test-setup.ts](../../../tooling/scripts/sql-test-setup.ts)
 
@@ -2140,12 +2148,12 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `STAGE_UPGRADE_SQL_HASH` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `STAGE_CHECKOUT_HASH` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `hashStageTables` | 20 | Функция. Подробности и ограничения — в исходнике. |
-| `digest` | 32 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `restoreProof` | 33 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `inspectRestoreProof` | 49 | Функция. Подробности и ограничения — в исходнике. |
-| `rehearsalReceipt` | 81 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `inspectRehearsalReceipt` | 94 | Функция. Подробности и ограничения — в исходнике. |
-| `inspectStageBaseline` | 130 | Функция. Подробности и ограничения — в исходнике. |
+| `digest` | 34 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `restoreProof` | 35 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `inspectRestoreProof` | 51 | Функция. Подробности и ограничения — в исходнике. |
+| `rehearsalReceipt` | 85 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `inspectRehearsalReceipt` | 98 | Функция. Подробности и ограничения — в исходнике. |
+| `inspectStageBaseline` | 136 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/scripts/staging-baseline-upgrade.ts](../../../tooling/scripts/staging-baseline-upgrade.ts)
 
@@ -2156,8 +2164,8 @@ TLS passthrough сохраняет проверку сертификата S3 н
 | `sha256` | 15 | Функция. Подробности и ограничения — в исходнике. |
 | `lockName` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `protectedFile` | 20 | Credentials and restored row digests never leave the protected release directory. |
-| `snapshot` | 53 | Функция. Подробности и ограничения — в исходнике. |
-| `main` | 122 | Функция. Подробности и ограничения — в исходнике. |
+| `snapshot` | 55 | Функция. Подробности и ограничения — в исходнике. |
+| `main` | 126 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/scripts/test-database-policy.ts](../../../tooling/scripts/test-database-policy.ts)
 

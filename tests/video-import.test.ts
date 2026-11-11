@@ -1,3 +1,4 @@
+/** Импорт video URL проверяется с перехваченным fetch и подменённым storage, без внешней сети. */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ContentUploadService } from "../apps/backend/src/content/content-upload.service";
 import { isOurStorageUrl } from "../apps/backend/src/content/video-import-policy";
@@ -13,17 +14,21 @@ const requests = vi.fn(
 vi.mock("../apps/backend/src/storage", () => ({
   storagePut: async () => ({ url: "https://assets.example.test/copied.mp4" }),
 }));
+/** Настраиваем только синтетический origin/bucket и сбрасываем счётчик сетевых попыток. */
 beforeEach(() => {
   vi.stubEnv("S3_ENDPOINT", "https://s3.example.test");
   vi.stubEnv("S3_BUCKET", "darcy");
   requests.mockClear();
   vi.stubGlobal("fetch", requests);
 });
+/** Возвращаем fetch и окружение. */
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
 });
+/** Нельзя превращать ссылку из формы в произвольный серверный download. */
 describe("video link import never makes a server-side request to a user-selected URL", () => {
+  /** Loopback, metadata-host и обманные origin/credentials отвергаются до fetch. */
   it.each([
     "http://127.0.0.1/admin.mp4",
     "http://169.254.169.254/latest/meta-data/video.mp4",
@@ -36,6 +41,7 @@ describe("video link import never makes a server-side request to a user-selected
     expect(requests).not.toHaveBeenCalled();
     expect(isOurStorageUrl(url)).toBe(false);
   });
+  /** Свой допустимый объект сохраняется ссылкой: повторное скачивание здесь не требуется. */
   it("retains a configured-storage URL without downloading it", async () => {
     expect(
       await uploads.importVideoFromUrl(
@@ -44,6 +50,7 @@ describe("video link import never makes a server-side request to a user-selected
     ).toEqual({ url: "https://s3.example.test/darcy/feed/a.mp4" });
     expect(requests).not.toHaveBeenCalled();
   });
+  /** Нормализация %2e%2e не должна вывести ключ за разрешённый bucket. */
   it("rejects encoded traversal out of the configured bucket", async () => {
     expect(
       isOurStorageUrl("https://s3.example.test/darcy/%2e%2e/other/a.mp4"),

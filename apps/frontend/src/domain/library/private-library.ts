@@ -22,6 +22,7 @@ const privateReadOptions = {
   refetchOnReconnect: "always",
 } as const;
 
+/** После отключения observers отменяем только неиспользуемое чтение скрытого экрана, сохраняя общий запрос другим активным потребителям. */
 function useCancelHiddenRead(
   namespace: string,
   ownerId: number | undefined,
@@ -46,6 +47,7 @@ function useCancelHiddenRead(
   }, [active, client, namespace, ownerId]);
 }
 
+/** Читаем защищённый гайд и проверяем schema вместе с запрошенным ключом, прежде чем вернуть его в кеш. */
 export async function readAestheticGuide(
   key: AestheticGuideKey,
   signal?: AbortSignal,
@@ -60,10 +62,7 @@ export async function readAestheticGuide(
   return parsed.data;
 }
 
-/** Private data stays in this identity's memory; denied/failed reads hide it.
- * Revalidation keeps the confirmed DOM until a result arrives, rather than
- * replacing it with a loader on every visit or resume.
- */
+/** Разделяем кеш по ID пользователя; подтверждённые данные доступны только пока есть клубные права и запрос востребован. Во время перепроверки сохраняем подтверждённый DOM до ответа; отказ или ошибка скрывают данные. */
 export function useAestheticGuides(
   keys: readonly AestheticGuideKey[],
   requested = true,
@@ -118,10 +117,12 @@ const patternKeys = ["holly", "sock", "star", "apple"];
 export const PATTERN_READ_BUDGET = { maxPages: 8, timeoutMs: 30_000 };
 
 // Чтение ограничено временем и числом страниц; циклический курсор не должен оставить экран в вечной загрузке.
+/** Собираем четыре согласованные выкройки с ограничениями страниц и времени, отвергая повтор курсора и неожиданные привязки. */
 export async function readPatternBindings(signal?: AbortSignal) {
   signal?.throwIfAborted();
   const controller = new AbortController();
   let timedOut = false;
+  /** Внешняя отмена передаётся всем страницам чтения с исходной причиной. */
   const cancel = () => controller.abort(signal?.reason);
   signal?.addEventListener("abort", cancel, { once: true });
   const timer = setTimeout(() => {
@@ -176,6 +177,7 @@ export async function readPatternBindings(signal?: AbortSignal) {
   }
 }
 
+/** Выдаём только успешные привязки текущего владельца с клубным доступом, отменяя ненужное чтение скрытого раздела. */
 export function usePatternBindings() {
   const { user } = useAuth();
   const { hasClubAccess } = useClub();

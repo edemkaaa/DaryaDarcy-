@@ -7,6 +7,8 @@ import { closeDb } from "../db";
 /** Обработчики сигналов принадлежат точке запуска; фабрика приложения не создаёт их и таймеры. */
 export function registerApiShutdown(app: INestApplication, server: Server, jobs: WorkerJobs) {
   let stopping = false;
+  /** Один раз останавливает новые jobs, ждёт текущие HTTP/job Promise и закрывает пул; по deadline завершает процесс аварийно. */
+  /** Один раз останавливает новые jobs, ждёт текущие HTTP/job Promise и закрывает пул; по deadline завершает процесс аварийно. */
   const stop = () => {
     if (stopping) return;
     stopping = true;

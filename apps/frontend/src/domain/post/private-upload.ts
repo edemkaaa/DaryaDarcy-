@@ -19,7 +19,7 @@ export type PrivateUploadIntent = {
   receipt?: PrivateUploadReceipt;
 };
 
-/** A private receipt is not a legacy public URL. Reject malformed acknowledgements. */
+/** Проверяем квитанцию закрытого вложения, включая тип и лимит размера; публичный URL или objectKey в таком ответе запрещены. */
 export function requirePrivateReceipt(value: unknown): PrivateUploadReceipt {
   if (!value || typeof value !== "object")
     throw new Error("Сервер не подтвердил загрузку вложения");

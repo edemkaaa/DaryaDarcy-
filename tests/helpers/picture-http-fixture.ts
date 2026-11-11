@@ -5,6 +5,8 @@ import type { AddressInfo } from "node:net";
 
 /** Real pending HTTP bodies, with browser cache enabled and no page.route. */
 export async function startPictureHttpFixture() {
+  // Собирает настоящий Picture и отдаёт незавершённое HTTP-тело при включённом браузерном кэше; route interception не подменяет поведение загрузчика.
+
   const requests: string[] = [];
   const pending = new Set<ServerResponse>();
   let aborted = 0;
@@ -12,6 +14,7 @@ export async function startPictureHttpFixture() {
     stdin: {
       resolveDir: process.cwd(),
       loader: "tsx",
+      // Строка приложения использует настоящий Picture с контролируемым источником; это fixture input, её байты не меняются пояснениями.
       contents: `
         import React from 'react';
         import {createRoot} from 'react-dom/client';
@@ -42,6 +45,8 @@ export async function startPictureHttpFixture() {
       {
         name: "fixture-catalog",
         setup(plugin) {
+          // Подменяет только статический каталог и type-only UI barrel, оставляя реализацию Picture и DomImage настоящей.
+
           plugin.onResolve({ filter: /static-image-catalog$/ }, () => ({
             path: "catalog",
             namespace: "fixture",
@@ -59,7 +64,7 @@ export async function startPictureHttpFixture() {
     ],
     logLevel: "silent",
   });
-  const state = () => ({
+  const state = () => /* Отдаёт копию списка запросов и состояние незавершённых тел для независимых утверждений браузерного теста. */ ({
     requests: [...requests],
     pending: pending.size,
     aborted,
@@ -90,6 +95,7 @@ export async function startPictureHttpFixture() {
     requests.push(req.url!);
     res.setHeader("Content-Type", "image/svg+xml");
     res.setHeader("Cache-Control", "public, max-age=3600");
+    // Первый ответ начинает тело с заведомо незавершённой длиной; следующий отдаёт декодируемый SVG для проверки ручного восстановления.
     if (requests.length === 1) {
       pending.add(res);
       res.once("close", () => {
@@ -108,7 +114,7 @@ export async function startPictureHttpFixture() {
     origin: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
     state,
     close: () =>
-      new Promise<void>((done) => {
+      /* Закрывает удерживаемые HTTP-соединения собственного сервера, чтобы тест не висел после проверки. */ new Promise<void>((done) => {
         server.closeAllConnections();
         server.close(() => done());
       }),

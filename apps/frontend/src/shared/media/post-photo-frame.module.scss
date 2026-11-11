@@ -2,6 +2,7 @@
 @use "../styles/layers";
 
 @layer elements {
+  /* Пропорция 4:5 и максимум 60svh ограничивают высоту фото; svh не меняется от появления панели браузера при прокрутке. */
   .frame {
     position: relative;
     width: 100%;

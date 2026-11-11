@@ -13,7 +13,7 @@ type UnknownAction = {
   keepBlocked: boolean;
 };
 
-/** One session-owned write at a time; an unknown result requires a fresh read. */
+/** Сериализуем запись в пределах сессии и экрана; неизвестный исход блокирует следующую команду до отдельного чтения или явного отказа. */
 export function useConfirmedAction(
   active = true,
   scopeKey: string | number | null = null,
@@ -22,10 +22,12 @@ export function useConfirmedAction(
   const unknownRef = useRef<UnknownAction | null>(null);
   const [unknown, setUnknown] = useState<UnknownAction | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** Синхронный ref закрывает окно повторного клика до render, state отображает тот же запрет в интерфейсе. */
   const remember = (value: UnknownAction | null) => {
     unknownRef.current = value;
     setUnknown(value);
   };
+  /** Запоминаем неопределённость до отправки, проверяем ACK перед commit; временный сбой не превращаем в разрешение слепого повтора. */
   const run = async <T>({
     kind,
     label,
@@ -75,6 +77,7 @@ export function useConfirmedAction(
       task.finish();
     }
   };
+  /** Проверяем список читающим запросом, не повторяя команду; keepBlocked сохраняет запрет для неидемпотентной отправки. */
   const check = async () => {
     const pending = unknownRef.current;
     if (!pending) return;
@@ -105,6 +108,7 @@ export function useConfirmedAction(
     blocked: operation.busy || unknown !== null,
     run,
     check,
+    /** Явно снимаем неподтверждённое намерение только вне выполняющейся операции; уже отправленную запись это не откатывает. */
     discard: () => {
       if (operation.busy) return;
       remember(null);

@@ -3,6 +3,7 @@ import type { ViewportSize } from "@/shared/browser/viewport";
 
 import { getClubScreenContent } from "./club-screen.content";
 
+/** Ширина разных рекламных каруселей согласуется с их snapInterval на странице подписки. */
 export function getClubScreenLayout(viewport: ViewportSize) {
   const { SCREEN_WIDTH } = getClubScreenContent(viewport);
   const stylesLayout = {

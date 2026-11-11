@@ -1,3 +1,4 @@
+// Архив Expo. Архивный YouTube adapter использует собственный /api/yt: web relative URL, native HTML с историческим доменом.
 import { createElement, useMemo } from "react";
 import { Platform, StyleSheet, View } from "react-native";
 import { WebView } from "react-native-webview";
@@ -7,9 +8,11 @@ type Props = {
 };
 
 export function YouTubeEmbed({ youtubeId }: Props) {
-  const src = useMemo(() => `/api/yt/${encodeURIComponent(youtubeId)}`, [youtubeId]);
+  // Архивный YouTube adapter использует собственный /api/yt: web relative URL, native HTML с историческим доменом.
+
+  const src = useMemo(() => /* Кодирует youtubeId в URL старого потокового proxy. */ `/api/yt/${encodeURIComponent(youtubeId)}`, [youtubeId]);
   const poster = useMemo(
-    () => `/media/yt-thumb/${encodeURIComponent(youtubeId)}/hqdefault.jpg`,
+    () => /* Кодирует youtubeId в маршрут старой публичной миниатюры. */ `/media/yt-thumb/${encodeURIComponent(youtubeId)}/hqdefault.jpg`,
     [youtubeId],
   );
 
@@ -42,6 +45,7 @@ export function YouTubeEmbed({ youtubeId }: Props) {
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   frame: {
     width: "100%",

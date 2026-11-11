@@ -6,7 +6,7 @@ export const prodamusSandboxPath = "/api/prodamus/sandbox/webhook";
 /** Сохраняет ограниченные байты HMAC до любого общего или Nest-парсера тела. */
 export function registerProdamusSandboxBody(http: Express): void {
   http.post(prodamusSandboxPath, (req, res, next) => {
-    express.raw({ type: () => true, limit: "64kb" })(req, res, (error) => {
+    express.raw({ /** Raw sandbox сохраняет исходные bytes при любом заголовке MIME; допустимый Content-Type отдельно проверяет контроллер. */ type: () => true, limit: "64kb" })(req, res, (error) => {
       if (error) {
         res.status(error.status === 413 ? 413 : 400).json({
           error: "Invalid sandbox notification",

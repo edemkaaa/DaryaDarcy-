@@ -1,0 +1,2359 @@
+<!-- Перенесено из apps/frontend/WORK_PLAN.md: датированные записи ниже сохраняют историю; текущий общий план — tasks/plan.md. -->
+
+# План работы и результаты аудита фронтенда DARYADARCY
+
+Дата фиксации аудита: **3 октября 2026 года**. Обновление разработки: **13 октября 2026 года**. Проект после миграции на **Next.js**. Этот файл — точка возвращения к работе: здесь сохранены план первого этапа, все 42 пункта общего аудита, их расположение, дополнительные расхождения с договором и уже выполненные исправления контента.
+
+## 23 октября — плашки вне шапки, меню и соседних элементов
+
+Снимок пользователя подтвердил перекрытие 404 шапкой: прежний `route-error`
+не использовал безопасную область, а отступ скрывающегося хедера существовал
+только у прокручиваемого контента. Страница 404, route error, граница ошибок
+поста, проверка сессии и полноэкранная проверка подписки теперь используют
+общий `ScreenStatus`. Его собственная прокрутка начинается ниже шапки;
+длинное сообщение не вытесняет кнопку за нижнюю навигацию. Этот скроллер не
+скрывает шапку и не получает второй отступ от оболочки.
+
+`TabShell` задаёт общую высоту шапки 44px (46px для магазина) с safe area.
+Если обычный скроллер временно заменяется неподвижной ошибкой, корень экрана
+сохраняет `--screen-safe-top`; у работающего скроллера остаётся прежний
+прокручиваемый spacer. Устаревшие стили `route-error` и отдельная копия
+контейнера границы ошибок удалены. Первоначальная ошибка списка админки
+включает `ScreenContainer.scrollable`: на 320×400 панель разделов и сообщение
+теперь доступны в одной ограниченной области, без захода под нижнее меню.
+
+`QueryRetryState` занимает ширину родителя. У общего `StatusNotice` текст
+сохраняет читаемую ширину, а действия при дефиците места переносятся ниже;
+это работает и в диалоге, более узком, чем окно браузера. Ошибки подгрузки
+остаются в конце списка, фоновые сообщения — над навигацией, диалоги выше
+них и делают фон inert. Оформление сообщений единое.
+
+Добавлены 51 browser case в `e2e/status-notice-layout.spec.ts`: 320×400,
+390×844 и 1440×844; 404 с рабочей ссылкой домой, отсутствие поста/видео/статьи,
+первоначальные ошибки контента, сессии и подписки, render error, ошибка
+списка админки, отказы воспроизведения 401/403/500, ошибка закрытого файла в
+диалоге. Проверяются геометрия всей плашки относительно шапки/меню, отсутствие
+горизонтального переполнения и фактическая доступность действий через hit test.
+
+Итоговый прогон production-сборки: **112/112 GREEN**, включая новые проверки,
+9 сценариев фоновых плашек, 24 сценария шапки/прокрутки, 18 навигации и
+10 состояний статей. TypeScript приложения в сборке, отдельный E2E TypeScript,
+scoped ESLint, Prettier и diff check прошли. Снимки 404 при 390px и узкого
+диалога при 320px просмотрены. Отчёт и снимки:
+`/tmp/daryadarcy-notice-layout/`. API в E2E синтетический; настоящие данные,
+файлы пользователей, backend и публикация не затрагивались.
+
+Сборка выполнялась в отдельной копии с одним worker и heap до 1024MB, браузер
+тоже один. Пиковая общая занятая память компьютера — 12,94 ГБ, автоматический
+порог 13 ГБ не срабатывал. Временные браузер и production-сервер остановлены,
+копия сборки удалена. Пользовательский dev-сервер не перезапускался.
+
+## 23 октября — одинаковый стиль всех плашек
+
+Временная страница предпросмотра полностью удалена по просьбе пользователя,
+включая её компоненты, стили и инструкции открытия. Проверять оформление
+дальше следует на настоящих экранах через блокировку нужного запроса в браузере.
+
+Фоновая плашка теперь использует тот же `StatusNotice`, что и ошибки внутри
+страницы. Отдельные копии оформления из `background-notice.module.scss`
+удалены: в нём остались размещение и анимация. Общий компонент задаёт бумажный
+градиент, мягкую рамку, тень, радиус 16px, круглую подложку значка 30px,
+основной текст 15px и оливковую кнопку высотой от 44px. Разные состояния
+различаются символом и доступной ролью, без отдельной красноватой палитры.
+У кнопок одинаковые hover/active/focus и непрозрачное нажатие. Несколько
+действий размещаются под текстом, чтобы длинные названия не сжимали сообщение.
+При ширине меньше 360px значок скрывается одинаково у обоих вариантов.
+
+`StatusNotice` принимает ref через forwardRef: измерение высоты фоновой
+плашки и отступ плавающих кнопок сохранены. Первая загрузка, подгрузка списка,
+проверки доступа и повторные запросы используют прежние сценарии.
+
+TypeScript, scoped ESLint, Sass, Prettier и diff check прошли. Отдельный
+браузерный просмотр настоящих компонентов на 320/390/480/1440px подтвердил
+совпадение фона/рамки/шрифта/тени, отсутствие переполнения и обрезанных кнопок,
+измерение высоты слота и цикл «Повторить» → ожидание → скрытие сообщения.
+Снимки 320/390px просмотрены, в том числе длинное сообщение с двумя действиями.
+Артефакты: `/tmp/daryadarcy-unified-notices/`. Это проверка компонентов;
+полная страничная E2E-регрессия и production-сборка в этой доработке не
+запускались. Dev-сервер остаётся под управлением пользователя.
+Проверки выполнялись по одной под контролем ОЗУ с порогом 13 ГБ;
+пик общей занятой памяти — 11,36 ГБ. Тестовый браузер закрыт.
+
+## 22 октября — единая плашка фоновых ошибок
+
+Работа, прерванная перезагрузкой компьютера, завершена и проверена. Общие
+`BackgroundNoticeProvider`, `useBackgroundNotice` и `BackgroundNoticeSlot`
+показывают одну плашку поверх содержимого, на 12px выше основного или клубного
+меню. Ширина ограничена приложением, оформление — тёплый бумажный фон, мягкая
+рамка и оливковая кнопка. Сессия имеет приоритет над подпиской, затем идут
+ошибки обновления контента. Одно нажатие «Повторить» повторяет зарегистрированные
+неудачные проверки; во время ожидания кнопка «Проверяем…» недоступна.
+
+Ошибки обновления Ленты, Клуба, Видео, библиотеки, статей, публикаций и закладок
+перенесены в общий слот. Скрытые сохранённые экраны не регистрируют сообщения.
+Временная ошибка обновления закладок сохраняет карточки; подтверждённые отказы
+доступа продолжают скрывать защищённые данные. Первая ошибка загрузки остаётся
+в области контента, ошибка следующей страницы — в конце списка. Плашка
+учитывает фактическую высоту клубной навигации и safe area, поднимает плавающие
+кнопки, не сдвигает карточки и остаётся под диалогами. Повторный опрос с той же
+ошибкой не пересоздаёт её DOM и не повторяет анимацию.
+
+На отдельной production-сборке с включёнными каталогом и обложками прошли
+9 новых сценариев `e2e/background-notices.spec.ts` на ширинах 320–1920px и
+регрессии статей, пагинации/сезонов Клуба, закладок, сессии и каталога видео.
+Итого 127 уникальных успешных browser cases; один сценарий старого режима
+обложек штатно пропущен. В основном прогоне прошли 126; оставшийся тест
+неопределённого результата сохранения видео выявил гонку самой fixture:
+успешный ответ включался ещё до завершения первого запроса с ошибкой.
+Теперь тест ждёт появления действия повторного сохранения; отдельно прошёл
+3/3. В новом сценарии совместных ошибок учтены переход offline→online и
+завершение автоматического повтора перед ручным восстановлением.
+
+Production build с проверкой типов, E2E TypeScript, полный frontend ESLint,
+повторный ESLint изменённых тестов, Prettier изменённых TS/TSX/SCSS и
+`git diff --check` прошли. Оформление просмотрено на снимках 390/1440px.
+Все API и provider ответы в E2E синтетические, реальные данные не менялись.
+Бэкенд, commit/push/deploy не затрагивались.
+
+По просьбе пользователя проверки выполнялись последовательно под контролем
+общей занятой ОЗУ (`MemTotal − MemAvailable`, без доступного файлового кеша).
+Контроль каждые 250ms останавливает только запущенную агентом задачу с её
+дочерними процессами при 13 млрд байт, с запасом до лимита 13,5 ГБ.
+Сборка использовала один worker и heap до 2048MB; браузерные проверки — один
+worker. Пиковая занятая память компьютера — 9,24 ГБ. Настройки экономии сборки
+применялись только к временной копии, конфигурация проекта не менялась.
+Временные сервер/браузер остановлены, копия сборки удалена. Отчёты и контроль
+памяти оставлены в `/tmp/daryadarcy-notices-check/`; примеры оформления —
+`/tmp/daryadarcy-notice-390.png` и `/tmp/daryadarcy-notice-1440.png`.
+
+## 22 октября — стабильное обновление видео и сохранение профиля
+
+Из `features/videos/catalog-screen.tsx` убрана передача `isRefetching` в
+`refreshing`: как в Клубе, периодический запрос больше не вставляет строку
+«Обновление…» высотой 34px. Сам запрос, обновление жестом и пагинация сохранены.
+Добавлены две регрессии 390/1440px: минутный ответ удерживается, координаты
+карточки не меняются, индикатор отсутствует.
+
+Профиль добавлен в существующий `TabScreens`; его статические стили и стили
+SMS-формы подключены через `tab-styles.ts`. Имя и аватар по-прежнему берутся из
+единственного `AuthProvider`. Сохраняются DOM, декодированный аватар, форма
+имени, вкладка закладок и прокрутка. Убраны принудительный refetch на mount и
+повторный refetch на focus: свежий кеш закладок (30 секунд) используется сразу,
+устаревший обновляется одним запросом в фоне. Скрытый профиль не опрашивает API.
+Удалены неиспользуемые копии старых локальных bookmark ID. Чтение результата
+теста защищено от завершения после ухода или смены владельца.
+
+Существующий scope сессии сбрасывает сохранённый профиль при выходе и смене
+личности/роли. Новые три проверки подтверждают сохранение черновика/вкладки/
+прокрутки, отсутствие повторных свежих и скрытых запросов, один устаревший
+запрос и очистку приватного состояния между аккаунтами. Адаптирован селектор
+открытого поста в прежнем E2E: скрытый профиль теперь закономерно содержит
+второе вхождение текста. Fixture ошибки видео поддерживает действующий
+`videos.playback` наряду с legacy `videos.getById`.
+
+Расширенная проверка обнаружила прежнее зависание повторного неудачного выхода
+после reload в dev Strict Mode: cleanup отменял запрос, а статус logging-out
+запрещал повторный запуск. Контроллер теперь объединяет только живые запросы и
+разрешает перезапустить отменённый. Регрессия воспроизведена до правки и прошла
+после; поздний ответ отменённого запроса не меняет результат и не открывает доступ.
+
+Проверки: 47 модульных тестов сессии/кеша/личного хранилища; 14 сценариев
+согласованности профиля и 33 сценария закладок/безопасности сессии; пять новых
+браузерных сценариев. Frontend/E2E TypeScript, полный ESLint, Prettier и
+production build (`--webpack`, как в package.json) прошли. Сборка выполнялась
+в отдельной копии под `/tmp`, пользовательский dev-процесс не перезапускался.
+На итоговой production-сборке отдельно прошли все пять новых сценариев и
+повтор неудачного выхода после reload (6/6).
+API в E2E синтетический; реальные профиль и публикации ими не изменялись.
+
+Дополнительно браузер с настоящей сессией и API без перехвата запросов показал
+при повторном открытии профиля в production 10ms, сохранение DOM и аватара,
+ноль запросов документа/RSC/API/картинок и ноль кадров загрузки. Возврат в видео
+26ms, один фоновый catalog-запрос, строка обновления не появлялась. Это локальный
+замер, не гарантия времени на любом устройстве. Отчёт:
+`/tmp/daryadarcy-profile-navigation.json`. Backend не менялся.
+
+## 22 октября — ширина меню действий с публикацией
+
+В `post-management.module.scss` контейнер меню по трём точкам получил
+`width:100%`, `max-width:var(--app-max-width)` и `margin-inline:auto`, как
+редакторы публикаций. Максимальная ширина 480px, прежние внутренние отступы
+12px, оформление и полноэкранное затемнение сохранены. Компонент общий для
+Клуба и Ленты; обе страницы проверены на 320/390/480/1440/1920px: ширина и
+центрирование совпадают с приложением, переполнения нет, закрытие через
+«Отмена», Escape и фон работает. Снимки 390/1440px просмотрены:
+`/tmp/daryadarcy-post-menu-width/`. API в браузерных проверках синтетический,
+реальные публикации не менялись. Форматирование SCSS и diff check прошли.
+У «Отмены» исправлено нажатое состояние: полупрозрачный фон заменён непрозрачной
+смесью paper/muted, `activeOpacity=1` убирает дополнительное просвечивание всей
+кнопки. Проверены 12 сочетаний Клуб/Лента × 390/1440px × мышь/клавиатура/touch
+в Chromium: opacity=1, альфа фона=255, меню закрывается. Снимок удерживаемой
+кнопки просмотрен; scoped ESLint/Prettier/diff check прошли. Артефакты:
+`/tmp/daryadarcy-post-cancel-press/`. Физические устройства не проверялись.
+
+## 22 октября — скачок Клуба при фоновом обновлении
+
+После входа в реальный аккаунт локальный dev-фронтенд оставлен без действий
+на 65 секунд. Ежеминутный refetch club.list включал `refreshing` у Collection:
+ScrollArea добавлял над содержимым строку «Обновление…» высотой 34px, через
+примерно 0,2 секунды удалял её. Замер: contentTop 0→34→0, первый пост
+266,5→300,5→266,5 при неизменном scrollTop=0.
+
+В `src/features/club/club-subscribed.tsx` удалена только передача
+`refreshing={clubQuery.isRefetching}`. Периодический refetch, обновление
+жестом, получение новых публикаций и подгрузка следующих страниц сохранены.
+Общий ScrollArea и остальные разделы не менялись.
+
+В `e2e/content-refresh.spec.ts` добавлена регрессия для 390/1440px: ответ
+ежеминутного запроса удерживается, проверяются координаты содержимого и первого
+поста, scrollTop и отсутствие строки обновления; затем ответ с изменённым
+текстом отпускается и проверяются новые данные при тех же координатах.
+Оба цикла выполняются при scrollTop=0 и 300. До правки тест воспроизвёл +34px,
+после — прошёл. Вместе с существующими проверками обновления/подгрузки:
+6/6 browser cases GREEN. Frontend/E2E TypeScript, scoped ESLint и diff check
+прошли. Backend и запущенный пользователем dev-процесс не перезапускались.
+Повторные 65 секунд после входа с настоящим API: club.list обновился через
+60,4 секунды (200), строка не появлялась, contentTop=0 и первый пост=266,5px
+сохранились. Ошибок JavaScript нет. Замеры до/после:
+`/tmp/daryadarcy-club-idle-before.json` и `/tmp/daryadarcy-club-idle-diagnostic.json`.
+
+## 22 октября — бесплатная «Лошадка» и иконки PWA
+
+После ручного запуска dev обнаружен локальный разрыв конфигурации: в
+игнорируемом `.env.local` отсутствовали флаги нового каталога и обложек.
+Браузер обращался к `videos.list` (200, пустой список), тогда как через тот же
+локальный прокси `videos.catalog({limit:100,includeThumbnails:true})` возвращал
+22 карточки. В `.env.local` сохранены `NEXT_PUBLIC_VK_CATALOG_ENABLED=true`
+и `NEXT_PUBLIC_VIDEO_THUMBNAILS_ENABLED=true`; загрузчик Next подтверждает оба
+значения для следующего старта. Уже запущенный пользователем dev-процесс
+сохраняет прежний config.env и продолжает обращаться к videos.list: требуется
+его ручной перезапуск. Процесс пользователя агент не перезапускал.
+
+По `frontend-contract-remainder-2026-10-22.md` и последующему уточнению пользователя
+выполнена только frontend-часть. Карточка «Лошадки» в библиотеке открывает
+`https://disk.yandex.ru/i/nDfsd5ptLO1xRA` без клубного ограничения. На экране
+выкроек её существующий блок вынесен из подписной части; обложка и кнопка PDF
+не зависят от подписки, загрузки или ошибки приватного API. Приватный клиент
+ожидает только `holly/sock/star/apple` и заканчивает пагинацию после этих четырёх
+выкроек. Их защищённая выдача сохранена. Обновлены прежние тестовые ожидания
+блокировки бесплатной PDF-кнопки; backend/SQL browser suite не запускался.
+Стили и исходные обложки не менялись.
+
+В текущей staging отсутствовал упомянутый в передаче подготовленный PWA-фикс,
+поэтому добавлен узкий эквивалент: PNG 192×192 из существующей иконки 512×512
+и вторая запись в manifest. `standalone`, start URL и scope сохранены.
+Исправлены два устаревших селектора сообщений об ошибке в E2E каталога видео:
+поиск по роли `alert` внутри main вместо привязки к тегу span. Runtime формы
+видео не менялся. README уточнён для бесплатной PDF и действующего cover opt-in.
+
+Изменённые файлы: `src/features/library/library-screen.content.ts`,
+`src/features/library/patterns-screen.tsx`, `src/domain/library/private-library.ts`,
+`public/manifest.webmanifest`, новый `public/assets/images/icon-192.png`,
+новые `e2e/free-loshadka.spec.ts` и `e2e/pwa-manifest.spec.ts`,
+`e2e/video-catalog.spec.ts`, корневые `tests/private-library-client.test.ts`
+и `tests/private-library.browser.test.ts`, README и этот план.
+
+Проверки: production build прошёл как с обычными локальными настройками, так
+и с `NEXT_PUBLIC_VK_CATALOG_ENABLED=true NEXT_PUBLIC_VIDEO_THUMBNAILS_ENABLED=true`.
+Frontend/E2E TypeScript, полный frontend ESLint, форматирование затронутых TS
+и `git diff --check` прошли. Девять локальных наборов: 153/153.
+Браузер: 70/70 (10 новых сценариев guest/unpaid/member/admin для «Лошадки», PWA,
+почтовый заказ, сезон, фото/видео и защищённые assets), 18/18 сценариев private
+attachments/upload recovery и 38/38 каталога видео. Всего 126 уникальных
+browser cases; один сценарий старого режима обложек намеренно пропущен при
+включённом новом режиме. Все API/provider ответы этих E2E синтетические,
+письма/платежи/запись на опубликованном стенде ими не выполнялись.
+Снимки гостя/участника при 390/1440 px: `/tmp/daryadarcy-contract-visual/`;
+горизонтального переполнения нет. Проверены загрузка обложки и доступность PDF.
+
+Отдельная публичная read-only проверка staging: launch-config уже revision 3,
+season winter (отличается от revision 2/autumn в передаче), получатель
+`edemasanov2004@gmail.com`, orderMethod email-client; три private upload
+capabilities true. Каталог с includeThumbnails возвращает 22 public-карточки,
+обложек нет у 69/75/78. Anonymous list и direct holly возвращают 404;
+страница восстановления пароля — 200. Опубликованный manifest пока содержит
+только 512×512. Яндекс-ссылка открывается 200, public metadata подтверждает
+`МК Лошадка-качалка.pdf`, application/pdf, 7 901 794 байта.
+Отчёт API-чтения: `/tmp/daryadarcy-contract-live-checks.json`.
+
+Ручная приёмка остаётся: установка/standalone на настоящих Android/iPhone,
+отправка заказа пользователем из почтового клиента и получение менеджером,
+ссылка восстановления → новый пароль → вход на тестовом аккаунте,
+все реальные видео и форматы/кодеки на устройствах. Отзыв старых публичных
+копий требует точного согласованного перечня и действий владельца/backend;
+рецепты и Петербург сохранены. Backend, его зависимости, данные и Prodamus
+не менялись. Commit/push/deploy не выполнялись.
+
+## 22 октября — отступы между карточками клуба
+
+В legacy между постами был gap14, но в Collection он оказался на внешнем
+контейнере и не разделял вложенные строки (замер Chromium:0px на390/1440).
+Добавлен штатный divider высотой14px только в клубе. Замеры первых соседних
+карточек:14px на обеих ширинах. Production build, TypeScript, scoped ESLint,
+Prettier и diff check прошли; существующие проверки ранней подгрузки2/2 pass.
+Снимки после загрузки фонов: `tmp/club-spacing-390.png`, `tmp/club-spacing-1440.png`.
+Локальный production preview перезапущен на8081. Backend не менялся.
+
+## 22 октября — пробная ранняя подгрузка клуба, только frontend
+
+По уточнению пользователя backend/API/БД не менять, отдельный кеш размеров
+не добавлять. Следующая страница клуба теперь запрашивается за два экрана
+до конца списка (`loadMoreThreshold=2`). Фото смонтированных соседних карточек
+в существующем двухэкранном окне используют eager loading, чтобы native lazy
+loading внутри обрезанного скроллера не откладывал начало до появления карточки.
+В длинной фотокарусели eager применяется только к текущему и соседним кадрам;
+скрытый клуб не запускает новые pagination/eager reads. Дизайн естественных
+пропорций сохранён. Это ранний старт загрузки, без ожидания полной готовности
+порции: при очень медленной сети или быстром прыжке по списку он не гарантирует
+устранения всех изменений высоты.
+
+Production build29/29, frontend/E2E TypeScript, scoped ESLint и diff check GREEN.
+Chromium2/2 на390/1440px: запрос следующей страницы до конца списка, eager-фото
+вне видимой области, задержанный portrait загружается до попадания на экран,
+его установленная высота не меняется при прокрутке к нему. Первый прогон2fail
+был из-за чтения результата асинхронного замера раньше его завершения;
+после корректного ожидания2/2 pass (7.6 с). Регрессия: e2e/club-preload.spec.ts.
+Backend/database/shared/generated contract без изменений. Срез для точного
+отката только ранней подгрузки: `tmp/club-preload-trial/before/`, SHA в backup.json;
+понравившееся оформление карточек при таком откате остаётся. Просмотр:8081.
+
+## 22 октября — пробное прежнее оформление карточек внутри клуба
+
+По поручению пользователя возвращён локальный вариант для сравнения: естественные
+пропорции фото без общей рамки 4:5/60svh, прежние ряды с пустыми ячейками,
+открытие обычного поста по тексту; «читать →» остаётся только у статей.
+Изменение изолировано в ClubPostPhotos и ClubPostCard; shared media и Лента
+сохраняют прежнее поведение. Новый stylesheet заранее подключён в tab-styles.
+Действующая поддержка нескольких видео и защищённой выдачи сохранена.
+
+Production build29/29, frontend TypeScript, scoped ESLint/Prettier/diff прошли.
+Финальный Chromium production-прогон10/10 (17.8 с):390/1440px, одиночное фото,
+пять фото/пустая ячейка, галерея10 фото/клавиатура, просмотр фото и переход по
+тексту, смешанное видео, ссылка статьи и сохранение рамки Ленты. Проверены снимки:
+фото целиком, высота карточки, бумажный фон/скругления, отступы и шрифт.
+Предыдущие dev-прогоны прерывались/давали сбои загрузки stylesheet при HMR;
+они не выдаются за успешную production-проверку. Тесты используют synthetic API,
+не реальные записи в backend. Снимки до: `tmp/club-card-trial/before-results/`,
+после: `tmp/club-card-trial/production-results/`.
+
+Для точного отката сохранены байтовые копии трёх исходных файлов до пробы:
+`tmp/club-card-trial/before/`, SHA в `backup.json`, список восстановления и двух
+новых файлов для удаления в `rollback.json`. Возвращать только этот срез,
+не сбрасывать остальные незакоммиченные изменения. Проба не опубликована.
+Локальный просмотр после проверки запущен production-сервером на8081.
+
+## 22 октября — продолжение после перезагрузки: шапка, тест и кеш переходов
+
+Восстановлен незакоммиченный локальный срез. Последними перед остановкой были
+правки бумажной шапки и теста: фон уезжает вместе с кнопками, место под шапку
+на прокручиваемых страницах резервируется внутри ScrollArea, прогресс вопроса
+прокручивается вместе с ответами. Размер области прокрутки и нижнее меню
+сохраняются. При уходе из теста и возврате через Back остаются текущий вопрос
+и выбранный ответ. На мобильной и широкой версии проверены снимки видимой и
+скрытой шапки, отступ сверху, доступ содержимого к верхнему краю, отсутствие
+сдвига области прокрутки и положение нижнего меню.
+
+Проверки после возобновления:
+
+- Production build (29 страниц), frontend/E2E TypeScript, frontend ESLint,
+  формат трёх изменённых E2E-файлов и `git diff --check` прошли.
+- Unit: 43/43 в frontend-scroll-header, frontend-navigation и frontend-query-cache.
+- Chromium: 42 уникальных сценария header-surface-scroll/navigation-layout.
+  Сначала 40 pass/2 fail: новый header-тест подменял только legacy video API
+  при включённом VK-каталоге. Добавлены корректные catalog/playback ответы;
+  повтор обоих video cases и снимков patterns — 4/4 pass.
+- Полный cache audit: сначала 71 pass/13 fail, затем отдельный повтор всех
+  13 исправленных случаев — 13/13 pass (27.8 с). Это 84 уникальных сценария,
+  а не непрерывный первоначальный 84/84. Исправлены тестовые catalog/playback
+  DTO и NOT_FOUND, ожидание общей 404 для неизвестного товара, выбор текстового
+  ответа первого вопроса и проверка директивы no-store независимо от соседних
+  директив. Прозрачный дубль слайдера больше не считается исчезнувшей картинкой,
+  если загруженная непрозрачная копия того же изображения занимает то же место.
+  Исчезновение обеих копий по-прежнему считается ошибкой.
+
+Итого 126 уникальных browser cases с контролируемым API. Это локальная проверка,
+не приёмка живого backend/платежей/внешних видеопровайдеров. После возобновления
+runtime-код не потребовал новых исправлений; изменены E2E и документация.
+Все прежние локальные изменения сохранены, commit/push/deploy не выполнялись.
+Отчёты: `tmp/cache-audit-initial-report.json`, `tmp/cache-audit-report.json`;
+снимки шапки: `tmp/resume-check/results/`. Для просмотра — `pnpm dev:frontend`
+на http://127.0.0.1:8081. Следующий срез начинать с этой записи; старые пункты
+ниже относятся к предыдущим этапам.
+
+## 20 октября — подключение закрытых файлов библиотеки
+
+По текущему поручению локальный `NEXT_PUBLIC_PRIVATE_LIBRARY_FILES_ENABLED`
+включён: рецепты и Петербург открывают список из существующего защищённого API.
+Лошадка оставлена в upstream club-реализации по последнему решению пользователя.
+Серверные flags, БД/S3, публичные источники и опубликованный стенд не менялись.
+Во время повторной проверки доступа прежние download links скрываются;
+при ошибке/выходе/смене аккаунта старый результат не показывается. Retry
+проверяет текущие условия доступа, публичного fallback нет.
+
+Повторная реальная проверка20 октября: login200, `/api/auth/me`200/role=admin;
+списки patterns/recipes/peterburg —404 как у гостя, так и у администратора,
+`Cache-Control: private, no-store`. Capabilities: privateContentUploads=true.
+По текущему controller пустые bindings дали бы200 с пустым списком, повреждённые
+active bindings —503. Поэтому404 list при подтверждённом admin прежде всего
+требует проверки server release flags/запущенной версии, а не правки local env.
+Прямого чтения server env не было; конкретная причина пока не подтверждена.
+
+Проверки текущего среза:28 unit checks (frontend list/parser, private library
+client, existing migration manifest), четыре Chromium-сценария с тестовыми
+HTTP-ответами (private patterns/logout, guest denial, recipes error/retry,
+Petersburg refresh/error/logout), frontend/E2E TypeScript, точечный ESLint,
+контракт API90 и `git diff --check` прошли. Это не проверка реальных bytes
+на стенде: его list endpoints всё ещё404. Backend/database/shared без новых
+локальных изменений. Локальный dev перезапущен для применения env flag.
+
+## 20 октября — локальный фронтенд под текущий API стенда
+
+Уточнение пользователя: только локальное окружение и текущий удалённый API;
+публикация, серверные настройки и перенос файлов не входят в поручение.
+В игнорируемом `apps/frontend/.env` сохранён same-origin proxy на
+`https://daryadarcy.dev.reeskeen.ru`; Prodamus TEST/VK/recovery=true,
+YooKassa TEST/private recipes-Petersburg=false, публичный API base пустой.
+Эти настройки повторены в README. Upload booleans берутся только из API.
+
+Локальный Next dev запущен на `http://127.0.0.1:8081`. Реальный Chromium через
+его proxy: guest Club показывает Prodamus TEST, mixed video catalog200/20 cards,
+вход200 и роль admin после reload; cookie остаётся HttpOnly+Secure. Админский
+редактор открывается, fresh capability guard разрешает picker (выбор отменён,
+загрузка/публикация не выполнялась). Browser GET guide200 и capabilities200,
+ошибок JavaScript/прямых cross-origin API requests не обнаружено. Проверены
+69 unit checks: proxy/private read/availability/payment modes. Это проверка
+локальной интеграции, не live upload/payment acceptance.
+
+Patterns list через тот же proxy по-прежнему404: ограничение текущего API,
+которое локальные build flags не снимают. Protected upstream delivery сохранена.
+Никаких runtime изменений бэкенда, выкладки, файлов или платежей на стенде.
+Для перезапуска использовать `pnpm dev:frontend`, а не общий `pnpm dev`.
+
+## 20 октября — подготовка фронтенда к закрытию первого этапа
+
+Синхронизация с `origin/staging` до `becaf6d`: пришли серверные capabilities
+загрузок, защищённые выкройки/советы теста и исправления logout/null-контракта.
+При возврате локального stash сохранены новые серверные проверки и закрытая
+выдача выкроек; локальная проверка status перед новой загрузкой дополняет их.
+`NEXT_PUBLIC_PRIVATE_LIBRARY_FILES_ENABLED` теперь относится к подготовленному
+пути recipes/peterburg: выкройки используют защищённый upstream API независимо
+от этого флага. После совмещения: 176 unit/API checks прошли, один opt-in
+пропущен; семь локальных Chromium-сценариев, frontend/E2E TypeScript, ESLint,
+контракт API90 и production build29/29 прошли. Все восемь первоначально новых
+файлов восстановлены из stash побайтно. Следующие пункты описывают исходный
+локальный срез до синхронизации.
+
+По текущему поручению пользователя выполнены локальные изменения только фронтенда.
+Границы: закрытые материалы §4.5 и вложения/редакторы §4.6/4.8. Защита расширенных
+советов теста, отзыв токена при обычном выходе и изменение backend-контракта
+`admin.postDetail` в этот срез не входят.
+
+- Перед **новой** загрузкой оба редактора постов, статьи и комментарии проверяют
+  existing status endpoint отдельным случайным ключом `availability:*`. Это
+  read-only запрос, не попытка восстановить старую отправку. При недоступности
+  загрузка/публикация не начинается, файл остаётся в редакторе, повтор разрешён.
+  Старые неизвестные результаты продолжают восстанавливаться по прежним ключам.
+- Подключение recipes/peterburg/patterns к existing REST library list/read API
+  подготовлено под `NEXT_PUBLIC_PRIVATE_LIBRARY_FILES_ENABLED`, default false.
+  Build-time значение зафиксировано в Next config. В private-режиме проверяются
+  canonical ссылки и полная пагинация; ошибки/пустые данные не открывают Yandex
+  или public assets. Гостевой preview выкроек использует публичную обложку,
+  а не original. При потере доступа закрывается просмотр/список файлов.
+- Рабочая защита старых файлов этим **не закрыта**: исходные public assets/URLs
+  ещё существуют, а private-режим не включён. До его включения бэкендеру нужно
+  согласовать/выполнить перенос трёх материалов, проверить доступы и решить судьбу
+  старых публичных копий; отдельно подтвердить рабочие upload flags/storage.
+  Нельзя считать скрытие загрузки выполнением обязательного сценария редактора.
+- Проверки этого среза: 131/131 unit/coordinator checks (8 файлов),
+  47 уникальных Chromium-сценариев (40 existing editor/recovery + 7 новых;
+  повторные прогоны не суммируются). Private-mode проверен отдельной локальной
+  сборкой с enabled switch и тестовыми HTTP-ответами, без backend/SQL/S3.
+  Проверены также длинные имена файлов/мобильная ширина и закрытие viewer при
+  выходе. TypeScript root/frontend/E2E, ESLint, production build29/29,
+  API contract90 без изменений, boundaries697 и docs check проходят.
+- Backend source, generated API contract, рабочая БД/хранилище, реальные флаги,
+  push/deploy не менялись. Это локальная подготовка, не приёмка всего этапа.
+
+## 16 октября — VU, закрытые видео, локальная внутренняя логика
+
+Актуализация17 октября: VU5 завершён после отдельного разрешения браузера —
+6/6 native Chromium/IndexedDB/File/reload→API/fresh41 SQL→Timeweb S3,99.09s;
+точная история/cleanup в начале tasks/todo.md. Упоминание отложенного browser
+ниже относится к checkpoint VU4, не к текущему VU5; mobile остаётся отложенным.
+Повторная сверка всего этапа:349 native API/SQL +372 client/component checks,
+skips0; runtime/design без изменений. Полная приёмка не закрыта: старые club
+public URLs/assets, целевой выпуск/external providers/real devices/pilot.
+Второй S3 principal отложен пользователем, не PASS. Актуальная матрица:
+[ТЗ и границы](../audits/frontend-stage-one-scope-2026-10-03.md).
+
+Принят контракт VU в SPEC-private-files.md, рабочий путь default-off.
+Бэкенд: raw80MiB MP4/WebM/MOV с actor/key receipt recovery, canonical private
+association и optional privateVideoPosters, nullable post_media.posterUrl;
+live GET/HEAD/Range и explicit removal. Native HTTP/JWT/own SQL/SDK wire178 pass,
+7 opt-in skips; fresh41 migration9/9. Это не Timeweb/browser приёмка.
+Frontend VU3a/b: typed coordinator с checkpoint до raw File upload, status-first,
+no public fallback, private poster mapping/frozen create/unknown update guard.
+Existing owner journal pack/restore video+poster через ArrayBuffer, metadata/keys/
+aliases и revision/actor guards.18 video unit +7 storage transport checks;
+storage double не доказывает native IndexedDB scheduling/reload. Full2469 pass/
+1548 opt-in skips/0 fail; root/frontend/E2E types/lint и production29/29 pass.
+VU3c: оба existing editors выбирают original File/key локально и вызывают accepted
+private raw transport только через save/checkpoint. Full optional private poster
+и прежний preview сохранены, quick без нового автопостера; CSS/layout прежние.
+Actor-keyed bodies сбрасывают File/coordinator state при смене аккаунта, canonical
+removal использует removedMediaIds. Transport12/selection8/storage8 unit checks;
+affected161/161, full2490 pass/1548 opt-in skips/0 fail, types/lint/API/boundaries
+и clean-env production29/29 pass. Это не native UI/IndexedDB/S3 acceptance.
+VU3d: explicit poster metadata подключена к feed/club/detail/shared player.
+Private video без optional poster не берёт первое фото gallery, отдельный poster
+не удаляет gallery entry; legacy public thumb/fallback прежние. RED6→GREEN9
+pure/actual React SSR cases; full2499 pass/1548 skips/0 fail, types/lint/build29/29
+pass. Это не browser playback/codec/hydration. VU4:3/3 native35.77s, actual
+frontend transport/coordinator→API/own fresh41 SQL/Timeweb S3. Lost upload/create
+ACK и API restarts дают1 video/1 poster/1 post/link, late upload/status after
+account switch не принимается. GET/HEAD/Range/club expiry/block/session revoke/
+explicit removal и direct anonymous S3 denial проходят. Journal transaction
+double, НЕ browser reload. Все4 own objects удалены с guards/HEAD404, policy
+unchanged; own DB/API/temp processes убраны. Browser/mobile по-прежнему отложены
+пользователем. Final full2499 pass/1551 opt-in skips/0 fail,45.53s;3 provider
+cases пройдены отдельно выше, не засчитаны по skip. Root types/API/boundaries/docs
+pass; runtime после VU3d не менялся. Рабочая DB/старые S3/flags/push/deploy не менялись.
+
+## 16 октября — LF1, клубные статьи в Библиотеке
+
+По прямому поручению исправлен existing articles.list backend: карточки всех
+опубликованных public/club статей, только id/title/публичный coverUrl/access.
+Sections/вложения/черновики в список не входят; detail/live access прежние.
+LibraryScreen уже использует article.access для lock CTA и hasClubAccess для
+перехода: runtime/frontend/CSS/дизайн менять не потребовалось. Native HTTP/JWT/
+own disposable MySQL RED7→GREEN94/94 (2 suites,4.14s), включая прежние body expiry/
+block/session revoke и admin CRUD/order guards. Это fixture DDL, не migration
+acceptance. Own DB удалена с exact ownership guards, S3/working DB не трогались.
+Full2444 pass/1516 opt-in skips/0 fail, root/frontend/E2E types/backend build/
+API86/boundaries676 pass. Existing native browser expectation обновлён с отсутствия
+club карточки на наличие карточки/lock CTA, body/draft guards сохранены; browser
+и физические устройства НЕ запускались по поручению. Frontend build/lint не
+повторялись: app source/generated contract неизменны. Без push/deploy/flags.
+Старые внешние library-файлы/публичные выкройки и raw-video upload этим срезом
+не закрыты, их не выдавать за подключённые к private delivery.
+
+## 16 октября — закрытые фото постов, только внутренняя интеграция
+
+CF-F3a: подготовлен coordinator закрытых фото комментариев на accepted CF4 API.
+Actor/post-scoped intent, прежние2 photos, checkpoint до network, status-first
+upload recovery и exact frozen addComment replay после lost ACK.15 Node unit
+cases pass; synthetic API/checkpoint, реальный File.arrayBuffer вместо FileReader.
+Full2441 pass/1497 opt-in skips, root/frontend/E2E types/full lint/build29/29/
+API86/boundaries674. CF-F3b: owner/post-scoped ArrayBuffer/File journal + atomic
+revision CAS, native Chromium storage RED4→GREEN4 + concurrent claim:5/5 pass,
+850ms. Reload сохраняет bytes/keys/post/reply/text, stale write/clear и byte
+substitution/phase thaw/account mismatch отвергаются. Storage document fixture
+synthetic, API/SQL/S3 не вызываются. CF-F3c теперь подключён к ClubComments без
+CSS/assets: local blob до save, durable checkpoint, explicit restore/replay/
+discard; unknown write replay только exact key/payload. Thread keyed на actor/
+post, late canonical read не очищает чужую операцию.5/5 Chromium/Next cases17.29s
+(API synthetic, File/IndexedDB/session настоящие), existing comments/moderation
+21/21 pass36.1s. Full2441 pass/1507 opt-in skips/0 fail, types/full lint/isolated
+production build29/29 pass. CF-F3d закрыт локально: **3 native pass/10 filtered
+skips**,50.89s, actual Chromium→Next→Nest→own fresh39 SQL→Timeweb S3. Lost
+upload/write ACK+reload и switch-during-upload/status дают1 PUT/asset/comment/
+create intent на сценарий. Unbound404, paid GET/HEAD/Range206/no-store и expiry404
+до S3 pass. После промежуточного S3 timeout pending3/comments0; все3 keys оказались
+absent, own DB убрана только после HEAD404/ownership guards. Финальные3 own objects
+удалены с metadata/ETag guards/HEAD404, policy unchanged; новый tmpfs DB/API/Next/
+browser/proxy убраны. Full2444 pass/1510 opt-in skips/0 fail, root tsc pass;
+runtime с CF-F3c прежний, build/types/lint без причины не повторялись. Подробности
+двух неуспешных попыток — tasks/todo.md CF-F3d. Дальше физические устройства,
+второй валидный S3 principal и отдельно разрешённый rollout, не новые функции.
+Оформление/backend/working DB/старые S3/flags не менялись, no push/deploy. TDD/security направили
+проверки на неизменяемый retry payload и запрет записи при storage failure.
+
+CF-F2 — редактор статей локально подключён к accepted CF API. Фото/PNG/карусели
+и новые PDF/DOCX/TXT (existing link block) остаются File/blob до save. Intent/key
+и bytes хранятся в existing owner-scoped article IndexedDB; reload/status-first
+recovery, frozen create и unknown update без auto replay. Удаление/замена фото,
+закрытие и смена аккаунта отзывают blob URLs; старые URL не мигрируются, баннер
+публичный. Новые действия используют прежние компоненты/классы, CSS не менялся.
+Unit10, native storage3 и actual Chromium/Next + synthetic API5/5 pass (26.19s).
+CF-F2 локально закрыт16 октября: после разрешённой очистки Docker build-cache
+actual editor→Nest API→own fresh39 MySQL→Timeweb S3: **2 native pass/8 filtered
+post skips**,67.44s. Lost upload/create ACK+reload без repeat PUT/asset/article;
+edit сохраняет прежние bindings и не повторяет unknown update. WebP alpha/TXT
+bytes, GET/HEAD/Range206/no-store, expired404 и anonymous direct S3 HEAD403 pass.
+Все5 own объектов удалены с exact guards/HEAD404, policy unchanged; own DB/API/
+Next/browser/proxy/build copy убраны. Article account-switch проверен только
+пятью synthetic-API browser cases выше, не считать его новым native evidence.
+Legacy article creation/media17/17 pass29.8s, включая updated PNG expectation;
+shared post-photo regression12/12 pass43.36s. Production webpack build exit0,
+static29/29, без .env/working credentials, API target127.0.0.1:1. Full Vitest2426
+pass/1497 opt-in skips, root/frontend/e2e types, full lint/API86/boundaries673 pass
+на неизменённом runtime. Это local integration, не rollout/device matrix.
+Дизайн/working data/flags/old S3 не менялись, push/deploy не выполнялись.
+Скиллы TDD/security/incremental
+использованы для checkpoint-before-write/CAS/session/blob lifecycle; не редизайн.
+
+CF-F1a/F1b1/F1b2: новые фото в обоих существующих редакторах остаются локальными
+до сохранения. Подготовленный File/key сохраняется в owner-scoped IndexedDB как
+ArrayBuffer, после reload восстанавливаются bytes/metadata и editor/save aliases.
+Превью — локальный blob URL, не ранний GET закрытого unbound файла; URL отзывается
+при remove/replace/close/unmount/account switch. Оформление и классы не менялись.
+Сохранение использует existing CF upload/status и photos binding: status-first
+после lost ACK, ready без повторного upload, notRecorded с теми же bytes/key,
+create replay с прежним payload/key; старые URL не мигрируются. PNG alpha сохранён.
+
+Проверки:34 unit coordinator,4 native Chromium File/IndexedDB и12 Chromium/Next
+create/edit/reload/session/preview сценариев. В последних12 API synthetic — это
+НЕ actual API/SQL/S3 acceptance. Existing3 browser suites19/20; единственный fail
+был duplicate locator видимого/retained video экрана. Visible filter исправлен
+только в тесте, отдельный повтор1 pass; не считать единым новым20/20 прогоном.
+Full Vitest2416 pass/1479 skips, root/frontend/e2e types, full lint, production
+build, API86/boundaries669 проходят. Старый ENOSPC blocker снят (7.4GiB при старте).
+Временные Next/browser/proxy убраны; working DB/S3/flags/старые objects, push/deploy
+не трогали. Скиллы TDD/incremental/security/React использованы для checkpoint,
+scope/URL lifecycle и проверки восстановления, без redesign/refactor соседних UI.
+
+CF-F1b3 закрыт16 октября: **8/8 native pass**, suite87.07s, оба редактора→actual
+Next rewrite/Nest API→own fresh39 MySQL→Timeweb S3. Lost upload/create ACK+reload
+не создаёт второй PUT/asset/post; edit/unknown update не повторяется. Full append/
+quick replace сохраняют правильный набор фото. Live account switch during upload/
+status отбрасывает late receipt, закрывает/revokes blob и не раскрывает другой
+аккаунт; исходный владелец восстанавливает прежний файл через status. Actual WebP
+alpha/EXIF stripping, GET/HEAD/Range206/no-store/nosniff и unbound/expired/guest404
+до S3, anonymous S3 HEAD403 подтверждены. Все8 новых own objects удалены с exact
+ledger/metadata/ETag guards/HEAD404, policy unchanged. Own tmpfs DB/API/Next/browser/
+proxy убраны, чужие контейнеры/старые файлы не трогали. Product fix не потребовался,
+runtime/дизайн не менялись; секреты только stdin/memory; no push/deploy.
+Native suite: `tests/private-photo-editors.s3.mysql.test.ts`, opt-in
+`PRIVATE_PHOTO_EDITORS_S3_ACCEPTANCE=true` и explicit fresh backend_test/container
+ID + provided S3 process credentials. Next получает только own API target, не ключи.
+
+Пока не объявлять CF целиком готовым: device/browser matrix и article/comment CF
+client остаются следующими отдельными срезами. Рабочий CF flag не включали,
+rollout не разрешён.
+Команды: `DARYADARCY_LOCAL_BROWSER=1 pnpm exec vitest run
+tests/post-photo-journal.browser.test.ts tests/private-photo-editors.browser.test.ts`
+(нужен installed Chromium, минимум2GiB; fixtures закрывают внешний network).
+Общий прогон — `pnpm exec vitest run --silent --maxWorkers=4`; skips не pass.
+
+## 15 октября — внутренние исправления после сверки staging
+
+FE5, последующая native проверка: `tests/private-editors.s3.mysql.test.ts`
+использует настоящий Chromium, Next rewrite, Nest API, собственную fresh39 MySQL
+и Timeweb S3. После освобождения только наших кэшей, разрешённого restart Docker
+и смены сети пользователем **quick4/4 pass**,60.76s. Вместе с ранее пройденными
+full4/4 подтверждены все8 разных сценариев; skipped4 full в quick прогоне не
+засчитаны повторно. Lost upload/create/update ACK, reload, отсутствие дублей,
+сохранение существующих synthetic связей и смена аккаунта при upload/status
+проверены. SQL3 posts/5 media/3 creation intents/5 ready uploads, дублей связей0.
+Actual private GET/HEAD/Range206, отзыв оплаченного доступа и guest404 до S3,
+anonymous S3 HEAD403 проходят. Все5 новых synthetic objects последнего прогона
+удалены с guards/HEAD404, policy hash прежний; own DB/API/Next/browser убраны.
+Продуктовый код/дизайн для прохождения не менялись. Рабочая DB, настройки S3/flags, старые
+файлы, push/deploy не трогались; production rollout/физические устройства и
+новая браузерная матрица этим dev-Chromium прогоном не заявлены.
+История предыдущих сетевых/ENOSPC ограничений и точные границы — FE5 в tasks/todo.md.
+
+Новое прямое поручение разрешает только внутреннюю логику frontend, без дизайна.
+Fetch подтвердил origin/staging81e8563, уже интегрированный в текущую feature-ветку;
+исходный frontend совпадал точно, merge/перезапись не потребовались. Runtime
+бэкенда, рабочие DB/S3/flags, push/deploy не входят в это поручение.
+
+FE1: исправлена неполная viewport fixture без изменения размеров/runtime:
+document layout width, shrink320 при stale innerWidth1280, fallback и SSR.
+Штатно обновлён generated API contract до86 текущих процедур; exact contract test
+включает4 новых CF upload/status метода. API-check, affected102 unit checks,
+frontend/E2E types, lint и production build проходят. Дизайн/SCSS/TSX не менялись.
+FE2: HTTP body для вложений/видео/фото читается с ограничением по фактическим
+байтам, а не только Content-Length. При превышении прекращается чтение; reader
+освобождается также при abort/error, пустой файл не считается успехом. Лимиты
+32/80MiB не изменены. RED3 consumers→GREEN10 bounded checks; вместе с media/save
+regressions105/4 suites, frontend/E2E types. Actual loopback chunked HTTP закрыт
+до полного тела;4 Chromium +4 WebKit stream/Blob/cancellation checks прошли.
+FE3: macOS WebKit26.0 реально возвращает PNG вместо requested WebP при canvas
+encoding. Random1100x1100 alpha PNG не помещался в4MiB даже после1080px и upload
+не вызывался. Это воспроизведено до исправления; добавлен последний maxEdge960,
+с сохранением прозрачности/ratio и выбора первого уже подходящего JPEG/WebP.
+Тест проверяет разрешённые PNG/WebP, actual MIME,4MiB и alpha, а не требует
+неподдерживаемый браузером codec. Тест video lifecycle на post/42 теперь нажимает
+существующую «Вернуться назад»; имя/дизайн/код header не менялись.
+
+Итоговый checkpoint:20 Chromium +20 macOS WebKit checks/skip0,21.3/24.4sec;
+Full Vitest2360 pass/0 fail/1455 skipped/5 pending,262 files,39.1sec.
+API86, frontend/E2E/root types, lint/build, boundaries665/docs58 проходят. Исправлен
+type error в новой test-only Headers fixture; production типы не ослаблялись.
+SCSS/CSS/TSX/visual assets/configs/dependencies/backend не менялись, дизайн
+не редактировался. DB/S3/старые files/working flags, push/deploy не тронуты.
+Browser API/платёжные/медиа ответы подставные; bounded reader использует настоящий
+Response/ReadableStream/Blob и отдельно actual loopback HTTP. Это не working
+backend/S3/provider, physical iPhone/Safari или Android acceptance.
+
+Воспроизведение из корня, clean environment без рабочих integration credentials:
+`pnpm check:api`, `pnpm --filter @daryadarcy/frontend typecheck`, `pnpm lint`,
+`pnpm build:frontend`; не запускать typegen одновременно с build.
+`pnpm exec vitest run --maxWorkers=2` (opt-in skips не являются pass).
+Для браузеров после build из apps/frontend: `pnpm exec playwright test
+bounded-media-read.spec.ts media-upload-contract.spec.ts media-failure-lifecycle.spec.ts
+--browser=chromium`, затем тот же набор `--browser=webkit`;
+`CI=1 NEXT_TELEMETRY_DISABLED=1 RUN_REAL_API_TESTS=0`. Нужны pinned browsers
+Playwright1.58.2 (Chromium1208/WebKit2248); install с PLAYWRIGHT_SKIP_BROWSER_GC=1,
+чтобы не очищать другие cached versions. Подробная активная очередь — tasks/todo.md.
+
+На этом checkpoint новый private upload/status/association ещё не был подключён;
+реализация следующего отдельного поручения — FE4 ниже. Старые URL не мигрированы,
+рабочие private flags не включены.
+Контрольный fetch в конце сначала дал SSL_ERROR_SYSCALL; обычный повтор без
+ослабления TLS прошёл, staging остался81e8563. Нового merge/перезаписи не было.
+
+### FE4 — закрытые audio/document в существующих редакторах, 15 октября
+
+Оба post editors используют `uploadPrivateAttachment`/`privateAttachmentStatus`,
+а create/update привязывает ready `privateAssetIds`; публичного fallback нет.
+Ключ каждой загрузки и исходные metadata/File bytes сохраняются до dispatch в
+существующем owner-scoped IndexedDB. После lost ACK/reload пользователь запускает
+existing «Проверить сохранение»: status first, ready без повторной загрузки,
+pending/notRecorded — прежние bytes/key; 409/ошибка статуса не порождает новый key.
+Завершение upload не публикует пост: подтверждение публикации отдельно. Existing
+post create intent/unknown-update guard и legacy draft versions1/2 сохранены.
+Смена аккаунта отменяет/отбрасывает поздние upload/status receipts; черновик не
+переходит другому владельцу. Старые вложения/URL сохраняются, removedMediaIds
+по-прежнему явная отвязка. DOC больше не предлагается для новых private documents
+(PDF/DOCX/TXT); существующий DOC не мигрируется/не удаляется.
+
+TDD: RED9 domain + RED browser/public route → GREEN; дополнительно RED receipt
+filename/MIME и local checkpoint recovery → исправления. Full Vitest2380 pass,
+0 fail/1455 skipped/5 pending,263 files,45.8s. macOS WebKit65 pass/1 existing skip
+(legacy IndexedDB Blob); все14 новых private cases прошли. Chromium66 pass/skip0:
+14 private +8 checkpoint/upload +44 existing browser regressions на финальном
+дереве. Типы frontend/E2E/root, lint/build, API86,
+boundaries667/docs58 проходят. Проверки API в браузере подставные, IndexedDB/File/
+FileReader/abort/session реальные. Это не новая native SQL/S3 или рабочая приёмка.
+Команды: после build `playwright test private-post-attachments.spec.ts
+post-draft-recovery.spec.ts editor-safety.spec.ts post-upload-recovery.spec.ts
+post-draft-checkpoint.spec.ts --browser=chromium`, затем `--browser=webkit`.
+JSON unit/Chromium: `/tmp/daryadarcy-private-editors-X7ePea/`.
+Backend, DB, S3, flags, старые файлы, SCSS/layout/assets не менялись; no push/deploy.
+Включение рабочих upload/read flags и совместная actual-S3 acceptance отдельно.
+
+**Текущее поручение: доработать только фронтенд первого этапа для закрытия по договору — общую основу, затем публикации, вложения и взаимодействия, поэтапно с проверками. Дополнительные улучшения записываем отдельно и пока не реализуем. Бэкенд и базу не запускаем.** Бэкендер будет менять сервер; согласованные интеграции нужно проверять после уточнения API. Состояние ниже — снимок сегодняшних проверок, а не обещание, что найдены все возможные ошибки или приложение готово к сдаче.
+
+## 13 октября — просмотр фотографий на компьютере
+
+Исправлены воспроизведённые проблемы карусели и общего фотопросмотра:
+перетаскивание мышью перелистывает фотографии и не открывает просмотр случайным
+кликом. В Ленте сохранено прежнее оформление без стрелок; стрелки назад/вперёд
+добавлены только в полноэкранном просмотре для устройств с мышью. В просмотре
+ArrowLeft/ArrowRight/Home/End работают сразу после открытия, включая фокус на
+крестике. На концах альбома соответствующая стрелка отключена; у одиночного
+снимка навигации нет. Геометрия галереи, индикаторы и оформление сохранены.
+
+Жест закрытия вниз оставлен для касания. При смене направления, pointercancel
+или потере захвата изображение и затемнение возвращаются в исходное состояние.
+Перетаскивание мышью освобождает захват и восстанавливает scroll snap также при
+потере фокуса окна и resize. Нативные свайпы и горизонтальная прокрутка сохранены.
+
+Добавлены 10 сценариев `e2e/photo-desktop-navigation.spec.ts` в общий E2E-набор.
+В Chromium/Linux WebKit прошли 19 проверок; один тест движения пальца через CDP
+пропущен в WebKit, где этот протокол недоступен. Ещё 10 связанных браузерных
+регрессий прошли: выбранное фото рядом с видео, загрузка соседних слайдов,
+вложенные диалоги, нативный свайп и двухпальцевое масштабирование выкроек.
+Сборка, TypeScript приложения/E2E, ESLint, 51 связанный unit/client, 620 границ
+модулей и исходный контракт 73 процедур прошли. В браузере проверены центровка,
+иконки, размеры кнопок, цвета, крайние состояния и скрытие стрелок на мобильном
+экране; размеры 390/1200/1440/1920 px. Использованы тестовые ответы API.
+Физические телефоны и Safari на macOS этим прогоном не проверены; бэкенд и API
+не изменялись.
+
+По уточнению пользователя стрелки из Ленты удалены: там меняется только
+поведение, навигационные кнопки остаются в полноэкранном просмотре. Повторно
+прошли 8 адресных проверок Chromium/Linux WebKit: отсутствие кнопок в Ленте,
+перетаскивание без случайного открытия, клавиатура, отмена при потере фокуса
+и мобильное оформление. Сборка, E2E-типы и ESLint изменённых файлов прошли;
+визуально Лента и просмотр проверены на 320/390/1440 px.
+
+## 13 октября — повторное чтение статьи и браузерные регрессии
+
+После подтверждённой ошибки повторного чтения статья скрывает прежнее содержимое
+и открытый фотопросмотр. Используется существующее оформление ошибки/повтора;
+404 или отсутствие записи показываются как «Статья не найдена». При возвращении
+закрытого состояния 200 контент также скрывается. Успешный повтор получает новые
+данные, а прежний фотопросмотр самостоятельно не открывается.
+
+Добавлены 10 сценариев в `e2e/article-request-states.spec.ts`, подключённых к
+браузерной приёмке: 403/404/500, обрыв сети, исчезновение и закрытие статьи,
+повтор с новыми фотографиями и клавиатурой на 320/1440 px. В тесте вложенных
+диалогов выбор «Добавить ссылку» теперь точный и не совпадает с VK-кнопкой.
+Две регрессии сначала воспроизвели ошибку на прежней сборке. На новой сборке
+подтверждены 40 браузерных сценариев Chromium/Linux WebKit по совокупности
+прогона (36) и адресной перепроверки четырёх сценариев после исправления модели
+возраста кеша в тесте. Сборка, TypeScript приложения/E2E, ESLint, 97 связанных
+unit/client, 617 границ модулей и исходный контракт 73 процедур прошли.
+Визуально проверены шрифт, цвета, отступы, переносы и положение кнопок;
+изменений стилей нет. Использованы тестовые ответы API. Бэкенд, отложенный
+редактор аватара и остальные архитектурные пункты в эту работу не входят.
+
+## 13 октября — привязка почты исключена по уточнению пользователя
+
+Пользователь подтвердил: приложением ещё никто не пользовался, старых телефонных
+аккаунтов для переноса нет. Сценарий первой привязки email менеджером отменён.
+С фронтенда удалены форма, journal восстановления, request/status/confirmation
+клиенты, страница `/email-binding`, отдельная ветка providers и тесты этого потока.
+Обычные регистрация, вход, восстановление пароля и повтор письма доступа остаются.
+Серверные обработчики, миграции и БД не менялись; их удаление — отдельная задача
+бэкендера. Этот сценарий больше не входит в остаток фронтенд-приёмки.
+Записи о нём от 8–12 октября ниже сохраняются как история, а не текущий план.
+
+Проверки удаления: production-сборка, TypeScript приложения/E2E, ESLint,
+616 границ модулей, ссылки документации и исходный контракт 73 процедур прошли.
+90 связанных unit/client и 28 браузерных регрессий прошли. Дополнительно на
+320/390/1440 px в Chromium и Linux WebKit подтверждены 404 `/email-binding`,
+отсутствие формы у карточек с null/пустой почтой и отсутствие запросов привязки;
+обычные формы входа, регистрации и восстановления доступны. В production
+маршрутах и клиентских чанках страницы/запросов привязки нет. Браузерные проверки
+использовали подставные API; сервер, письма и физические устройства не проверялись.
+
+## 13 октября — завершение доступной фронтенд-приёмки
+
+Актуальное поручение: закончить VK-вложения, медиа и браузерные проверки,
+сохраняя существующее оформление. **Жалобы отложены. Серверные задачи не берём.**
+Новое действие «Добавить ссылку VK» в обоих редакторах разрешено текущим поручением;
+запись 12 октября об отсутствии этого действия ниже — историческая.
+
+### Реализовано на фронтенде
+
+- Ввод экспортируемой VK-ссылки, проверка адреса и дубликатов, нормализация без
+  autoplay, восстановление в черновике, предпросмотр, сохранение/повторное открытие
+  и удаление через прежний `videos[]`/`media[]`. HTML и обычная ссылка на страницу
+  ролика не принимаются. Внешний плеер запускается по действию просмотра.
+- Нативное видео получило общий обработчик ошибки и повтор загрузки, остановку
+  при скрытии и освобождение источника при размонтировании. VK удаляется при
+  скрытии и не закрепляет открытые карточки в списке навсегда; есть перезагрузка
+  плеера. Отказ повторного чтения видео скрывает старые данные плеера.
+- Исправлены найденные в Linux WebKit проблемы: файлы черновика сохраняются
+  в IndexedDB как байты с восстановлением File (старый формат читается), а ширина
+  карусели и фильтров после сужения берётся из области страницы. 8 адресных
+  регрессий прошли; сохраняются ревизии черновика и защита повторной записи.
+- Доступ к VK-вложению следует серверному `target` поста. В отдельном каталоге
+  «Видео» признака public/club пока нет: фронтенд не придумывает его из роли,
+  метки или адреса. Защита полученной VK-ссылки не входит в работу.
+
+### Проверено с настоящим API
+
+Только гостевые чтения dev-стенда: `videos.list`, `club.subscription`,
+`feed.listPaginated({limit:1})`, `GET /api/launch-config` — HTTP 200.
+В каталоге 60 записей, `access/canView` отсутствуют; настройки магазина возвращают
+`email-client` и заполненный адрес менеджера. Это проверка формы ответов,
+не приёмка авторизованной записи, доставки почты, платежей или реальных VK-роликов.
+
+### Ожидает бэкенда, материалов или совместной приёмки
+
+- **Бэкенд:** признак и серверная проверка public/club для каталога VK, способ
+  записи VK в этот каталог; единый признак клубного доступа служебных ролей;
+  согласованность чтения комментариев и проверки likes/saves; закрытая выдача
+  файлов S3.
+- **Совместная интеграция:** настоящие create/update/upload/read с ролями,
+  заказ/уведомление провайдера/письмо/вход/отмена, отправка заказа менеджеру.
+- **Материалы:** реальные VK-ссылки и настройки владельца, сезонные даты/фоны,
+  полный согласованный визуальный эталон и набор тестовых медиа.
+- **Устройства:** физические iPhone/Safari, Android и установленная PWA отсутствуют.
+  Пользователь это подтвердил. Мобильные профили Chromium/Linux WebKit и модели
+  экранной клавиатуры не объявляются проверкой физических устройств, VoiceOver/
+  TalkBack, памяти ОС или установки PWA.
+
+[Подробная приёмка и конкретные запросы/недостающие поля/заблокированные сценарии](../audits/frontend-acceptance-2026-10-13.md).
+В отчёте — результаты и снимки. Production-сборка, TypeScript/ESLint и **600
+unit/client tests** прошли. Сравнены **30 пар** первых экранов до/после на
+320/390/1440 px: различий при выбранном пороге не обнаружено. Настоящий публичный
+VK-ролик воспроизведён в Chromium и Linux WebKit. Браузерная приёмка — **284
+подтверждённых сценария** в двух движках по совокупности
+общего прогона и адресных перепроверок, 4 объяснённых пропуска (внешний VK проверен
+отдельно). Для приложения использованы тестовые ответы API; исходные результаты,
+исправления фикстур и ограничения — в отчёте.
+
+## 12 октября — исправления фронтенда без изменения дизайна
+
+Рабочая база — staging `48f2f7d`. Пользователь уточнил границу ответственности:
+только фронтенд. Пробные серверные правки этой сессии полностью отменены; бэкенд,
+его тесты, общие пакеты, контракт API и оба `.env.example` совпадают с исходным
+staging. Стили, раскладки и изображения не менялись.
+
+- **Редактирование постов:** неполный ответ без `media` больше не считается
+  подтверждённым пустым списком. Признак сохраняется через нормализацию ленты и
+  меню поста до обоих редакторов; сохранение блокируется с понятным сообщением,
+  ввод остаётся в редакторе и локальном черновике. `media: null` не обрушает форму.
+  Ответ с настоящим `media: []` сохраняет прежнее поведение.
+- **Статьи:** исправлены только пояснения доступа. Вариант `public` действительно
+  открывает чтение в библиотеке без подписки; вариант `club` остаётся клубным.
+  Серверная политика доступа не менялась.
+- **VK:** [валидатор экспортируемой ссылки](../../apps/frontend/src/shared/media/vk-video-url.ts) и
+  [iframe штатного плеера](../../apps/frontend/src/shared/media/vk-video-embed.tsx) подключены к
+  существующим рамкам карточки, вложений и страницы видео. Используются текущие
+  поля `post_media.url` и `videoUrl`, без нового API. Принимается HTTPS-адрес
+  `video_ext.php` с `oid`, `id`, `hash` на точных доменах VK; произвольный HTML и
+  сторонние iframe не вставляются. Обычные MP4/YouTube сохраняют прежний плеер.
+  Автовоспроизведение выключено. Пояснение на странице учитывает источник VK.
+- **Регрессии:** ожидание восстановления выбранных файлов приведено к уже
+  существующему автоматическому восстановлению; заголовок админки выбирается по
+  роли heading. Фикстура оплаченной подписки содержит действительную дату окончания.
+
+Проверки итогового фронтенда: изолированная production-сборка webpack, TypeScript,
+ESLint, 620 границ модулей, исходный контракт 73 API-процедур и ссылки документации
+прошли. **712 unit/client tests** и **166 браузерных проверок** прошли. Одна внешняя
+VK-проверка пропущена в обычном прогоне как opt-in; отдельно в этой сессии открытый
+VK-ролик воспроизводился в iframe с подтверждённым движением времени видео.
+Браузерный прогон использовал тестовые ответы API и не объявлен проверкой
+рабочего сервера, платежей или почты.
+
+Форма ввода VK-ссылки в редактор не добавлялась: новые элементы интерфейса не
+входят в поручение сохранить дизайн. Для наполнения нужен готовый экспортируемый
+адрес в существующем поле видео. Обычная ссылка на страницу ролика без экспортного
+hash автоматически не преобразуется. Проверка открытого тестового видео не
+подтверждает настройки доступа к будущим роликам заказчика.
+
+### Зависимости от бэкенда и внешней приёмки
+
+Эти пункты зафиксированы для передачи бэкендеру, а не исправлены фронтендом:
+
+- `club.subscription` считает неоплаченного модератора не подписанным, хотя
+  серверная клубная проверка разрешает его роль. Нужна согласованная политика
+  ответа API, без фиктивной оплаты или присвоения прав владелицы.
+- `club.comments` требует клубный доступ даже для публичного поста, тогда как
+  `club.addComment` разрешает его авторизованному пользователю без подписки.
+  Фронтенд не может самостоятельно исправить отказ серверного чтения.
+- `feed.toggleLike`/`toggleSave` не проверяют существование и доступность поста
+  перед записью. Проверки клиентских кнопок не заменяют эту серверную проверку.
+- Отправка и очистка первой привязки email реализованы отдельными функциями, но
+  не подключены к `WorkerJobs`. Фронтенд формы остаётся за прежним выключенным
+  флагом; включение требует готового сервера и согласованной истории миграций.
+- Прямые файлы S3 загружаются с `public-read`. Гостевые состояния и запрет
+  копирования в браузере не закрывают прямые URL. Для VK нужно согласовать
+  публичный/клубный доступ к карточке внутри приложения; по сохранённому разбору
+  договора защита самой полученной VK-ссылки исключена из первого этапа.
+- Остаются реальная цепочка оплаты/письма/входа и отмены, материалы заказчика,
+  проверка на физических устройствах и согласованный пилот. Локальные проверки
+  фронтенда не объявляют весь первый этап принятым.
+
+## 10 октября — формы авторизации, личный кабинет и редактор публикаций
+
+- По просьбе пользователя настройки просмотра через Wi-Fi полностью возвращены к прежним: LAN-разрешения, вспомогательные файлы и локальная переменная `DEV_LAN_HOSTS` удалены. Исправления формы и прокрутки при появлении клавиатуры сохранены.
+
+### Единая шапка админки
+
+- Название «Админка»/«Модерация» перенесено в основной верхний хедер; отдельная строка заголовка удалена. В верхнем хедере восстановлена единственная стрелка назад с возвратом в `/profile`. Шапка остаётся видимой при прокрутке. Кнопка «Новый» перенесена к вкладкам и доступна в разделах «Посты»/«Календарь».
+- Проверены внешний вид на ширинах 320, 390 и 1440 px, положение заголовка по центру, прокрутка списка, открытие/закрытие редактора из обоих разделов и возврат в профиль. Прошли 13 существующих браузерных проверок навигации и календаря, TypeScript и ESLint. Браузерные проверки использовали подставные API.
+
+### Проверка остальных вкладок админки
+
+- На ширинах 390 и 1440 px проверены все восемь разделов: «Посты», «Статьи», «Календарь», «Статистика», «Участницы», «Оплаты», «Жалобы» и «Сезоны». В проверенных сценариях ошибок интерфейса не обнаружено.
+- Из календаря открыт существующий отложенный пост, изменён текст, проверен предпросмотр, выполнены сохранение и повторное открытие. Сохранились дата, статус, место публикации, метки, порядок сортировки, ссылка и документ. Отдельно прошли семь существующих браузерных сценариев действий админки, статистики и создания поста из календаря. Проверки использовали подставные API; полноценная проверка всех действий с настоящим сервером остаётся приёмкой.
+
+### Скорость ввода в редакторах публикаций
+
+- Полный редактор вынесен в `AdminPostEditor`: его текст, форматирование, вложения и восстановление черновика больше не обновляют состояние списка и вкладок Админки. Сохранены оформление экрана и создание запланированного клубного поста из календаря. В обоих редакторах блок меток обновляется при изменении меток, а не при вводе текста.
+- Изменение текста определяется один раз для всех диапазонов форматирования; неизменившиеся диапазоны сохраняют свои объекты. Одинаковое положение курсора/выделения не вызывает повторных обновлений. Преобразование в rich text кэшируется; закрытый предпросмотр отдельно не вычисляется. Наблюдатель размера поля живёт до размонтирования, ширина измеряется при изменении размера, подсветка продолжает следовать нативной прокрутке.
+- Замеры выполнены в Chromium на пользовательском dev-сервере с подставными API и замедлением CPU в 6 раз. Медиана обработки символа в полном редакторе со списком из 150 постов уменьшилась примерно с **966 до 53 мс**, с одним постом — со **152 до 50 мс**. В быстром редакторе без форматирования — с **78 до 47 мс**, на тексте из 50 абзацев/50 ссылок — с **86 до 58 мс**. При наборе новых символов наблюдатель больше не пересоздаётся. Это сравнительный замер dev-режима, а не скорость физического телефона.
+- Итоговый прогон без искусственного замедления: медианы обработки символа **14–16 мс**, включая длинный текст с 50 ссылками и Админку со 150 постами; длительных задач более 50 мс во время набора не обнаружено.
+- Прошли **60 браузерных сценариев**: нативный быстрый ввод с немедленным сохранением последних символов, сохранение ссылок и меток, отсутствие повторного построения списка/наблюдателей, календарь и сброс формы при следующем создании, существующие проверки форматирования, геометрии подсветки, прокрутки, черновиков и ошибок сохранения. Также прошли 10 модульных проверок диапазонов, TypeScript приложения/E2E, ESLint и проверка границ зависимостей (597 файлов). Физические Safari/iPhone и Android остаются отдельной приёмкой.
+
+### Несколько ссылок в редакторе — сценарий Дарьи, 4.6
+
+- По последнему поручению панель с адресом и кнопками «Изменить»/«Удалить» убрана из обоих редакторов: касание ссылки больше не меняет высоту поля. Подчёркнутые коричневые ссылки остаются видны прямо в тексте. Изменение адреса — через выделение текста и значок ссылки, диалог открывается с текущим URL; достаточно выделить слово внутри ссылки, изменяется адрес всего связанного фрагмента. Полное стирание связанного текста удаляет его ссылку; частичное стирание оставляет ссылку на сохранившемся тексте. Удалён автоматический перенос URL на совпадение слов в другом месте. Нативный `beforeinput` фиксирует фактический диапазон правки: одинаковые слова/символы и emoji удаляются в правильном месте. Декоративный слой сохраняет нативную textarea, мобильное выделение и синхронизацию переносов/прокрутки. [Восемь E2E](../../apps/frontend/e2e/post-inline-links.spec.ts) проверяют полный/быстрый редакторы: неизменную высоту, отсутствие панели, изменение через выделение, стирание ссылки вместе с текстом, одинаковые слова, частичное удаление, сохранение и повторное открытие, переносы/прокрутку/изменение ширины. [Десять модульных проверок](../../tests/frontend-editor-ranges.test.ts) фиксируют диапазоны удаления/вставки. Реальные публикации не менялись; проверки касаний выполняются в Chromium, физический Safari/iPhone остаётся ручной приёмкой.
+- Исправлена рамка при фокусе текстового поля: общий стиль добавлял прямоугольный border к вложенной textarea, который обрезался скруглённым контейнером. Теперь меняется цвет существующей внешней рамки редактора через `:focus-within`, внутренний border при фокусе отключён. В полном и быстром редакторах проверены 1440/390/320 px: непрерывные скругления, рамка 1 px, отсутствие outline и сдвига геометрии, ввод и снятие фокуса; мобильные снимки осмотрены. Подставные API, реальные публикации не менялись.
+- Поведение ввода приближено к старому Expo: обычный локальный черновик (`save.phase === idle`) восстанавливается автоматически при открытии полного и быстрого редактора, без обязательного нажатия «Восстановить черновик». Текст, форматирование, вложения и выбранные файлы сохраняются; отображается сообщение об автоматическом восстановлении. Пока хранилище читается, форма скрыта и показан статус проверки, чтобы позднее восстановление не затёрло начатый ввод. Для неподтверждённой отправки на сервер сохранён явный сценарий восстановления; во время операции и при ошибках хранилища защитные блокировки остаются. Проверены на подставных API: ввод после клика/касания без дополнительных действий, ввод после автоматического восстановления, колесо и касания, сохранение и повторное открытие со ссылками/файлами, изоляция аккаунтов/вкладок и восстановление неподтверждённых операций. Проверка положения шапки сравнивает координаты, без зависимости от изменения ширины иконки при загрузке шрифта. Реальные публикации не изменялись.
+- После пользовательской проверки воспроизведена блокировка обычной прокрутки: `inert` на всей ScrollArea при предложении восстановления черновика / незавершённом сохранении отключал колесо и касания. Прежняя проверка через прямое изменение `scrollTop` не выявляла эту проблему. Блокировка перенесена на содержимое формы через `contentInert`; сама область остаётся доступной для прокрутки. Исправлено в Админке и быстром редакторе. [Четыре регрессии](../../apps/frontend/e2e/post-editor-scroll.spec.ts) проходят: колесо и события касания через Chromium CDP, новая форма, предложение восстановления, восстановленный черновик и ожидающий ответ сохранения; поля остаются inert и не получают фокус, шапка сохраняет положение. Две существующие регрессии восстановления форматирования/файлов, TypeScript и ESLint проходят. В быстром редакторе проверка жестов ожидает завершения анимации открытия. Подставные API, без реальных публикаций и физической клавиатуры iPhone.
+- По последнему поручению пользователя редактор «Новый»/«Редактировать пост» в Админке визуально оформлен отдельным экраном, как в старом Expo: сплошной фон на всю область приложения (до `--app-max-width`, сейчас 480 px), собственная шапка и прокрутка формы, без внешних отступов, рамки, скругления, тени и затемнения. Общая навигация закрыта экраном редактора; механизм Dialog сохранён. Высота следует `--app-height`, шапка и нижние отступы учитывают safe area. Проверены 1440×900, 390×844, 320×568, 844×390 и 390×320: границы экрана совпадают с приложением, прокрутка, доступность кнопок, вложенное окно ссылки и возврат фокуса после закрытия работают; desktop/mobile вид осмотрен. Три регрессии ссылок в полном редакторе проходят, включая сохранение и повторное открытие. Проверки с подставными API, без записи реальных публикаций.
+- Изучено предоставленное пользователем `IMG_0254.MP4`: ссылки на нескольких фрагментах, выделение на iPhone, предпросмотр и переключение приложений. В браузерной модели воспроизведена замена первой ссылки второй: после начала нажатия на панель DOM-выделение возвращается к предыдущему фрагменту. Повторное чтение выделения и отложенные действия использовали этот прежний фрагмент.
+- Выделение фиксируется при `pointerdown` и используется один раз при `click`, без ожидания кадров и повторного считывания. Клавиатурная активация захватывает текущее выделение; отмена касания сбрасывает подготовленный фрагмент. `touchend` снова считывает живое выделение. Обновление ссылок, жирного и курсива публикуется из обработчика, без побочных действий внутри React state updater; остальные ссылки и стили сохраняются.
+- [Шесть новых браузерных сценариев](../../apps/frontend/e2e/post-formatting.spec.ts): оба редактора, возврат DOM-выделения к прежнему фрагменту / его сворачивание, сохранение и повторное открытие поста с тремя ссылками, повторяющийся текст и жирный с курсивом. Дополнительно проходят две существующие проверки восстановления форматирования и файлов после перезагрузки, TypeScript и ESLint. Проверки используют подставные API и Chromium; физический iPhone, переключение/выгрузка приложения ОС и запись/чтение через настоящий API остаются отдельной приёмкой 4.6/4.16. Реальные публикации не изменялись.
+
+### Сохранённые публикации в личном кабинете
+
+- Исправлен переход из «Из клуба»: карточка открывает выбранную публикацию по `/post/{id}`, как и карточка из Ленты. Страница просмотра уже поддерживает клубные материалы; серверный `feed.getById` проверяет доступ и не выдаёт недоступную клубную публикацию.
+- На пользовательском dev-сервере с тестовыми API прошли семь браузерных проверок: `club`, `both` и `feed` на 390/1440 px открывают правильный ID и полный текст, сохраняют отметку сохранения и возвращают в профиль; недоступная публикация не показывается, возврат остаётся доступен. TypeScript и ESLint проходят. Реальные сохранения аккаунта и подписка не изменялись; сквозная приёмка с реальными сохранёнными публикациями остаётся открытой.
+- По просьбе пользователя верхняя навигация остаётся видимой при прокрутке Профиля и Админки. Итоговое оформление Админки — один основной хедер с названием и единственной стрелкой в Профиль (см. «Единая шапка админки» выше). Переходы и прокрутка проверены на 390/1440 px, скрытие хедера Ленты сохранено.
+
+### Формы и экранная клавиатура
+
+- В поле пароля добавлена кнопка с глазиком: показывает/скрывает введённый пароль и меняет иконку на перечёркнутую при показе. Нажатие не отправляет форму; сохраняются значение, фокус и позиция курсора. Проверены нажатия и управление клавиатурой в Chromium на 320/390/1440 px, переключение режима формы и уменьшение экрана до 260 px; 16 существующих сценариев экранной клавиатуры, TypeScript и ESLint проходят. Настоящая клавиатура ОС остаётся отдельной приёмкой.
+- По пользовательской визуальной сверке согласие регистрации оформлено как на старой странице SMS-входа: MaterialIcons 22 px, текст 14/20 px, прежние цвета и отступы. Заголовки входа, регистрации и восстановления имеют жирность 400. Общие поля ввода при фокусе показывают рамку 1 px вместо outline.
+- Уменьшение экрана ранее оставляло активное поле за границей внутренней прокрутки. В `LoginScreen` добавлена прокрутка к активному полю после изменения высоты viewport; меняется только собственная область формы. Ввод и фокус сохраняются, ручная прокрутка к кнопке не блокируется.
+- До исправления воспроизведён RED нового браузерного теста. После исправления [16 сценариев](../../apps/frontend/e2e/auth-keyboard.spec.ts) прошли: вход, регистрация, восстановление и 2FA на 320/390 px, изменение layout viewport и отдельное изменение visual viewport, высоты 360/260 px и закрытие клавиатуры. Типы приложения/E2E и ESLint проходят.
+- Проверка выполнена на пользовательском dev-сервере с подставными API. Это модель геометрии Chromium, без настоящей клавиатуры ОС, оплаты, почты или записи в БД. Safari/iPhone, Android и установленная PWA остаются приёмкой 4.16.
+
+## 9 октября — индикатор черновика, Prodamus TEST и браузерные проверки
+
+Поручение пользователя: исправить эти три пункта на фронтенде. Магазин 4.12
+пока обсуждается: в прежнем Expo цифровые товары использовали
+`shop.createCheckout` → Prodamus, книги — внешние магазины; формы заказа
+менеджеру не было. Для новой формы нужен отдельный серверный приём заявки и
+отправка менеджеру. Текущий магазин в этом изменении не затрагивается.
+
+- [x] Индикатор сохранения связан с конкретным снимком редактора, владельцем
+  и слотом. Завершение записи старого текста не подтверждает новый текст.
+- [x] Добавлены управляемые E2E для полного и быстрого редакторов: задержка
+  завершения IndexedDB, следующая правка, проверка фактического содержимого
+  хранилища и завершение нового сохранения.
+- [x] Отдельный Prodamus TEST: 790 ₽ / 30 дней, без автопродления, вход гостя
+  после возврата на `/club`, проверка доступа по серверу. Профиль показывает
+  срок доступа вместо следующего списания/отмены автопродления.
+- [x] Режим включается при сборке `NEXT_PUBLIC_PRODAMUS_TEST_ENABLED=true`;
+  `NEXT_PUBLIC_CLUB_TEST_CHECKOUT=false`. Второй флаг относится к отдельному
+  YooKassa TEST. Неверные/одновременно включённые флаги блокируют оплату.
+  Next фиксирует оба флага, включая выключенные значения, для согласованного
+  серверного HTML и гидратации. Изменение env работающего процесса режим не меняет.
+  Backend checkout должен вести в изолированный Prodamus demo runtime;
+  интерфейс отвергает URL с другим merchant/режимом/суммой/валютой/лимитом.
+- [x] В тестах зафиксированы часы до московской полуночи, кнопка повтора
+  ограничена статусом подписки, скрытая кнопка назад раскрывается прокруткой,
+  сценарий неизвестного create ждёт нужный запрос и его сообщение.
+  Выбор вложений ждёт завершения checkpoint: перенос текста статуса больше
+  не сдвигает кнопку между pointerdown/pointerup. Все четыре сценария
+  server MIME/size после повтора прошли по три раза (12/12).
+- [x] Проверки типов и E2E-типов, lint, API contract (73 процедуры); 541
+  модульная проверка, границы зависимостей — 568 файлов.
+- [x] Штатные production-сборки обычного режима и Prodamus TEST; временный
+  вариант compiler API больше не требуется. Локальный запуск вне sandbox
+  заработал после разрешения пользователя и продолжения работы.
+- [x] Новые регрессии индикатора: два RED на прежнем hook, затем каждый из
+  двух сценариев прошёл три раза на исправленном коде. Проверяется содержимое
+  IndexedDB, а не только текст статуса.
+- [x] Остальные пять повторяемых сценариев прошли трижды. Московская полночь
+  отдельно прошла пять раз: загрузка с работающими таймерами, остановка перед
+  границей дня, новый ответ сервера и возобновление уведомлений React Query.
+- [x] Prodamus TEST в браузере: 320/390/1440 px, уведомление ниже хедера,
+  отсутствие горизонтального переполнения, читаемые шрифты/переносы, карточка
+  790 ₽ / 30 дней, доступные кнопки и вход гостя. Неподходящая ссылка отвергается,
+  доступ открывается только после ответа сервера, профиль без автопродления.
+  Обычная сборка сохраняет прежний интерфейс при изменённых runtime-флагах.
+- [x] Существующий YooKassa TEST: отдельная штатная сборка и браузерная
+  регрессия проверки/отменённой заявки/новой покупки прошли.
+- [x] Полный набор выполнен шестью группами: **456 pass / 3 skip**,
+  без unexpected/flaky в итоговых отчётах. Сверены идентификаторы с исходным
+  списком: все 459 сценариев учтены ровно один раз. Три пропуска требуют
+  подготовленных MySQL/API: вход администратора, права обычного участника,
+  создание/правка/удаление черновика через настоящий API.
+  Первое зависание filechooser в четвёртой группе исправлено ожиданием
+  checkpoint; повтор всей группы — 77/77. Прерванный до этого длинный процесс
+  после 90 успешных проверок не использован для итогового результата.
+  Dockerfile возвращён к исходному состоянию по указанию пользователя;
+  параметры выбора интерфейса при сборке образа удалены.
+- [ ] Реальные callback/платёж/выдача доступа, устройства/PWA и сдача этапа
+  остаются отдельной приёмкой. Демо-интерфейс не подтверждает эти проверки.
+
+Браузерные команды выполняются с подставными API, без БД/реальной оплаты.
+После сборки Prodamus TEST: `CHECKOUT_UI_EXPECTED_MODE=prodamus
+PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium node --test
+tests/frontend-club-checkout-mode.native.test.mjs` (одна команда в корне).
+Для сборок обычного режима и YooKassa — `CHECKOUT_UI_EXPECTED_MODE=legacy`
+и `CHECKOUT_UI_EXPECTED_MODE=test` соответственно. После смены флага требуется
+новая сборка; для обычного E2E оба тестовых флага выключены.
+
+## Прокрутка на телефоне: выделение нажимаемых элементов
+
+**Этап:** фронтенд исправлен 9 октября; браузерные проверки выполнены, приёмка на физических устройствах/PWA остаётся открытой. Связана с пунктом 4.16.
+
+**Найдено дополнительно:** при начале свайпа нажимаемые элементы могут кратковременно бледнеть, подсвечиваться или уменьшаться как при нажатии. Эффект воспроизведён на картинке карусели Главной и карточках Видео: состояние нажатия включается при касании и снимается после распознавания прокрутки.
+
+**Сделано:**
+
+- Общий `Action` сохраняет действие тапа без затемнения/масштабирования при касании. Удержание отменяется после движения больше 10 px или `pointercancel`; небольшой сдвиг пальца сохраняет тап. Полка Магазина и CSS-состояния ссылок, карточек, хедера, вкладок и отзывов учитывают фактический тип ввода. У кнопок и ссылок отключена стандартная подсветка касания браузером.
+- [TouchPressGuard](../../apps/frontend/src/shared/browser/touch-press-guard.tsx) наблюдает события, не перехватывая управление нативными scroll, выделением текста или pinch. Отменённое/сдвинутое касание и жест несколькими пальцами блокируют возможный последующий compatibility click в течение 750 ms после отпускания; новый тап, мышь и клавиатура сохраняют действие.
+- [Девять браузерных сценариев](../../apps/frontend/e2e/mobile-interactions.spec.ts) прошли по три раза: нативная вертикальная прокрутка карточки Видео, отмена касания ссылки, полка, горизонтальная карусель фото, движение/удержание кнопки, compatibility click, мышь/клавиатура, небольшой сдвиг пальца и выбор файла, pinch выкройки и следующий тап закрытия. Нативные жесты подаются через Chromium CDP на 390×844; отдельный compatibility click воспроизводится DOM-событиями.
+- На прежней production-сборке воспроизведены три RED: затемнение карточки Видео, уменьшение товара и переход по compatibility click после движения. После исправления они проходят; отмена ссылки проходила и ранее.
+- Общая регрессия выявила гонку в прежних сценариях ошибки вложения и восстановления загрузки: Playwright `fill()` начинал ввод, пока видимый редактор был `inert` при чтении локального черновика. Обе трассировки подтвердили заблокированного предка поля. В `editor-safety.spec.ts` и `post-upload-recovery.spec.ts` добавлены ожидание начального checkpoint, проверка введённого значения и ожидание его сохранения перед выбором файла. Код редактора не изменён; первый сценарий прошёл три раза, затем вся четвёртая группа — 77/77; шесть сценариев восстановления прошли по три раза, 18/18.
+
+**Осталось:** проверить реальные Safari/iPhone, Android, выделение текста системными жестами, браузерные панели, клавиатуру устройства и установленную PWA. Эмуляция Chromium не заменяет эту приёмку. Ручное листание промокарусели Главной в эту задачу не входит.
+
+**Зависимости:** только фронтенд; новый API не требуется.
+
+## Нижние отступы страниц над меню
+
+**Этап:** основные страницы исправлены 9 октября и проверены в браузере; приёмка на устройствах остаётся открытой.
+
+**Сделано:**
+
+- Нижнее меню уже занимает собственные 76 px в flex-разметке и учитывает safe area. Для обычного окончания страниц введён `--page-end-gap: 24px`: Библиотека, «Обо мне», эстетика, выкройки, статья, Магазин и карточки товаров, гостевой Клуб, Профиль участницы, непустой список Видео. У Видео удалён повторный запас safe area. Внутренние поля карточек, футера и документов сохранены.
+- В первом проходе сохранены исходные резервы Клуба 110 px и Ленты 100 px. Последующая проверка общей кнопки «Наверх» добавила расчёт места под плавающие действия; исходные значения остаются минимальными, подробности ниже. Центрированные формы, гостевой Профиль, редакторы, Интерактив/тест и административные списки в этом подэтапе не уплотнялись. На Главной сохранены собственные поля футера после прежнего удаления дублирующего запаса.
+- [39 проверок геометрии](../../apps/frontend/e2e/page-end-spacing.spec.ts) прошли: 12 маршрутов на 320×400, 390×844, 1440×900; доступность последнего элемента и зазор 16–80 px с учётом собственных полей блоков; граница прокрутки совпадает с верхом меню, горизонтального переполнения нет. Отдельно проверены внутренняя панель Клуба, увеличение высоты меню по модели safe area и форма входа при уменьшении viewport до 390×360. Последние две проверки моделируют геометрию, а не реальные вырез экрана и экранную клавиатуру.
+- Контроль на прежней сборке: четыре RED, зазоры около 100 px в Библиотеке, 139 px в Магазине, 104 px в гостевом Клубе, 121 px в Профиле. В новой сборке зазор текста Библиотеки около 24 px, Профиля — 45 px; у папки документов остаются собственные поля.
+- Просмотрены десять контрольных снимков 320/390/1440 px: типографика, переносы текста, сохранность цвета/текстур/изображений, положение меню и последних действий, промежуток над меню. Артефакты локальной проверки: `/tmp/daryadarcy-touch-spacing-check/spacing-after-*.png`, измерения — `spacing-after.json`. Проверяемый адрес — `http://localhost:8081`; API подставные.
+
+**Осталось:** проверка настоящих safe area и экранной клавиатуры, iPhone/Android/PWA; отдельная оценка плотности административных списков и остальных форм при необходимости. Геометрия браузерной модели не подтверждает поведение физических устройств.
+
+Общие проверки этого подэтапа: штатная production-сборка обычного режима в отдельной копии, `pnpm check`, `pnpm lint`, 569 модульных проверок в 41 файле, границы зависимостей — 571 файл, API contract — 73 процедуры. Полная браузерная регрессия выполнена шестью группами: **504 pass / 3 skip**, без unexpected/flaky в итоговых отчётах. Сверены идентификаторы с актуальным manifest: все **507 сценариев / 36 файлов** учтены ровно один раз. Три пропуска требуют подготовленных MySQL/API; их приёмка остаётся открытой. Начальные сбои четвёртой и шестой групп разобраны по трассировкам; после исправления ожидания готовности формы обе группы повторены целиком. Первый прерванный фоновый запуск не использован для итога. Сводка — `/tmp/daryadarcy-touch-spacing-check/browser-complete-summary.json`; полный перечень команд групп — `run-browser-batch.py` в этой же временной копии. Текущие 51 документ проходят проверку ссылок; новые ссылки плана корректны, пять уже описанных отсутствующих архивных логов не менялись. Бэкенд, БД и настоящая оплата не запускались. Dockerfile не изменён. Изменения текущего подэтапа записаны только в этот план, без нового раздела в `tasks`.
+
+## Общая кнопка «Наверх» и плавающие действия
+
+**Этап:** исправлено 9 октября; локальная браузерная проверка завершена, физические устройства/PWA остаются в приёмке.
+
+- Общая кнопка используется в Ленте и Клубе. Размещена на 16 px выше ближайшего меню, без повторного учёта общего нижнего меню. На 390×844 в Ленте опущена на 74 px, в Клубе — на 18 px. Клуб учитывает измеренную высоту собственной панели разделов, включая её padding и границу; при скрытии сохранённой вкладки измерение сохраняется.
+- Административные кнопки выровнены по тому же нижнему зазору. При высоте окна до 480 px расположены рядом: прежний вертикальный столбик пересекался с возвращающейся верхней навигацией на 480×320. Размеры кнопок, цвета и обработчики нажатия/удержания сохранены.
+- Резерв списка рассчитывается как высота внутреннего меню + 16 px + высота плавающих кнопок + 24 px. При обычной высоте на 390×844 это 170 px в Клубе для участницы, 236 px для администратора; Лента сохраняет 100 px для участницы и получает 150 px для администратора. На низком экране учитывается ряд кнопок высотой 56 px. Последняя карточка, дата и действия доступны выше плавающих кнопок.
+- [28 новых браузерных сценариев](../../apps/frontend/e2e/scroll-top-position.spec.ts) прошли: Лента, сетка и Клуб, участница/администратор, 320×400 / 390×844 / 480×320 / 1440×900. Проверены зазор над меню, доступность нажатия, отсутствие пересечения кнопок и последней карточки, горизонтальное переполнение, возврат наверх, увеличение высоты обоих меню и появление шапки на низком экране. На исходной сборке шесть проверок положения на 390×844 дают RED: зазор 90 px в Ленте и 34 px в Клубе вместо 16 px.
+- Адресная регрессия девяти файлов покрыла **140 уникальных сценариев**. Первый прогон: **139 pass / 1 fail**, без flaky. Старый сценарий 360 публикаций ожидал первую строку последнего высокого поста в viewport после уменьшения окна без прокрутки. По трассе строка была выше окна; данные, позиция сохранённой вкладки и границы DOM сохранялись. Проверка уточнена: сначала отсутствие перекрытия окончания карточки стрелкой, затем доступность начала поста через прокрутку. Все **10 сценариев длинных списков** повторены целиком и прошли. Итоговые 140 сценариев учтены из двух прогонов, это не единый полностью зелёный запуск. Мобильные жесты, меню, фильтры, переключение вкладок и прежние проверки отступов прошли.
+- Штатная production-сборка обычного режима, `pnpm check`, `pnpm lint`, повторные E2E-типы/ESLint и `git diff --check` проходят. Все 424 файла исходников сверены с проверенной сборкой. Текущий общий manifest — 535 сценариев / 37 файлов; целиком после этого изменения не запускался. Просмотрены контрольные снимки 390×844 и 480×320, включая административный ряд. API и внешние фотографии подставные, без бэкенда/БД. Результаты — `/tmp/daryadarcy-scroll-top-check/browser-summary.json`, снимки — `browser-final-results/`; эти локальные артефакты временные.
+
+## Чистые адреса и проверка доступа
+
+**9 октября:** фронтенд переводит гостя из `/admin` на чистый `/login` и проверяет роль после входа. Участнику без административных прав показаны «Недостаточно прав» и переход в профиль. Администратор и модератор получают только свои разделы; ошибка проверки сессии даёт повтор проверки, а не ложный выход.
+
+- Возврат после входа сохраняется отдельно для каждой вкладки на 30 минут и используется один раз. Сохраняются только известный путь приложения и необходимые признаки перехода в Клуб, без токенов. Небезопасный или неизвестный адрес заменяется на `/profile`; вход из публикации возвращает в эту публикацию.
+- Внутренние переходы используют `/login` и `/club` без `next`, `checkout` и `paid`. Прежние ссылки принимаются, затем служебные параметры удаляются с сохранением назначения. Продление и возврат оплаты выдерживают перезагрузку и переходы назад; доступ подтверждает только API.
+- Исходная ссылка с токеном из письма и параметры первоначального серверного возврата оплаты требуют согласования с бэкендом. Очистка адреса после загрузки страницы не меняет саму ссылку в письме или у провайдера. Бэкенд в этом поручении не изменялся.
+
+**Проверено:** 92 модульных теста, типы приложения/E2E, lint, проверка документации и штатная production-сборка. Финальный прогон на этой сборке — **65/65 браузерных сценариев**: вход, роли, оплата, ошибки/отзыв сессии, возврат между вкладками и сохранение положения элементов. API подставные, без БД и реальной оплаты. Отчёт — `/tmp/daryadarcy-routing-check/production-results.json`; общий браузерный набор целиком не повторялся. Проверочный сервер остановлен, пользовательский dev на 8081 оставлен.
+
+## Подсказка установки на экран Домой
+
+**9 октября, ручная визуальная приёмка:** ограничена ширина [карточки установки](../../apps/frontend/src/features/pwa/install-guide.module.scss) общим `--app-max-width` с боковыми отступами 24 px. На компьютере карточка занимает 432 px внутри приложения шириной 480 px и находится по центру; на телефоне сохраняется доступная ширина за вычетом полей. Низкие окна позволяют прокрутить подсказку до последней кнопки. По уточнению визуальной приёмки верхнее и нижнее внутренние поля увеличены до 32 px, промежутки между текстовыми блоками и шагами — также увеличены; на 390×844 и настольных размерах высота карточки стала 375 px вместо 333 px. Семь проверок размеров и закрытия повторены после изменения вертикальных отступов и прошли.
+
+Проверено на работающем dev-сервере в изолированном Chromium: 320×400, 390×844, 480×320, 1440×900, 2560×1080; дополнительно ветка инструкции iPhone на 320×400 и 375×812. Просмотрены ширина, центрирование, поля, шрифты/цвета, переносы текста, иконки и кнопка «Понятно». Закрытие сохраняется и подсказка не появляется после перезагрузки; ошибок JavaScript и горизонтального переполнения нет. API в проверках подставные. Это проверка размеров/инструкции iPhone в Chromium, не физических Safari/PWA. Проверка форматирования SCSS и `git diff --check` проходят. Скриншоты и измерения — `/tmp/daryadarcy-install-guide-check/`, временные артефакты. Общий E2E-набор не расширялся и не повторялся для этой правки CSS. Dev-сервер на 8081 оставлен для пользовательской приёмки; проверочный браузер завершён.
+
+## Оплата, продление, письмо и вход: пункты 4.1–4.3 первого этапа
+
+**Этап:** клиентская часть доработана и подключена к существующим серверным методам; реальная платёжная и почтовая приёмка остаётся открытой. Пользователь подтвердил, что отдельного стенда с включённой оплатой и настроенной почтой пока нет.
+
+**Сделано:**
+
+- Сохранено оформление Клуба. Проверяется почта гостя; продление использует сохранённую почту текущего аккаунта. Создание оплаты не выполняет вход и не меняет пароль.
+- Подготовка ссылки защищена от двойного нажатия и позднего перехода после ухода с экрана или смены аккаунта. Неизвестный результат не повторяется автоматически; подготовка другой заявки требует явного подтверждения пользователя.
+- Возврат с `paid=1` не считается доказательством оплаты. Гость получает переход ко входу по инструкции из письма; участница — ограниченную последовательную проверку доступа и ручной повтор. Проверка не создаёт новый платёж.
+- Подписка и срок обновляются только из проверенного ответа API. При продлении показывается текущая подтверждённая дата, без обещания успешной новой оплаты. Ошибки и окончание ожидания имеют видимое состояние.
+- Вход и восстановление используют существующие API. Проверены путь из возврата ко входу, отказ, некорректная инструкция, ограничение попыток и переход к форме входа после принятого запроса восстановления.
+- На бэкенде сверены создание checkout, подтверждение платежа и продление от оплаченного срока, очередь письма, сохранение существующего пароля и методы установки/восстановления. Новая серверная реализация для этих основных путей не добавлялась.
+
+**Осталось:** сквозная приёмка с настоящим Prodamus, SQL и почтой: первая и повторная оплата, отсутствие дублей доступа, неизменность аккаунта/пароля, получение письма, установка/восстановление по ссылке, реальные сроки и отмена автосписания. Затем проверка на iPhone/Android и установленной PWA. До этого пункты 4.1–4.3 целиком не приняты.
+
+**Найдено дополнительно:** обычный checkout Prodamus возвращает URL без отдельного идентификатора/статуса заявки и без клиентского ключа защиты от повторов; `claimPending` лишь читает уже имеющийся доступ. `reconcileCheckout` относится к отдельному тестовому пути ЮKassa. Поэтому активная старая подписка не доказывает оплату нового продления. После перезагрузки локальное ожидание подготовки ссылки сбрасывается; точная сверка заявки и повторов требует согласованного серверного контракта и платёжной приёмки.
+
+## Подписка: отмена автопродления, пункт 4.3 первого этапа
+
+**Этап:** клиентская отмена подключена к существующему API; совместная приёмка с платёжной системой остаётся открытой.
+
+**Сделано:**
+
+- Сохранены оформление карточки и подтверждение отмены. Добавлены защита от повторного нажатия и проверка актуальной подписки после ответа сервера.
+- Отключение автосписания показывается по подтверждённому состоянию подписки. Оплаченный срок берётся с сервера; клиент его не продлевает.
+- При неизвестном результате повторная отмена заблокирована; «Проверить отмену» только читает статус. Переходы между разделами сохраняют эту защиту, а поздний ответ не меняет данные другого аккаунта.
+- Добавлены обработка отказов и ошибок проверки, проверка некорректных ответов и закрытие личного доступа при подтверждённом окончании подписки.
+
+**Осталось:** проверить настоящее API, отключение автосписания у платёжного провайдера, сохранение оплаченного доступа и работу на iPhone/Android. Продление и полная приёмка пункта 4.3 остаются отдельными шагами.
+
+**Найдено дополнительно:** сервер может сохранить отмену в очередь и вернуть ошибку до подтверждения провайдера. API подписки не раскрывает состояние этой очереди, поэтому отсутствие подтверждения не разрешает повторную отмену. При перезагрузке локальное ожидание сбрасывается; это поведение требует совместной проверки с бэкендом. Клиентская проверка выполнена с подставными API.
+
+## Инструменты менеджера: повтор письма с доступом
+
+**Этап:** фронтенд подключён к существующему API; совместная приёмка и проверка доставки остаются открытыми.
+
+**Сделано:**
+
+- В «Админка → Участницы» добавлена [кнопка повторного письма](../../apps/frontend/src/features/admin/member-access-email.tsx) для незаблокированного аккаунта с почтой и действующим сроком Клуба. Сохранены оформление карточки и прежние права на список.
+- Подключён [серверный метод повторного письма](../../apps/backend/src/identity/password.controller.ts). Передаётся ID аккаунта; сервер использует сохранённую почту и проверяет оплаченную подписку.
+- Успех показывается как постановка письма в очередь. Добавлены подтверждение действия, обработка отказов, защита от двойного нажатия и позднего ответа после смены вкладки или аккаунта.
+- Неизвестный результат блокирует повтор для выбранной участницы в текущем экране; переключение вкладок админки эту защиту не снимает. Автоматических повторов нет.
+
+**Осталось:** проверить настоящее API, серверные права и очередь, доставку через почтовый сервис и работу на iPhone/Android.
+
+**Найдено дополнительно:** API подтверждает очередь, но не доставку; не предоставляет ключ защиты от повторного запроса или чтение результата конкретной отправки. После повторного открытия экрана/перезагрузки клиентская защита сбрасывается, поэтому отсутствие дублей в этом случае требует серверного решения. Локальные проверки выполнены с подставными API; реальная доставка пока не проверена.
+
+## Инструменты менеджера: первая привязка почты — история отменённого сценария
+
+**Обновление 10 октября, A6c2:** backend GET теперь направляет на public
+frontend страницу без записи/сессии/письма. 4 native RED → 19 HTTP/SQL GREEN;
+13 browser/API/SQL/loopback SMTP pass используют настоящий URL письма без смены
+пути; browser fragment сохраняется при redirect и очищается страницей.
+Cross-site webmail document 403 остаётся отдельным gate; CORS/защита не изменены.
+Дизайн фронтендера сохранён, сервер/рабочая БД не обновлялись.
+
+**Обновление 10 октября, A6c1:** production UI/native API/SQL → настоящий
+loopback SMTP → proof из MIME → direct recipient page → явный POST проверен;
+13 native cases pass, без изменения пароля/сессий/оплаченного срока/cookie.
+Один кейс диагностический: настоящий URL письма даёт 404, cross-site document
+403. В recipient тесте путь явно переведён на frontend; это не полная email-entry
+приёмка. A6/Checkpoint A/A7 открыты, production routing и CORS не менялись.
+
+**Обновление 10 октября, A6b2:** native production UI/Nest/SQL выявил remount при
+загрузке identity и повтор письма без remount. Public proof страница отделена от
+session providers; остальные identity fences сохранены. Hashchange захватывает
+новый fragment без POST и отменяет прежний task. 3 native RED → 10 pass/1 reopen
+RED → **11 native GREEN**, **43 proof/login/session browser regressions**; типы/
+lint/active build. Identity/пароль/paid expiry/browser cookie сохранены; 320px
+active экран без overflow. SMTP/GET routing/A7 открыты, сервер не изменён.
+
+**Обновление 10 октября, A6b1:** default-off `/email-binding` использует стиль
+входа, memory-only proof и явный single-flight POST. После успешного receipt —
+обычный вход; при неопределённом ответе нет утверждения об успехе/отсутствии записи
+и автоматического повтора. 2 RED → 6 active + 1 disabled browser GREEN (mock API),
+обе сборки/типы/lint/boundaries, 30 proof tests; 320px disabled экран без overflow.
+Письмо пока ведёт на другой, незарегистрированный backend GET: A6/native SQL/SMTP
+и routing/navigation policy остаются открыты. CORS/роли/сервер не менялись.
+
+**Обновление 10 октября, A6a:** strict proof client принимает только точный
+HTTP 200 `{ok:true}`, отправляет proof без cookie/referrer/account ID/redirect
+и автоматических повторов. Fragment capture сначала очищает history, хранит
+proof только в памяти и не делает запрос при открытии. 2 focused RED → 30 GREEN
+(включая настоящий loopback HTTP); 679 related unit, типы/lint/default build.
+Страница ещё не подключена: далее A6b и read-only GET routing через backend,
+поскольку deployment `/api/**` не обслуживается Next. A6/SMTP/rollout открыты,
+дизайн и рабочий сервер этим срезом не менялись.
+
+**Обновление 10 октября, A5c3a/b:** UI/request/recovery проверен локально через
+production build, настоящие cookie/Nest/одноразовый MySQL: **8 browser cases**.
+Создание/reload, потеря ответа/replay, expiry/fresh draft, обновление canonical
+списка после proof POST, request/status после отзыва admin до user/moderator.
+Ни пароль/sessionVersion, ни существующий оплаченный срок не меняются; отказ
+ролей не пишет intent/audit. API response не подменён, используется browser
+transport proxy. SMTP и confirmation страница не проверены этим набором;
+**далее A6**, затем общий checkpoint и A7 rollout. Дизайн и производственные
+роли не изменялись. Default-off build восстановлен, внешние письма не отправлялись.
+
+**Обновление 10 октября, A5c2c:** unknown после reload допускает явный ввод
+только исходной почты и повтор с тем же durable key. Адрес не сохраняется;
+черновик привязан к intent, поэтому адрес из другой вкладки не подставляется
+как исходный. 409 описан как конфликт и не сбрасывает ключ. Если адрес забыт,
+нужен разбор, а не угадывание. 2 RED + review RED → 24 active browser pass,
+649 unit, типы/lint/build/boundaries; recovery 320px просмотрен, overflow нет.
+Это mock HTTP + native IndexedDB; далее A5c3 native API/SQL и A6/checkpoint.
+Дизайн, роли, worker и внешний rollout не менялись.
+
+**Обновление 10 октября, A5c2b:** после GET expired/cancelled доступна явная
+подготовка новой заявки: повторный GET → CAS старого локального ключа → пустой
+черновик. Письмо автоматически не отправляется; ошибка, pending и изменившийся
+ключ не сбрасывают заявку. 3 RED → 21 active browser pass, 649 unit;
+настоящий IndexedDB с mock HTTP не закрывает native API/SQL acceptance.
+Далее A5c2c: unknown без исходного email и точная обработка HTTP refusal.
+Дизайн сохранён, 320px просмотрен; внешний rollout/доставка не включались.
+
+**Обновление 10 октября, A5c2a:** journal подключён под прежним default-off флагом.
+«Восстановить заявку» проверяет сохранённый ключ после reload без email в storage;
+другая вкладка проверяет уже зарезервированную заявку вместо нового POST.
+Отказ storage блокирует отправку; unknown/404 не сбрасывает ключ. 3 RED →
+16 active + 10 disabled browser pass (настоящий IndexedDB, mock HTTP),
+649 unit, типы/lint/две сборки/boundaries проходят. Оформление сохранено.
+Остаток A5c2b: terminal/refusal, unknown без исходного email и native API/SQL.
+Ни сервер, ни роли, ни доставка писем не менялись; rollout пока запрещён.
+
+**Обновление 10 октября, A5c1:** подготовлен отдельный key-only IndexedDB journal
+для восстановления intent, без email/proof/ответов. Атомарная резервация между
+вкладками и compare-and-delete, owner/abort/storage guards проверены в настоящем
+браузерном IndexedDB: 6 RED → 9 GREEN. Типы/lint/build/boundaries проходят.
+Это ещё не UI recovery: journal пока не подключён, форма остаётся memory-only.
+Далее A5c2 — hook/reload/terminal-refusal и native API/SQL acceptance; дизайн,
+серверные флаги, worker и внешний rollout не менялись.
+
+**Обновление 10 октября, A5b:** форма подключена локально, но по умолчанию
+по-прежнему выключена. Только opt-in сборка `NEXT_PUBLIC_MEMBER_EMAIL_BINDING_ENABLED=true`
+даёт отправку/проверку: один ключ на intent, без автоматического повтора, разные
+сообщения для receipt/очереди/SMTP/подтверждения. Карточка обновляется из canonical
+списка, email не подставляется оптимистично. Поздний ответ прежней сессии скрыт.
+11 активных, 10 default-disabled и 23 соседних admin/access-email проходят с mock API;
+649 unit, типы/lint и обе production-сборки проходят. Скриншоты 320/1440 просмотрены.
+Остаток A5c: reload/две вкладки, безопасная новая заявка после terminal/refusal,
+настоящий API/SQL. Сейчас ключ и email только в памяти экрана; предупреждение
+об этом не заменяет recovery. До A5c/A6/A7 rollout запрещён, worker не включён.
+
+**Обновление 10 октября, A5a:** требования и backend A1–A4 теперь определены в
+[SPEC](../specifications/SPEC-email-binding.md); старые пункты «не найден/не согласован» ниже
+сохранены как история подготовки. Добавлен строгий клиент request/status для
+существующей формы: исходный ID/requestKey, все поля/даты, безопасные ошибки,
+общая отмена при смене сессии и отсутствие автоматических повторов. 60 client
+проверок (включая настоящий loopback HTTP с fixture ответа), 649 связанных
+регрессий, типы/lint/production build проходят. Это ещё не browser → SQL → письмо.
+Форма не подключена и остаётся недоступной; следующий A5b — UI-состояния,
+восстановление неизвестного результата и canonical refresh. Внешний rollout
+закрыт до A6/A7; оформление и права фронтендера не менялись.
+
+**Этап:** требования сверены, интерфейс подготовлен; серверная запись ожидает бэкенд.
+
+**Назначение:** по договору (приложение № 1, пункт 2.1) и маршруту запуска участница со старым телефонным аккаунтом обращается в поддержку; менеджер сверяет оплату в Prodamus и привязывает почту к существующему аккаунту. В объёме только первая привязка аккаунту без email. Замена уже указанного адреса не входит.
+
+**Сделано:**
+
+- Подготовлена форма в существующей карточке участницы (удалена 13 октября): имя/ID, ввод email, предварительная проверка формата и отмена. Действие доступно в прежнем административном списке для обычной незаблокированной участницы без почты.
+- Запись явно недоступна до готовности API. Ввод остаётся в памяти формы и удаляется при закрытии, смене раздела, перезагрузке или смене аккаунта.
+- Сохранены оформление карточки и права на список. Подготовленный интерфейс проверен локально; серверная привязка не реализована.
+
+**Найдено дополнительно:**
+
+- В старом [Expo-экране админки](../../apps/legacy-expo/app/admin/index.tsx) формы привязки нет; функция включена в согласованный объём работ.
+- Метод первой привязки не найден. [Повтор письма](../../apps/backend/src/identity/password.controller.ts) использует уже сохранённую почту и эту операцию не заменяет.
+- Серверный список участниц не возвращает телефон. Нужен способ надёжно найти старый телефонный аккаунт и проверить его принадлежность участнице.
+- Отдельной роли `manager` нет. Список участниц доступен владельцу/администратору; возможность работы другого сотрудника требует согласованного серверного доступа.
+
+**Осталось согласовать с бэкендером и реализовать:**
+
+1. Метод первой привязки, разрешённую роль и поиск конкретного аккаунта без расширения доступа к остальным административным данным.
+2. Нормализацию email, проверку занятости адреса и атомарный отказ, если почта уже указана. Привязка сохраняет ID, данные и подписку выбранного аккаунта.
+3. Ответы для неверного/занятого адреса, отсутствующего или заблокированного аккаунта, недостаточных прав и неизвестного результата запроса.
+4. Поведение пароля, действующих сессий и одноразовых ссылок; необходимость письма установки пароля или подтверждения адреса.
+5. Подключение записи, обновление карточки после подтверждённого успеха и совместную приёмку с настоящим API, включая параллельную привязку двумя менеджерами.
+
+## Магазин: публичный API стенда, подэтап 6 — 8 октября
+
+Только чтением проверен `https://daryadarcy.dev.reeskeen.ru`: GET `/api/launch-config`, `/shop` и обе цифровые карточки отвечают 200. Публичная конфигурация возвращает revision 0, managerEmail `daryadarcyapp@yandex.ru`, orderMethod `email-client`, shopOnlinePayment false и Cache-Control `no-store`. На стенде обе цифровые карточки ещё содержат прежний интерфейс оплаты; локальные подэтапы заказа менеджеру и заголовка туда не выложены. Это не отказ нового кода, а различие проверяемых версий.
+
+Текущая локальная production-сборка проверена в Chromium с сохранённым настоящим ответом этого GET; остальные API подставные. Четыре сочетания двух товаров и гостя/участника проходят: адрес, тема и ссылка конкретной карточки правильные, цены не добавляются, shop.owned и checkout не вызываются, ложного подтверждения отправки нет. Ссылка на товар содержит локальный origin, соответствующий проверяемой странице. mailto перехвачен до запуска почтового клиента; письма не отправлялись. Это проверка совместимости реального публичного ответа с клиентом, а не полная интеграционная/устройственная приёмка. Артефакты — `/tmp/daryadarcy-shop-live-check`.
+
+Пользователь подтвердил необходимость проверки и iPhone, и Android. Открытие почты с заполненными адресом, темой и текстом и самостоятельная отправка остаются открытыми до появления текущей версии на доступном телефонам стенде. Выкладка сейчас не выполнялась; бэкенд, БД, код приложения, package.json и зависимости не менялись. Локальный фронтенд после проверки остановлен.
+
+Для следующего подэтапа инструментов менеджера сверены текущие методы: список участниц/платежей, выдача клуба, блокировка/разблокировка уже есть; сервер также имеет [повтор письма доступа](../../apps/backend/src/identity/password.controller.ts), которого нет в текущем интерфейсе. Привязка другого email к существующему аккаунту в проверенных tRPC/HTTP-методах не найдена; повтор письма её не заменяет. Подключение привязки требует согласованного API и правил занятого адреса. Административные запросы и отправка писем при этой сверке не выполнялись.
+
+## Магазин: заголовок в стиле Библиотеки, подэтап 5 — 8 октября
+
+Выполнено визуальное требование приложения № 1: текст «МАГАЗИН» использует тот же EB Garamond Regular и интервал 8 px, что заголовок Библиотеки. Правка ограничена двумя свойствами `.typography` в [стилях Магазина](../../apps/frontend/src/features/shop/shop-screen.module.scss). Размер 28 px, молочный цвет, тень, регистр и расположение над полками сохранены. Баннеры, полки, товары, цены, анимации и Библиотека не переделывались.
+
+Production-сборка, Prettier и `git diff --check` проходят. В Chromium на 320/390/1440 px параметры текста совпали с эталоном Библиотеки; проверены шрифт, размер, интервал, цвет, тень, центрирование и отсутствие горизонтального переполнения. Геометрия всех пяти товаров совпала с вариантом прежнего заголовка, воспроизведённым только в браузере. На каждой ширине работают переходы с полки к книге и обоим цифровым материалам; ошибок выполнения страницы нет. Для снимков явно ожидалась загрузка видимых изображений. Временные снимки и результаты — `/tmp/daryadarcy-shop-heading`, проверочный скрипт — `/tmp/daryadarcy-shop-heading-audit.mts`; новые постоянные тесты и команды не добавлены.
+
+Проверка выполнена на локальном `http://localhost:8081/shop` с подставными API. Бэкенд, БД, корневой package.json, зависимости и каталог не менялись; commit/push/выкладка не выполнялись. Следующий шаг по Магазину — итоговая приёмка 4.12 с настоящими публичными настройками и открытием/самостоятельной отправкой письма на устройствах; эти проверки пока не приняты.
+
+## Заказ менеджеру: оба цифровых материала, подэтап 4 — 8 октября
+
+Проверенный путь заказа распространён на `/shop/digital-2`; теперь оба цифровых материала готовят письмо менеджеру с собственным названием и абсолютной ссылкой на карточку. Адрес берётся из проверенной публичной конфигурации. Цены и персональные данные аккаунта в письмо не добавляются; отправка остаётся действием пользователя в почтовом приложении. Загрузка, ошибка, некорректный контакт и потеря связи обрабатываются одинаково для обоих товаров.
+
+Из карточки удалены прежние checkout, shop.owned, опрос после paid=1 и сообщения об оплате/доставке. У всех трёх книг сохранены внешние кнопки Ozon, Wildberries, покупки в Европе и издательства. Каталог, цены, адрес по умолчанию и оформление не менялись; бэкенд, БД, зависимости и корневой package.json не затронуты. Заголовок Магазина остаётся отдельным следующим шагом; полная приёмка пункта 4.12 ещё не завершена.
+
+Проверки: **97 адресных модульных случаев**, включая 7 проверок состава/кодирования письма; TypeScript корня/фронтенда/E2E, ESLint, границы 511 файлов, форматирование изменённого кода и production-сборка проходят. **27/27 браузерных сценариев** на итоговой сборке: оба материала для гостя/участника, загрузка/ошибки/повтор/обновление контакта/восстановление связи, клавиатура и размеры 390/1440px, фактические нажатия всех четырёх внешних кнопок каждой книги. Снимки второго материала просмотрены. Артефакты — `/tmp/daryadarcy-shop-manager-both`; API подставные, почтовый клиент и внешние окна перехвачены до открытия. Открытие и самостоятельная отправка письма на физических устройствах, реальные настройки и полная приёмка остаются непроверенными. Новые команды в package.json не добавлены; commit/push/выкладка не выполнялись.
+
+## Заказ менеджеру: пособие, подэтап 3 — 8 октября
+
+Кнопка заказа подключена только к `/shop/digital-1`. Сохранены оформление карточки и стили прежней кнопки; действие — обычная mailto-ссылка с названием товара и абсолютной ссылкой на карточку. Подготовленный текст не содержит цены или персональных данных аккаунта и не утверждает, что заказ отправлен, оплачен или файл доставлен. Пояснение требует самостоятельной отправки письма; рядом показан подтверждённый контакт для ручного обращения, если почтовое приложение не открывается.
+
+Загрузка, обновление, некорректный контакт и потеря связи не позволяют открыть письмо со старым/запасным адресом. После ошибки доступен повтор; focus/pageshow и восстановление сети обновляют настройки. Только у пособия отключены shop.owned и обработка paid=1; checkout для него не вызывается. Книги и digital-2 сохраняют прежние пути. Email, цены, каталог, бэкенд, БД, зависимости и корневой package.json не менялись.
+
+Проверки: 96 адресных модульных случаев, включая 6 новых проверок состава/кодирования письма; TypeScript корня/фронтенда/E2E, ESLint, границы 511 файлов и production-сборка проходят. На итоговой сборке прошли 22 прежних сезонных сценария и 14 новых сценариев первой карточки. Первые четыре ожидания ошибок в новых тестах находили также служебный route-announcer Next.js; селектор ограничен текстом нужного сообщения, приложение между браузерными прогонами не менялось. Снимки 390/1440px просмотрены. Артефакты — `/tmp/daryadarcy-guide-manager-order*`; API подставные, mailto перехватывается до открытия клиента. Настоящее почтовое приложение и доставки на устройствах ещё требуют проверки.
+
+Следующий небольшой подэтап — распространить проверенный путь на второй цифровой материал. Заголовок Магазина и полная приёмка пункта 4.12 остаются отдельными шагами.
+
+## Заказ менеджеру: чтение настроек, подэтап 2 — 8 октября
+
+Пункт 4.12 выполняется небольшими шагами. Подготовлен `useManagerOrderSettings`: чтение существующего `GET /api/launch-config`, проверка revision, одного email и поддерживаемого `orderMethod=email-client`, состояния загрузки/ошибки и явный повтор. После неуспешного обновления хук не предлагает прежний адрес для нового заказа. Подключение к первой цифровой карточке — следующий подэтап; кнопки, письма и прежняя логика оплаты сейчас не изменялись.
+
+Общее чтение сохраняет полный ответ в прежнем кэше `launch-config`; Клуб и заказ проверяют свои поля независимо. Параллельные потребители используют один выполняющийся запрос. Недопустимые настройки менеджера не мешают сезонному оформлению, а ошибка сезонного поля не мешает чтению контакта. Обновления Клуба и инвалидирование после сохранения сезонов сохранены.
+
+Пользователь поручил пока оставить email и цены как есть. Значения 50 ₽ в данных обеих цифровых карточек и изображения ценников 2000/1000 ₽ не менялись; цену в письмо не добавляем до определения верных значений. Книги сохраняют внешние ссылки покупки. Бэкенд, БД, корневой `package.json` и зависимости не менялись.
+
+Проверки: 22 новых случая в `tests/frontend-manager-settings.test.ts`; 40 сезонных и 9 проверок кэша; 202 прежних случая `pnpm verify` и 10 проверок восстановления. Всего 274 различных модульных случая. Типы корня/фронтенда/E2E, ESLint изменённых модулей, границы 509 файлов и production-сборка проходят. Все 22 прежних сезонных браузерных сценария прошли на итоговой сборке с подставным API, артефакты — `/tmp/daryadarcy-manager-settings-e2e`. Настоящие настройки целевого сервера, почтовое приложение и доставка заказа этим подэтапом не проверялись.
+
+## Четыре сезона Клуба — 8 октября
+
+Выполнен клиентский подшаг сдачи **4.10**. У Клуба больше нет локального выбора «осень/зима» по календарю устройства. Единственный источник — существующий `GET /api/launch-config`: сервер определяет сезон по своей конфигурации. Клиент проверяет формат ответа, обновляет его в московскую полночь, после возвращения в Клуб, `pageshow`, фокуса, восстановления сети и видимости страницы. Выбранная рубрика сохраняется; при ошибке обновления остаётся последнее подтверждённое оформление.
+
+Для владельца добавлена **Админка → Сезоны**: фиксированный сезон либо смена по датам, четыре даты ММ-ДД и HTTPS-ссылки на фон/баннер. Чтение и сохранение используют существующие `/api/admin/launch-settings`, `expectedRevision` и весь серверный объект с сохранением `managerEmail`. Даты должны быть действительными, разными, без 29 февраля. Обычный пользователь и модератор не получают эту форму и не запрашивают административные настройки.
+
+Неизвестное сохранение не повторяется автоматически и сохраняет ввод. Проверка настройки позволяет подтвердить совпавший вариант либо явно повторить запись при неизменной версии. При конфликте чужой версии ввод сохраняется; заменить его можно только явным подтверждением загрузки актуальных настроек. Неполный/несовпадающий ответ PUT не считается успехом. Отзыв сессии закрывает приватную форму и исключает позднее подтверждение.
+
+Сохранены существующие изображения: осенний набор для осени, зимний для зимы и как запасной набор весны/лета до получения материалов заказчика. Допустимые серверные изображения имеют приоритет. Ошибка изображения переключает его на готовый локальный вариант; при отказе и локального фона используется бумага/цвет, пустой баннер сохраняет прежнюю геометрию. Сообщение с повтором находится на светлой карточке под баннером, чтобы читаться на зимнем фоне и не перекрываться навигацией. Новые сезонные изображения не придумывались, оформление остальных разделов не менялось.
+
+Проверки: **252 модульных случая** (`pnpm verify` — 202; отдельный запуск `tests/frontend-seasons.test.ts` и `tests/frontend-post-recovery.test.ts` — 50, из них 40 сезонных). Новые тесты в команды корневого `package.json` не добавлены; файл без изменений. **56 различных браузерных сценариев**: 22 новых сезонных и 34 регрессии доступности, возвратов и комментариев. После визуальных правок все 22 сезонных сценария повторно прошли на итоговой production-сборке; сообщение об ошибке располагается ниже баннера. Московская полночь проверена при Los Angeles в браузере; настройки и зимний fallback осмотрены на 390/1440px, последнее поле осени доступно над нижней навигацией. TypeScript корня/фронтенда/E2E, ESLint, production-сборка, неизменный API (72 процедуры / 25461 байт), границы 507 файлов и `git diff --check` проходят.
+
+Поддерживаемые проверки: [сезонные сценарии](../../apps/frontend/e2e/club-seasons.spec.ts), [даты и формат конфигурации](../../tests/frontend-seasons.test.ts). Временные скриншоты/trace — `/tmp/daryadarcy-seasons-*`. Проверки используют подставной API; бэкенд, БД и настоящие настройки не менялись и не запускались. Нужны согласованные даты и остальные материалы заказчика, реальные GET/PUT/CAS в целевом окружении, устройства/PWA. Изменения пока локальные, без commit/push/выкладки.
+
+**Следующий шаг:** заказ через менеджера (4.12), затем инструменты менеджера и VK (4.11) по готовности формата данных/ссылок; общая приёмка 4.1–4.16 остаётся открытой. По указанию пользователя корневой `package.json` не изменять для добавления проверок; появившуюся `.aws` удалять в самом конце работы.
+
+## Комментарии, модерация и административные действия — 8 октября
+
+Продолжение согласованного первого этапа: общий аудит 21/23, комментарии/модерация по 4.4 и административные сценарии редактора по 4.6. Бэкенд проверен по коду и контрактам, без изменений или запуска API/БД.
+
+- В комментарии можно отправить до двух подтверждённых фото. Частичный сбой сохраняет текст и готовые снимки; незавершённый выбор явно блокирует отправку до отказа от оставшихся файлов. Ошибка редактирования сохраняет ввод; редактируются только текстовые поля согласно API.
+- Лайк использует подтверждённые `liked/likeCount`; неудачное обновление списка не откатывает этот ответ. Повторные нажатия сериализованы. При неопределённом результате запись не повторяется автоматически: требуется успешное чтение списка. Для создания комментария одного чтения недостаточно — пользователь проверяет результат и явно отказывается от неподтверждённой отправки перед новым вводом.
+- Модератор получает вход в жалобы из профиля и экран модерации без запросов административных данных владельца. Меню комментария учитывает авторство и роль; чужой комментарий нельзя редактировать. Кнопки карточки жалобы переносятся на узких экранах.
+- Выдача/продление Клуба проверяет `{ok:true, expiresAt}` и показывает возвращённую дату. Жалобы, блокировка/разблокировка, удаление постов/статей и быстрый выбор тегов имеют общую защиту от двойной записи, видимые ошибки и проверку неопределённого результата. Выбранные теги сохраняются после отказа; удаление поста/статьи подтверждается отсутствием записи в свежем административном списке. Поздняя запись после отзыва сессии не показывает успех и не возвращает приватный интерфейс.
+
+Проверено **212 модульных тестов и 114 различных браузерных сценариев**: основной прогон 100, затем на итоговой production-сборке 21 повтор сценариев комментариев/модерации, четыре сценария административных ответов и десять регрессий длинных списков. Это 25 новых сценариев и 89 существующих регрессий; повторные запуски не увеличивают число различных проверок. Исправлены селекторы новых тестов статей, захватывавшие служебный Next route-announcer. В проверке пагинации счётчик уточнён по курсору: первоначальный гостевой запрос может отменяться при подтверждении сессии; повторяющийся курсор запрашивается один раз, явный успешный refresh начинает список заново. Уточнённая регрессия прошла три раза.
+
+TypeScript приложения, корня и E2E, ESLint без предупреждений, production-сборка, неизменный API (72 процедуры / 25461 байт), границы 503 файлов, ссылки 50 документов и `git diff --check` проходят. Доступность кнопок жалобы проверена на 320/390/414px; экран модерации осмотрен на 390/1440px. Поддерживаемые новые регрессии: [комментарии и модерация](../../apps/frontend/e2e/comments-moderation.spec.ts), [административные результаты](../../apps/frontend/e2e/admin-action-results.spec.ts). Скриншоты/trace находятся в `/tmp/daryadarcy-comments-*`; это временные артефакты. Все браузерные проверки используют подставной API; настоящий SQL, серверное медиа и физические устройства в этом шаге не проверялись.
+
+**Ограничения бэкенда:** для комментариев, фото и переключения лайка нет серверного ключа идемпотентности. Защита этих действий хранится в состоянии открытого компонента; после его размонтирования/reload она не гарантируется. Клиент не повторяет неизвестную запись автоматически. `confirmPost` и некоторые операции модерации могут возвращать успех для отсутствующего положительного ID; исправление серверных контрактов здесь не выполнялось. Список после удаления уменьшает риск ложного подтверждения, но не доказывает SQL/audit-атомарность. Нужна совместная приёмка с настоящим API, медиа и физическими устройствами.
+
+**Следующий сезонный подшаг 4.10 выполнен на клиенте:** см. раздел выше. Далее заказ через менеджера (4.12), действия менеджера и VK (4.11) по готовности API/материалов. Общая приёмка 4.1–4.16 и пилот остаются открытыми. Изменения пока локальные; commit, push и выкладка не выполнялись.
+
+## Первый шаг: редакторы и восстановление черновиков — 8 октября
+
+Работа сверена с [общим планом F5.1](../../tasks/plan.md), [списком задач](../../tasks/todo.md) и [объёмом сдачи первого этапа](../audits/frontend-stage-one-scope-2026-10-03.md): пункт **4.6**, связанные пункты общего аудита **25–26**. Клиентская часть восстановления реализована; весь пункт 4.6 и первый этап договора ещё не приняты. Бэкенд и БД не изменялись и не запускались.
+
+В основном и быстром редакторах черновик сохраняется в IndexedDB после изменений. Сохраняются текст, форматирование, фото/видео URL, теги, статус, даты, порядок, выбранные аудио/документы как `File`, удаления вложений, подтверждённые серверные MIME/размеры и состояние сохранения. При повторном открытии предлагается явно восстановить или удалить локальную копию; до выбора она не перезаписывается. Запись принадлежит подтверждённому аккаунту и конкретному редактору/посту. Другой аккаунт не получает её; устаревшая вкладка блокируется сравнением ревизий. Отказ хранилища и повреждённая запись не разрешают отправить пост без сохранённого состояния восстановления.
+
+Перед загрузкой аудио/документа и финальной записью состояние фиксируется на устройстве. Для неподтверждённого **create** действие «Проверить сохранение» отправляет прежний payload и прежний `idempotencyKey`, без повторной загрузки файлов. Восстановление черновика само не обращается к API записи. Подтверждённый результат завершает операцию и очищает локальную копию; если очистка сорвалась, восстановление завершает её без новой записи. Для неизвестных **upload/update** сохраняется ручная проверка списка: действующий API не гарантирует идемпотентность этих операций. У незавершённых загрузок фото/видео сохраняются имена и запрет частичной публикации; сами неподтверждённые фото/видеофайлы не восстанавливаются, требуется явный отказ от выбора и повторный выбор при необходимости.
+
+Воспроизведено двойное срабатывание панели форматирования: pointerdown и click могли включить и сразу снять курсив. Форматирование теперь выполняется один раз по click, а pointerdown сохраняет выделение. Проверены мышь и клавиатура, жирный/курсив и две независимые ссылки после перезагрузки вместе с выбранными файлами.
+
+Проверки свежей production-сборки: **212 модульных тестов**, **81 целевой браузерный сценарий** (15 новых и 66 регрессий; два отдельных запуска), TypeScript приложения/E2E, ESLint, неизменный API (72 процедуры / 25461 байт), границы 499 файлов и ссылки документации проходят. Мобильный/desktop вид восстановления осмотрен на 390/1440px. Браузер использует подставные API; настоящий SQL, серверное хранилище, принудительная выгрузка вкладки ОС и физические iPhone/Android не проверялись. Последние изменения черновика до отметки «сохранён» могут не пережить аварийное закрытие; состояние перед запросом записи сохраняется с ожиданием завершения транзакции. Очистка данных сайта удаляет локальные черновики. Коммита, push и выкладки в этом шаге нет.
+
+**Следующий клиентский подшаг выполнен:** комментарии с фото и модерация/административные действия описаны выше; далее интеграции первого этапа по готовности API. Серверные конфликты параллельной правки поста и сохранность метаданных оставшихся видео остаются отдельными зависимостями от бэкенда. Для сдачи 4.6 нужны совместная проверка создания/редактирования/черновиков/форматирования/вложений с настоящим API и выделение текста/клавиатура на физическом iPhone. Полная приёмка договора 4.1–4.16 и пилот сохраняются.
+
+## Ограничение длинных списков и кэша — 7 октября
+
+Доработано перенесённое с рабочего компьютера оконное отображение Ленты и Клуба. Далёкие карточки заменяются измеренными блоками той же высоты. Сохраняются доступ к прежним постам, положение списка, выбранное фото, раскрытый текст, черновики комментариев, фокус и незавершённые действия. Открытые и приостановленные медиа могут удерживать свою карточку; это осознанное исключение из обычного окна.
+
+Дополнительно ограничен неиспользуемый кэш: до **48 ответов комментариев** и **двух прежних вариантов поиска Ленты**. При переполнении удаляются наиболее давно использованные завершённые запросы без наблюдателей. Текущий экран, черновик и выполняющийся запрос не удаляются. Минутное удаление старых комментариев сохраняется; смена личности по-прежнему отменяет запросы и очищает весь персональный кэш. Данные текущего списка и его лёгкие блоки продолжают храниться для возврата к любому загруженному посту. **Это ограничение тяжёлого рендеринга и неиспользуемого кэша, а не фиксированный предел общей RAM независимо от числа публикаций.** Отбрасывание страниц текущего списка без безопасного пути восстановить их не применяется.
+
+Исправлена дополнительная причина удержания карточек: удаление сфокусированной кнопки при открытии проигрывателя не всегда вызывает `blur`. Оконная карточка сверяет фактический фокус, включая последующий переход к другому элементу. После окончания нативного видео проигрыватель перестаёт удерживать далёкую карточку; воспроизведение, пауза и открытые пользовательские состояния сохраняют удержание.
+
+Пять прежних сценариев изображений согласованы с оконным отображением: проверяются блоки публикаций и их геометрия при прокрутке, а не одновременное присутствие всех фото в DOM. Добавлены регрессии лимитов кэша, сохранности наблюдаемого черновика/страниц текущего списка, выполнения запроса до удаления и повторного открытия завершённого видео. Измерение длинного списка сохраняет число элементов страницы/списка, число смонтированных карточек, запросы комментариев и JavaScript heap после принудительной сборки мусора в Chromium.
+
+Проверки: production-сборка, фронтенд/E2E-типы, ESLint, границы модулей (494 файла), документация и `git diff --check` проходят. `verify` — **202/202**, включая три новых проверки кэша. Адресный набор **83/83 в Chromium**: длинные списки, пагинация, изображения, медиа, кэш/возвраты, фокус и навигация. После окончательного уточнения зависимостей проверки фокуса на итоговой сборке повторно прошли **7/7** сценариев удержания состояния; ESLint завершился без предупреждений. Все пять ранее падавших проверок фотоблоков проходят.
+
+Контролируемое сравнение: те же текущие исходники, 360 публикаций с фото/комментариями, один viewport 390×844, API fixtures; в контрольной копии отключено только оконное отображение Ленты/Клуба. Heap измерен после принудительной сборки мусора. Это два локальных прогона, не производственные метрики и не гарантированный предел памяти.
+
+| Измерение | Лента без окна → с окном | Клуб без окна → с окном |
+| --- | --- | --- |
+| DOM внутри списка | 9072 → 528 | 21 962 → 542 |
+| DOM всей страницы | 9178 → 632 | 22 159 → 740 |
+| Смонтированные карточки в конце списка | 360 → 4 | 360 → 3 |
+| JavaScript heap страницы, десятичные МБ | 24,13 → 10,29 | 53,99 → 13,91 |
+| Запросы комментариев при продвижении до конца | 0 → 0 | 360 → 134 |
+
+При возврате вверх старые комментарии могут загружаться заново после удаления из ограниченного кэша; измеренные высоты сохраняют положение списка до получения ответа. Результаты и границы проверки сохранены в [JSON аудита длинных списков](../../tooling/data/frontend-audits/frontend-long-lists-audit-2026-10-07.json). Скриншоты конца списков осмотрены; исходные trace/логи находятся в `/tmp/daryadarcy-transfer-verify-w4s893bc/` и `/tmp/daryadarcy-work-baseline-3zb0xucy/` и не являются постоянным хранилищем.
+
+**Клиентский подшаг реализован и проверен; пункт 35 общего аудита остаётся частично закрытым.** Данные/лёгкие блоки текущего списка зависят от числа публикаций, физические iPhone/Android, WebKit, реальное API и длительная производственная сессия ещё требуют приёмки. Бэкенд, БД и реальные загрузки не запускались; коммит и push не выполнялись.
+
+## Одинаковый размер блока фотографий — 7 октября
+
+Актуальное решение согласовано с пользователем после сравнения со старым `/feed`: фиксируется **весь блок изображений**, а не высота поста и не отдельные рамки 4:5 для каждой ячейки. Один снимок, коллаж из 2–9 фото и карусель занимают одинаковое место до и после загрузки. Пропорция блока 4:5, высота ограничена 60svh на невысоких экранах. `svh` не меняет высоту при появлении/скрытии панели браузера. Разные длины подписей и вложения не ограничиваются этой высотой.
+
+Фото заполняют свои ячейки через `cover`, без полей внутри снимка; края могут обрезаться в превью. Коллаж сохраняет основные прежние раскладки, а неполный последний ряд распределяет ширину между имеющимися фото вместо пустых ячеек. Размеры ряда определяются блоком, а не загружаемыми картинками — это также устраняет найденное схлопывание flex-ячеек в WebKit. Общая рамка находится в `src/shared/media/post-photo-frame.module.scss` и подключена к общим стилям вкладок до первого кадра. Изменение общего компонента действует в Ленте, Клубе и отдельной публикации.
+
+Карусель (>9 фото) использует тот же размер блока и заполнение слайда; при загрузке, перелистывании и resize подпись не меняет положение из-за пропорций фото. Индекс, счётчик, точки, клавиатура и открытие исходника сохранены. Полноэкранный просмотр показывает оригинал целиком через `contain`. В смешанной сетке видеопостер/проигрыватель заполняет выделенную ячейку без изменения размеров галереи; самостоятельный видеопост сохраняет прежнее поведение.
+
+Отдельные сетевые пробы и ожидание размеров оригинала не нужны. Изображение плавно проявляется за 180 ms в уже зарезервированном блоке; `prefers-reduced-motion` отключает переход, кешированные снимки не остаются скрытыми. Ранее реализованный возврат естественной высоты (58/58 адресных проверок в Chromium/WebKit) заменён этим решением по последнему поручению пользователя. Историческая рамка 4:5 **каждой ячейки с contain** ниже также не актуальна.
+
+Это локальное изменение первого этапа (публикации 4.7 / производительность 4.15). Браузерные проверки геометрии и загрузки остаются самостоятельными в `e2e/image-loading.spec.ts`, без новых команд в `package.json` и общем `verify`. Проверяются неизменные размеры до/после задержанного ответа, положение текста, все количества от 1 до 10 фото, заполнение площади коллажа, ошибки/смена URL, lazy loading, появление и reduced motion, карусель и исходник по нажатию. Физические телефоны и реальные метрики CLS пока не являются принятой проверкой.
+
+Проверки: production-сборка в отдельной копии, фронтенд/E2E-типы, ESLint затронутых файлов, границы модулей (492 файла), проверка документации и `git diff --check` прошли. Адресный набор — 63 из 64 сразу в Chromium/WebKit; единственный WebKit-сбой случился до появления фото/данных ленты при параллельной визуальной проверке, повтор на той же сборке прошёл 1/1. Это два запуска, а не один полный зелёный прогон. Дополнительно на реальных локальных WebP и подставном API проверены кадры 390×844, 1440×844, 390×568 в обоих движках: соответственно одинаковые высоты всех блоков 487,5 / 506,39 / 340,80 px, ошибок JavaScript нет. Скриншоты заполнения, неполного ряда, карусели, отступов, ограничения высоты и навигации просмотрены. Коммит и push не выполнялись.
+
+## Сверка с бэкендом и очередность первого этапа — 7 октября
+
+`staging` обновлена с `1e650c5` до `300c8d3` через fast-forward. Все локальные изменения, включая новые WebP-файлы, сохранены в stash и восстановлены вместе с индексом. Совпадение 1008 локальных изменений проверено по контрольным суммам; конфликтов нет. Резервный stash оставлен. Коммит и push локальных правок не выполнялись.
+
+Проверены серверные изменения и их потребители во фронтенде. Проверка `pnpm check:api` прошла: все 72 процедуры совпадают с клиентским контрактом. После обновления прошли 199 тестов общего `verify` и TypeScript фронтенда. Это проверка кода и контрактов, не приёмка настоящих SQL, платежей, хранилища или push.
+
+| Изменение бэкенда | Связанное место фронтенда | Решение по объёму |
+| --- | --- | --- |
+| Профиль вынесен в ProfileService; отсутствие БД теперь даёт ошибку вместо ложного успеха, перед загрузкой аватара проверяется наличие клиента БД. | `profile-screen.tsx`: имя и фото показываются локально до подтверждения; `catch {}` скрывает отказ. `club-subscribed.tsx`: оформление помечается завершённым до серверной синхронизации. | Записать для последующего улучшения редактора профиля: подтверждение сохранения, видимая ошибка, сохранение ввода для повтора, защита от двойной записи. Пункты 17–18 остаются вне первого этапа. Исправленная изоляция аккаунтов, пункт 4, остаётся частью общей основы. |
+| Оплата Магазина проверяет конфигурацию и строит ссылку до создания заказа. | `product-screen.tsx` уже показывает отказ и переходит только после получения допустимого URL; серверная capability онлайн-оплаты выключена. | Полную онлайн-оплату и автоматическую выдачу файлов не подключать в первом этапе. Обязательная задача — заказ через менеджера, пункт 4.12. |
+| Модерация отклоняет неположительные, дробные и небезопасные ID до записи. | `admin-screen.tsx` передаёт ID серверных записей и показывает ошибки; списки обновляются после успеха. | Существующий путь совместим. Проверку отказа 400 и отсутствия ложного успеха включить в приёмку административных действий и модерации первого этапа; отдельный новый интерфейс не нужен. |
+| Уведомления вынесены в NotificationsService; запись токена, согласия и очистка без БД теперь завершаются ошибкой. `latest` использует ContentReadService. | `web-post-alerts.tsx` содержит опрос `notifications.latest`; вызовов регистрации токена и сохранения маркетингового согласия в текущем фронтенде нет. Серверный `webPush` выключен. | Полноценные push и интерфейс согласий остаются отдельным последующим этапом. Новых клиентских обязательств эта миграция не добавляет. |
+| Административное обслуживание контента и импорт видео перенесены в сервисы; очищены сообщения об ошибках резервных копий и старого платёжного redirect. | Действующие административные вызовы сохраняют контракт. | Серверная переработка сама по себе не требует переписывания фронтенда. Проверять связанные операции в составе первого этапа. |
+
+**Сейчас выполняем только первый этап по договору.** Технические рекомендации выше не меняют его объём и не становятся очередью разработки автоматически.
+
+**Клиентский подшаг пункта 35 — оконное отображение длинных списков и ограничение неиспользуемого кэша — доработан 7 октября; актуальное поведение и проверки описаны в начале плана.** Пункт общего аудита остаётся частично закрытым: данные и лёгкие блоки текущего списка зависят от числа загруженных публикаций; реальные медиа, физические устройства и длительная производственная сессия требуют отдельной приёмки. Самостоятельная перестройка архитектуры не является целью.
+
+Далее закрывать оставшиеся сценарии редакторов/вложений и административных действий, затем согласованные пути первого этапа: VK (4.11), четыре сезона (4.10), заказ менеджеру (4.12) и действия менеджера. Порядок между интеграциями уточняется по готовности API и материалов. Общая приёмка с настоящим API, физическими устройствами и PWA остаётся обязательной; уже пройденные клиентские проверки её не заменяют.
+
+## Неподвижный хедер Видео — 7 октября
+
+По уточнению пользователя и сравнению с опубликованной старой версией `/videos` исключён из скрытия хедера по направлению прокрутки. В legacy хедер находится перед `FlatList`, вне прокручиваемого списка; браузер подтверждает видимые кнопки после прокрутки на 600px. `TabShell` задаёт `hideOnScroll=false` для Видео, общий hook возвращает хедер в видимое состояние и не подключает обработчики скрытия. Позиция списка и его прокрутка сохраняются. Регрессия длинного списка обновлена: хедер неподвижен и доступен, после ухода в Ленту там скрывается, при возврате в Видео снова виден.
+
+Проверки хедера: Chromium/WebKit — **21 общая проверка проходит**, один native touch сценарий WebKit пропущен из-за отсутствия поддержки такого ввода в Playwright. Сценарии Видео после уточнения селектора вертикального скролла Ленты — **6/6**; неподвижность, доступность кнопок, сохранение позиции и возврат из раздела со скрытым хедером подтверждены на 375/412/1440px. Скриншот конца списка 390px осмотрен рядом со старой версией. Production-сборка в отдельной копии завершилась с кодом 0; типы/E2E-типы, ESLint и `git diff --check` проходят. UI-проверки в общий `verify` не добавляются.
+
+## Восстановление прокрутки Видео — 7 октября
+
+На непустом списке воспроизведена блокировка прокрутки: `overflow: visible` в стиле Видео переопределял штатный `overflow-y: auto` общего `ScrollArea`. При высоте области 724px и содержимого 2567px даже установка `scrollTop=600` оставляла 0; нижние карточки обрезались общей оболочкой. Убраны локальный стиль `list` и его подключение. В dev после исправления тот же список прокручивается до 600; оформление и размеры области остаются прежними.
+
+Добавлена отдельная браузерная проверка восьми карточек на размерах iPhone, Android и desktop: доступность последнего материала над меню и сохранение позиции при возврате. После уточнения поведения Видео в ней проверяется неподвижный хедер. Мобильный Chromium проверяет native touch через CDP; мобильный WebKit — программную прокрутку контейнера (Playwright не поддерживает wheel/swipe для mobile WebKit). На desktop оба движка проверяют колесо. Физические телефоны не проверялись. UI-сценарии остаются отдельно от `package.json`/`verify`.
+
+Проверки: production-сборка в отдельной копии, фронтенд/E2E-типы и ESLint проходят. Адресный набор Chromium/WebKit: 20 из 22 прошли сразу; два мобильных WebKit-сценария исправлены после ограничения `mouse.wheel` в Playwright и повторно прошли **2/2**. Все шесть вариантов прокрутки, десять сценариев первого появления/данных/reduced motion и шесть сценариев ошибки Видео проверены. Скриншоты начала и конца списка на 390px осмотрены: декор сохранён, последняя карточка доступна над меню.
+
+## Мягкие возвраты во вкладки и сохранение первого появления — 7 октября
+
+**Уточнение состояний ожидания, 7 октября.** При первом переходе в dev воспроизведены два последовательных спиннера: ожидание кода (20px, коричневый) и данных Видео (36px, зелёный, ниже баннера). Одновременного дублирования в проверенных переходах не обнаружено. В старой опубликованной версии при замедленном API также подтверждён один спиннер Видео.
+
+Спиннер ожидания кода убран. После повторного исследования первого входа приблизительные копии шести страниц также убраны из `TabLoading`: они меняли геометрию и показывали баннер до повторного вступления настоящего экрана. Текущее ожидание кода — фон приложения и подпись при задержке больше 500 мс. Списки Ленты, Видео, Библиотеки и Клуба, сохранённые посты и страницы материалов используют `ContentPlaceholder` внутри настоящего экрана. Проверки доступа/локальные операции сведены к `LoadingIndicator`: 36px для области ожидания, 20px для догрузки и кнопок. В Клубе фоновое обновление списка не показывает индикатор следующей страницы. Новые UI-сценарии остаются отдельно от `package.json`/`verify`.
+
+Production-сборка в отдельной копии, типы, ESLint затронутых файлов и границы модулей (484 файла) проходят. Браузерный набор: 32 из 36 сценариев прошли сразу в Chromium/WebKit; два сценария на каждый движок исправлены (старое ожидание спиннера вместо заглушки и неоднозначный выбор из двух форм оплаты) и повторно прошли **4/4**. Скриншоты ожидания Видео/Ленты на 390/1440px проверены: фон, баннер, рамки карточек, доступность навигации и отсутствие горизонтального переполнения; заголовок Видео остаётся на y=88 при загрузке и возврате. Проверки используют подставные ответы API, реальные платежи и физические устройства не проверялись.
+
+Первоначальный прогон загрузок и возвратов — **18/18** в Chromium/WebKit. Повторное измерение первых кадров с непустым API выявило недостающую проверку: `useEffect` запускал вступление после уже видимого кадра (opacity 1 → 0), а прежняя заглушка видеокарточки отличалась по высоте на 11px. Это устранено: начальная opacity задаётся до гидрации, запуск перенесён в `useLayoutEffect` с отменой при размонтировании, строки заглушки согласованы с типовыми title/meta. Материалы Ленты/Видео при первом получении плавно появляются через opacity за 180 мс, без сдвига баннера. Фоновый запрос и возврат не запускают появление заново.
+
+Старая опубликованная версия проверена в браузере: первый кадр баннера/карточки скрыт до подготовки анимации; Интерактив использует FadeIn 600 мс и FadeInDown 500 мс с задержкой 200 мс, от +25px до 0, линейно. Направление и темп восстановлены в общем браузерном движке. Замедленные переходы текущей dev/production-копии подтверждают один запуск настоящего баннера с opacity 0 → 1; Интерактив теперь повторяет координаты старой карточки y=204 → 179 на 390px. Скриншоты 390/1440px осмотрены; горизонтального переполнения нет. Первоначальные сценарии первого входа, загрузок и возвратов — **28/28** в Chromium/WebKit; отдельно ошибки запросов и навигация — **18/18**. После добавления появления материалов финальный набор прошёл 27 из 28 сразу; разовый сбой возврата на 1440px оказался гонкой теста со скрытым потоковым HTML Next (второе поле поиска в `div hidden id="S:0"`, вне приложения). Видимый экран не дублировался, повтор сценария прошёл; тест теперь ожидает удаления скрытой копии перед вводом. Ответы API подставные; физические устройства не проверялись.
+
+По повторному сравнению со старой версией устранены причины визуальных скачков, которые не покрывала предыдущая оптимизация времени перехода. Шесть посещённых экранов нижнего меню сохраняются в `TabScreens` общей оболочки: компоненты загружаются при первом открытии, скрываются через `hidden`/`inert`, сохраняют DOM, прокрутку, поиск и фильтры. Вложенные страницы не сохраняются как отдельные вкладки; возврат из них восстанавливает родительский экран. Первая анимация Видео/Интерактива сохранена, повторные входы её не запускают.
+
+Покадровая запись дополнительно обнаружила первый кадр без CSS при ленивом открытии раздела. Статические зависимости стилей шести экранов подключены через `tab-styles.ts` в корневом layout; код компонентов остаётся ленивым. На повторной записи все шесть разделов имеют одинаковые координаты текста от первого кадра содержимого до завершения перехода; проверка оформления первого кадра проходит в Chromium и WebKit.
+
+Лента и Видео используют одну структуру списка для ожидания, ошибки и данных: баннер не пересоздаётся после ответа API. В Видео восстановлена одинаковая позиция заголовка (готовое положение, без прежнего сдвига 12px). Статические обложки Библиотеки получили точные отношения сторон из локального манифеста вместо повторных измерений `onLoad`; рамки обложек API имеют устойчивое отношение сторон и `contain`. Загрузка/ошибка дополнительных статей находятся после известных материалов, поэтому их исчезновение не поднимает всю сетку на прежние 114px.
+
+Основные контентные запросы выключены у скрытой вкладки и снова включаются при возврате: устаревшие данные обновляются без очистки кеша и поиска. Параметры `paid`/`checkout` скрытого Клуба не подменяются параметрами другого маршрута, подтверждение оплаты работает только в активной вкладке. При уходе останавливаются медиа и циклы оформления магазина, закрываются диалоги. Существующий сброс `AuthProvider` при смене личности/выходе также очищает сохранённые экраны. Добавлен локальный error boundary для экрана вкладки; общий хедер/меню остаются доступны.
+
+Добавлены самостоятельные браузерные сценарии: первое появление и возврат после обхода всех шести вкладок на 390/1440px, сохранение поиска после вложенного материала, стабильность геометрии при задержанном API, обновление устаревших данных без потери поиска, изоляция параметров оплаты и сброс состояния при смене сессии. В `package.json`/`verify` эти UI-проверки не добавляются.
+
+После подключения CSS из layout адресные сценарии повторно прошли: **18/18** в Chromium/WebKit — 12 проверок возвратов и оформления первого кадра, 6 проверок геометрии ошибки Видео на трёх размерах. TypeScript/E2E-типы, ESLint новых файлов и границы модулей (478 файлов) проходят.
+
+Проверки: production-сборка в отдельной копии, фронтенд-типы, ESLint и границы модулей проходят; `pnpm verify` — **199 тестов / 14 файлов**. Итоговый адресный прогон — **22/22** в Chromium/WebKit: пять новых сценариев на движок, возврат/хедер на трёх размерах и ошибка Видео на 390×844, 1440×844, 320×400. Перед ним в наборе из 60 сценариев прошли 54 (включая все миграционные, оплату, Ленту и общую навигацию); шесть падений ошибки Видео исправлены и перепроверены в итоговом прогоне. Бэкенд, БД и физические устройства не запускались/не проверялись; изменения локальные, выкладки нет.
+
+Итоговая перепроверка после ожидания скрытого потокового HTML: сохранение шести вкладок на 390/1440px — **4/4** в Chromium/WebKit. Production-сборка в отдельной копии, TypeScript/E2E-типы, ESLint изменённых файлов, границы модулей (485 файлов) и `git diff --check` проходят.
+
+## Ускорение переходов между разделами — 7 октября
+
+Клуб больше не ожидает `searchParams` на сервере при каждом переходе: обычный маршрут теперь статически собирается, параметры `paid`/`checkout` читаются через клиентский `useSearchParams` под Suspense. Доступ и подтверждение оплаты остаются за API; сам параметр `paid=1` подписку не выдаёт. Сохранено чтение первого значения повторённого параметра. Заодно исправлен пустой экран продления: действующий подписчик с `checkout=1` теперь видит оплату.
+
+Заголовок Видео запускает вступительную анимацию только при первом открытии в текущем документе браузера. Возврат из другого раздела и замена экрана загрузки готовым списком больше не повторяют 600-мс появление текста. Состояние отмечается только в браузерном эффекте, серверный рендер его не меняет. Общая навигация и оформление сохранены.
+
+Контроль в одинаковой локальной production-сборке с гостевыми тестовыми ответами API, Chromium, 390×844, три перехода в Клуб: до правки **345–361 мс**, после **45–92 мс** (медианы **354 → 54 мс**). Измерялось появление содержимого экрана без маршрутной заглушки, не полная загрузка изображений и не время живого API. Повторная анимация Видео отсутствует; снимки Клуба и Видео на 390/1440 px осмотрены, горизонтального переполнения нет. Это лабораторные результаты, не измерения физических Android/iPhone или опубликованной сборки.
+
+Production-сборка, фронтенд-типы, ESLint и **199 API-тестов / 14 файлов** проходят. Добавлены три браузерных сценария обработки параметров оплаты/продления, они проходят в Chromium и WebKit. В общем прогоне 74 сценариев навигации и запросов прошли 72: WebKit один раз не выполнил клик по статье библиотеки, затем отдельная проверка прошла; тестовая внешняя страница оплаты потребовала явного `<meta charset="utf-8">`, после чего её проверка прошла. Повторный полный набор миграционных сценариев WebKit — **10/10**; сбой клика библиотеки не воспроизвёлся, его первичная причина пока не установлена. Разовое наблюдение за Web Animations подтвердило один запуск 600-мс анимации Видео и отсутствие новых запусков после возврата на обеих ширинах. Визуальные тесты в `package.json`/`verify` не добавлялись.
+
+Первое открытие страницы в `next dev` всё ещё может задерживаться из-за компиляции по требованию; автоматической предзагрузки маршрутов в этом режиме нет. Скорость приложения следует оценивать после `pnpm build:frontend` → `pnpm start:frontend`, остановив dev-сервер на том же порту. Правки локальные, бэкенд и БД не запускались, выкладка не выполнялась.
+
+## Расположение нижнего меню по старому рендеру — 7 октября
+
+По уточнению пользователя убраны добавленные фон нажатия/ожидания перехода и верхняя полоска ожидания. Активный раздел сохраняет цвет иконки и текста; сообщение перехода остаётся только для screen reader. Системная подсветка касания отключена. Геометрия меню сохранена; визуальные проверки в общий список `verify` не добавляются.
+
+Production-сборка в отдельной копии, типизация и ESLint проходят. В Chromium/WebKit прошли восемь существующих сценариев геометрии и задержанного перехода. Разовая проверка на 390/1440 px подтвердила прозрачный фон при нажатии, ожидании и после перехода; полоски нет, цвет активного раздела сохранён. Снимки меню осмотрены.
+
+Меню сверено с действующей старой Expo-версией на `https://daryadarcy.com/`: сняты скриншоты и координаты на ширинах 320/390/480/1440 px. В прежнем меню иконка 22px начинается на 15px ниже верхней границы панели, подпись — на 39px; промежуток между их блоками равен 2px. Новый flex-центрированный ряд давал перекрытие блоков на 1px и поднимал подпись на 2.5px. Восстановлены исходные координаты через верхний отступ кнопки 8px и промежуток 2px, без отрицательного отступа SVG. Для узкого экрана восстановлена высота строки 10px при сохранённом размере шрифта 8px. Иконки, размеры шрифтов, цвета, фон, высота панели и области нажатия сохранены.
+
+Координаты иконок, верх подписей и их высота совпали с оригиналом на всех четырёх размерах. Скриншоты осмотрены; шесть регрессий геометрии меню в Chromium/WebKit проходят после загрузки шрифтов и переходов между разделами. Production-сборка, фронтенд-типы и ESLint проходят. Проверки выполнялись в отдельной копии на порту 8083; сервер и БД не запускались.
+
+## Плавное скрытие общего хедера — 7 октября
+
+По уточнённому поручению восстановлено скрытие хедера при прокрутке вниз и появление при движении вверх. Поведение теперь подключено к общей оболочке всех страниц, включая вложенные материалы. Исходные оформление и расположение хедера сохранены; нижнее меню и размеры контента не меняются. Скрытие занимает 250 мс, появление — 200 мс; у начала экрана и при смене маршрута хедер виден.
+
+Пассивный capture-обработчик наблюдает основной вертикальный ScrollArea и не перерисовывает React на каждом событии. Порог накапливается по расстоянию: 12 CSS-пикселей вниз и 8 вверх. Позиция ограничена обеими границами прокрутки: [Safari может сообщать значения за ними во время отскока](https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollTop). Сдвиг зависит от полной высоты хедера с safe area. Вложенные области, горизонтальные карусели, диалоги и помеченные `data-scroll-header="ignore"` фильтры клуба не переключают хедер. Обработчик отслеживает замену экрана после загрузки сессии/данных и снимается при смене маршрута или размонтировании.
+
+Скрытый хедер исключён из взаимодействия через `inert`; Tab возвращает его, контрол с клавиатурным фокусом остаётся доступным. Обычный клик по ссылке не фиксирует хедер на следующем экране. При `prefers-reduced-motion` переход выполняется без анимации.
+
+Проверки: `pnpm verify` — **257 тестов / 22 файла**; фронтенд-типы, ESLint, границы модулей и production-сборка проходят. Браузерный прогон в отдельной production-копии на порту 8083: **66 сценариев в Chromium и WebKit**, затем **3 проверки нативных событий прокрутки**. Свайпы через Chromium device protocol проходят; аналогичная инъекция для WebKit пропущена, колесо проверено в обоих движках. Проверены мобильные размеры 375×812 и 412×915, desktop 1440×900, основные страницы гостя/подписчика, возврат наверх, изменение высоты хедера, фильтры, клавиатура, reduced motion и сохранение нижнего меню. Скриншоты скрытого/видимого хедера в обоих движках осмотрены. Физические Android/iPhone, браузерные панели и установленная PWA на устройстве пока не проверялись. Бэкенд и БД не запускались.
+
+## Локальная разработка с удалённым API — 6 октября
+
+Локальный фронтенд направлен на `https://daryadarcy.dev.reeskeen.ru` через игнорируемый `.env.local`; браузер продолжает обращаться к локальным `/api/*` и `/media/*`. Dev-прокси исправляет отказ 403 по Origin только для собственных запросов loopback-фронтенда с HTTPS-целью. Посторонние Origin/Host и cross-site запросы отклоняются; cookies сохраняются, production и локальный HTTP API сохраняют прежнее поведение.
+
+Проверены реальные ответы API и шесть страниц без подмены данных, загрузка фото Ленты и превью Видео, запрос с локальным Origin и предварительный запрос входа — 200; посторонний Origin — 403. Добавлены **17 регрессий** прокси; `pnpm verify` — **239 тестов / 20 файлов**. Сборка, фронтенд-типы, ESLint и границы модулей проходят. Реальный вход в аккаунт в этой проверке не выполнялся.
+
+## Единая навигация и выход со вложенных страниц — 6 октября
+
+Хедер и нижнее меню перенесены в общую оболочку всех страниц. Они остаются доступными при прокрутке, загрузке и ошибке, включая клуб подписчиков, вложенные материалы, вход, тест и документы. Убраны отдельные копии хедера в разделах и скрытие хедера главной при прокрутке. Кнопки главной и профиля сохраняют положение, музыка клуба доступна в общем хедере.
+
+Сохранён исходный дизайн хедера: поверх баннеров главной, Ленты, Клуба, Библиотеки и Магазина, без дополнительного ряда и сдвига контента. Возвращены прежние значки, цвета и компактные отступы. На остальных страницах отступ расположен внутри текстуры страницы; отдельной фоновой полосы нет. Иконки поверх контента имеют небольшую тень для читаемости, пустая область хедера не перехватывает действия.
+
+Общий и существующие локальные возвраты используют историю приложения; при прямой ссылке ведут в родительский раздел или на главную. Вложенные посты, видео и тест подсвечивают свой раздел нижнего меню. На низком экране панель фильтров клуба ограничена доступной высотой, её сброс прокручивается в видимую область; отступы ошибки Ленты адаптированы к высоте экрана.
+
+Проверены прямой вход, внешняя предыдущая страница, перезагрузка и история назад/вперёд, загрузка/ошибки сессии, прокрутка гостя и подписчика, сохранение общей навигации между разделами и деталями. Добавлены проверки исходного положения баннера Ленты и доступности иконок поверх него на 320/390/1440 px. Лента, Видео и остальные основные разделы также осмотрены на локальном dev-сервере с настоящими данными API.
+
+После восстановления исходной компоновки проходят production-сборка, фронтенд-типы и ESLint. Целевые браузерные проверки навигации, ошибок, фокуса, доступности и кеша — **46 сценариев проходят с учётом повторных проверок**. Измерение конца прокрутки выполняется в одном кадре, чтобы подгрузка обложек Библиотеки не меняла размеры между действием и измерением.
+
+## Центрирование ошибок загрузки и отклик нижнего меню — 6 октября
+
+В Ленте начальная загрузка/ошибка теперь находится под шапкой и занимает оставшуюся область: сообщение и кнопка центрируются, баннер и верхняя навигация не сдвигаются. При ошибке обновления уже загруженные публикации сохраняются, сообщение повтора показано внутри шапки списка. В разделе «Видео» декоративная шапка сохраняется во время загрузки и ошибки.
+
+Нижнее меню показывает нажатие и состояние незавершённого перехода через `useLinkStatus`, без изменения размеров иконок/подписей. Незавершённый переход можно прервать выбором другого раздела; ожидание API не блокирует смену маршрута.
+
+Добавлены **9 браузерных регрессий**: центрирование и положение шапки на 320/390/1440 px, повтор после ошибки, центровка ошибки сессии, задержанный и прерванный переход без сдвига меню. Целевой production-прогон: **67 прошли / 3 проверки настоящего API пропущены**. TypeScript фронтенда, ESLint и production-сборка проходят.
+
+## Исправление прыжков меню и сброса страниц при возвращении — 6 октября
+
+Исправлены найденные дефекты фронтенда:
+
+- Нижнее меню использует SVG вместо иконочного шрифта; размеры иконок и строк подписей фиксированы. Текстовый шрифт предзагружается, автоматическое увеличение текста браузером отключено. Загрузка шрифтов и переходы между шестью разделами больше не меняют геометрию меню.
+- Фоновая проверка сессии и подписки сохраняет экран, прокрутку, выбранный раздел и несохранённый текст при временной ошибке сети/таймауте/5xx. Первичные и повторные ошибки ещё не установленной личности не очищают публичный кеш; повторная проверка сохраняет экран ошибки.
+- Обычный контент, сохранённые публикации и уведомления больше не обновляются при возврате фокуса; для обычного контента также отключено обновление при восстановлении сети. Общая политика QueryClient: свежесть 30 секунд, удаление неактивного кеша через 5 минут. Явное обновление, инвалидирование после записи и опрос уведомлений сохранены.
+- Парные события `focus`/`visibilitychange` объединяются в пределах секунды. Проверки восстановления сети, межвкладочных изменений и ошибок доступа выполняются сразу. Проверка сессии и прав клуба остаётся фоновой; подтверждённый выход, смена пользователя/роли и потеря доступа закрывают приватные данные.
+- Устранён найденный горизонтальный сдвиг страницы при фокусе на анимированной панели фильтров клуба: внешний контейнер использует `overflow: clip`, прокруткой содержимого управляют внутренние ScrollArea.
+
+Добавлены регрессии геометрии меню с задержанными шрифтами на 320/390/480 px, сохранения экрана при возврате фокуса/видимости и сети, ошибок сессии, кеша запросов и отсутствия горизонтального сдвига фильтров. Проверки: **222 модульных теста / 19 файлов**, **202 браузерных сценария прошли / 3 проверки настоящего API пропущены**. TypeScript фронтенда, ESLint и production-сборка проходят. Браузерные проверки фокуса/видимости используют моделируемые события; физические устройства и принудительная выгрузка вкладки ОС не проверялись.
+
+## Согласование фронтенда с объединённым staging, 6 октября
+
+Рабочая ветка `fix/frontend-improvements`, исходный коммит `12cfc8d` объединяет бэкенд `9fc4317` и прежние фронтенд-правки. В этом шаге меняется только фронтенд и его тесты; сервер, БД и хранилище не запускаются.
+
+Оба редактора сохраняют снимок исходного черновика и отправляют частичный `updatePost`. Неизменённые видео, порядок, даты и статус не заменяются. Изменение текста/форматирования отправляет согласованную пару `text` + `richText`, поскольку сервер нормализует блоки по переданному тексту. При явном удалении последнего видео отправляется `videos: []`. Быстрый редактор получает медиа из ленты и не отправляет свой default `sortOrder: 0` при правке. Новые аудио/документы и явные удаления остаются в одной финальной транзакции с постом, с серверными MIME/размером.
+
+Фото проходят подготовку в статичный JPEG/WebP с уменьшением и проверкой итогового лимита 4 МиБ; режим прозрачности использует WebP и сохраняет alpha. Исходное ограничение 32 МиБ до декодирования сохранено. GIF и анимированные PNG/WebP отклоняются до отправки и до потери анимации в canvas. Из интерфейса статей убрано обещание загрузки GIF. При пустом/общем MIME аудио известные расширения допускаются к выбору, итоговые метаданные определяет сервер. Имена существующих вложений берутся из `filename` или подписи категории, без извлечения UUID из URL. Raw-загрузка видео показывает предусмотренные причины 400, обрабатывает 413 и не раскрывает неожиданные/инфраструктурные ошибки.
+
+Добавлены модульные и браузерные регрессии сохранения нетронутых полей, явного удаления видео, форматирования, аудио с общим MIME, имён без filename, отказов видео и подготовки фото с реальным canvas. Контракт API (72 процедуры), общая и фронтенд-проверки типов, ESLint, границы модулей (435 файлов), `pnpm verify` (200 тестов / 18 файлов) и production-сборка прошли. После обновления staging установлены отсутствовавшие локальные зависимости по неизменённому lock-файлу, без запуска install scripts. Полный браузерный прогон на новой production-сборке: **138 прошли / 8 сбоев тестовых сценариев / 3 пропуска настоящего API**, 21,2 минуты. Четыре новых теста аудио ошибались в выборе кнопки сохранения (в основной форме «Сохранить», в быстрой — основное действие с aria-label «Опубликовать»). В существующем тесте ошибки фото комментария явно открыт раздел «Комьюнити», использован валидный PNG и актуальная дата. Ещё три теста (хедер главной, выход между вкладками, поздний ответ регистрации) останавливались на `page.goto(..., waitUntil: "load")` до проверок; для их навигации использован существующий `gotoWithSession`, все проверки поведения сохранены. После завершения общего прогона все восемь исправленных сценариев проверены одной группой: **8 прошли**, 28,5 секунды. Таким образом, все 146 сценариев с моками API имеют успешный результат; полный набор целиком после правок тестов повторно не запускался. Финальные TypeScript/E2E-типы, ESLint и `git diff --check` проходят. Артефакты исходного прогона: `/tmp/daryadarcy-frontend-improvements-e2e`; финального повтора: `/tmp/daryadarcy-frontend-improvements-final-recheck`. Эти временные артефакты не являются постоянным хранилищем доказательств. Реальные API, SQL и storage не проверялись.
+
+**Зависимости от бэкендера:** явная ошибка неполного чтения медиа; сохранение строк/метаданных оставшихся видео при изменении списка; отдельное право доступа модератора к клубу. Подключение `idempotencyKey` отложено до подтверждения миграции `0025` в целевом окружении, как согласовано в передаче задач. Текущая блокировка повторов неподтверждённых записей сохранена. Конфликты параллельного редактирования требуют отдельного серверного контракта. Задачи описаны в переданном файле `frontend-backend-handoff-2026-10-06.md` в папке «Загрузки» пользователя.
+
+**Согласование метаданных загрузки, 6 октября.** Типы API сгенерированы по `fix/backend-hardening`, коммит `9fc4317`, в отдельной временной копии. На том этапе бэкенд в рабочую ветку фронтенда не включался; позднее объединённый staging `12cfc8d` стал основой текущей ветки, как описано выше. `PostSaveCoordinator` проверяет серверные `url`, `mimeType` и `fileSize`, сохраняет их в кеше и передаёт в create/update; пользовательское имя файла сохраняется. Повреждённое подтверждение блокирует финальную запись и повтор загрузки. Повтор после явного отказа записи использует подтверждённые метаданные, удалённый из черновика файл не возвращается. Ответ uploadPhoto остаётся URL-only. Подключение idempotencyKey не входит в эту правку.
+
+Проверки этой задачи: `pnpm verify` — **190 тестов / 18 файлов**; общий TypeScript-check, lint и production-сборка проходят. В полном браузерном прогоне на установленном Chromium прошли **125 сценариев**, **3 проверки реального API пропущены**, выявлены **5 ошибок тестов**: новый тест не раскрывал меню перед правкой из ленты, четыре прежних сценария зависали на ожидании полной загрузки страниц. Исправлены раскрытие меню и ожидание DOM/сессии без изменения проверок поведения. Повторный целевой прогон всех шести новых и четырёх затронутых сценариев — **10 прошли**. Полный набор после этих исправлений повторно не запускался. Сетевые моки не подтверждают работу реального API или хранилища.
+
+`pnpm check:api` проходит в копии бэкенда `9fc4317`, контракт побайтово совпадает с файлом в нашей ветке. В рабочей ветке эта команда ожидаемо сообщает рассогласование со старым локальным бэкендом; после интеграции серверных изменений нужно повторить общий CI. Новый редактор разворачивать после сервера с расширенным ответом загрузки.
+
+## Проверка скорости загрузки — 6 октября
+
+По запросу пользователя сравнили [сайт до изменений](https://daryadarcy.dev.reeskeen.ru/) и текущую production-сборку `fix/frontend-improvements`. Код приложения в этом шаге не менялся; добавлен инструмент замера и [отчёт с параметрами/результатами](frontend-loading-audit-2026-10-06.md).
+
+Условия: Chromium 152.0.7977.64, viewport 390×844, DPR 2, download 3 Мбит/с, upload 0,75 Мбит/с, настроенная задержка 150 мс, CPU slowdown 4×, service worker отключён. Три холодных открытия Главной и Клуба; дополнительно по одному повторному открытию с браузерным кешем. Старая версия измерялась с настоящим гостевым API, новая сначала также с этим API через временный локальный proxy. Из-за сетевых таймаутов выполнен отдельный контроль новой сборки с одинаковыми гостевыми ответами из тестовой модели (`user: null`, capabilities) и задержкой 200 мс. Попытка записать свежие реальные ответы для полного контрольного сравнения не удалась из-за недоступности API; подставленные ответы **не выдаются за записанные с сервера**. Таблица ниже использует контрольные результаты новой сборки без экранов ошибки. Все три запуска новых страниц имели нужный баннер/контент и не имели ошибок HTTP/запросов.
+
+[LCP](https://web.dev/articles/lcp) измеряет появление крупнейшего видимого элемента. Холодный кеш и замедление сети настроены через CDP по [документации Chrome](https://developer.chrome.com/docs/devtools/network/reference). Метрики лабораторные: не PageSpeed score, не INP и не результаты физических устройств.
+
+| Показатель | Сайт по ссылке | Новая локальная сборка |
+| --- | --- | --- |
+| Главная: первый контент, FCP (медиана) | 3,00 с | 0,69 с |
+| Главная: главный визуальный элемент, LCP (медиана) | 8,61 с, диапазон 5,20–8,74 | 3,54 с, диапазон 3,44–3,61 |
+| Главная: вес запрошенных изображений за первые 12 с (медиана) | 1,53 МБ | 1,33 МБ |
+| Клуб: вес запрошенных изображений за первые 12 с (медиана) | 57,51 МБ | 3,26 МБ, диапазон 3,26–3,98 |
+| Клуб: все видимые изображения первого экрана готовы | Не завершились ни в одном запуске за 20 с | 6,31 с, диапазон 6,11–6,44 |
+| Клуб: LCP новой сборки (медиана) | Не принимается как полная загрузка: видимые S3-изображения не догрузились | 2,57 с |
+
+Вес изображений — сумма файлов по запросам, начатым в одинаковом окне **12 секунд**; Content-Length используется, где он получен, иначе — проверенный исходный аудит/манифест. Это не объём уже переданных данных: старый Клуб не успел скачать 57 МБ и имел множество незавершённых запросов. Старые страницы наблюдались 20 с, контрольные новые — 12 с. Ширины, поля гостевой страницы и отложенная загрузка могут менять число запрошенных карточек; диапазоны сохранены в отчёте. Снижение веса Клуба — примерно **93–94%** для этого сценария. Уменьшение общего корпуса из прошлого шага не подменяет фактический вес одной страницы.
+
+Появление главного изображения Главной действительно быстрее в замере, но весь выигрыш нельзя приписать оптимизации файлов: медиана TTFB удалённого сайта — 1,29 с, локальной сборки — 0,023 с; различаются хостинг и поведение API. Главный JPEG сохранил 194 382 байта. Для точного сравнения времени после релиза нужна новая сборка на таком же сервере и исправная доступность API/S3. Коммит удалённой сборки не подтверждался.
+
+Повторный заход новой сборки: LCP Главной 1,23 с; Клуба 0,55 с, все видимые картинки Клуба готовы через 1,84 с. Это по одному примеру, не медианы серии. После прокрутки к двум иллюстрациям Клуба изображения декодировались за 364 и 149 мс: часть загрузки уже сделана до прокрутки. Эти числа **не являются временем скачивания файла с нуля**. На старом сайте обе иллюстрации не декодировались в пределах дополнительного ожидания 30 с, при наблюдавшихся сбоях S3.
+
+Во время проверки доступность удалённого сайта была нестабильной из этого окружения: первая навигация `/club` превысила 45 с, повторный GET позже прошёл за 3,42 с; затем `/api/auth/me` давал таймауты 10–20 с в Node/curl/Chromium, финальная проверка Главной — таймаут 15 с. Это требует проверки доступа/сервера и не доказывает, какой именно компонент инфраструктуры виноват. Неполные локальные замеры Клуба исключены: экран таймаута гостевой сессии либо остановившийся сервер замера. В последующем контроле сервер запускается и завершается внутри одного процесса инструмента. Успешный запуск новой сборки с настоящим API тоже был: LCP 2,35 с, 3,98 МБ запрошенных изображений.
+
+Оставшаяся измеренная нагрузка Главной в одном контрольном холодном запуске: **6 шрифтов / 511 251 переданный байт**, **30 JS-запросов / 373 385 байт**, **16 фоновых RSC-предзагрузок маршрутов**. Кандидаты следующего шага — более компактная доставка шрифтов и проверка необходимости ранней предзагрузки маршрутов; их вклад в LCP отдельно ещё не изолирован. Полная загрузка Главной в мобильном профиле всё ещё требует улучшения.
+
+Воспроизведение:
+
+```sh
+node tooling/operations/measure-frontend-loading.mjs --start-current
+node tooling/operations/measure-frontend-loading.mjs --targets=current --api-mode=fixture --start-current --window=12000 --output=/tmp/daryadarcy-loading-local-controlled-2026-10-06
+```
+
+Первый запуск использует живой API, второй — явно обозначенную гостевую тестовую модель. `--api-mode=snapshot` или `--api-snapshot=...` позволяют записать/подставить фактические публичные ответы, когда API доступен. Перед запуском нужна готовая production-сборка. Инструмент принимает только GET/HEAD в своём proxy, не использует credentials и не изменяет удалённый сервис; `--start-current` запускает только локальный фронтенд. Сырые запросы и скриншоты: `/tmp/daryadarcy-loading-2026-10-06`, `/tmp/daryadarcy-loading-local-controlled-2026-10-06`; сводный отчёт хранится в Markdown в docs/development, исходные данные для инструментов — отдельно в tooling/data/frontend-audits. Просмотрены снимки новой страницы Клуба и старого экрана/таймаута. Никаких изменений бэкенда, БД, деплоя, коммита или пуша этим шагом не выполнялось.
+
+## Локальные изображения и превью по размеру экрана — 6 октября
+
+Пользователь уточнил требования: оформление и картинки без просмотра можно уменьшать до нужного экрану разрешения; открываемые фото должны сохранять детали. Это заменяет ограничение предыдущего подшага на полное совпадение пикселей для всех отображаемых файлов. Работа выполнена в `fix/frontend-improvements`, только во фронтенде.
+
+Все **152 статичных изображения из S3** подключены локально: бумажный фон, баннеры, обложки, оформление Клуба/магазина/библиотеки, фотографии книг и раздела «Обо мне», выкройки. Фото публикаций, аватары и документы из API, видео и аудио остаются в хранилище. Неизвестные URL, подписи запросов, data/blob не меняются. Сервер и объекты S3 не редактировались.
+
+[Манифест](../../apps/frontend/image-variants.json) описывает **431 изображение / 693 варианта**, исходные размеры, происхождение и SHA256. Превью предлагаются в ширинах 320/640/960/1440 px без увеличения маленьких исходников. Учитываются рамка приложения 480 CSS px, плотность экрана до 3× и фактические ширины каруселей Клуба, фотографий товаров и карточек выкроек. Для небольших исходников сохраняется их собственная ширина. После resize применяется lossless WebP, без нового JPEG/WebP-сжатия с потерями. Изменение разрешения само меняет пиксели; 16-битный скриншот оформления преобразован в обычное sRGB/8-битное превью. Сохранение всех исходных пикселей для этих превью не заявляется.
+
+Варианты, которые тяжелее более крупного изображения, исключаются. Если уже сжатый оригинал дешевле нового превью, используется оригинал. Главный баннер — такой случай: исходный JPEG 194 382 байта легче lossless WebP шириной 640 px; тяжёлый вариант отброшен, eager/high/async сохранены. Оригинал не ухудшается ради формальной смены формата.
+
+**72 открываемых статичных изображения** сохраняют исходные файлы побайтово: галереи и отзывы магазина, фотографии «Обо мне», четыре выкройки для просмотра/печати. `fullSize` в трёх просмотрщиках отключает выбор уменьшенного превью. Скачать выкройку по-прежнему означает открыть полный файл. Максимальное разрешение этих исходников не потребовало дополнительного ограничения. Если небольшой оригинал уже легче превью, он может загружаться сразу в карточке.
+
+Для всего корпуса выбор экономичной версии от 640 px даёт **52 289 871 байт вместо 104 161 367**, уменьшение **49,80%**. База сравнения: уже оптимизированные локальные исходники и исходные S3-файлы. Это сумма файлов, а не вес одной страницы или измерение LCP. На обычном мобильном экране иллюстрация `0479…` в карточке Клуба выбирает 320 px / **75 652 байта вместо 2 942 145**; скриншот `250423…` — 320 px / **177 678 вместо 7 838 275**. На плотном экране выбираются более крупные варианты.
+
+Новые производные файлы хранятся в `public/assets/responsive` с хешем содержимого в имени и кешируются год с `immutable`. Существующие локальные оригиналы используют Next static imports; производные не дублируются в `.next/static/media`. Каталог содержит 431 адрес. Суммарный gzip-вес всех JS-chunks вырос с 682 912 до 695 344 байт (+12 432); это сумма всех маршрутов, а не загрузка одной страницы. Удалены только 23 неиспользуемые производные копии предыдущего шага (30 927 634 байта), после проверки их SHA256 и отсутствия ссылок в коде. Источники в S3 и локальные оригиналы сохранены; прежний lossless-аудит ниже остаётся историческим результатом.
+
+Повторная подготовка из проверенного кеша исходников:
+
+```sh
+node tooling/assets/prepare-frontend-image-variants.mjs --write --reuse
+node tooling/assets/generate-frontend-image-catalog.mjs
+pnpm check
+pnpm lint
+pnpm build:frontend
+```
+
+Без `--write` инструмент только проверяет/рассчитывает варианты. `--reuse` проверяет контрольные суммы готовых файлов и ускоряет повторный запуск. Исходный S3-кеш временный: `/tmp/darcy-public-images-2026-10-06`. Если он удалён, его можно восстановить публичным GET-аудитом `optimize-frontend-external-images.mjs` с `--resume-report=tooling/data/frontend-audits/frontend-external-image-audit-2026-10-06.json`, прежним `--cache-dir` и отдельным `--report` в `/tmp`, без `--write`. Обычный lossless-оптимизатор теперь пропускает `assets/responsive`, чтобы не менять содержимое уже хешированных URL.
+
+Проверки файлов подтвердили размеры и SHA256 всех 693 вариантов, отсутствие увеличения разрешения, более дорогих маленьких вариантов и оригиналы всех 72 открываемых изображений. Общие типы/E2E-типы, ESLint, production-сборка (28 маршрутов), границы модулей (441 файл), 202 прежних unit-теста, четыре новые проверки выбора изображения и четыре проверки PNG-инструмента проходят. На финальной сборке одним запуском прошли **42 целевых браузерных сценария**: публикации/галереи/отказы изображений, главный баннер, длинные списки, навигация, превью Клуба на 390/1440 px, полноразмерные фотографии магазина/«Обо мне»/выкройки и экраны 3×. Первый запуск дал 40 успехов и два отказа новых ожиданий: округление Chromium на 1 CSS px и выбор уже более лёгкого оригинала книги. Исправлены только ожидания тестов; приложение между этими запусками не менялось. Расширенная HTTP-проверка отдельно прошла: 279 статичных импортов и 432 публичных производных проверены на совпадение SHA256 и годовой immutable-кеш. Просмотрены декодированные снимки двух иллюстраций и выкройки. Артефакты: `/tmp/daryadarcy-responsive-images-final`, `/tmp/daryadarcy-static-images-http`; временные каталоги не являются постоянным архивом. Текущий полный E2E-набор содержит 184 сценария / 12 файлов и после этого шага целиком не запускался. Производственная сеть, физические устройства и responsive-превью динамических изображений из API остаются отдельными задачами.
+
+## Оптимизация статичных изображений без потерь — 6 октября
+
+Исторический результат перед разрешением уменьшать разрешение; актуальный выбор вариантов и локализация описаны выше.
+
+По новому поручению проверяются статичные изображения фронтенда; уменьшение разрешения и повторное сжатие с потерями не допускаются. Локальный аудит охватил **279 файлов / 28 303 803 байта**. Изменены **45 JPEG** (jpegtran, сохранённые коэффициенты DCT, EXIF/ICC) и **4 PNG → lossless WebP**. Для каждого принятого варианта проверено точное совпадение декодированных, ориентированных RGBA-пикселей, включая прозрачность. Остальные кандидаты, которые стали больше или изменили пиксели, сохранены без изменений. Суммарный вес используемых вариантов стал **27 865 263 байта**, экономия **438 540 байт / 1,55%**. Это сумма уникальных файлов, а не вес одной страницы. Исходные четыре PNG оставлены для прежних адресов, поэтому число байт в каталоге public не равно указанной сумме используемых вариантов.
+
+Локальные адреса `Picture` и `DomImage` разрешаются через каталог статических импортов Next.js: адрес содержит хеш содержимого, ответ имеет `public, max-age=31536000, immutable`, при замене файла адрес обновляется. Внешние/подписанные URL, data/blob и неизвестные адреса передаются как есть. При добавлении или замене ресурсов каталог нужно пересоздать. Разрешение и геометрия компонентов не меняются. Главный баннер теперь отдаётся в исходных 1400×875 **без** прежнего runtime-resize/quality=75 Next.js, с eager/high/async: это сознательный выбор точного сохранения исходных пикселей, а не обещание уменьшить первый запрос баннера. Добавлен preconnect к публичному S3; его влияние на реальную сеть отдельно не измерялось.
+
+Команды:
+
+```sh
+node tooling/assets/optimize-frontend-images.mjs --report=/tmp/frontend-images-preview.json
+node tooling/assets/optimize-frontend-images.mjs --write --report=/tmp/frontend-images-applied.json
+node tooling/assets/generate-frontend-image-catalog.mjs
+```
+
+Первый запуск только проверяет, второй применяет исключительно меньшие варианты с доказанным совпадением пикселей. JPEG требует установленного jpegtran; без него JPEG сохраняются, результат сообщает отсутствие инструмента. Прежние `optimize:assets`, `optimize:s3` и `optimize-site-images.mjs` используют resize/quality и **не подходят** для требования без потерь. [Полный локальный отчёт](frontend-image-audit-2026-10-06.md) содержит размеры, объёмы и SHA256.
+
+**Наши изображения из S3 тоже проверены.** В коде обнаружены 152 буквальных URL публичных S3-изображений и один динамический шаблон YouTube, который нельзя проверять как буквальный адрес. Все **152 оригинала успешно скачаны и проверены**. Из них **23 PNG оформления Клуба** стали существенно меньше: 22 lossless WebP и один перепакованный PNG. Их суммарный вес снизился с **56 861 675 до 30 927 634 байт**, экономия **25 934 041 байт / 45,61%**. Копии подключены через фронтенд вместо больших S3-оригиналов и добавлены в каталог статических импортов. Остальные 129 файлов сохранены: подходящий вариант без потерь не дал значимой экономии. [Полный отчёт S3-аудита](frontend-external-image-audit-2026-10-06.md) содержит URL исходников, размеры, cache headers/ETag, объёмы и контрольные суммы. S3, API, БД и пользовательские оригиналы не менялись.
+
+Особый случай — PNG 1320×2868 / 16 бит с ICC-профилем: WebP здесь потерял бы глубину цвета. `lossless-png.mjs` перепаковывает IDAT/фильтры PNG, сохраняя все исходные значения каналов и остальные chunks, включая ICC/EXIF/XMP. Проверены исходные и новые 16-битные samples, глубина цвета и ICC. Вес уменьшился с **7 838 275 до 6 995 024 байт**. Четыре отдельные проверки инструментов подтвердили декодирование/alpha/ICC для обычного и палитрового PNG, сохранение младших байтов 16-битного PNG и отказ от перепаковки interlaced PNG. Команда: `node tooling/assets/lossless-png.test.mjs`. APNG не перепаковывается. Это сохранение точных данных, а не обещание уменьшить многомегабайтный 16-битный снимок до размера lossy-превью.
+
+Для следующего аудита S3 используется `node tooling/assets/optimize-frontend-external-images.mjs --report=/tmp/external-images-preview.json`, без `--write` это только проверка. `--write` сохраняет и подключает только меньшие варианты с точным совпадением пикселей и экономией не менее 5%/4096 байт. `--cache-dir` позволяет продолжить текущий аудит; `--resume-report` сохраняет перечень уже подключённых исходников, `--download-timeout`/`--attempts` помогают при таймаутах. После изменения ресурсов нужно снова выполнить генератор каталога и собрать фронтенд. Временный кеш исходников этой сессии: `/tmp/darcy-public-images-2026-10-06`. Первый GET-аудит проверил 134 файла, 18 не уложились в таймаут; продолжение проверило все 152. Эти таймауты не выдаются за 404 или замер сети пользователей.
+
+Итог статичного корпуса: **431 изображение, 72 оптимизированы, 26 372 581 байт экономии / 25,21%** относительно суммарного исходного веса. Сейчас фронтенд выдаёт **302 каталогизированных изображения**; 129 остаются по прежним S3-адресам. В public добавлено около 30,9 МБ исходных lossless-копий из S3; это осознанное хранение frontend-ресурсов, ранее находившихся только снаружи репозитория. Общий gzip-размер всех JS-chunks вырос с 643 964 до 682 912 байт из-за каталога; это сумма chunks всех маршрутов, а не вес первого открытия. Экономия изображения/наличие cache headers не равны измеренному улучшению LCP: замер на production/устройствах ещё нужен.
+
+Финальные TypeScript, ESLint, production-сборка (28 маршрутов), границы модулей (441 файл) прошли. Общая регрессия — **202 unit-теста / 18 файлов**, дополнительные проверки PNG-инструмента — **4 прошли**. На финальной сборке прошли **37 браузерных сценариев**: все 27 проверок фоторамок/загрузки, четыре проверки длинных списков, три навигационных проверки, побайтовая выдача всех **302** каталогизированных изображений с immutable-кешем и реальные lossless-иллюстрации Клуба на 390/1440 px. После просмотра снимков уточнены две проверки Клуба: требуют попадания картинки в viewport, полного `complete`/`decode()` и снимают саму иллюстрацию. Один naturalWidth не доказывает готовность изображения к рисованию; ранние снимки были пустыми. Повтор с ожиданием полного decode прошёл, снимки WebP и 16-битного PNG просмотрены — изображения отображаются. Артефакты `/tmp/daryadarcy-lossless-images-final`, `/tmp/daryadarcy-lossless-decoded`. Общий E2E-набор содержит **179 сценариев / 12 файлов**, целиком не запускался. Фото из API нельзя полностью перечислить по исходникам; backend уже перекодирует загрузки в WebP quality=85 с максимумом 2560×2560, но responsive-варианты пока не отдаёт. Этим шагом серверное сжатие и старые публикации не менялись; их отображение сохраняет исправленную lazy-загрузку. Production LCP/CLS/INP и физические устройства не измерялись.
+
+## Постоянная рамка фотографий публикаций — 6 октября
+
+**Историческое решение, заменено возвратом естественных пропорций 7 октября.**
+
+Пользователь выбрал постоянную рамку **4:5 с показом фото целиком**. На тот момент это было решением для Ленты, Клуба и отдельного поста; оно заменяет естественную высоту фоторамок из предыдущего подшага ниже. Ориентир «как в Instagram» относится к постоянной геометрии превью, а не к копированию правил/дизайна внешнего приложения.
+
+Исторически общие настройки находились в `post-photo-layout.ts` (удалён при возврате естественных пропорций 7 октября): 4/5 и contain. Одиночное фото, каждая ячейка прежней сетки и каждый слайд карусели резервируют высоту по ширине до загрузки. Пропорции скачанного снимка больше не меняют эти рамки. Фото не обрезается; свободное место заполняется существующим цветом фона галереи. Карусель резервирует рамку ещё до измерения ширины, сохраняет индекс, точки, клавиатуру и работу при resize. Раскладка сеток и порог перехода к карусели (>9 фото) сохранены. По нажатию открывается исходный URL в прежнем полноэкранном просмотрщике, с contain; файлы, upload, API и серверное хранение этим шагом не изменяются.
+
+Строки смешанной сетки выравниваются по верхнему краю: высокий видеопостер не растягивает соседние фоторамки. Прежнее поведение самостоятельного видео/его постера сохранено; возможное изменение высоты самого видеопревью отдельно не объявляется устранённым. При проверке смешанной галереи исправлен старый индекс фото в третьем и последующих рядах после видео: нижняя дополнительная сетка учитывает смещение первых шести фотографий. Выбор последнего фото подтверждён на двух ширинах.
+
+[Браузерные проверки](../../apps/frontend/e2e/image-loading.spec.ts) теперь включают 18 сочетаний: одиночное фото / сетка из 4 / карусель из 10, Лента / Клуб / отдельный пост, 390/1440 px. Ответы изображений задержаны, используются очень широкие и высокие снимки, одна фотография отдаёт 404. Проверяются 4:5 до/после загрузки, неизменная высота, сохранение положения текста, contain, отсутствие горизонтального переполнения, постоянная высота карусели при перелистывании и открытие оригинала. Две отдельные проверки покрывают соседство с высоким видеопостером и правильный выбор седьмого снимка. Прежние проверки замены URL/ошибки и возврата из сетки обновлены под выбранную постоянную геометрию; lazy/async и первый responsive-баннер продолжают проверяться.
+
+Production-сборка, общий TypeScript/E2E-типы, ESLint, границы модулей (**438 файлов**), `pnpm verify` (**202 теста / 18 файлов**) и `git diff --check` проходят. Первый целевой запуск: **26 прошли / 8 ошибок новых тестов**. На отдельной странице поста отсутствует `main`; восемь новых тестов ошибочно искали картинки внутри него и останавливались до проверки геометрии. После исправления селекторов на той же сборке прошли **18 сценариев** одной группой: все восемь исправленных и десять прежних регрессий фото/каруселей/комментария. В совокупности **44 уникальных целевых сценария прошли**; это два запуска, а не один непрерывный зелёный полный набор. Общий набор содержит **176 сценариев**, полностью после этого шага не запускался. Просмотрены снимки одиночной рамки, сетки с отказом фото и карусели. Артефакты: `/tmp/daryadarcy-fixed-photo-frames`, `/tmp/daryadarcy-fixed-photo-recheck`; временные пути не являются постоянным хранилищем доказательств.
+
+**Для этого решения width/height от бэкенда больше не требуются.** Предыдущую просьбу о серверных размерах следует рассматривать как возможное улучшение для будущего возврата естественной высоты и responsive внешних медиа, а не блокировку выбранного отображения. Остальные задачи переданного бэкенд-хэнд-оффа сохраняются. Пункт 36 остаётся частично закрытым из-за вариантов внешних изображений и реальных LCP/CLS/INP/устройств; клиентская геометрия фоторамок реализована и проверена. Следующая независимая задача — ограничение DOM/данных длинных списков (остаток 35), с сохранением черновиков, фокуса, медиа и доступа к прежним записям.
+
+## Загрузка изображений и геометрия — 6 октября, пункт 36
+
+Исторический результат предыдущего подшага. После него применялась постоянная рамка 4:5; 7 октября возвращены естественные пропорции. Актуальное поведение описано в разделе «Одинаковый размер блока фотографий» в начале плана.
+
+Продолжение в `fix/frontend-improvements`, только фронтенд. На прежней production-сборке две контрольные проверки (390/1440 px) воспроизвели преждевременную загрузку: последняя фотография из 12 запрашивалась до прокрутки. Причина в фотогалереях — отдельные `new Image()` из hook пропорций, которые обходили возможность отложенной загрузки отображаемых картинок.
+
+`Picture` теперь по умолчанию использует `loading="lazy"` и `decoding="async"`, поддерживает `fetchPriority`, `srcSet`, `sizes` и HTML width/height из известного source. Главный баннер, баннеры Ленты/Клуба, текущая промо-карточка и обложка статьи явно загружаются сразу; активное фото полноэкранного просмотрщика также eager. `DomImage`, через который отображаются фоны, сохраняет обычную немедленную загрузку и получает async decoding/известные размеры. Отдельные фоновые текстуры этим шагом не переводились на lazy.
+
+Локальный главный баннер использует статический импорт изображения и `getImageProps` из установленного Next.js: настоящие responsive URL оптимизатора, размеры исходника 1400×875 и `sizes="(max-width: 480px) 100vw, 480px"`. В обоих тестах при DPR=1 браузер выбирает ширину 640 px; контейнер остаётся 390/480 px соответственно. Работа проверена на `next start`, включая `/_next/image`; конфигурация выпуска Next.js остаётся отдельной задачей существующего плана. Для внешних фото варианты не выдумываются: текущий API не выдаёт набор размеров/URL.
+
+Фотосетки, карусель и карточка видео получают пропорции из `onLoad` уже отображаемой фотографии/обложки. Отдельные сетевые пробы этих галерей удалены. Общий LRU-кэш содержит максимум 256 URL; он не принимает нулевые/отрицательные/нечисловые размеры. Состояние загруженных пропорций привязано к текущему набору URL: замена изображения не оставляет пропорции предыдущего. Сохраняются естественные пропорции и существующие правила cover/contain. Это ограничение кэша метаданных, а не решение роста DOM, страниц запросов и общей памяти из пункта 35.
+
+Ошибка `Picture` показывает «Изображение недоступно» внутри существующего контейнера, не раскрывает URL/служебные сведения и не меняет его размер. При замене URL ошибка старого изображения не переносится на новое. Уже известные пропорции используются при повторном создании карточки; первый кадр незнакомого URL остаётся с прежним fallback 4/5, после загрузки уточняется.
+
+Проверки: production-сборка, общий TypeScript и E2E-типы, ESLint, `check:api` (72 процедуры, контракт не изменён), границы модулей (437 файлов), `pnpm verify` (**202 / 18 файлов**) прошли. [Семь новых браузерных сценариев](../../apps/frontend/e2e/image-loading.spec.ts) прошли: загрузка дальней картинки только после прокрутки без отдельных проб на 390/1440 px; отложенный 404 без изменения рамки; замена URL с другими пропорциями и сбросом ошибки; восстановление известной геометрии до повторной загрузки; eager/responsive первого баннера на двух ширинах. Дополнительно на этой же сборке прошли **37 прежних сценариев** редакторов/взаимодействий, каруселей, длинных списков, подготовки медиа и навигации, без ошибок/повторов; длительность 6,5 минуты. Итого в двух целевых запусках **44 прошли**. Общий набор теперь содержит 156 сценариев; полностью после этого шага не запускался. Длительность некоторых прежних сценариев около 30 секунд по-прежнему связана с оставшимися ожиданиями load/внешними ресурсами, окончательная причина каждого ожидания не измерялась. Просмотрены снимки баннера, заглушки и Ленты. Артефакты: `/tmp/daryadarcy-images-before`, `/tmp/daryadarcy-images-after`, `/tmp/daryadarcy-images-regressions`; временные пути не являются постоянным хранилищем доказательств.
+
+**Пункт 36 закрыт частично.** Реальный API сейчас хранит фото как URL и возвращает из uploadPhoto только `{url}`. Полностью убрать первый скачок высоты нового фото, сохранив естественные пропорции, можно после согласования серверных width/height в ответах чтения постов/медиа. Нужны размеры итогового сохранённого файла после auto-orient/resize/re-encode; размеры исходного выбранного файла не подходят. Согласовать также варианты изображения для responsive внешних медиа и работу со старыми записями. Бэкенд в этом шаге не изменялся. Отдельная проба постера в `VideoPreviewCard` и native-video preload остаются вне исправленных фотогалерей. LCP/CLS/INP, реальные медиа и физические устройства не измерены. Следующая независимая задача — ограничение DOM/данных длинных списков (остаток пункта 35), с сохранением черновиков, фокуса, медиа и доступа ко всем постам.
+
+## Как вернуться к работе
+
+1. Прочитать этот файл и проверить текущее рабочее дерево. До аудита уже были многочисленные изменения миграции; их не откатывать и не считать правками текущего поручения.
+2. Эталон текстов и дизайна — [сохранённый Expo-фронтенд](../../apps/legacy-expo/). Более ранний [Vite-фронтенд](../../apps/legacy-web/) — дополнительная справка; не смешивать различающиеся версии без сверки.
+3. Использовать границы первого этапа ниже. Технический приоритет P1 из общего аудита сам по себе не расширяет договор: защита расширенных советов теста, например, явно исключена.
+4. Для автономных проверок использовать тестовые ответы API. Реальные платежи, письма, публикации, загрузки в production и нагрузочные проверки не выполнять без отдельного согласования.
+5. После возобновления разработки идти по разделу «Порядок работы на нашей стороне». Сохранять дизайн и исходные тексты, кроме конкретных согласованных изменений заказчика.
+6. После каждой выполненной задачи обновлять её статус, результат проверки и оставшуюся зависимость от API. Доказанный дефект, риск по исходникам и непроведённую проверку отмечать отдельно.
+
+Основной сервер разработки фронтенда — http://127.0.0.1:8081. Последняя проверка портов показала только фронтенд, без API на 3000 и MySQL на 3306; это снимок состояния, не гарантия для следующей сессии. При необходимости запуска использовать `pnpm dev:frontend` из корня, а не общий `pnpm dev`.
+
+## Продолжение после merge staging — 5 октября 2026 года
+
+Текущая ветка — `fix/frontend-migration-regressions`, основа — `staging` (`baef30f`). Наши изменения восстановлены поверх merge. Проверяем фронтенд с тестовыми ответами; бэкенд и база остаются вне текущей работы.
+
+**Порядок сохранения обновлён после merge.** Переиспользуется существующий `PostSaveCoordinator`: audio/document загружаются без `postId`, подтверждённые URL удерживаются в редакторе, затем текст, статус, видео, новые `attachments` и `removedMediaIds` передаются одним create/update-запросом. До него опубликованный пост не переводится в черновик. Явный отказ загрузки не меняет пост; повтор использует уже подтверждённые файлы. Неизвестный результат записи автоматически не повторяется; подтверждённый commit завершает текущий координатор. Серверная транзакция, повторы после перезагрузки и очистка непривязанных файлов требуют интеграционной проверки; чтение клиентского кода не подтверждает их. Выход также принимает актуальный ответ `{success:true}`. Старый порядок через промежуточный черновик ниже заменён актуальным.
+
+Уточнение пользователя: **«Мои мудборды» только скрываем**, сохраняя возможность вернуть. Это раздел профиля вместе с его переходами; изображения мудбордов в тесте и материалах эстетик остаются контентом. Используем `PERSONAL_MOODBOARDS_ENABLED` в существующем `profile-screen.content.ts`, без новой системы флагов и изменений API. Когда выключено, раздел вообще не рендерится: нет видимых карточек, переходов, места под блок и элементов для клавиатуры.
+
+Первый шаг — скрытие персонального раздела. Второй — неактивная плашка «Почтовое отделение — скоро» в исходной карточке Комьюнити. Сохранены компонент `PenPals`, существующие `Picture`/`Typography` и стили; открытие требует одновременно `PEN_PALS_ENABLED` и capability API. Флаг выпуска выключен, поэтому ответ API сам по себе не открывает отложенную функцию.
+
+По уточнению пользователя частично относящиеся к договору технические пункты прорабатываем вместе; границы приёмки и возможность скрыть исключённые функции отмечаем отдельно. Скрытие новой функции не выполняется автоматически вместо её обсуждения. Перед следующей задачей проверять существующие компоненты, функции и тестовые fixtures. Сначала выбирать минимальное решение; выделять общую логику только при реальной необходимости. На каждый шаг — проверка поведения и обновление статуса. Пагинация Клуба, управление вложениями основной админки и основные исправления клавиатуры/названий действий реализованы на фронтенде. Разбор прежних таймаутов общего E2E-набора (41) описан в седьмом шаге ниже: общий прогон завершился 120 прошедшими/3 пропущенными сценариями. После него измерены длинные списки и устранены лишние обновления прокрутки (восьмой шаг); прошли 4 новых и 46 прежних целевых регрессий. Следующий подшаг — загрузка изображений и стабильная геометрия (36), затем ограничение DOM/памяти длинных списков (остаток 35). Согласованные интеграции принимаем после merge бэкенда в staging. Полная производственная приёмка остаётся незавершённой.
+
+Проверки двух первых шагов завершены: TypeScript приложения и E2E, ESLint, форматирование, production-сборка и `pnpm verify` (**142 теста / 18 файлов**) прошли. Полный браузерный набор после этих шагов — **47 прошли, 3 пропущены** для настоящего API. Дополнительно проверены шесть состояний интерфейса: профиль с результатом теста и без него на 390/1440 px и Комьюнити с `penPals=false/true`. Скрытые карточки и переходы отсутствуют в DOM, результат теста сохранён, плашка не открывает форму, запросов `penPals` нет, горизонтального переполнения нет. Просмотрены снимки профиля и Комьюнити. Всё запускалось в временной production-копии с тестовыми API, без бэкенда и базы. Дополнительные тестовые файлы и компоненты ради простого переключения видимости не добавлялись. **Пункты 4.13 и 4.14 выполнены на фронтенде.**
+
+**Третий шаг — общие фото и точки, 4.7.** Сначала переиспользованы `PostPhotoCarousel`, `PhotoViewer`, `ScrollArea`, `MeasuredBox` и существующие браузерные fixtures. Для двух потребителей выделены только небольшой `PhotoDots` и общий обработчик клавиш; библиотека каруселей не добавлялась. Точки просмотрщика сохраняют размеры, цвета и положение из Expo. Карусель поста получила такую же индикацию; сетки до девяти фото сохранены. Как в Expo-просмотрщике, точки показываются для 2–10 фото, длинные галереи используют числовой счётчик. Стрелки, Home/End переключают фото в пределах списка; открытие фото и закрытие просмотрщика получили доступные подписи.
+
+До исправления браузер воспроизвёл потерю нового выбора при немедленном resize после прокрутки: индекс обновлялся только после задержки `onScrollSettled`. Теперь он обновляется при прокрутке. Следующая проверка показала, что полноэкранный диалог использовал ширину макета, ограниченную 480 px: на широком окне последний снимок не достигал правильной позиции. `useViewport` переиспользует существующую подписку и теперь поддерживает полный размер окна через `scope="screen"`; просмотрщик использует его, остальные экраны сохраняют прежний расчёт.
+
+Девять браузерных сценариев фото прошли: пост, Лента и Клуб; первая/последняя позиции; точки и счётчик; открытие выбранного фото; resize 390/844/1280/320 px; немедленная смена ширины после прокрутки; уменьшение списка 12→10 и очистка; 0/1/11 фото. В отдельной эмуляции Chromium проверены нативные горизонтальные touch-свайпы и закрытие свайпом вниз, просмотрены три снимка поста/просмотрщика на 390/1280 px. Физические iPhone/Safari/Android, установленная PWA и реальные фото API остаются отдельной приёмкой 4.7/4.16.
+
+В общих проверках также обнаружены ранние действия тестов до загрузки клиентского JavaScript: в трассе Библиотеки chunks ещё ожидались, запрос списка не начался; в сценарии Выкроек кнопка была нажата до завершения загрузки chunks. В существующем `layout-fixtures.ts` добавлен `gotoWithSession`: после перехода он дожидается ответа клиентской проверки сессии, прежде чем тест начнёт действия. Публичная статья и переход Выкройки→Тест затем прошли по три повторения. Это синхронизация тестов, а не исправление поведения приложения до гидратации. **Ранние клики при медленной загрузке JavaScript отдельно проверить в 4.16; полноценное поведение такого состояния пока не принято.**
+
+**Проверки третьего шага:** TypeScript приложения/E2E, ESLint, форматирование, production-сборка и `pnpm verify` (**142 / 18 файлов**) прошли. Браузерный набор вырос до **58 сценариев**. В layout-тесте ожидание количества всех заголовков оказалось недостаточным: оно могло завершиться до появления скрытого промежуточного узла. Итоговое ожидание проверяет единственный **видимый** заголовок, затем его положение; скрытые узлы не выбираются. После этой правки сценарий успешно прошёл три повторения и итоговый общий прогон.
+
+**Итоговый полный браузерный прогон: 52 прошли, 3 пропущены, 3 таймаута.** Все девять сценариев фото, семь migration-regressions и три layout-сценария прошли. Не завершились существующие проверки: общий обход 13 маршрутов на 1440 px (30 сек., ожидание ответа сессии), регистрация (30 сек., ожидание `load` страницы входа) и отложенная первоначальная сессия (45 сек., ожидание `load` страницы входа). В других общих прогонах эти сценарии проходили; единый зелёный итог пока не получен. Трасса обхода содержит незавершённые локальные запросы и медиа `s3.twcstorage.ru`; точную причину всех трёх таймаутов ещё нужно установить. **Разбор стабильности общего E2E-набора остаётся задачей пункта 41**, эти таймауты не объявлены исправленными и не подменены увеличенными лимитами. Трассы последнего прогона: `/tmp/daryadarcy-carousel-_shk46k8/apps/frontend/test-results/`. Код приложения после production-сборки не менялся. Бэкенд/БД не запускались; временные серверы остановлены.
+
+**Четвёртый шаг — пагинация Клуба, пункт 35 / 4.15.** На прежней production-сборке воспроизведено: рубрика Комьюнити не находила публикацию №221, потому что Клуб запрашивал максимум 200 постов и игнорировал `nextCursor`. Проверка использовала тестовый API, а не реальную базу. Теперь переиспользованы существующие `useInfiniteQuery` из Ленты, `Collection.onLoadMore`, `QueryRetryState` и обновление списка. Загружаются страницы по 12 записей, внизу есть автоматическая подгрузка и кнопка «Загрузить ещё». Карточки, их стили и исходная сортировка сохранены; новая библиотека списков не добавлялась.
+
+Рубрика и фильтр остаются локальными: текущий клиентский контракт API поддерживает один `tag`, который не выражает одновременно приоритет рубрик, старые названия и сезонный/тематический фильтр. При отсутствии совпадений проверяются следующие страницы; пустой раздел показывается только после завершения списка. Это сохраняет правильность поиска, но редкий/отсутствующий тег может потребовать чтения всего списка. Эффективная серверная фильтрация и стабильный порядок курсоров требуют согласования будущего API. В затронутой функции `postHasTag` также исправлено сопоставление slug с русским названием: `spring` теперь находит старый тег «Весна»; прежнее прямое сопоставление произвольных тегов сохранено. Кнопки открытия/закрытия существующей панели фильтров получили доступные названия.
+
+Загруженные страницы не исчезают при ошибке следующей страницы или обновления; повтор выполняется явно, без раскрытия технического сообщения API. Пересекающиеся страницы объединяются по ID. Повтор уже использованного курсора прекращает автоматические запросы и показывает ошибку с повтором вместо ложного завершения списка. Проверка затронутой логики включает границы курсора, пустые промежуточные страницы, сохранение позиции, сочетание фильтров и обновление нескольких страниц.
+
+Первые десять новых браузерных сценариев прошли на изолированной production-сборке Chromium: запись после первых 200; все 221 записи без фильтра; перекрытие ID и позиция; ошибка следующей страницы и повтор того же курсора; начальная ошибка; пустая промежуточная страница и старое «Письмо»; повтор курсора; «Лайф» + «Весна» на следующей странице; pull-to-refresh; отказ обновления и последовательный повтор обеих страниц. Дополнительная проверка с задержанным ответом воспроизвела недочёт нового состояния: при повторе неудачной следующей страницы в разделе без совпадений ошибка оставалась вместо загрузчика. Исправлено в том же `QueryRetryState`: активный запрос имеет приоритет над предыдущей ошибкой. Регрессия добавлена в [club-pagination.spec.ts](../../apps/frontend/e2e/club-pagination.spec.ts). TypeScript приложения/E2E, ESLint и `pnpm verify` (**142 / 18 файлов**) прошли. Бэкенд, база и конфигурация запуска не менялись.
+
+**Итог четвёртого шага:** финальная production-сборка прошла; на ней **21 браузерный сценарий прошёл** — все 11 новых сценариев списка, все девять сценариев фото и существующий отказ загрузки фото комментария. Промежуточный расширенный прогон трёх файлов дал **39 прошедших / 2 таймаута**: фото и комментарий Клуба остановились на `page.goto(..., waitUntil: "load")`, до действий и проверок. Трасса фото содержит успешные ответы тестового API и незавершённые внешние ресурсы `s3.twcstorage.ru`. В тестах фото/комментария переиспользован `gotoWithSession`; все их утверждения сохранены, после этого итоговая группа прошла. Это исправление ожидания тестов, не исправление доступности медиа. Общий набор теперь содержит **69 сценариев**, полностью после этого шага не запускался; прежние таймауты общего набора остаются пунктом 41. Трассы промежуточного прогона: `/tmp/daryadarcy-club-pages-t8aihd8v/apps/frontend/test-results/`; итоговая сборка — `/tmp/daryadarcy-club-final-l35nv_j4/`, итоговые тесты — `/tmp/daryadarcy-club-final-confirmation/`. Временные артефакты не являются постоянным хранилищем доказательств; предыдущие пути `/tmp` могут быть перезаписаны новыми прогонами.
+
+**Пункт 35 закрыт частично.** Доступность всех страниц исправлена; ограничение DOM/памяти не реализовано. В повторной браузерной проверке текстового списка внутри скролла было **263 DOM-элемента при 12 постах и 4649 при 221 посте**; это число элементов, не измерение памяти или производительности реальных медиа. Загруженные страницы остаются в кэше, `Collection` создаёт карточки всего массива, а в Комьюнити комментарии отображаются внутри карточек и запрашиваются для смонтированных постов. Карточки с реальными фото, аудио, видео и комментариями ещё требуют измерения длительной сессии на устройствах. Политику ограничения страниц или виртуализацию нельзя выбрать по одному тестовому текстовому списку. Проверка фокуса закрытой панели фильтров остаётся в пункте 39: панель сейчас сохраняется в DOM и скрывается перемещением, отдельного `inert` у неё нет. Это наблюдение по коду, а не проведённая приёмка клавиатуры.
+
+**Пятый шаг — аудио и документы основной админки, пункт 26 / 4.6.** На прежней production-сборке браузер подтвердил отсутствие существующего аудио в основной форме: `existing.mp3` из тестового API не отображался. Из модального редактора выделены общие `usePostAttachments` и `PostAttachmentsField` / `PostAttachmentsList`. Обе формы используют один выбор файлов, восстановление существующих вложений, явное удаление по ID, отмену через `useSessionOperation` и прежний `PostSaveCoordinator`. Координатор и протокол API не переписывались. Стили общего блока взяты из существующей модальной формы, её неиспользуемые правила удалены; новые зависимости и отдельная система состояния не добавлялись.
+
+Основная форма показывает существующие audio/document, позволяет добавлять новые и удалять выбранные; сохранение передаёт новые `attachments` и `removedMediaIds` в одну итоговую запись после загрузок без `postId`. Неизменённые вложения не загружаются повторно. Допускается пост только с вложениями. Предпросмотр показывает имена файлов, а не проигрывает ещё не сохранённые файлы; для выбора не создаются preview URL и не читается base64. Заглушка «Текст поста…» не выдаётся за содержимое поста без текста. Скрытая форма во время предпросмотра становится `inert`, но остаётся смонтирована для сохранности черновика. Закрытие сбрасывает вложения, удаления и режим предпросмотра; календарный новый пост также сбрасывает вложения.
+
+В переиспользуемой логике исправлены MIME: прежняя сборка отправляла WAV с отсутствующим браузерным типом как `audio/mpeg`, а DOCX с общим типом браузера как `application/zip`; обе ошибки воспроизведены в браузере. Теперь известные расширения аудио используются при отсутствии MIME, а документы получают согласованный тип PDF/DOC/DOCX/TXT. Пустые и слишком большие файлы отклоняются существующим общим лимитом 32 МБ до чтения. Проверяются расширение документа и противоречащий ему заявленный тип; проверка реальных байтов, серверные лимиты и права остаются ответственностью API. Имена файлов отображаются как текст, не как HTML или URL действия. При выборе/сохранении используются существующая блокировка операции и отмена при потере сессии; дополнительные механизмы авторизации не добавлялись.
+
+**Проверки пятого шага:** TypeScript приложения/E2E, ESLint, форматирование, `pnpm verify` (**142 / 18 файлов**) и финальная production-сборка прошли. [Десять новых сценариев](../../apps/frontend/e2e/admin-attachments.spec.ts) прошли: неизменённые вложения без повторной загрузки; удаление + добавление + повторное чтение поста; создание без текста и предпросмотр на 390/1440 px; частичная ошибка upload и повтор с сохранённым подтверждённым файлом; запрет повторной неизвестной записи; закрытие во время upload, поздний ответ и новый черновик; для обеих форм — пустой/больше 32 МБ/неподдерживаемый/противоречащий MIME документ до FileReader и API; для обеих форм — MIME WAV и DOCX. Проверка предпросмотра включает попытку фокуса скрытой кнопки и восемь Tab-переходов. Просмотрены четыре снимка обеих форм и предпросмотра; переполнения на проверенных ширинах нет.
+
+После выделения общей логики также прошли **12 существующих регрессий** сохранения/медиа/взаимодействий/истечения сессии/вложенного диалога. На финальной сборке отдельно прошла группа **11/11**: десять новых и вложенный редактор ссылки. Старый `editorApi` без изменения ответов вынесен в общий `editor-fixtures.ts`; быстрый редактор использует существующее `gotoWithSession`. Первоначальные ошибки новых тестов были исправлены: кнопка основной формы называется «Новый», а сохранение быстрой формы выбирается в заголовке, где «Опубликовать» отличается от переключателя статуса. Отсутствие DOM-узлов не используется как проверка `inert`: поля намеренно сохранены, проверяется реальное поведение фокуса.
+
+Общий набор теперь **79 сценариев**, полностью после этого шага не запускался; прежние ограничения пункта 41 сохранены. Проверки выполнялись в изолированных копиях без `.env`, бэкенда, БД и реальных загрузок. Итоговая сборка и снимки: `/tmp/daryadarcy-admin-attachments-final-q6zapktp/`; 12 существующих регрессий: `/tmp/daryadarcy-admin-attachments-regressions/`; исходные дефекты: `/tmp/daryadarcy-admin-attachments-before/` и `/tmp/daryadarcy-admin-mime-before/`. Временные пути не являются постоянным хранилищем. **Клиентская часть пункта 26 реализована; реальное сохранение/удаление/чтение и права нужно принять после merge `fix/backend-hardening` в staging.** Всё 4.6 этим шагом не завершено: выделение и форматирование на iPhone, настоящие медиа и интеграционный цикл остаются отдельной приёмкой.
+
+**Шестой шаг — клавиатура, панели и названия действий, пункт 39 / основные сценарии 4.16.** Это исправления технического пункта, частично относящегося к приёмке первого этапа; отдельная полная сертификация доступности договором не заявлена. На прежней production-сборке подтверждено попадание фокуса в закрытые фильтры Клуба. Теперь React-состояние определяет `inert`/`aria-hidden` панели и ручки; открытие переводит фокус к закрытию, Escape внутри панели закрывает её и возвращает фокус, выбор сообщает `aria-pressed`. Панель остаётся немодальной: рубрики и другая навигация доступны при открытии. Общий `Dialog` не перенастраивался и не заменял исходную панель; отдельная система удержания фокуса не добавлялась.
+
+При изменении ширины пересчитывается закрытое положение панели. Отложенный перезапуск существующей анимации отменяется при открытии/размонтировании. У кнопок с иконками и изображениями добавлены названия: поиск и вид Ленты, навигация, фото/видео, обложки Библиотеки, выкройки, товары и отзывы, редактор фото/видео/блоков статьи, месяцы и дни календаря. Названия действий сохранения и отправки сохраняются при показе spinner. Ответы визуального теста получили порядковые названия и состояние выбора; это не описания изображений и не подтверждение возможности пройти визуальный тест без зрения.
+
+В комментариях переиспользованы `safeExternalUrl`, `normalizeLinkUrl` и оформление `ui-inline-link`: вместо кликабельного `Typography` используется настоящий `<a>` с `noopener noreferrer`. Недопустимый адрес остаётся текстом. Меню получило верное название «Действия с комментарием», его кнопка и лайк — названия, лайк сообщает состояние. Код сессии, мутаций, прав и сохранения данных этим шагом не переписывался.
+
+Просмотр снимков выявил обрезание кнопки сброса фильтра на узком экране; отдельный тест на сборке до исправления подтвердил неполную видимость после wheel. Размеры рамки совпадают с перенесёнными из Expo; неверное сохранение дизайна само по себе этим сравнением не доказывается. Для доступности всех действий переиспользован `ScrollArea`, а высота области ограничена оставшейся видимой частью рамки и окна. Размеры изображения, исходные отступы тегов, шрифты, цвета и CSS панели сохранены. Дополнительный сценарий проверяет wheel, полную видимость кнопки с учётом обрезающих предков, клавиатурный сброс и возврат фокуса на 320×844, 390×844 и 480×320. Просмотр снимка новой прокрутки обнаружил её боковое обрезание длинных рядов: viewport прокрутки расширен до исходной рамки, горизонтальные отступы перенесены на содержимое без смещения тегов. Добавлена проверка ширины всех кнопок относительно всех обрезающих предков; итоговый снимок на 320 px подтверждает исправление.
+
+**Границы скрытия:** фильтры, комментарии, просмотр медиа и действия публикации нужны первому этапу, скрывать их ради обхода ошибок нельзя. Редактирование имени/аватара профиля и стартовую анкету имени/аватара/пола в Клубе можно рассмотреть для скрытия, сохранив код и отображение полученных данных аккаунта. Это предложение, нового флага и скрытия в этом шаге нет; исключения пунктов 17–18 сохраняются. «Мои мудборды» и полноценное Почтовое отделение уже скрыты ранее. Два кликабельных `Typography` остаются в отключаемой через capability SMS-форме; SMS не входит в путь первого этапа, его включение и доработка в этом шаге не выполнялись.
+
+Проверки: TypeScript приложения и E2E, ESLint, production-сборка и `pnpm verify` (**142 / 18 файлов**) прошли. До последнего исправления прокрутки на финальной сборке прошла группа **19/19**: семь новых проверок доступности, русские теги/сброс фильтра, девять фото, отказ фото комментария и вложенные диалоги. Ранее также прошли все десять сценариев вложений и десять остальных сценариев пагинации. Изменение доступного имени сброса учтено в прежнем тесте, утверждение о видимом `spring ×` сохранено. Ошибки новых тестов (слишком ранняя проверка URL popup, ожидание `main` на самостоятельном экране, параметр `testInfo`) исправлены без ослабления проверки поведения. **На окончательной production-сборке прошли 9/9: все восемь новых сценариев и существующая регрессия русских тегов/сброса.** Типы приложения/E2E, ESLint и форматирование прошли, исходники `src`/`e2e` совпали с проверяемой временной копией. Снимки открытой/закрытой панели и сброса на узких/низких экранах просмотрены; внешнее оформление в этих проверках подменено. Для снимков завершение анимации проверяется по границе всей панели, а не кнопки закрытия.
+
+Общий набор — **87 сценариев**, целиком после шага не запускался. Проверки используют тестовые API и подменённые внешние декорации; снимки подтверждают геометрию/состояния, но не являются pixel diff с рабочим Expo и настоящими изображениями. Остались приёмка screen reader и физических Safari/iPhone/Android, согласование описаний визуальных ответов и общий набор пункта 41. Артефакты: `/tmp/daryadarcy-accessibility-final-fk1if97p/`, `/tmp/daryadarcy-accessibility-complete-results/` и `/tmp/daryadarcy-accessibility-panel-final/`; исходный фокус — `/tmp/daryadarcy-accessibility-before/`, обрезание — `/tmp/daryadarcy-filter-clipping-before/`. Временные пути не являются постоянным хранилищем. Бэкенд, база, env, зависимости и конфигурация запуска не менялись.
+
+**Седьмой шаг — стабильность общего браузерного набора, пункт 41.** На исходном состоянии этого шага полный production-прогон завершился: **84 прошли, 3 пропущены для настоящего API, 0 ошибок**, всего 87. Прежние три таймаута в этом запуске не повторились; это не основание объявлять их дефектами приложения или утверждать, что случайная задержка устранена.
+
+Для регистрации и отложенной первоначальной сессии задержана загрузка декоративных изображений `s3.twcstorage.ru`. Оба прежних ожидания воспроизводимо остановились на `page.goto(..., waitUntil: "load")` — через исходные 30/45 секунд; форма при этом уже могла работать. Регистрация, проверка неудачного входа и восстановления пароля используют существующий `gotoWithSession`; он возвращает ответ навигации, сохраняя ожидание успешного `/api/auth/me` и `domcontentloaded`. Тест отложенной сессии намеренно не ожидает ответ удержанного запроса: он ожидает начало этого запроса, входит через форму, освобождает старый ответ и проверяет, что после завершения старого обработчика пользователь остаётся вошедшим. Удержанный ответ освобождается и при ошибке теста. **Оба контрольных сценария прошли после исправления ожиданий при всё ещё незавершённой картинке (2/2)**; проверки согласия, содержимого регистрации и отсутствия парольного поля/токена сохранены.
+
+Прежний обход 13 страниц на каждой из трёх ширин делил один лимит 30 секунд на весь цикл. Теперь каждая пара маршрут/ширина — отдельный тест с тем же лимитом; ответы 200, непустой интерфейс, ошибки выполнения/hydration, ширина корня и отсутствие горизонтального переполнения проверяются как раньше. Приложение и API этим не переписываются. Причина именно прежнего таймаута широкого обхода по старой трассе окончательно не установлена; кумулятивный бюджет устранён как источник нестабильности, а не выдан за подтверждённую ошибку экрана. Число сценариев выросло с 87 до **123** только из-за разделения трёх обходов на 39 отдельных проверок.
+
+TypeScript E2E, ESLint изменённых тестов и форматирование прошли. Исходники приложения не менялись и совпали с предыдущей production-сборкой; новая сборка приложения не требовалась. **Окончательный общий production-прогон: 120 прошли, 3 пропущены для настоящего API, 0 ошибок и 0 повторов**, всего 123 сценария; длительность 339 секунд, один worker, Chromium. Предыдущий финальный запуск был прерван сигналом SIGTERM до итогового отчёта и не принимается как успешный; оставшийся его сервер остановлен перед повтором. В окончательном наборе проверка ошибки видео заняла 22,4 секунды, подписки — 16,9 секунды. Точную причину длительности эти данные не доказывают; часть остальных тестов ещё использует ожидание `load` и настоящие внешние ресурсы. Это риск будущей нестабильности тестов, а не подтверждённое зависание приложения; независимость всего набора от внешних медиа остаётся отдельной доработкой.
+
+Проверки идут в изолированной production-копии, без бэкенда/БД и локальных env. Доступность настоящих внешних файлов, физические устройства и реальные API-интеграции этим набором не принимаются. Функционал и дизайн приложения этим шагом не изменены, ничего дополнительно не скрыто. Артефакты: исходный полный отчёт `/tmp/daryadarcy-e2e-all-before.json`; контролируемые таймауты `/tmp/daryadarcy-e2e-held-media-before/`; проверка исправления `/tmp/daryadarcy-e2e-held-media-after/`; окончательный прогон `/tmp/daryadarcy-e2e-complete/`. Это временные пути, не постоянное хранилище доказательств.
+
+**Восьмой шаг — измерение длинных списков и изоляция обновлений прокрутки, пункт 35.** Проверены Клуб и Лента на изолированных production-сборках до/после правки: по 360 тестовых публикаций переменной высоты, одна или четыре фотографии, по три комментария в Комьюнити. Существующий `layoutApi` задаёт сессию; API и внешние изображения подменены, фотографии — SVG одинакового размера. Загрузка страниц выполняется при обычной скорости CPU; только для двух проходов прокрутки из 120 кадров включено замедление CPU в четыре раза. Playwright tracing отключён для измерений. Это синтетическое сравнение в Chromium, не приёмка настоящих файлов, мобильных устройств, LCP/CLS/INP или общей памяти браузера.
+
+Найдено лишнее обновление: появление/исчезновение «Наверх» меняло состояние всего экрана, повторно обрабатывая все карточки. Состояние и пассивный обработчик scroll перенесены в существующий [ScrollToTopButton](../../apps/frontend/src/shared/ui/scroll-to-top-button.tsx), который используют Клуб и Лента. Сохранены порог строго выше 360 px, плавная прокрутка, оформление, расположение и длительности анимаций. Обработчик снимается при размонтировании; при смене списка/сетки кнопка перемонтируется и подключается к новому контейнеру. В промежуточной правке одинаковые ключи кнопки и `Collection` воспроизводимо создавали видимые копии Ленты; кнопке назначен отдельный ключ `scroll-top-${viewMode}`. Итоговые тесты проверяют единственный список при пагинации и обоих переключениях вида.
+
+Пробный `content-visibility` отклонён: он уменьшал работу раскладки при добавлении страниц, но ухудшал прокрутку Ленты в этом сценарии. `Collection` и его SCSS возвращены к состоянию до шага. Итоговая правка ограничена тремя исходными файлами; новая библиотека списков и отсечение загруженных данных не добавлялись.
+
+Время JavaScript за тестовую прокрутку Клуба составило **5,394 → 0,083 секунды**, Ленты — **0,969 → 0,073 секунды**. Медиана интервала кадров: Клуб **42,9 → 35,2 ms**, Лента **25,0 → 25,1 ms**; 95-й перцентиль: **294,3 → 112,9 ms** и **96,5 → 81,1 ms** соответственно. Это отдельные сравнимые прогоны, а не статистическая гарантия скорости. Накопленная раскладка при загрузке не улучшилась устойчиво: **8,61 → 9,18 секунды** в Клубе, **1,72 → 1,79 секунды** в Ленте. Поэтому устранение лишних React-обновлений не объявляется решением всей производительности.
+
+При 360 публикациях внутри списков осталось **32 948 DOM-элементов** в Клубе и **9438** в Ленте, как до изменения. JavaScript heap всей страницы после принудительной сборки мусора: Клуб **62,3 → 61,7 млн байт**, Лента **22,9 → 22,8 млн байт**; это не существенное ограничение памяти. В Клубе всё ещё запрошены комментарии для всех 360 смонтированных постов. **Пункт 35 остаётся частично закрытым:** DOM, страницы кэша и комментарии растут; ограничение длительной сессии пока не реализовано. Следующий подшаг — политика загрузки изображений и стабильные размеры (36), затем выбор оконного отображения/ограничения данных с сохранением черновиков, фокуса, медиа и доступности прежних записей. Отбрасывание верхних страниц без пути вернуться к ним неприемлемо.
+
+Добавлены [четыре постоянные браузерные проверки](../../apps/frontend/e2e/long-lists.spec.ts) на 390/1440 px: 48 записей с фото и комментариями, сохранность ответа при уходе за экран, возврат фокуса и resize, сохранность раскрытого текста, порог/нажатие «Наверх», смена активного контейнера списка/сетки. На финальной сборке прошли **4/4**. До уточнения селектора группа дала **48/50**: два новых теста Клуба ошибочно выбирали также отдельный скролл фильтров; теперь выбираются контейнеры с карточками/строками, утверждение о единственном списке сохранено. **Все 46 прежних регрессий** пагинации, навигации, доступности и редакторов прошли в этой группе. Это совокупность прогона и целевого повтора, а не один непрерывный зелёный запуск 50 тестов. Оба диагностических сценария на 360 публикаций прошли отдельно (2/2).
+
+Production-сборка, TypeScript приложения/E2E, ESLint затронутых исходников/новых тестов, форматирование и `git diff --check` прошли. Исходники совпадают с проверенной production-копией. Снимки первого экрана Ленты до/после на одинаковых данных совпали попиксельно; в последней паре Клуба отличалась только фаза движения исходной ручки фильтров (область x=363…389, y=254…323), остальное совпало. Это сравнение текущего Next.js с самим собой на подменённых изображениях, не визуальная приёмка Expo. Функции дополнительно не скрывались. Бэкенд, БД, env, зависимости и конфигурация запуска не менялись.
+
+Общий поддерживаемый набор теперь **127 сценариев**; полностью после изменения приложения он не запускался. Последний общий прогон предыдущего шага — 120 прошли/3 пропущены из 123. Текущие артефакты: `/tmp/daryadarcy-lists-before-clean.log`, `/tmp/daryadarcy-lists-key-fixed-profile.log`, `/tmp/daryadarcy-lists-key-fixed-profile/`, `/tmp/daryadarcy-lists-regressions.log`, `/tmp/daryadarcy-lists-final-tests.log`, `/tmp/daryadarcy-lists-final-tests/`; итоговая сборка — `/tmp/daryadarcy-lists-after-t14g_pe4/`. Это временные материалы; методика, числа и ограничения сохранены здесь.
+
+## Исправления после сверки с Expo — 5 октября 2026 года
+
+Пользователь уточнил объём: исправляем и новые ошибки переноса, и унаследованные ошибки Expo, если они входят в первый этап. В этом проходе устранены перечисленные ниже причины на фронтенде. Бэкенд, база, зависимости и конфигурация запуска не изменялись. Это не завершение всего первого этапа.
+
+| Пункт | Происхождение | Исправление и проверка |
+| --- | --- | --- |
+| 7, частично | Унаследовано: веб-оплата Expo тоже выполняла `location.assign` без проверки адреса. | Общая проверка ссылок запрещает исполняемые схемы, управляющие символы и URL с credentials. Материалы и браузерные helpers используют её; оплата клуба и товара требует HTTPS. Модульные тесты проверяют допустимые/недопустимые значения. Браузер с тестовым API не исполняет `javascript:` и показывает ошибку; допустимый HTTPS-переход сохранён. Допустимые платёжные домены предстоит согласовать с API. Это не проверка реального платёжного сервера. |
+| 14 | Унаследовано: Expo тоже отмечал все статьи API клубными. | Библиотека учитывает `access`: публичная статья доступна гостю, клубная ведёт в клуб. Оба перехода проверены в браузере. |
+| Ошибки Библиотеки | Унаследовано: `articlesQuery.data || []` скрывал сбой получения списка. | Добавлены загрузка, сообщение ошибки и повтор; статические материалы остаются доступны. Браузер проверяет отказ API и восстановление списка после повтора. |
+| 15 | Унаследовано: CTA Expo вёл в корень вкладок. | «Определить свою эстетику» из Выкроек открывает `/quiz`; переход проверен. |
+| 16 | Унаследовано: закрытая ветка статьи Expo тоже не прокручивалась. | Закрытая статья использует ScrollArea. При длинном заголовке на 320×360 кнопка вступления доступна прокруткой и открывает клуб. |
+| 39, частично | Требования браузера после замены нативного Modal. | Все потребители Dialog получили доступные названия. Только верхнее окно принимает Escape/Tab; фон и родительское окно становятся inert, фокус удерживается и возвращается после закрытия. Вложенный редактор ссылки проверен вместе с сохранностью текста. Общая приёмка screen reader и названия всех остальных действий ещё не завершены. |
+| 40, частично | Новое расхождение CSS при переносе. | Отступ иконки нижней вкладки восстановлен до −2 px, подписи — 4 px. Chromium подтвердил значения и отсутствие горизонтального переполнения на 320/390/1440 px. Просмотрены снимки Главной и Библиотеки. Полного сравнения снимков всех страниц со старой работающей версией нет. |
+| Документация | Устарела после переноса. | [README фронтенда](../../apps/frontend/README.md) описывает Next.js, фактические каталоги, окружение и существующие команды проверки. |
+
+Добавлены [семь браузерных регрессий](../../apps/frontend/e2e/migration-regressions.spec.ts) и проверки URL в [frontend-navigation.test.ts](../../tests/frontend-navigation.test.ts). Все семь новых сценариев прошли в production-сборке Chromium с тестовыми ответами. TypeScript приложения и E2E, ESLint, **128 модульных тестов** и production-сборка прошли. Сборка и браузер запускались в временной копии, без локальных `.env` и настоящего API. Полный прогон существующих браузерных сценариев и его ограничения учитываются в пункте 41 ниже.
+
+Первый полный прогон браузера: 44 прошли, 3 проверки настоящего API пропущены, 2 проверки потребовали исправления тестов. В новом тестовом экране оплаты уточнён UTF-8; существующий обход хедеров перестал ждать событие `load` всех ресурсов и ждёт DOM с прежними проверками видимости и положения интерфейса. Повтор прошёл: все 7 новых сценариев и все 3 сценария навигации. В совокупности **все 46 браузерных сценариев с тестовыми API прошли**, 3 интеграционных остаются пропущенными. Это результат полного прогона и целевых повторов, а не одного непрерывного зелёного запуска.
+
+Сверка маршрутов: пользовательские страницы Expo представлены в Next.js; отдельно отсутствует служебный `/dev/theme-lab`, его восстановление не включено в этот проход. Наличие маршрута не доказывает приёмку всех его состояний.
+
+В своей очереди остаются следующие порции Клуба, оставшиеся сценарии редакторов и медиа, сезоны, VK, заказ менеджеру и общая приёмка по чек-листу. За первым этапом остаются защита доставки расширенных советов теста, полноценные push и остальные исключения раздела «Что оставляем за первым этапом». Наличие клубных советов в публичном клиентском bundle подтверждено также production-сборкой; скрытие UI не обеспечивает их защиту, этот пункт не объявлен исправленным. Корневые инструкции запуска ещё требуют отдельной сверки после изменений бэкенда.
+
+## Уже исправлено при сверке контента — 3 октября 2026 года
+
+**Это отдельные правки после общего аудита. Их не считать открытыми ошибками.** Во время первоначального аудита исходники не менялись; затем пользователь попросил сверить и восстановить тексты.
+
+| Статус | Расхождение и результат | Где |
+| --- | --- | --- |
+| Исправлено | На Главной прямые кавычки `"` в трёх названиях книг блока автора и в названии `"Энн из Зелёных крыш"` были заменены на `«»`. Четыре пары возвращены к оригиналу. Кавычки самой цитаты, изначально `«»`, сохранены. | [home-screen.tsx](../../apps/frontend/src/features/home/home-screen.tsx) |
+| Исправлено | На экране входа восстановлены восемь исходных надписей: сообщение согласия, заголовок SMS-входа «Вход», заголовок «Восстановление доступа», инструкции SMS/регистрации/восстановления, кнопка «Получить письмо», ссылка «Забыли пароль или ещё не установили его?». | [login-screen.tsx](../../apps/frontend/src/features/auth/login-screen.tsx) |
+| Исправлено | Девятое текстовое расхождение экрана входа: «На главную» возвращено к «Назад». Восстановлено соответствующее действие `router.back()`. Возврат с входа на предыдущую страницу Библиотеки проверен. | [login-screen.tsx](../../apps/frontend/src/features/auth/login-screen.tsx) |
+| Обновлено | Селекторы существующих браузерных проверок регистрации и восстановления приведены к восстановленным подписям. Логика проверяемых API-сценариев сохранена. | [frontend.spec.ts](../../apps/frontend/e2e/frontend.spec.ts) |
+
+Сверены 2001 русскоязычный фрагмент исходников, включая подписи, подсказки, metadata и ошибки, а также составной JSX-текст, явные переносы, пробелы и английские подписи интерфейса. После правок 1958 фрагментов сопоставлены со старым фронтендом/общими исходниками; 43 не имеют прямого соответствия и преимущественно относятся к новым служебным состояниям, диагностике, metadata и доступным названиям. Это не 43 подтверждённые ошибки. Новых подтверждённых замен кавычек/тире в сопоставленных текстах не найдено; `–` и `—`, уже существовавшие в оригинале, сохранены.
+
+Отдельное сравнение русскоязычных строк семи файлов эстетик и quiz-data подтвердило одинаковое содержимое и порядок. Все 11 длинных глав «Обо мне» совпали, включая явные переносы. `public/privacy.html` совпадает с прежним файлом. Контент реальной базы и все возможные варианты его отображения пока не сверены.
+
+После этих исправлений прошли ESLint, TypeScript, проверка форматирования, три существующих браузерных сценария регистрации/ошибки входа/восстановления, возврат «Назад», проверка исходных надписей и отсутствие горизонтального переполнения формы на 320 и 390 px. **Проблема GET-отправки формы с паролем из пункта 2 аудита этими текстовыми правками не исправлена.**
+
+## Доработка общей основы — 4 октября 2026 года
+
+Работа выполнена только на фронтенде. Отчёты ниже остаются историческим снимком 3 октября; новые статусы описаны здесь. Полный первый этап и серверные интеграции не объявлены завершёнными.
+
+| Пункты аудита | Изменение | Статус |
+| --- | --- | --- |
+| 2 | Форма использует POST и безопасный fallback `/login/submit`: он не читает и не возвращает credentials, перенаправляет на вход с понятной ошибкой. До hydration отправка отключена. | Исправлено на фронтенде; нативная отправка проверена в Chromium. |
+| 3, 30 | `SessionController` управляет последовательностью проверки, входа и выхода; отменяет старые операции и игнорирует поздние ответы. Завершение входа не ждёт чужих refetch. | Регрессии и браузерный сценарий позднего `/auth/me` проходят. |
+| 4, 5 | Локальные ключи персональных данных привязаны к аккаунту. Старые записи без владельца удаляются, а не присваиваются текущему пользователю. Смена аккаунта/выход отменяют запросы общего REST/tRPC-транспорта, очищают кэш и сбрасывают состояние экранов. В синхронизации профиля проверяется владелец перед записью. Результат теста включён в очистку. | Изоляция проверена с двумя тестовыми аккаунтами; запись реальных профилей не выполнялась. |
+| 6 | У сессии и подписки явные состояния проверки/успеха/отказа. Клуб и профиль показывают повтор проверки при ошибке, не утверждая отсутствие доступа. Потеря подтверждённого доступа убирает прежний кэш. | Проверено с тестовыми API. |
+| 10–12 | Видео больше не остаётся на вечном загрузчике после ошибки; пост и статья различают сбой и отсутствие записи. ID проверяются как положительные безопасные целые числа. | Добавлены общий `ContentRequestState`, строгий parser ID и браузерные регрессии. |
+| 30 | Общий транспорт совмещает timeout с отменой и держит deadline до чтения тела. При смене сессии отменяются старые чтения и мутации этого транспорта. | Изолированные проверки сигнала, зависшего fetch и зависшего body проходят. |
+| 41, частично | Регрессии общей основы включены в `pnpm verify`; добавлен браузерный набор `e2e/session-safety.spec.ts`. | Остальные ошибки первоначального аудита требуют своих проверок. |
+
+Дополнительно: ответы входа/регистрации/восстановления/выхода проверяются во время выполнения; серверные ошибки 5xx получают безопасное сообщение в REST и tRPC; Retry-After оформлен как ожидание перед повтором email-запроса. Нет автоматического повторения мутаций; обычные запросы повторяются только при подходящих временных сбоях. Токены по-прежнему не сохраняются в localStorage.
+
+Выход сначала закрывает локальный персональный интерфейс, затем отдельно подтверждает серверную операцию. При сбое остаётся явное состояние повторного выхода; непроверенная сессия не восстанавливается молча после перезагрузки. Между вкладками передаётся только сигнал изменения сессии, без токена или профиля. При возвращении в приложение и восстановлении сети выполняется перепроверка. Для координации вкладок и сохранения незавершённого выхода используется доступный localStorage; при его запрете остаётся защита внутри текущей вкладки.
+
+Временная ошибка проверки сессии скрывает приватный интерфейс, но сохраняет состояние экрана для возвращения того же аккаунта. Подтверждённая смена пользователя сбрасывает его. Добавлен сценарий сохранения несохранённого текста административного редактора при такой перепроверке. Это не полная проверка всех вариантов черновиков и вложений.
+
+Эталон дизайна и исходные тексты обычных состояний сохранены. Для новых ошибок/ожидания добавлены служебные сообщения. Неизвестные старые локальные имя/аватар/результат теста намеренно не переносятся в аккаунт автоматически: их владелец не установлен.
+
+Проверки версии после общей основы, до следующего подэтапа (актуальные результаты ниже):
+
+- `pnpm verify`: **78 тестов прошли**; новые регрессии входят в обычную команду.
+- Production build Next.js: прошёл.
+- Полный браузерный набор: **24 прошли, 3 пропущены** (требуют настоящего API/БД). Проверялся установленный Chromium через `PLAYWRIGHT_EXECUTABLE_PATH`; браузеры/пакеты не устанавливались.
+- TypeScript включает теперь браузерные тесты через `tsconfig.e2e.json`; ESLint проверяет также e2e и конфигурацию Playwright.
+- Гостевые browser fixtures полностью подменяют API; проверка обычных маршрутов ждёт клиентской проверки сессии, а не загрузки всех внешних изображений. Старый флаг завершённого профиля в layout fixture привязан к её тестовому аккаунту.
+- В первоначальном полном запуске обнаружены таймауты обходов из-за ожидания внешних ресурсов и старая fixture без владельца. Исправлены причины тестов; сценарии навигации и UI не отключались. Это не измерение production-производительности.
+- Убрано применение пользовательской сессии из ответа checkout: открытие оплаты не является входом.
+- Приведены к относительным путям ссылки вчерашнего аудита, ссылки Expo push указывают на сохранённый legacy-клиент. Исходный договор остаётся внешним источником, его копии в репозитории нет.
+
+На завершении общей основы прямой upload видео, подготовка файлов, черновики/публикация и взаимодействия оставались следующим блоком. Его выполненная часть и ограничения описаны ниже; транспорт сам по себе не закрывал эти сценарии.
+
+На момент завершения общей основы оставались: реальная интеграционная приёмка cookie/сроков/блокировок/ролей, серверного сохранения и сброса пароля; устройства Safari/iPhone/Android; редактор, вложения, взаимодействия и прочие задачи первого этапа. Актуальный прогресс следующего блока описан ниже. Отмена клиентского запроса не отменяет уже выполненную серверную запись; атомарность и безопасные повторы публикаций требуют API.
+
+## Публикации, вложения и взаимодействия — 4–5 октября 2026 года
+
+Выполнен очередной подэтап фронтенда по пунктам 4.6–4.9. Это результаты проверенных клиентских сценариев, а не сдача всего блока или первого этапа. Бэкенд и база не запускались и не изменялись; реальные публикации и загрузки не выполнялись.
+
+| Аудит | Что изменено и проверено |
+| --- | --- |
+| 13 | Пустая категория «Сохранённого» больше не подменяется материалами другой категории. Ошибка получения сохранённых записей имеет отдельный повтор. |
+| 19–20 | Общий `usePostInteractions` используется в Ленте, Клубе и отдельном посте. Серверные отметки заменяют прежнее состояние, в том числе пустым ответом. Оптимистическая отметка откатывается при ошибке; синхронная блокировка ограничивает повтор для одной операции и поста. Старое чтение отменяется перед применением подтверждения. Счётчики берутся из обновлённых данных поста. |
+| 21 | Добавление, изменение, удаление, жалоба и like комментария имеют обработку отказа и проверку подтверждения. Фото обрабатываются последовательно; ошибка сохраняет текст и уже загруженные снимки. Поздние ответы проверяют владельца операции. |
+| 23 | Основные списки админки, статьи, календарь, статистика и комментарии различают отказ и пустой результат; предусмотрен повтор. Вспомогательные запросы и реальная приёмка всех административных действий остаются отдельно. |
+| 24 | Редактирование статьи сохраняет исходный `published`. Статус меняется явным действием, подпись сохранения соответствует операции. Проверено, что скрытая статья не публикуется обычным сохранением. |
+| 25, частично | После merge `PostSaveCoordinator` сначала загружает audio/document без привязки к посту, затем передаёт изменения и вложения одним create/update. Промежуточный черновик не создаётся; отказ upload сохраняет прежнюю публикацию. Подтверждённые загрузки переиспользуются при явном повторе. Серверные гарантии и повторы после перезагрузки ещё требуют приёмки. |
+| 26, частично | Модальный редактор показывает существующие audio/document с названиями; после merge удаление передаётся как `removedMediaIds` в итоговом сохранении. Основная форма админки пока сохраняет прежний набор полей; полное управление всеми вложениями в ней остаётся отдельной работой. |
+| 27 | Upload видео использует общий транспорт, deadline до чтения body и отмену сессии/редактора. Ответ читается один раз; HTML, пустой и JSON 413 показывают ошибку размера. 5xx не раскрывают внутренний текст. URL успеха проверяется во время выполнения. |
+| 28 | `BrowserAudioPlayer` управляет состоянием по событиям браузера и результату `play()`. Ошибка и зависший старт не оставляют ложное воспроизведение; старт ограничен 15 секундами и доступна отмена. `ended` сбрасывает реальную позицию; volume 0 сохраняется. Музыкальная кнопка адаптирована к общему проигрывателю; её полная отдельная приёмка не заявлена. |
+| 29 | Просмотрщик и карусель сохраняют индекс при изменении ширины и ограничивают его после изменения числа фото. Дополнительно подключено открытие полноэкранных фотографий из отдельного поста, где обработчика не было. |
+| 31–32, частично | Размеры выбранных файлов проверяются до чтения. Подготовка последовательная, `FileReader` и локальные задачи отменяемы. Bitmap, canvas, временные image/video URL и обработчики освобождаются. Документы редактора удерживают File без ненужного preview URL и повторного fetch. Реальное потребление памяти на устройствах не измерено. |
+| 41, частично | Добавлены `frontend-media-safety`, `frontend-post-save`, `frontend-audio-player` в обычный `pnpm verify` и браузерные регрессии `e2e/editor-safety.spec.ts`. |
+
+`OperationScope` и `useSessionOperation` связывают подготовку, загрузку и сохранение с открытым редактором и текущим аккаунтом. Блокировка устанавливается синхронно, до первого await. Закрытие/смена документа отменяют его работу; после await и перед серверной записью проверяется владелец. Поздний ответ не закрывает заново открытый редактор. Подтверждённые фото/видео остаются в форме при последующей ошибке; сбой необязательной обложки не теряет видео. Полная сохранность редактора после перезагрузки страницы не добавлена: черновик нужно явно сохранить через API.
+
+Ответ 401 проверяется до показа сообщения об ошибке сохранения. Прямой upload видео передаёт отказ доступа контроллеру сессии сразу после получения заголовков, не ожидая потенциально зависшего тела ответа. Оба порядка покрыты регрессиями.
+
+Потеря соединения, timeout, 5xx или некорректный успешный ответ могут последовать после выполненной серверной записи. Фронтенд не повторяет такую публикацию/вложение автоматически и блокирует повтор в текущем редакторе до ручной проверки списка. Для неподтверждённого like/save доступна перепроверка отметок чтением. Для комментария без подтверждённого ID также требуется ручная проверка, а не обещание безопасной повторной отправки. Гарантировать отсутствие дублей после перезагрузки и повторной отправки можно только с согласованным серверным протоколом/idempotency.
+
+Прежний порядок через промежуточный черновик заменён после merge staging: отказ загрузки audio/document больше не меняет статус и текст существующего поста. После подготовки файлов координатор отправляет один итоговый запрос с вложениями и удалениями. Редактор удерживает текст при ошибке и не повторяет неподтверждённую запись автоматически. Клиентская отмена не гарантирует откат уже выполненной серверной операции; работу серверной транзакции отдельно принимаем с API.
+
+Технические защитные значения: видео — 80 МБ, остальные выбранные файлы — 32 МБ, не больше 20 файлов за один выбор; в комментарии сохраняется предел двух фото. Значения находятся в `shared/browser/file-operations.ts` и не являются утверждением о согласованных лимитах сервера. До интеграции сверить форматы и лимиты фото комментариев/вложений. SVG не отправляется как фотография; MIME и расширение соответствуют подготовленному результату. Клиентские проверки не заменяют проверку содержимого сервером. Удаление геометок при перекодировании не распространяется на сохраняемые без перекодирования GIF/PNG/WebP.
+
+Общие изменения picker затрагивают и существующих потребителей профиля: ошибки чтения перехватываются там и не оставляют необработанный Promise. Это совместимость общей файловой обработки; исключённая полная доработка смены имени/аватара не объявлена выполненной.
+
+Проверки: `pnpm verify` — **110 прошли / 17 файлов**. Production build, TypeScript основного кода и e2e, ESLint, проверка границ и ссылок прошли. Итоговый браузерный набор — **39 прошли, 3 пропущены**; пропущенные сценарии требуют реального API/БД. Сценарии используют тестовые API, синтетические файлы и установленный Chromium; программы и пакеты не устанавливались. Реальные cookie/роль/подписка, серверные записи и устройства iPhone/Safari/Android требуют отдельной приёмки.
+
+Точки и крайние состояния общих фото-каруселей проверены в следующем подэтапе 5 октября, см. актуальный раздел выше. Остаются загрузка длинных списков Клуба вместо ограничения первой порцией, управление всеми вложениями в основной форме админки и регрессии поиска/редактирования/форматирования с реальными данными. Пагинация, виртуализация больших списков и полная проверка выделения/клавиатуры iPhone этим подэтапом не закрыты. Затем — согласованные интеграции VK, сезонов и заказа менеджеру. Новая архитектура всех экранов самостоятельной целью не становится.
+
+## Основа первого этапа
+
+Рабочий источник объёма — приложение № 1 к предоставленному договору № 1/10-26 от 1 октября 2026 года, страницы 5–6, и переписка 29 сентября — 1 октября. Цена всей работы команды — 417 500 ₽, срок — 30 рабочих дней от поступления аванса; это не отдельная оценка фронтенда. Пилот — 5–7 дней на 30–50 участницах. Гарантия по сделанному и принятому чек-листу — 3 месяца с условиями пункта 7.1. Ранние цены и сообщение про один месяц гарантии заменены поздними согласованиями.
+
+Путь участницы: оплата подписки 790 ₽/месяц через Prodamus → подтверждение платежа → письмо с доступом → вход по email/паролю. Вход по SMS отключён. Повторная оплата той же почтой продлевает существующий аккаунт и не меняет пароль.
+
+В первом этапе: Главная; Клуб и админка; все типы вложений, черновики, форматирование, фото в комментариях, лайки и «Сохранённое»; Видео через VK; Библиотека; Интерактив и тест; накопленные посты и поиск в Ленте; Магазин с заказом менеджеру; управление подпиской и связь с поддержкой; четыре сезонных переключения и зимний набор. Форматирование и точки каруселей включены явно. Перенос роликов в VK и наполнение — исходные данные/работа заказчика по приложению.
+
+## Дополнительные расхождения с первым этапом
+
+Это результаты чтения текущих исходников, а не повторная полная браузерная приёмка:
+
+- Пункт 4.13 реализован скрытием всего раздела «Мои мудборды» в [профиле](../../apps/frontend/src/features/profile/profile-screen.tsx), включая обе ветки и переходы. Код, стили и данные сохранены; включение — через `PERSONAL_MOODBOARDS_ENABLED`. Оба состояния профиля проверены в браузере; результат приведён выше.
+- Пункт 4.14 реализован плашкой «Почтовое отделение — скоро» в [Клубе](../../apps/frontend/src/features/club/club-subscribed.tsx). Вместо полного скрытия карточка остаётся в Комьюнити; локальный флаг выпуска блокирует подбор даже при включённом capability API. Полноценная функция отложена.
+- Там же сезон вычисляется по дате устройства и выбирается только между осенью и зимой. [Наборы оформления](../../apps/frontend/src/features/club/club-subscribed.content.ts) содержат два сезона; для зимы фон и баннер сейчас указывают на один JPG. Это требует сверки с зимними файлами заказчика и не закрывает четыре перехода по заданным датам.
+- [Страница видео](../../apps/frontend/src/features/videos/video-screen.tsx) использует HTML video либо YouTubeEmbed. Общий [renderer вложений](../../apps/frontend/src/shared/media/post-media-section.tsx) передаёт видео в HTML video. Плеер VK и согласованная модель его данных ещё требуют внедрения.
+- [Страница цифрового товара](../../apps/frontend/src/features/shop/product-screen.tsx) содержит checkout, сообщения об оплате через Prodamus и автоматической отправке файла. При отключённой онлайн-оплате показывает недоступность покупки. Это не реализует договорённость о заказе менеджеру.
+- В [админке](../../apps/frontend/src/features/admin/admin-screen.tsx) есть отображение почты и действия блокировки, но отдельный интерфейс привязки почты к аккаунту в проверенном экране не найден.
+- По предыдущему аудиту подтверждены смешивание категорий «Сохранённого», неправильная отметка доступности публичных статей, ошибочный переход из выкроек и сброс выбранного фото при изменении ширины. Есть причины ошибок проигрывания аудио, обработки запросов, сессии и публикации с вложениями. Они относятся к основным сценариям первого этапа.
+
+## Матрица чек-листа приёмки
+
+«Сейчас» означает работу фронтенда с тестовыми данными. Последняя колонка указывает, что необходимо получить от API или совместно проверить перед сдачей. Названия новых API в этом плане не фиксируются: бэкенд будет изменяться.
+
+| Пункт | Что делаем на фронтенде сейчас | Что требует API или общей приёмки |
+| --- | --- | --- |
+| 4.1 Оплата, письмо, вход, восстановление | Понятный путь от подписки к оплате и затем ко входу; формы, ошибки, ожидание подтверждения; SMS выключен; безопасная отправка пароля без попадания в URL. Не считать возврат из платёжного сервиса доказательством оплаты. | Подтверждение Prodamus, создание/поиск аккаунта, выдача доступа, письмо, email/password и восстановление. |
+| 4.2 Повторная оплата | Правильно показывать продление существующей подписки, не предлагать смену пароля как результат платежа. | Одна и та же почта не создаёт второй аккаунт; пароль не меняется; повторные уведомления платежа не дублируют выдачу доступа. |
+| 4.3 Продление и отмена | Состояния активна/отменено автопродление/истекла; дата доступа; подтверждение отмены; ошибка и повтор; обновление данных после операции. | Реальный срок, автопродление, отмена, статус платежа и доступа. |
+| 4.4 Блокировка | Действия менеджера с понятным результатом и ошибкой; закрытие клиентских экранов после получения блокировки; прекращение показа персонального кэша. | Отзыв сессий/доступа и запрет новой оплаты заблокированному аккаунту. Не путать это с исключённым предварительным списком неизвестных email. |
+| 4.5 Закрытые материалы | Единое отображение public/club; гостевая карточка; загрузка и ошибка проверки подписки; сохранение доступа к бесплатным статьям; скрытие закрытых разделов теста на экране. | Проверка прав при выдаче закрытых статей, постов, файлов и ссылок. Защита доставки расширенных советов теста и защита прямой ссылки VK отдельно исключены. |
+| 4.6 Публикации и админка | Общие правила редактора и черновика; несколько ссылок, жирный, курсив; текст, фото, видео, аудио, документы; preview; корректное редактирование; ошибки upload и повтор без ложного успеха. Проверить выделение текста и клавиатуру на iPhone. | Сохранение и возврат форматирования/вложений, права, статусы, порядок публикации и обработки файлов. Атомарность публикации с вложениями нельзя обеспечить одной блокировкой кнопки. |
+| 4.7 Фото и точки | Реализованы и проверены в Chromium: общие точки в карусели Клуба/Ленты/поста и просмотрщике; соответствие точки фото; крайние позиции; клавиатура; сохранение выбора при resize; уменьшение/очистка списка. Сетки фото и числовой счётчик длинных галерей сохранены. Поворот физического устройства ещё требует проверки. | Реальные размеры, порядок, количество и доступность фото; iPhone/Safari/Android и установленная PWA. Само поведение карусели проверено без сервера. |
+| 4.8 Фото в комментариях | Выбор и preview; проверка размера/формата до чтения; удаление выбранного фото; upload/error/retry; показ и модераторское удаление. Подготовка изображения без геометок там, где выполняется повторное кодирование. | Серверные лимиты и проверка формата, окончательное удаление метаданных, хранение и права удаления. Клиентская проверка не заменяет серверную. Точный размер и допустимые форматы согласовать. |
+| 4.9 Лайки и сохранённое | Общая логика состояния, rollback при отказе, защита от гонок быстрых нажатий; правильные счётчики; строгие категории feed/club без подстановки всех записей при пустой категории; изоляция аккаунтов. | Сохранение в базе, корректные счётчики и состояние после повторного входа/открытия, безопасная обработка повторных запросов. |
+| 4.10 Сезоны | Четыре сезона, заданные границы дат и согласованный часовой пояс; один согласованный источник настройки; зимний фон и баннер к запуску; fallback, обновление на границе даты и возврате из сна. Геометрия Клуба сохраняется. | Где хранятся даты и изображения, как заказчик добавит остальные наборы. Четыре сезона не означают придумывание отсутствующих весенних/летних изображений. |
+| 4.11 VK и метки | Переиспользуемый плеер VK для раздела Видео и вложений; допустимый источник embed; мобильные размеры; загрузка/ошибка; подписи «Смотреть» и «Для участниц клуба» в согласованных местах. | Формат данных VK и признак доступа, реальные ролики и настройки владельца VK. Перенос и наполнение видео договор относит к заказчику. |
+| 4.12 Магазин через менеджера | Каталог и карточки сохраняют дизайн; согласованный заголовок; действие заказа конкретного товара; ввод/проверка нужных данных; состояния запроса. Убрать из пути первого этапа обещание автоматического Prodamus-платежа и выдачи файла. | Служебная почта и способ заказа. `mailto:` открывает редактор письма, а не подтверждает его отправку. Для подтверждаемой отправки из приложения нужен серверный механизм; трактовку согласовать с командой. |
+| 4.13 Мудборды | По уточнению пользователя скрыть заголовок, карточки и переходы профиля с возможностью вернуть; код, стили и данные сохранить. Проверить профиль с результатом теста и без него. | Сервера не требует. Сами изображения moodboard в материалах эстетик не относятся к скрываемому персональному разделу профиля. |
+| 4.14 Почтовое отделение | Вместо перехода показать неактивную плашку «скоро» в исходном окружении блока; не открывать подбор и не собирать адреса в первом этапе. | Для позднейшего открытия нужен отдельный согласованный этап. Запрет будущих операций сервера — его ответственность. |
+| 4.15 Нагрузка | Ограничить лишние запросы, исправить таймауты, не читать все крупные файлы одновременно, стабилизировать списки/изображения/анимации; измерить production-фронтенд на реалистичных данных. | Одновременный вход зависит от API, БД, инфраструктуры и почты. Число «всех участниц» и критерии допустимой задержки в приложении не заданы. Их надо определить; 30–50 человек пилота не являются числом нагрузочного теста. |
+| 4.16 Устройства и PWA | Основные сценарии, клавиатура, скролл, header/tab bar, карусели, editor selection и воспроизведение на iPhone/Android/компьютере и установленной PWA. Проверять production-сборку. | Общие проверки с реальными авторизацией, оплатой, почтой и медиа на устройствах. Chromium с тестовыми API не заменяет iPhone и Android. |
+
+Главная, Библиотека, Интерактив, Лента с поиском, связь с поддержкой и инструменты менеджера входят в состав работ по пункту 2.1, даже когда в разделе 4 нет отдельной строки для каждой вкладки. Поэтому дополнительно нужны проверки всех переходов Главной, свободных/клубных карточек Библиотеки, теста и сохранения результата, поиска накопленных постов и открытия контакта поддержки. Интерфейс менеджера включает привязку почты к существующему аккаунту; детали прав, проверки email и конфликтов адресов зависят от согласованного API.
+
+## Порядок работы на нашей стороне
+
+1. **Зафиксировать границы выпуска и видимые состояния.** Скрытие «Моих мудбордов» с возможностью вернуть, плашка «скоро», отключённый SMS, заказ менеджеру, стиль заголовка Магазина, курсив и исходная типографика. Красные пометки на скриншотах — указания на правки, не элементы интерфейса. Помимо этих согласованных изменений сохраняются исходные шрифты, размеры, расположение, изображения и пунктуация.
+2. **Стабилизировать общую основу.** Безопасная форма входа, гонки сессии, изоляция персональных данных и кэша, статусы подписки, работающий timeout, ошибки и повтор запросов. Исправление перехода данных между аккаунтами относится к сессии; исключение редактора имени/фото не означает согласие на смешивание аккаунтов.
+3. **Сделать публикации и взаимодействия надёжными.** Редактор, ссылки и курсив, черновики/вложения, комментарии с фото, карусель и точки, аудио-вложения, лайки/сохранения, поиск и списки. Начать с воспроизводимых ошибок из аудита. Новую архитектуру всех экранов не делать самостоятельной целью этапа: выделять общие компоненты там, где это требуется для этих исправлений.
+4. **Подключить согласованные новые пути.** VK, четыре сезона, заказ менеджеру, действия менеджера, состояния оплаты/отмены/блокировки. До готовности API проверять их через тестовые ответы, не имитировать успешную реальную отправку и оплату.
+5. **Провести общую приёмку.** Каждый пункт 4.1–4.16, сценарии пункта 2.1, визуальное сравнение, реальные устройства/PWA, production-производительность и совместный нагрузочный сценарий. Затем пилот по договору.
+
+Это предлагаемая техническая последовательность. Она не меняет стоимость договора и не является оценкой длительности отдельных задач. Реальные сроки фронтенда зависят от уточнения API, материалов и готовности интеграций.
+
+## Что оставляем за первым этапом
+
+В разделе 3 приложения прямо исключены исправление/проверка смены фото и имени в профиле, защита расширенных советов теста от получения вне экрана, предварительный список ограничений неизвестных email, защита прямых VK-ссылок от пересылки/скачивания, онлайн-оплата и автоматическая выдача файлов Магазина, Instagram-пополнение Ленты, offline и публикация в App Store/Google Play.
+
+После запуска по переписке отложены почтовое отделение с защитой адресов, анимация загрузки и пуши о новых постах. Договор перечисляет их как отдельное соглашение: почтовое отделение — 55 000 ₽, пуши — 25 000 ₽, анимация — 10 000–20 000 ₽ по файлу заказчика. В переписке для почтового отделения назывались второй месяц и две недели разработки, для пушей — сразу после открытия. Эти пожелания не добавляются автоматически в текущие работы.
+
+Библиотека должна различать бесплатные и клубные материалы. Отдельное исключение по защите советов теста не следует расширять на все статьи, посты и файлы. Доступ к клубной карточке VK внутри приложения ограничивается подпиской, но защита самой полученной VK-ссылки не обещана. Для остальных закрытых файлов порядок серверной выдачи предстоит согласовать с бэкендером.
+
+Аудио-вложения постов входят в первый этап. Фоновая музыка Клуба не названа отдельно, хотя видна в старом интерфейсе. Это граница, которую нужно уточнить при планировании. Общий исправленный проигрыватель может улучшить оба сценария, но обещать отдельную полную приёмку фоновой музыки по текущему тексту нельзя.
+
+## Приложенные визуальные материалы
+
+На первом скриншоте отмечен заголовок Магазина; приложение № 1 подтверждает требование «в стиле Библиотеки». Конкретный вид берём из эталонного заголовка Библиотеки, сохраняя оформление полок и товаров. На втором скриншоте перечёркнут блок «Мои мудборды» профиля целиком, включая название секции и карточку. По уточнению пользователя 5 октября блок скрываем с сохранением кода, стилей и данных; это не удаление подборок изображений из теста.
+
+Два скриншота замка показывают варианты прежнего загрузчика: тёмный прямоугольник и светлую подложку. В render.zip содержатся 60 последовательных PNG 512×720 с alpha-каналом; прозрачность присутствует во всех кадрах. Выборочные кадры просмотрены на однотонном фоне. Это пригодный исходный материал для будущей интеграции, но не доказательство работоспособности анимации на iOS. Частота кадров и точный режим воспроизведения из последовательности имён не определяются. В первый этап дизайнерская анимация не включается.
+
+IMG_0254.MP4 длится 31,4 секунды. В нём показаны выбор текста и добавление ссылок в редакторе поста на iPhone, preview, клавиатура и переходы между приложениями; в последнем просмотренном кадре несколько фрагментов представлены как ссылки. Видео используется как пример сценария. Оно само по себе не доказывает сохранение ссылок после серверной записи и повторного открытия. Эти действия, несколько независимых ссылок, жирный, курсив, сочетание оформления и корректное выделение на iOS нужно включить в приёмку пункта 4.6.
+
+## Что необходимо уточнить до реализации интеграций
+
+- Контракт сессии, роли/блокировка, статусы подписки и оплаты, отмена и формат подтверждения после платежа. Основной путь первого этапа — оплата → письмо → вход; самостоятельная регистрация не должна подменять этот путь.
+- Схема поста и форматирования, структура ссылок, состав/статусы вложений и операция окончательной публикации. Сохранение, редактирование и повторное чтение должны использовать совместимый формат.
+- Лимит и форматы фото комментариев, правила модерации и удаления геометок. Клиентские проверки реализуются до чтения большого файла, серверные проверки обязательны независимо от клиента.
+- Формат VK-видео и признаки public/club; ссылки и список закрытых материалов от заказчика. Нового платного видеохостинга план не предполагает.
+- Четыре даты сезонов, часовой пояс, зимние фон/баннер и поведение при отсутствии остальных наборов. Другие сезонные изображения заказчик добавляет позже; механизм четырёх смен нужен к выпуску.
+- Реальная служебная почта и способ передачи заказа: почтовое приложение либо подтверждаемая отправка через API. Договорённость «заказ уходит» нельзя закрыть только показом надписи «отправлено».
+- Поведение и права привязки почты менеджером; обработка уже занятого email без переноса данных между аккаунтами.
+- Ожидаемое число одновременно входящих участниц, критерии нагрузочной приёмки, набор устройств и роль фоновой музыки.
+
+Отсутствие этих уточнений не блокирует исправление доказанных ошибок интерфейса, каруселей, фильтрации, таймаутов и подготовку состояний с тестовыми API. Оно ограничивает возможность завершить и принять соответствующие интеграции.
+
+## Условие завершения первого этапа
+
+Результат готов к предъявлению, когда выполнены пункты чек-листа и включённые сценарии раздела 2.1, приложены результаты проверки и инструкции менеджеру, согласованные визуальные правки сделаны без остальных изменений дизайна, ошибки не выглядят как успешное сохранение, сессии не смешиваются, и пройдены реальные интеграции и устройства. Заявление «все вкладки протестированы на 100%» не заменяет список проверенных сценариев и не распространяет гарантию на явно исключённые функции.
+
+## Общий аудит и расположение всех найденных проблем
+
+Ниже сохранены **все 42 пункта первоначального аудита**, включая воспроизведение, риск, критерий исправления и проверки страниц/компонентов. Это снимок до последующих правок текстов, описанных в начале файла. Исторические утверждения «код не менялся» и «тесты не редактировались» относятся к исходному аудиту, а не ко всему дню.
+
+**Для очередности разработки применяется план первого этапа выше.** Внутри общего аудита сохраняются технические рекомендации для будущего: они не добавляют в договор исключённую защиту советов теста, редактирование имени/фото, почтовое отделение или push. Общие исправления сессии и изоляции аккаунтов при этом остаются частью надёжной работы основных функций.
+
+## Текущие статусы 42 пунктов аудита
+
+Обновлено **13 октября 2026 года**. Эта таблица — актуальный учёт; исходные описания ниже и [отдельный отчёт аудита](../audits/frontend-audit-2026-10-03.md) сохраняют состояние на 3 октября. Номера совпадают во всех разделах. После следующей доработки обновлять соответствующую строку, результат проверки и остаток работы.
+
+«Исправлено на фронтенде» означает, что описанная клиентская причина устранена и указанные проверки прошли; это не приёмка работающего сервера и всех устройств. «Частично» означает незавершённый пункт. «Открыто» — исправление не выполнено либо проверка результата ещё отсутствует. «Вне первого этапа» обозначает границу объёма, а не устранённую неисправность.
+
+| № | Статус | Сделано, проверка и оставшаяся работа |
+| --- | --- | --- |
+| 1 | Частично вне первого этапа; остальное открыто | Защита доставки расширенных советов теста исключена. Выдача остальных закрытых файлов и ссылок требует отдельной проверки и согласования с API; скрытие интерфейса не закрывает этот пункт. |
+| 2 | Исправлено на фронтенде | POST/fallback и блокировка до hydration исключают прежний GET с паролем. Нативная отправка покрыта браузерной регрессией; серверный вход принимается отдельно. |
+| 3 | Исправлено на фронтенде | Поколения операций сессии и отмена исключают применение старого ответа после входа. Проверены контроллер и задержанный `/auth/me` в браузере. |
+| 4 | Исправлено на фронтенде | Персональное хранение привязано к владельцу; старые данные без владельца не присваиваются новому аккаунту. Проверены хранение и переключение двух тестовых аккаунтов. Реальная синхронизация профиля требует API. |
+| 5 | Исправлено на фронтенде | Смена личности отменяет старые запросы и очищает персональный кэш. Проверены поздние ответы и смена аккаунта; реальный отзыв прав остаётся интеграционной приёмкой. |
+| 6 | Исправлено на фронтенде | Проверка, отказ и ошибка подписки имеют разные состояния с повтором. Проверено на тестовом API; реальные сроки и права ещё не приняты. |
+| 7 | Частично | URL upload и внешние переходы проверяются; общие helpers и ссылки материалов запрещают исполняемые схемы и credentials. Адрес оплаты требует HTTPS; браузер проверяет отказ от `javascript:` и допустимый переход. Домены оплаты и полная интеграционная проверка ожидают согласования API. |
+| 8 | Открыто | Заголовки production, CSP и совместимость ограничений с медиа не проверены и не изменялись. |
+| 9 | Обновлено в общей ветке; приёмка остаётся отдельной | Зависимости в текущем staging обновлялись после исходного аудита; прежнее «обновления не выполнялись» устарело. Эта фронтенд-сессия пакеты не обновляла и не проводила новую полную security-приёмку. См. общий план и runbook. |
+| 10 | Исправлено на фронтенде; каталог VK ожидает контракт | Ошибка чтения, в том числе refetch с сохранённым кэшем, скрывает плеер; есть повтор. Нативный video показывает сбой воспроизведения и освобождает ресурс, VK использует общий iframe. Нужен серверный public/club для videos.list/getById; реальное закрытое видео ещё не принято. |
+| 11 | Исправлено на фронтенде; повторное чтение статьи дополнительно проверено 13 октября | Ошибка получения поста/статьи не выдаётся за отсутствие записи. Статья после отказа повторного чтения скрывает кешированный текст и фотопросмотр; 403/404/500/network, отсутствие/закрытие записи, повтор с новыми данными и отсутствие восстановления старого диалога подтверждены в Chromium/Linux WebKit. |
+| 12 | Исправлено на фронтенде | Общий parser отклоняет некорректные ID до запроса. Проверены формат ID и поведение страниц. |
+| 13 | Исправлено на фронтенде | Пустая категория сохранений остаётся пустой; убрана подмена другой категорией. Есть браузерная регрессия. |
+| 14 | Исправлено на фронтенде | Библиотека учитывает `access`; браузер проверяет открытие публичной статьи гостем и клубный переход закрытой карточки. Серверные правила доступа принимаются отдельно. Ошибка списка получила сообщение и повтор. |
+| 15 | Исправлено на фронтенде | CTA из Выкроек ведёт на `/quiz`; есть браузерная регрессия. |
+| 16 | Исправлено на фронтенде | Закрытая статья прокручивается; длинный заголовок на 320×360 не лишает пользователя кнопки вступления. Проверены прокрутка и переход; масштаб текста и физические устройства остаются общей приёмкой. |
+| 17 | Вне первого этапа | Полное исправление сохранения имени/аватара исключено. Изоляция аккаунтов выполнена по пункту 4; перехват ошибок общего picker не закрывает редактор профиля. |
+| 18 | Вне текущего поручения; прежний статус устарел | В истории staging уже есть подтверждение серверного имени перед обновлением UI/кэша (b9594ba). Этой сессией профиль не менялся; полная приёмка редактора имени/аватара по-прежнему вне текущего объёма. |
+| 19 | Исправлено на фронтенде | Общий hook заменяет подтверждённые отметки, включая пустые массивы; прежние локальные сохранения не подмешиваются. Регрессии взаимодействий проходят. |
+| 20 | Исправлено на фронтенде | Общий rollback, синхронная блокировка и перепроверка неизвестного результата; счётчик обновляется из данных поста. Браузер проверяет отказ и двойное нажатие. Реальная согласованность API остаётся отдельной проверкой. |
+| 21 | Частично | Клиентские сценарии доработаны 8 октября: частичные фото не отправляются без явного отказа от остатка; ошибки сохраняют ввод; неизвестная запись блокирует повтор, like использует подтверждённые значения. Браузер проверяет фото, ответ, edit, like и роли; серверная идемпотентность и полная приёмка с реальным API остаются открытыми. |
+| 22 | Полная функция вне первого этапа; плашка реализована | В Комьюнити вместо перехода отображается неактивное «Почтовое отделение — скоро». Локальный флаг выпуска закрывает подбор независимо от capability API; код полной функции сохранён. Браузерная проверка описана выше. |
+| 23 | Частично; жалобы отложены | Списки и административные действия имеют error/retry и проверку неизвестного результата. Проверки 8–10 октября остаются историческими доказательствами. Жалобы 13 октября исключены из текущей работы по поручению пользователя; их приёмка не объявляется завершённой. |
+| 24 | Исправлено на фронтенде | Сохранение статьи сохраняет исходный `published`; изменение статуса явное. Есть браузерная регрессия скрытой статьи. |
+| 25 | Частично; клиентский порядок исправлен | После merge сначала загружаются файлы, затем отправляется один create/update с текстом, статусом, видео, attachments и removedMediaIds. Опубликованный пост не становится промежуточным черновиком при сбое upload. С 8 октября оба редактора сохраняют черновики/Files и состояние операции в IndexedDB; явное восстановление create использует прежний ключ/payload без повторной загрузки. Неизвестные upload/update не повторяются, подтверждённый commit завершает координатор. Серверная транзакция, настоящий повтор с тем же ключом и очистка непривязанных файлов требуют интеграционной приёмки. |
+| 26 | Реализовано на фронтенде; ожидает реальную интеграцию | Общие audio/document и VK-ввод в обоих редакторах, черновики, удаление, preview и повторное открытие. При отсутствии media сохранение блокируется, а не удаляет вложения. VK идёт через прежний videos[], без upload. Сценарии с тестовыми API описаны в отчёте 13 октября; реальная запись/чтение и права остаются. |
+| 27 | Исправлено на фронтенде | Body читается один раз; 413/401/5xx, timeout и отмена обработаны. Изолированные тесты и браузерная регрессия HTML 413 проходят. Реальное хранилище ещё не проверено. |
+| 28 | Исправлено на фронтенде | Состояние audio следует событиям и результату `play()`, есть deadline; `ended` сбрасывает позицию, volume 0 сохраняется. Есть модульные и браузерная проверки. iPhone/Android и полная отдельная приёмка фоновой музыки не выполнены. |
+| 29 | Исправлено на фронтенде | Исправлены задержка обновления индекса при немедленном resize, ширина полноэкранного диалога и найденный 13 октября отказ сужения в WebKit (layout viewport вместо увеличенного innerWidth). Общие точки, края, клавиатура, открытие выбранного фото и resize проверены в посте/Ленте/Клубе; уменьшение/очистка списка также покрыты. Нативные свайпы проверены в эмуляции Chromium. Поворот физического устройства и реальные фото остаются приёмкой 4.7/4.16. |
+| 30 | Исправлено на фронтенде | Общий транспорт объединяет deadline и отмену до чтения body; вход не ждёт глобальный refetch. Проверены зависший fetch/body, отмена и поздние ответы. |
+| 31 | Частично; физические устройства недоступны | Лимиты проверяются до чтения, обработка последовательная; File сохраняется в черновике без лишнего preview URL. Выполнены модульные проверки. Base64-протокол остаётся; браузерные замеры длинных списков не являются RAM/INP физического телефона. |
+| 32 | Доработано на фронтенде; полная устройственная приёмка открыта | Добавлен общий lifecycle нативного видео: pause/очистка src/load при закрытии, остановка при скрытии. VK iframe удаляется при скрытии вкладки/документа и закрытии предпросмотра; повтор без autoplay. Повреждённые фото проверяются повторными циклами с учётом временных URL. Долгая сессия с настоящими медиа на телефонах ещё не проверена. |
+| 33 | Клиентский отказ проверяется; устройства ожидаются | Сохранены согласованные MIME/расширение и явный отказ декодирования. Добавлена матрица повреждённых JPG/PNG/WebP/HEIC с запретом upload и освобождением временных URL; анимированные GIF/APNG/WebP проверяются существующим набором. Настоящие HEIC/кодеки на iOS/Android не объявляются принятыми. |
+| 34 | Частично | Постер имеет deadline 15 секунд, ограничение 1920 px и cleanup; ошибка обложки не отменяет подтверждённую загрузку. Добавлена проверка сбоя воспроизведения/повтора и освобождения нативного video. Реальные неподдерживаемые кодеки/контейнеры и съёмка на телефонах требуют отдельного прохода. |
+| 35 | Частично; оконное отображение и лимиты неиспользуемого кэша реализованы | Лента и Клуб выгружают тяжёлые далёкие карточки, сохраняют измеренную геометрию, возвраты, фокус, черновики и медиа. Неиспользуемый кэш ограничен 48 ответами комментариев и двумя прежними вариантами поиска; наблюдаемые/выполняющиеся запросы сохраняются. Проверены 360 публикаций в Chromium и Linux WebKit; численные результаты DOM/JS heap и границы измерений — в отчёте 13 октября. Данные и лёгкие блоки текущего списка продолжают зависеть от числа публикаций; это не фиксированный лимит общей RAM. Реальные медиа, физические устройства и длительная производственная приёмка остаются. |
+| 36 | Реализованы последующие оптимизации; реальная производительность открыта | Статичные ресурсы переведены на WebP и локальную выдачу; динамические публичные фото используют Next image previews. Старые цифры и описание рамки 4:5 ниже относятся к предыдущим снимкам. Принятые 7 октября одинаковые блоки фото сохраняются. Production LCP/CLS/INP и реальные материалы на телефонах ещё не приняты. |
+| 37 | Частично | Выделены общие операции сессии/редактора, взаимодействия, подготовка файлов и сохранение поста; основная админка допускает пост только с медиа. Общая перестройка всех экранов не является задачей этапа; остальная декомпозиция не завершена. |
+| 38 | Открыто | Измерение клиентского bundle и изменение границ статического/интерактивного содержимого ещё не выполнены. |
+| 39 | Клиентская доступность проверена; screen reader ожидается | Сохранён общий Dialog с inert, Escape и удержанием/возвратом фокуса. Новое VK-поле имеет label, связанную ошибку и клавиатурное добавление; предпросмотр возвращает фокус. Основные кнопки/формы/фильтры проверены браузерными сценариями; для кнопок добавления VK контраст 10,63:1 и высота от 44 px. Это не полная сертификация WCAG. VoiceOver/TalkBack на физических устройствах недоступны. |
+| 40 | Частично; доступен контроль регрессии до/после | Сравнены 30 пар первых экранов с HEAD 62b24a6 на одинаковых данных и 320/390/1440 px; различий при выбранном RGB-пороге нет. Новые VK-диалоги просмотрены отдельно. Это не полный утверждённый Expo-эталон: его в доступных материалах нет. Результаты и снимки описаны в отчёте 13 октября. |
+| 41 | Расширено; интеграционная приёмка открыта | Добавлены VK-editor и media-failure-lifecycle, воспроизводимый playwright.acceptance.config.ts для Chromium/WebKit с мобильными профилями. Точные результаты запусков и ограничения — в отчёте 13 октября. Исторические количества тестов выше не являются результатом текущего запуска. API с записью, физические устройства/PWA и весь договор не объявляются принятыми. |
+| 42 | Вне первого этапа | Полноценные push отложены; текущий polling не принимается за фоновую доставку. Новый Service Worker/push-поток не добавлялся. |
+
+Доказательства выполненных подэтапов: разделы «Доработка общей основы», «Публикации, вложения и взаимодействия» и «Исправления после сверки с Expo» выше; [регрессии сессии](../../apps/frontend/e2e/session-safety.spec.ts), [регрессии редактора и взаимодействий](../../apps/frontend/e2e/editor-safety.spec.ts), [регрессии сверки с Expo](../../apps/frontend/e2e/migration-regressions.spec.ts), [проверки медиа](../../tests/frontend-media-safety.test.ts), [проверки сохранения поста](../../tests/frontend-post-save.test.ts), [проверки аудио](../../tests/frontend-audio-player.test.ts). Полностью закрытым договорный сценарий считается только после необходимых интеграционных и устройственных проверок.
+
+## Объём и доказательства
+
+Проиндексирован весь `apps/frontend/src`: 341 файл, из них 257 файлов TypeScript и TSX, 83 файла SCSS и один файл данных. Найдено 22 файла страниц, 142 модуля с `use client`, 24 вызова запросов и 44 объявления мутаций. Инвентаризация включает 32 039 строк; количество строк само по себе не является недостатком.
+
+Проведён отдельный обход 27 адресов, включая ошибочные идентификаторы, юридические документы и перенаправление OAuth. Дополнительно проверены состояния подписчика, разделы админки, полный тест из 10 вопросов, ответы API с ошибками, смена пользователя, изменение размера галереи и закрытая статья с длинным названием.
+
+| Проверка | Результат |
+| --- | --- |
+| TypeScript фронтенда | Прошёл |
+| ESLint фронтенда | Прошёл |
+| Модульные проверки клиента и границ зависимостей | 52 теста прошли |
+| Модульные проверки контента, теста, ссылок, контрактов и viewport | 42 теста прошли |
+| Три браузерных проверки хедера и нижней навигации | Прошли |
+| Шесть основных браузерных проверок страниц и авторизации | Прошли с лимитом 120 секунд |
+| Первоначальный запуск с лимитом 30 секунд | Три обхода страниц завершились по таймауту; остальные шесть проверок прошли |
+| Три проверки с настоящим API | Пропущены: бэкенд и MySQL выключены |
+| Контроль исходников по SHA256 | Все 341 файл совпали с началом аудита |
+
+Первоначальные таймауты не доказывают поломку страниц: повторный запуск тех же проверок с увеличенным лимитом прошёл. Они показывают, что текущие тесты обхода слишком чувствительны к времени загрузки и dev-сборке.
+
+Проверялся Chromium. Полная проверка Safari, Firefox, настоящего iPhone, производственной сборки, платежей, загрузок в хранилище и правил доступа работающего API не выполнена. Сравнение со старым фронтендом проведено по исходникам. Пиксельное совпадение всего приложения с работающей старой версией пока не доказано.
+
+Приоритеты: **P1** — исправить до выпуска; **P2** — существенная ошибка или риск эксплуатации; **P3** — улучшение сопровождения. «Браузер» означает воспроизведение с тестовым API; «код» — установленную причину в исходниках; «риск» — сценарий, последствия которого ещё требуют проверки.
+
+## Безопасность и сессия
+
+### 1 Клубные материалы доставляются гостю
+
+**P1, браузер и код.** [features/library/aesthetics-screen.tsx](../../apps/frontend/src/features/library/aesthetics-screen.tsx) и [features/quiz/quiz-result.tsx](../../apps/frontend/src/features/quiz/quiz-result.tsx) статически импортируют семь файлов результатов. В них вместе находятся бесплатная часть и разделы, явно помеченные `Part 2: Club`. Подписка ограничивает показ, но не загрузку этих данных.
+
+Гостевой браузер получил `/_next/static/chunks/app/library/aesthetics-guide/page.js`, содержащий характерную фразу из клубного раздела Cottagecore. Проверенный dev-файл имел размер 2 739 878 байт; это **не** размер производственного бандла и не измерение скорости production. Для подтверждения раскрытия содержимого достаточно того, что текст присутствует в гостевом ответе.
+
+Также в клиентских данных библиотеки находятся постоянные ссылки на материалы, помеченные `isClubOnly`. Доставка URL подтверждена кодом; действительная публичная доступность каждого внешнего файла отдельно не проверялась.
+
+Исправление: выдавать закрытые тексты и файлы только после серверной проверки доступа; убрать их из публичных клиентских данных, предварительной загрузки и статической генерации. Скрытие кнопок, blur и запрет копирования не заменяют это правило. Приёмка: гостевой HTML, RSC, JavaScript и ответы API не содержат закрытых текстов; прямой запрос файла без доступа отклоняется. Серверная проверка доступа соответствует рекомендациям [Next.js по авторизации](https://nextjs.org/docs/app/guides/authentication).
+
+### 2 Нативная отправка формы входа помещает пароль в URL
+
+**P1, браузер и код.** В [features/auth/login-screen.tsx](../../apps/frontend/src/features/auth/login-screen.tsx) форма имеет `onSubmit`, но не имеет `method` и `action`. При работе обработчика выполняется POST через API. При нативной отправке браузер использует GET и добавляет поля `email` и `password` к адресу страницы.
+
+В быстром браузерном сценарии фактически получен адрес `/login?email=…&password=…` с искусственным тестовым паролем. Отдельная проверка нативного контракта при отключённом JavaScript подтвердила GET и параметр `password`. Ограничение этой проверки: streamed SSR в Next dev оставил форму внутри скрытого контейнера, поэтому во втором сценарии использовался DOM `requestSubmit()`, а не обычное нажатие пользователем. Это не означает, что вход вообще доступен пользователю без JavaScript. Небезопасный fallback формы установлен независимо от этого ограничения.
+
+Исправление: исключить передачу секретов через URL, определить безопасное поведение до готовности клиентского обработчика и при его отказе. Если нужен нативный POST, для него необходим подходящий обработчик и проверка CSRF; одного изменения атрибута недостаточно для работоспособного входа. Приёмка: задержка или блокировка клиентского JavaScript, Enter и повторное нажатие никогда не создают URL с паролем. Поведение GET описано в [документации HTML form](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/form).
+
+### 3 Поздний ответ проверки сессии отменяет успешный вход
+
+**P1, браузер и код.** [domain/session/session-context.tsx](../../apps/frontend/src/domain/session/session-context.tsx): начальный `refresh()` и `applySession()` после входа не имеют общего номера операции и защиты от устаревшего ответа.
+
+Воспроизведение: задержать начальный `/api/auth/me`, успешно войти пользователем 202, затем вернуть старый ответ `{user:null}`. После этого `/profile` снова показывает гостевой вход, хотя ответ операции входа был успешным. Настоящий сервер для воспроизведения не использовался.
+
+Исправление: исключить применение устаревших ответов, согласовать отмену запросов и последовательность переходов состояния. Приёмка: запоздавшие `getMe`, logout и повторный вход не могут перезаписать более новую сессию.
+
+### 4 Локальный профиль предыдущего пользователя остаётся в новом аккаунте
+
+**P1, браузер и код.** [features/profile/profile-screen.tsx](../../apps/frontend/src/features/profile/profile-screen.tsx), `domain/profile/sync-profile.ts` (исторический путь, файл позднее удалён) и [domain/session/storage.ts](../../apps/frontend/src/domain/session/storage.ts) используют общие ключи `@darcy_club_profile_*` без идентификатора пользователя. Очищение предусмотрено при явном logout, но не при каждом изменении личности сессии. `displayName` предпочитает локальное имя серверному.
+
+Воспроизведение: профиль А с локальным именем, переход сессии в гостевую при обновлении, вход Б через интерфейс. На странице Б отображается email Б и имя А. Это подтверждённое смешение состояния аккаунтов. Автоматический `syncClubProfileToServer` дополнительно создаёт риск отправки старых локальных данных в новый аккаунт; такую запись в настоящую базу аудит не выполнял.
+
+Исправление: привязать персональные ключи к пользователю, сбрасывать состояние при любом изменении `user.id`, явно мигрировать старые ключи и не синхронизировать их без установления владельца. Приёмка: имя, аватар, пол, избранное и результат теста А не появляются у Б и не отправляются в профиль Б.
+
+### 5 Персональный кэш запросов не изолирован при смене сессии
+
+Расположение: [session-context.tsx](../../apps/frontend/src/domain/session/session-context.tsx).
+
+**P1, код и риск.** `applySession()` вызывает `invalidateQueries()`, но не удаляет прежние приватные данные и не отменяет их запросы. `feed.savedPosts`, `feed.userInteractions`, подписка и другие персональные запросы используют ключи без пользователя. Инвалидация делает данные устаревшими, но не удаляет их.
+
+В проведённом сценарии смены аккаунта отображение старых сохранённых постов в новом аккаунте **не воспроизвелось**. Нельзя записывать это как подтверждённую утечку избранного. Подтверждены структура кэша и отсутствие универсальной очистки, поэтому необходим отдельный тест с задержанными запросами и различными путями смены сессии.
+
+Исправление: определить политику приватных query keys, отменять старые операции и удалять данные при смене пользователя или потере доступа. Публичные данные не обязательно очищать. Приёмка: ответы старой сессии не попадают в кэш новой; отзыв подписки скрывает прежние закрытые данные.
+
+### 6 Состояние подписки не различает загрузку и ошибку
+
+**P2, код.** [domain/subscription/subscription-context.tsx](../../apps/frontend/src/domain/subscription/subscription-context.tsx) выводит `isSubscribed` из последнего `data`, не передавая потребителю состояние ошибки или проверки. При неуспешном обновлении прежняя подписка может продолжать определять интерфейс. При первой загрузке возможен показ гостевого состояния до получения ответа.
+
+Исправление: явные состояния проверки доступа, запрета и сетевой ошибки; повторное подтверждение перед критическими действиями. Сервер остаётся окончательной границей доступа. Приёмка: сеть не превращает неизвестное состояние в достоверно активную или достоверно отсутствующую подписку.
+
+### 7 Политика внешних URL применяется непоследовательно
+
+**P2, код и условный риск.** [shared/browser/actions.ts](../../apps/frontend/src/shared/browser/actions.ts) и [links.ts](../../apps/frontend/src/shared/browser/links.ts) открывают переданный URL; `ArticleContent` передаёт `block.url`, а оплата в [club-screen.tsx](../../apps/frontend/src/features/club/club-screen.tsx) и [product-screen.tsx](../../apps/frontend/src/features/shop/product-screen.tsx) использует `location.assign(result.url)`. Универсальной проверки схем и допустимых получателей нет. Это не доказательство доступного извне XSS: необходимо установить происхождение каждого URL. Ссылки оплаты сейчас строятся бэкендом, а React самостоятельно блокирует часть опасных значений в обычных `href`.
+
+Уже есть хорошие защиты: `sanitizePhotoUrls` разрешает HTTP/HTTPS и запрещает учётные данные в URL; внешние helpers задают `noopener,noreferrer`; rich text нормализует ссылки. Исправление: единая политика отдельно для внутренних адресов, обычных внешних ссылок, файлов, mailto/tel и оплаты; проверять данные при записи и использовании. Проверка схем соответствует рекомендациям [OWASP по безопасным URL](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).
+
+### 8 Заголовки защиты документа не подтверждены для production
+
+**P2, конфигурационный пробел.** Проверенный локальный ответ Next `/login` не содержит CSP, Referrer-Policy, X-Frame-Options или Permissions-Policy. [next.config.mjs](../../apps/frontend/next.config.mjs) не задаёт их. Защитные заголовки бэкенда относятся к его ответам и автоматически не защищают HTML отдельного Next-сервера.
+
+Это **не утверждение**, что production не защищён: reverse proxy и CDN в работающем окружении не проверялись. План: проверить фактические заголовки документа, определить CSP с учётом Next, медиа и inline-стилей; сначала проверить Report-Only, затем включать ограничения без поломки дизайна. Назначение CSP описано в [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy).
+
+### 9 Предупреждения зависимостей требуют проверки применимости
+
+Расположение: [package.json](../../apps/frontend/package.json), [pnpm-lock.yaml](../../pnpm-lock.yaml).
+
+**P2, дерево зависимостей подтверждено.** `pnpm audit --prod` по всему монорепозиторию дал 48 предупреждений: 18 high, 26 moderate, 4 low, 0 critical. Только пять advisory имеют путь через `apps/frontend`: три high, одно moderate и одно low. Нельзя представлять все 48 как уязвимости браузера.
+
+Фронтенд затрагивают `@trpc/server` 11.7.2, `@babel/core` 7.28.5, два advisory `browserslist` 4.28.1 и `baseline-browser-mapping` 2.9.8. Advisory tRPC относится к `experimental_caller` / `experimental_nextAppDirCaller`; их использование в коде приложения не найдено. Поэтому этот high не подтверждён как доступная атака приложения. Остальные перечисленные пакеты преимущественно относятся к инструментам сборки; применимость зависит от обработки недоверенных входных данных. Условия tRPC указаны в [advisory разработчиков](https://github.com/trpc/trpc/security/advisories/GHSA-43p4-m455-4f4j).
+
+План: обновлять согласованные версии после проверки исправленных диапазонов, разбирать каждый путь зависимости и выполнять production build и регрессии. `audit --fix` не запускался, пакеты не устанавливались. Прочие предупреждения относятся к корню, бэкенду и legacy и требуют отдельного разбора.
+
+## Корректность страниц и сохранения данных
+
+| № | Приоритет и доказательство | Недочёт и причина | Исправление и критерий приёмки |
+| --- | --- | --- | --- |
+| 10 | P1, браузер и код | [features/videos/video-screen.tsx](../../apps/frontend/src/features/videos/video-screen.tsx): после ошибки `videos.getById` условие `isLoading \|\| !video` оставляет загрузчик навсегда. Нет ошибки, повторной попытки и выхода из этого состояния. | Разделить загрузку, ошибку, отсутствие записи и успех. Проверить 404, 403, 500, offline и зависший запрос; во всех конечных состояниях есть понятный выход. |
+| 11 | P2, браузер и код | [features/feed/post-screen.tsx](../../apps/frontend/src/features/feed/post-screen.tsx) и [features/library/article-screen.tsx](../../apps/frontend/src/features/library/article-screen.tsx): ошибка API отображается как «не найдено». В проверке 500 превратился в отсутствие поста или статьи. | Ошибка сети не должна утверждать отсутствие материала. Различать 401/403/404/500 и повторять запрос без потери навигации. |
+| 12 | P2, код | Расположение: [video-screen.tsx](../../apps/frontend/src/features/videos/video-screen.tsx), [post-screen.tsx](../../apps/frontend/src/features/feed/post-screen.tsx), [article-screen.tsx](../../apps/frontend/src/features/library/article-screen.tsx). Идентификаторы обрабатываются по-разному: видео допускает `Number(id)` при любом непустом id, пост использует `parseInt`, статья проверяет положительность, но не целочисленность. | Единая строгая проверка положительных безопасных целых чисел. Проверить `invalid`, `12abc`, `0`, отрицательные, дробные и слишком большие значения. Не отправлять некорректные запросы. |
+| 13 | P2, браузер и код | [features/profile/profile-screen.tsx](../../apps/frontend/src/features/profile/profile-screen.tsx): если в выбранной категории нет строк, фильтр возвращает все сохранения. «Из клуба» показывает пост из ленты. | Возвращать только выбранную категорию, даже если она пустая. Проверить только feed, только club, both и отсутствие сохранений. |
+| 14 | P2, браузер и код | [features/library/library-screen.tsx](../../apps/frontend/src/features/library/library-screen.tsx): все статьи API получают `isClubOnly:true`, хотя контракт содержит `access: public или club`. Нажатие публичной статьи гостем ведёт на `/club`. | Использовать серверный `access`. Публичная статья доступна гостю, клубная остаётся ограниченной. |
+| 15 | P2, браузер и код | [features/library/patterns-screen.tsx](../../apps/frontend/src/features/library/patterns-screen.tsx): «Определить свою эстетику» вызывает `router.push("")` и ведёт на главную. | Переходить на `/quiz`. Проверить все одноимённые CTA во всех разделах. |
+| 16 | P2, браузер и код | Расположение: [article-screen.tsx](../../apps/frontend/src/features/library/article-screen.tsx). Закрытая статья не имеет ScrollArea. При длинном названии на экране 320×300 кнопка вступления находится на y≈889, а доступного скролла нет. | Сделать содержимое доступным прокруткой без изменения композиции. Проверить длинные реальные названия, маленькую высоту, масштаб текста и появление клавиатуры. |
+| 17 | P1, код | Расположение: [profile-screen.tsx](../../apps/frontend/src/features/profile/profile-screen.tsx). Имя и аватар профиля меняются локально до подтверждения API; `catch {}` скрывает отказ сохранения. Пользователь видит результат как сохранённый. | Единое подтверждение сохранения, откат или явное состояние ошибки. При неуспешном API локальный профиль не выдаётся за серверный. |
+| 18 | P2, код и риск | Расположение: [profile-screen.tsx](../../apps/frontend/src/features/profile/profile-screen.tsx). Изменение имени дублируется в `onSubmit` и `onBlur`, каждый обработчик вызывает мутацию и refresh. Возможна повторная запись при Enter и потере фокуса во время ожидания. Браузерная проверка количества записей не завершилась надёжно. | Один обработчик commit с защитой от повторного выполнения. Проверить Enter, blur и быструю последовательность обоих событий; одна осмысленная запись. |
+| 19 | P2, код | [club-subscribed.tsx](../../apps/frontend/src/features/club/club-subscribed.tsx) переносит likes только при непустом массиве, saved добавляет в прежний Set. Пустой серверный ответ не очищает прежнее состояние. | Серверное состояние должно заменять подтверждённое локальное; оптимистические изменения учитывать отдельно. После снятия всех отметок нет оставшихся ложных likes/saves. |
+| 20 | P2, код | Расположение: [feed-screen.tsx](../../apps/frontend/src/features/feed/feed-screen.tsx), [post-screen.tsx](../../apps/frontend/src/features/feed/post-screen.tsx), [club-subscribed.tsx](../../apps/frontend/src/features/club/club-subscribed.tsx), [club-post-card.tsx](../../apps/frontend/src/features/club/club-post-card.tsx). В ленте, клубе и отдельном посте likes/saves меняются оптимистически без общего отката при ошибке. Счётчик и закладка могут расходиться с сервером. | Общий механизм optimistic mutation, rollback и повторного подтверждения. Проверить 401, 403, 500, двойное нажатие и ответы в обратном порядке. |
+| 21 | P2, код | [club-comments.tsx](../../apps/frontend/src/features/club/club-comments.tsx) показывает ошибку добавления, но не имеет сопоставимой обработки ошибок редактирования, удаления, жалобы и like. Загрузка фото использует finally без catch. | Показать ошибку соответствующего действия, сохранять текст и вложения, исключить необработанный rejected Promise. Не показывать успешную жалобу до ответа API. |
+| 22 | P2, код | В [pen-pals.tsx](../../apps/frontend/src/features/club/pen-pals.tsx) ошибки поиска, сохранения и удаления анкеты не оформлены как полноценные состояния. Начальная ошибка может дать пустой результат, неотличимый от отсутствия совпадений. | Различать пустой результат и отказ; сохранять анкету при сбое; не показывать адрес другого пользователя при смене сессии. Проверить с включённой capability и реальным контрактом. |
+| 23 | P2, код | Расположение: [admin-screen.tsx](../../apps/frontend/src/features/admin/admin-screen.tsx), [articles-admin.tsx](../../apps/frontend/src/features/admin/articles-admin.tsx), [calendar-tracker.tsx](../../apps/frontend/src/features/admin/calendar-tracker.tsx), [stats-dashboard.tsx](../../apps/frontend/src/features/admin/stats-dashboard.tsx). Админские списки постов, статей, участников, оплат, жалоб и календарь местами используют `data \|\| []` без отдельного состояния ошибки. Сбой может выглядеть как пустой список. | Разделить loading/error/empty/success, повторять запрос. Для статистики сообщение ошибки уже есть, но доступная повторная попытка также нужна. |
+| 24 | P2, код | [articles-admin.tsx](../../apps/frontend/src/features/admin/articles-admin.tsx) при сохранении всегда посылает `published:true`; редактирование непубликуемой статьи не сохраняет её исходный статус. | Сохранить статус при редактировании и определить явное действие публикации. Приёмка: обычная правка скрытой статьи не делает её публичной. |
+| 25 | P1, код | [create-post-modal.tsx](../../apps/frontend/src/features/admin/create-post-modal.tsx) сначала создаёт или обновляет пост с выбранным статусом, затем загружает вложения. При ошибке вложения уже опубликованный пост может остаться неполным. | Актуальное исправление 5 октября: общий координатор сначала загружает файлы без привязки, затем отправляет один create/update с вложениями и удалениями. Промежуточный черновик больше не используется. Клиентские регрессии проходят; серверная транзакция и повторы после перезагрузки требуют отдельной приёмки. См. актуальный статус 25 выше. |
+| 26 | P2, код | Расположение: [create-post-modal.tsx](../../apps/frontend/src/features/admin/create-post-modal.tsx), [post-management.tsx](../../apps/frontend/src/features/admin/post-management.tsx). Редактор существующего поста восстанавливает videos и photos, но не показывает полноценное управление уже существующими audio/document вложениями. | Общая модель всех типов медиа и явные операции сохранения/удаления. Потеря этих файлов при обычном update не доказана: бэкенд отдельно заменяет videos, поэтому её нельзя утверждать по одному фронтенду. |
+| 27 | P2, изолированное воспроизведение и код | [features/admin/media/video-upload.ts](../../apps/frontend/src/features/admin/media/video-upload.ts): после неудачного `response.json()` вызывается `response.text()`, хотя body уже прочитан. Ответ HTML с 413 дал `Body has already been read` вместо ошибки размера. | Читать body один раз и затем разбирать формат. Приёмка: HTML/пустой/JSON ответ 413, 401, 500 выдаёт понятную исходную ошибку. |
+| 28 | P2, код | [shared/media/audio.ts](../../apps/frontend/src/shared/media/audio.ts) подавляет ошибку play, а карточка и музыкальная кнопка сразу считают воспроизведение успешным. В [audio-player.tsx](../../apps/frontend/src/shared/media/audio-player.tsx) конец определяется за 0,5 секунды до duration, UI сбрасывается, но позиция аудио не переводится в начало. Getter volume возвращает 1 при фактическом 0. | Управлять UI через события audio, обрабатывать rejected play и ended, корректно сбрасывать seek. Проверить недоступный файл, отказ autoplay, последние 0,5 секунды, повторное воспроизведение и громкость 0. |
+| 29 | P2, браузер и код | [shared/media/photo-viewer.tsx](../../apps/frontend/src/shared/media/photo-viewer.tsx): эффект при изменении ширины сбрасывает currentIndex в initialIndex. При resize 390→375 выбранное фото 3/18 стало 1/18. | Сохранять текущий индекс и пересчитывать offset. Проверить поворот устройства, изменение окна, изменение photos и крайние индексы. |
+
+## Производительность и медиакомпоненты
+
+### 30 Таймаут tRPC фактически обходится
+
+**P1, изолированное воспроизведение и код.** [shared/api/trpc.ts](../../apps/frontend/src/shared/api/trpc.ts) выбирает `options.signal || AbortSignal.timeout(15000)`. Установленный `httpBatchLink` передаёт собственный AbortSignal, поэтому ветка с таймаутом не выполняется. Проверка настоящего клиентского транспорта с тестовым fetch подтвердила: signal передан, `AbortSignal.timeout` вызван ноль раз.
+
+Следствие: зависший ответ может надолго удерживать загрузку или мутацию. Дополнительно `applySession` ожидает глобальную инвалидацию запросов, поэтому несвязанный зависший запрос способен задерживать завершение перехода сессии. Исправление: сочетать отмену и таймаут, ограничивать время операции, отдельно обрабатывать timeout. Приёмка: зависший запрос заканчивается в установленное время; отмена тоже работает.
+
+### 31 Слишком много файлов читается в память целиком
+
+Расположение: [file-picker.ts](../../apps/frontend/src/shared/browser/file-picker.ts), [read-attachment.ts](../../apps/frontend/src/shared/media/read-attachment.ts), [image-upload.ts](../../apps/frontend/src/shared/media/image-upload.ts).
+
+**P2, код; размер реального потребления памяти не измерен.** [shared/browser/file-picker.ts](../../apps/frontend/src/shared/browser/file-picker.ts) делает FileReader data URL для всех выбранных изображений/видео через Promise.all. [read-attachment.ts](../../apps/frontend/src/shared/media/read-attachment.ts) проверяет ограничение 32 МБ после чтения blob. Base64 создаёт дополнительную копию и увеличивает объём представления. Canvas сначала декодирует исходное изображение, даже если затем уменьшает его.
+
+Исправление: проверять File.size до чтения, ограничивать число и последовательность обработок, использовать blob URL для preview, загружать бинарные данные там, где поддерживает API. Изменение протокола загрузки требует согласования API. Приёмка: большие и многочисленные файлы отклоняются до дорогой обработки; интерфейс остаётся отзывчивым; закрытие операции освобождает ресурсы.
+
+### 32 Жизненный цикл медиа не завершён явно
+
+Расположение: [file-picker.ts](../../apps/frontend/src/shared/browser/file-picker.ts), [canvas-image.ts](../../apps/frontend/src/shared/media/canvas-image.ts).
+
+**P2, код и риск накопления ресурсов.** `getDocumentAsync` создаёт object URL, а пути удаления вложения и закрытия редактора не имеют явного симметричного revoke. [image-upload.ts](../../apps/frontend/src/shared/media/image-upload.ts) получает ImageBitmap без `close()`. Это подтверждённые пропуски явного освобождения, но не измеренный бесконечный рост памяти: часть ресурсов может позднее освободить браузер.
+
+Исправление: определить владельца каждого blob URL, bitmap, canvas, видео и обработчика; освобождать их после удаления, завершения, ошибки, отмены и unmount. Приёмка: повторные циклы открытия редактора, выбора и удаления файлов не оставляют активные URL и медиаресурсы.
+
+### 33 Ошибка конвертации изображения скрывается неправильным MIME
+
+Расположение: [image-upload.ts](../../apps/frontend/src/shared/media/image-upload.ts).
+
+**P2, изолированное воспроизведение и код.** `compressImageBlob` при ошибке возвращает исходный blob. `fileToUpload` после этого всё равно назначает `.jpg` и `image/jpeg`. Искусственный невалидный HEIC сохранил исходные байты, но был объявлен JPEG. Кроме того, preserveAlpha для WebP может вернуть WebP с расширением PNG.
+
+Исправление: возвращать фактический формат успешной обработки; неподдерживаемые и повреждённые изображения отклонять явно. Приёмка: MIME, расширение и сигнатура файла совпадают; HEIC, GIF, PNG с прозрачностью, WebP и повреждённый файл проходят согласованные сценарии.
+
+### 34 Получение постера видео не ограничено временем
+
+**P2, код и риск.** [shared/media/video-poster.ts](../../apps/frontend/src/shared/media/video-poster.ts) ожидает события loadeddata и seeked без watchdog или отмены. Если ожидаемое событие не наступит, Promise не завершится, а админский экран продолжит ждать. Постер строится в исходном разрешении видео.
+
+Исправление: ограничить ожидание, обработать отказ декодера и отмену, ограничить размер постера, гарантировать cleanup. Приёмка: повреждённый, нулевой, неподдерживаемый и слишком долгий ролик не оставляет бесконечное «загружается».
+
+### 35 Длинные списки растут вместе с DOM
+
+**P2, код.** [shared/ui/collection.tsx](../../apps/frontend/src/shared/ui/collection.tsx) создаёт DOM для всего массива. Лента сохраняет загруженные страницы, клуб получает до 200 постов без последующей загрузки nextCursor, админка получает весь список. Для клуба это одновременно риск производительности и потенциальная недоступность записей за пределами первой порции; реальная база с более чем 200 публикациями не проверялась.
+
+Исправление: сначала обеспечить правильную пагинацию, затем измерить длинные реальные списки и выбрать ограничение страниц, content-visibility или виртуализацию. Виртуализацию нельзя добавлять вслепую: карточки имеют переменную высоту, медиа и собственные взаимодействия. Приёмка: все записи доступны, позиция прокрутки сохраняется, DOM и память остаются ограниченными в длительной сессии, композиция карточек не меняется.
+
+### 36 Изображения загружаются без общей политики
+
+**P2, код.** [shared/media/image.tsx](../../apps/frontend/src/shared/media/image.tsx) не задаёт lazy loading, decoding, srcset и sizes; галереи создают сразу все картинки. Размеры некоторых изображений дополнительно определяются через отдельные Image-пробы. `ratioCache` не ограничен; начальное соотношение сторон заменяется после загрузки и может менять расположение карточек.
+
+Исправление: различать главный баннер и изображения ниже экрана; задавать известные размеры, responsive варианты, lazy loading и общую обработку ошибок. Не следует делать lazy главным изображением или автоматически заменять все wrappers на Next Image без проверки геометрии. Приёмка: первый экран не замедляется, отсутствующие медиа имеют предсказуемый fallback, прокрутка и раскладка не прыгают. Фактические LCP, CLS и INP нужно измерить отдельно в production.
+
+## Архитектура доступность и сохранение дизайна
+
+### 37 Общие компоненты есть но бизнес логика продолжает дублироваться
+
+Расположение: [admin-screen.tsx](../../apps/frontend/src/features/admin/admin-screen.tsx), [profile-screen.tsx](../../apps/frontend/src/features/profile/profile-screen.tsx), [create-post-modal.tsx](../../apps/frontend/src/features/admin/create-post-modal.tsx), [home-screen.tsx](../../apps/frontend/src/features/home/home-screen.tsx), [aesthetics-screen.tsx](../../apps/frontend/src/features/library/aesthetics-screen.tsx), [articles-admin.tsx](../../apps/frontend/src/features/admin/articles-admin.tsx).
+
+**P2 для логики, P3 для уборки; код.** Уже выделены Action, Field, Typography, ScrollArea, Picture, TabHeader, BottomTabs, контентные renderer и сериализация черновика. Это полезная основа. Однако общий механизм изменения likes/saves, редактирования профиля, чтения файлов, определения состояния запроса и сохранения поста не объединён. Основная админка требует текст поста, а модальный редактор допускает публикацию только с медиа.
+
+Размеры наиболее сложных файлов: admin-screen — 1870 строк, profile-screen — 1109, create-post-modal — 901, home-screen — 893, aesthetics-screen — 840, articles-admin — 700. Проблема не в числе строк как таковом, а в смешении запросов, преобразования данных, загрузок, бизнес-правил и JSX.
+
+План: разделить код на модели данных, hooks действий, небольшие секции и presentation-компоненты. Сохранить существующие CSS-модули и параметры дизайна. Объединять бизнес-правила, а не насильно делать одинаковой разную композицию карточек. Отдельно проверить неиспользуемые exports и совместимые заглушки `useIsFocused`, `setAudioModeAsync`, игнорируемый `autoFetch`. Граф импортов не дал безопасного списка целиком удаляемых TS-файлов; это не доказывает отсутствие лишнего кода. Старый Expo нужен как эталон, его удаление в план первого этапа не входит.
+
+### 38 Слишком широкая клиентская граница требует измерения
+
+Расположение: [viewport.ts](../../apps/frontend/src/shared/browser/viewport.ts), [home-screen.tsx](../../apps/frontend/src/features/home/home-screen.tsx), [aesthetics-screen.tsx](../../apps/frontend/src/features/library/aesthetics-screen.tsx).
+
+**P2, архитектурный риск.** Значительная часть статического содержимого входит в клиентские модули; страницы одновременно несут интерактивность и длинные тексты. В viewport серверный snapshot имеет ширину 480, затем переключается на реальную ширину окна. Это обеспечивает стабильную hydration, но возможные сдвиги геометрии надо измерить.
+
+План: по данным production bundle разделить действительно интерактивные участки и статический контент; использовать CSS для геометрии там, где это возможно без изменения вида. Ленивая загрузка create-post-modal уже реализована через next/dynamic — нельзя утверждать, что все редакторы безусловно загружаются гостю. Перенос закрытого контента решается прежде оптимизации. Приёмка: уменьшение клиентского JS подтверждено производственной сборкой, а SSR и первый интерактивный кадр визуально совпадают.
+
+### 39 Модальные окна и действия доступны не полностью
+
+Расположение: [dialog.tsx](../../apps/frontend/src/shared/ui/dialog.tsx), [photo-viewer.tsx](../../apps/frontend/src/shared/media/photo-viewer.tsx), [typography.tsx](../../apps/frontend/src/shared/ui/typography.tsx).
+
+**P2, браузер и код.** Dialog задаёт role и aria-modal, обрабатывает Escape и базовый Tab, но не принимает доступное имя; background не становится inert. Focus selector не включает select. В галерее доступное имя диалога отсутствовало. Многие кнопки с картинкой или иконкой не имеют осмысленного названия; иконки aria-hidden не заменяют label. Отдельные кликабельные Typography остаются span.
+
+План: расширить контракт Dialog, обеспечить корректный focus trap, возврат фокуса и вложенные окна; добавить невидимые labels и семантические ссылки/кнопки. Приёмка: основные действия доступны с клавиатуры и screen reader, фокус не уходит под окно, изменение семантики не меняет цвета, размер или расположение элементов.
+
+### 40 Полное визуальное совпадение пока не зафиксировано
+
+**P2, различие в коде и пробел в проверке.** Исходники старого tab layout и icon-symbol подтверждают те же шесть вкладок и соответствие названий иконок новому коду. Проверки поведения хедера и скрытия нижних вкладок в клубе подписчика проходят. Но это не пиксельная проверка.
+
+Найдено конкретное отличие: в новом [bottom-tabs.module.scss](../../apps/frontend/src/shared/ui/bottom-tabs.module.scss) правило `.tab span { margin-bottom:4px }` применяется и к подписи, и к span иконки. Браузер подтвердил margin-bottom 4px у всех шести иконок. Старый layout отдельно задаёт иконке marginBottom −2 и подписи marginBottom 4. Фактическое смещение относительно старого рендера требует screenshot diff; нельзя вычислять точное визуальное отличие только по этим двум значениям.
+
+План: получить эталонные скриншоты старой версии с одинаковыми данными, шрифтами, датой, состояниями подписки и размером окна; сравнить все страницы, модалки и состояния. Не менять палитру, шрифты, отступы, радиусы, иллюстрации, иконки и композицию под видом оптимизации. Отличия исправлять по эталону, а не создавать новый дизайн.
+
+### 41 Автотесты не покрывают найденные ошибки
+
+Расположение: [frontend.spec.ts](../../apps/frontend/e2e/frontend.spec.ts), [playwright.config.ts](../../apps/frontend/playwright.config.ts), [tsconfig.json](../../apps/frontend/tsconfig.json), [eslint.config.mjs](../../apps/frontend/eslint.config.mjs).
+
+**P2, подтверждённый пробел.** Типы и линтер проходят при наличии перечисленных ошибок. Текущие browser tests в основном проверяют рендеринг и отдельные успешные потоки; часть fixture обходов не подменяет все tRPC-запросы. Шесть сценариев основной группы прошли после увеличения общего лимита, но это не проверка производительности приложения. E2E не входит в основной include TypeScript фронтенда и команду `eslint src`.
+
+План: отдельные регрессии для найденных причин, полный mock API для автономного набора и отдельный набор интеграции с настоящим API. Контракты fixture должны совпадать с API. По результатам этого аудита тестовый код проекта не редактировался; диагностические сценарии остались отдельно.
+
+### 42 Уведомления являются polling а не полноценным web push
+
+Расположение: [web-post-alerts.tsx](../../apps/frontend/src/features/pwa/web-post-alerts.tsx), [manifest.webmanifest](../../apps/frontend/public/manifest.webmanifest).
+
+**P2 при требовании фоновых уведомлений, иначе ограничение функции; код.** `WebPostAlerts` опрашивает latest раз в 90 секунд, вызывает `new Notification` и запрашивает разрешение через таймер спустя 5 секунд. Service Worker и PushManager в проверенном фронтенде не обнаружены. Значит, нельзя обещать доставку при закрытом приложении. Ошибки показа подавляются, icon указывает на `/favicon.ico`, тогда как фактический favicon расположен в `/assets/images/favicon.png`.
+
+План: согласовать обещание функции; запрашивать разрешение явным действием пользователя, показывать доступность и исправить путь иконки. Если требуются фоновые push, нужен отдельный серверный и Service Worker поток. Manifest и размер icon 512×512 согласованы; mismatch размеров здесь не найден. Наличие manifest само по себе не доказывает offline-работу, а отсутствие offline не является ошибкой без такого требования.
+
+## Проверка по страницам
+
+В таблице «браузер» означает проверку с fixture API. Это не гарантия полноты всех комбинаций состояний.
+
+| Страница или состояние | Что проверено | Основные пункты отчёта |
+| --- | --- | --- |
+| Главная `/` | Рендер, размеры 320/390/1440, header при скролле, нижние вкладки | 36, 38–40; production-анимации ещё измерить |
+| Лента `/feed` | Карточки fixture, скролл, гостевое состояние, header | 20, 30, 35–36, 39 |
+| Пост `/post/[id]` | Материал, неверный id, ошибка API | 11–12, 20, 36, 39 |
+| Видео `/videos` | Список и пустое состояние, header, адаптивный рендер | 23, 36; ошибка списка и реальное воспроизведение требуют отдельной интеграции |
+| Видео `/video/[id]` | Карточка, неверный id, отказ API | 10, 12; недоступный видеопоток требует fallback |
+| Клуб для гостя `/club` | Посадочная страница, header со скроллом, отображение оплаты | 6–7, 30; реальная оплата не выполнялась |
+| Клуб подписчика `/club` | Подтверждённый рендер после завершения загрузки, карточки, фиксированный header, отсутствие нижних вкладок | 4–6, 19–22, 35, 39 |
+| Интерактив `/interactive` | Карточки и навигация, header | 38–40 |
+| Тест `/quiz` | Пройдено 10 вопросов, результат Cottagecore сохранён; другие комбинации проверяются модульно | 1, 4, 28, 36, 38–39; mixed result и все ответы ещё проверить визуально |
+| Библиотека `/library` | Сетка, поиск в коде, публичная статья из API, header | 1, 14, 36, 39 |
+| Гид `/library/aesthetics-guide` | Гость, подписчик, наличие закрытого текста в гостевом chunk | 1, 36, 38–39 |
+| Обо мне `/library/about-me` | Длинный контент, открытие галереи, resize галереи | 29, 36, 39; оглавление и загрузку всех внешних фото проверить на эталоне |
+| Выкройки `/library/patterns` | Гость, подписчик, ошибочный CTA, условное открытие файлов | 1, 7, 15, 36, 39 |
+| Статья `/library/article/[id]` | Закрытая, ошибка API, длинное название на коротком экране | 11–12, 16, 36, 39 |
+| Магазин `/shop` | Полки, header, размер окна, нижние вкладки | 36, 38–40; отсутствие части внешних assets требует сверки с оригиналом |
+| Товар `/shop/[id]` | `book-1`, `digital-1`, серверная обработка неизвестного id, metadata в коде | 7, 29, 36, 39; оплату, возврат и entitlement проверить с API |
+| Профиль `/profile` | Гость, без подписки, подписчик, фильтры, смена пользователя | 3–6, 13, 17–18, 28, 39 |
+| Вход `/login` | Email, регистрация с consent, recovery, ошибка входа, скрытый SMS, нативный submit, гонка сессии | 2–5, 30; TOTP, SMS и binding проверить с настоящим API |
+| Админка `/admin` | Гость, администратор, посты, статьи, календарь, статистика, участницы, оплаты, жалобы, открытие редактора | 23–27, 30–39; полноценный CRUD и права API не проверялись живым сервером |
+| `/legal`, `/legal/[slug]`, `/privacy` | Рендер, документы, неизвестный slug, скролл | 39–40; юридическую актуальность содержания аудит не оценивал |
+| `/oauth/callback` | Перенаправление на вход | Совместимость со старым OAuth — отдельный вопрос продукта, не подтверждённая ошибка |
+| Not found и error/loading | Ошибочные адреса и обработка в коде | Streaming может сохранить HTTP 200 для позднего notFound; проверить реальные требования SEO в production |
+
+## Проверка общих компонентов
+
+| Группа | Результат и следующий шаг |
+| --- | --- |
+| TabHeader, BottomTabs, TabShell, useScrollHeader | Поведение проверено, исходные иконки совпадают по mapping. Нужны pixel diff и проверка selector отступов. |
+| Action, Field, Typography | Основа повторного использования есть. Единые commit, названия действий и семантика должны задаваться потребителями. |
+| ScrollArea, Collection, MeasuredBox | Проверены границы скролла и устройство списков. Нужны длинные данные, пагинация, сохранение позиции, оглавления после загрузки изображений. |
+| Dialog, drawers, меню | Escape и базовый focus trap есть; доступные имена, select, nested dialog и background inert требуют доработки. |
+| Picture, DomImage, Background | Геометрия перенесена; отсутствует общая политика loading, responsive ресурсов и ошибок. |
+| NaturalPhotoStack, PostPhotoCarousel, PhotoViewer | Требуются стабильные размеры, названия кнопок, корректный resize и ограничение загрузки фото. |
+| AudioPlayerCard, TabMusicToggle | Ошибки play подавляются, состояние и конец воспроизведения некорректны. |
+| YouTubeEmbed, VideoGridCell, VideoPreview | Обрабатывают видео через HTML video и proxy URL; нужна проверка ошибок потока, metadata, Range и фактического воспроизведения с API. |
+| File pickers, image upload, attachment reader, canvas, poster | Выявлены неправильный MIME, поздние ограничения, неполный cleanup и отсутствие таймаута постера. |
+| AvatarCropper, PhotoEditor, GestureDetector | Код проверен; pinch/pan, ограничения crop, pointer cancel, длинное нажатие и drag на настоящем touch-устройстве остаются отдельной приёмкой. |
+| RichTextField и renderer, ArticleContent | Нет обнаруженного прямого dangerouslySetInnerHTML; текст строится через React. Доменные тесты проходят. Нужны единая URL-политика и сценарии редактирования selection/IME/paste. |
+| AuthProvider, ClubProvider, API client | Основные приоритеты: race, изоляция личности и приватного кэша, статусы доступа, реальный timeout. |
+| QueryRetryState, error boundaries | Полезные общие механизмы уже есть, но применены не ко всем запросам и действиям. |
+| InstallGuide, WebPostAlerts | Установка отделена от offline/push. Нужно корректно определить обещание уведомлений и проверять PWA на устройствах. |
+
+## Что уже сделано правильно
+
+Проверка не сводится к списку недостатков. Уже есть строгий TypeScript, линтер, отделённые domain/features/shared, клиентский контракт API и тесты ключевых преобразований. Учётные данные старой схемы удаляются из localStorage; пользовательская информация сессии хранится в памяти, API использует credentials include. Роль администратора на клиенте проверяется по роли, не по email. В бэкенде обнаружены protected/admin procedures — отсутствие клиентского middleware само по себе не является обходом авторизации.
+
+Ссылки `next` после входа проходят `safeNextPath`, что ограничивает внешние перенаправления. Изображения постов проходят проверку URL, rich text отображается React-элементами. Имеются lazy imports редактора, error boundary и общий компонент повторной загрузки. Scroll header избегает React-обновления на каждом пикселе. Эти решения нужно сохранить и расширить, а не переписать без причины.
+
+
+## Дополнительное замечание по документации
+
+На момент первоначального аудита [README фронтенда](../../apps/frontend/README.md) ещё описывал Expo и прежние каталоги. **5 октября исправлено:** README соответствует Next.js, текущей структуре и существующим командам. Корневые инструкции запуска следует отдельно сверить после переработки бэкенда.
+
+## Где лежат исходные отчёты и доказательства
+
+Пять архивных `.log` из списка ниже отсутствуют в текущем checkout. Ссылки сохранены как указатели на материалы первоначального аудита; текущие результаты 5 октября получены повторным запуском проверок, а не чтением этих логов.
+
+- [Полный первоначальный аудит](../audits/frontend-audit-2026-10-03.md).
+- [Разбор договора и границ первого этапа](../audits/frontend-stage-one-scope-2026-10-03.md).
+- [Инвентаризация и результаты проверки](../audits/frontend-audit-2026-10-03-evidence/inventory.json).
+- [Основные браузерные результаты](../audits/frontend-audit-2026-10-03-evidence/browser-results.json), [сессия и роли](../audits/frontend-audit-2026-10-03-evidence/role-results.json), [дополнительные сценарии](../audits/frontend-audit-2026-10-03-evidence/focused-results.json), [квиз](../audits/frontend-audit-2026-10-03-evidence/quiz-results.json).
+- `TypeScript` (локальный лог прежней проверки, не хранится в Git), `ESLint` (локальный лог прежней проверки, не хранится в Git), `модульные проверки клиента` (локальный лог прежней проверки, не хранится в Git), `доменные проверки` (локальный лог прежней проверки, не хранится в Git), `повтор E2E с увеличенным лимитом` (локальный лог прежней проверки, не хранится в Git).
+
+Диагностические скрипты общего аудита были в `/tmp/daryadarcy-full-audit`, сверка текстов — `/tmp/daryadarcy-content-*.cjs` и `/tmp/daryadarcy-punctuation-audit.cjs`, изучение договора/кадров — `/tmp/daryadarcy-stage-one-review`. `/tmp` может очищаться: постоянные результаты общего аудита сохранены по ссылкам выше, а выводы остальных проверок записаны в этом файле. Эти временные скрипты не являются частью приложения или поддерживаемого набора тестов.
+
+Последнее действие **сессии 3 октября** — создание данного файла. В той сессии новые правки исходников, установки, запуск API, изменения сервера, публикации и коммиты не выполнялись. Изменения 4 октября описаны в отдельном разделе выше.

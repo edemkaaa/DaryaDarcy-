@@ -2,6 +2,7 @@
 export const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_BASE_URL || ""
 ).replace(/\/$/, "");
+/** В браузере запрещаем отдельный публичный origin или вложенный base path, чтобы cookie и относительные закрытые URL оставались на одном сайте. */
 export function getApiBaseUrl() {
   if (
     API_BASE_URL &&
@@ -24,11 +25,13 @@ export function getApiBaseUrl() {
   }
   return API_BASE_URL;
 }
+/** Проверяем публичную базу перед объединением с внутренним API-путём; функция не превращает произвольный URL в доверенный. */
 export function apiUrl(path: string) {
   return getApiBaseUrl() + path;
 }
 export const SESSION_TOKEN_KEY = "app_session_token";
 export const USER_INFO_KEY = "daryadarcy-user-info";
+/** Административный интерфейс определяется ролью, а не совпадением email или openId; окончательные полномочия проверяет API. */
 export function isOwnerUser(
   user:
     | {
@@ -41,4 +44,5 @@ export function isOwnerUser(
 ) {
   return user?.role === "admin";
 }
+/** Совместимый вызов возвращает текущий маршрут входа без токенов и query-параметров. */
 export const getLoginPath = () => "/login";

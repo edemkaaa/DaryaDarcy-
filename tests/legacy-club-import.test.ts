@@ -1,7 +1,9 @@
+/** Чистая подготовка Club snapshot сохраняет исходный контент/даты/статус; SQL/S3 не используются. */
 import { describe, expect, it } from "vitest";
 import { prepareLegacyClubContent } from "../tooling/data/legacy-club-import";
 
 const photo = "https://s3.twcstorage.ru/daryadarcy-s3/club/example/photo.jpg";
+/** Минимальный source содержит photo-only Telegram пост, article teaser, публичную статью и audio-связь. */
 function source() {
   const post = {
     id: 10,
@@ -77,7 +79,9 @@ function source() {
     tags: [],
   };
 }
+/** Importer переносит только разрешённые сущности, не аккаунты и не публикацию черновиков. */
 describe("legacy Club content boundary", () => {
+  /** JSON поля декодируются без потери bold/italic/link; старые source/date/access/media связи сохраняются. */
   it("retains photo-only posts, formatting, original dates and a public article", () => {
     const result = prepareLegacyClubContent(source());
     expect(result.posts[0]).toMatchObject({
@@ -113,6 +117,7 @@ describe("legacy Club content boundary", () => {
     expect(result.media[0]).toMatchObject({ id: 20, postId: 10, fileSize: 3 });
     expect(result).not.toHaveProperty("tags");
   });
+  /** Draft/scheduled остаются неопубликованными со своим расписанием. */
   it.each(["draft", "scheduled"])(
     "preserves %s rather than publishing it during import",
     (status) => {
@@ -127,6 +132,7 @@ describe("legacy Club content boundary", () => {
       });
     },
   );
+  /** Отсутствующий parent post блокирует весь snapshot. */
   it("rejects a media row with no source post", () => {
     const input = source();
     input.media[0].postId = 999;
@@ -134,6 +140,7 @@ describe("legacy Club content boundary", () => {
       "Invalid legacy Club snapshot",
     );
   });
+  /** Дубли source-ID и teaser несуществующей статьи не создают неоднозначные привязки. */
   it("rejects duplicate source IDs and dangling article cards", () => {
     const duplicate = source();
     duplicate.posts.push({ ...duplicate.posts[0] });
@@ -146,6 +153,7 @@ describe("legacy Club content boundary", () => {
       "Invalid legacy Club snapshot",
     );
   });
+  /** Loopback, поддельный host и подписанные URL не принимаются как старые public media. */
   it.each([
     "http://127.0.0.1/file",
     "https://s3.twcstorage.ru.evil.test/file",
@@ -157,6 +165,7 @@ describe("legacy Club content boundary", () => {
       "Invalid legacy Club snapshot",
     );
   });
+  /** Этот перенос не расширяется на feed/users и невозможные календарные даты. */
   it("refuses public-feed rows, invalid dates and unrelated account data", () => {
     const feed = source();
     feed.posts[0].target = "feed";

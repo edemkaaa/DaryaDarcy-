@@ -1,7 +1,7 @@
 /** Уведомляем об уходе до фиксации нового маршрута, чтобы старая страница больше не владела отложенным перенаправлением. */
 export const navigationStartEvent = "darcy:navigation-start";
 
-/** Revoke page-owned redirects before Next commits the destination route. */
+/** Сообщаем страницам о переходе до завершения Next-навигации; на сервере браузерное событие не создаётся. */
 export function notifyNavigationStart(destination?: string) {
   if (typeof window !== "undefined")
     window.dispatchEvent(
@@ -9,7 +9,9 @@ export function notifyNavigationStart(destination?: string) {
     );
 }
 
+/** Отзываем право checkout на отложенный redirect при уходе с /club; переход в новой вкладке и download не считаются уходом текущей страницы. */
 export function watchCheckoutDeparture(cancel: () => void) {
+  /** Переход внутри /club может сохранять намерение, любой другой origin/раздел отменяет текущего владельца результата. */
   const leaving = (destination?: string) => {
     if (!destination) return cancel();
     const url = new URL(destination, window.location.href);
@@ -18,6 +20,7 @@ export function watchCheckoutDeparture(cancel: () => void) {
   };
   const navigation = (event: Event) =>
     leaving((event as CustomEvent<string | undefined>).detail);
+  /** Обрабатываем только обычную активированную ссылку в этой вкладке; модификаторы и уже отменённые клики оставляем браузеру. */
   const click = (event: MouseEvent) => {
     if (
       event.defaultPrevented ||
@@ -38,6 +41,7 @@ export function watchCheckoutDeparture(cancel: () => void) {
       return;
     leaving(anchor.href);
   };
+  /** У popstate нет целевого href текущей команды, поэтому возврат консервативно отзывает отложенное перенаправление. */
   const back = () => leaving();
   document.addEventListener("click", click, true);
   window.addEventListener(navigationStartEvent, navigation);

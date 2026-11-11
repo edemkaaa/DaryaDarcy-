@@ -10,6 +10,8 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
 function run(label, command, args = []) {
+  // Запускает одну историческую стадию с остановкой при ненулевом коде; не обеспечивает откат уже выполненных стадий.
+
   console.log(`\n=== ${label} ===`);
   const result = spawnSync(command, args, {
     cwd: root,

@@ -2,14 +2,41 @@
 
 ## Понятные исходники и документация — 11 ноября
 
-- [x] Сохранить инвентарь файлов, текущие тексты и AST до комментирования.
-- [x] Пройти активные backend/frontend/shared/DB/tooling/infra файлы; пояснить назначение и важные блоки без изменения поведения.
-- [x] Составить справочник всех 3 682 файлов с назначением, блоками и пометками истории/генерации.
-- [x] Обновить действующие README, запуск, workflow и архитектурные инструкции; сохранить исторические доказательства.
-- [x] Проверить потребителей кандидатов на удаление и убрать только доказанно лишнее: 45 файлов, 46,44 МиБ.
-- [x] Сверить AST 1 790 модулей, типы, lint, сборку backend, контракт, границы, ссылки и справочник; 4 115 тестов прошли, 98 пропущены. Ручной построчный разбор не объявлять завершённым.
-- [ ] Углублять пояснения остальных private/helper-функций по реальным сценариям: общий справочник не заменяет ручной аудит каждой ветви. [Охват и границы](../docs/development/source-explanation-2026-11-11.md).
-- [x] По последующему запросу перенести текущую историю и локальные правки в публичный GitHub `edemkaaa/DaryaDarcy-`, сохранить GitLab remote и проверить удалённые ветки: `main` и `staging` опубликованы, GitHub Actions запущен; его результат ещё не подтверждён.
+- [x] Сохранить исходный инвентарь, тексты и AST; не потерять прежние локальные изменения.
+- [x] Полностью прочитать 1 947 рукописных файлов исходных форматов: backend/shared/database, frontend/admin/styles, tooling/infra, legacy, тесты и helpers. 19 авторских/генерируемых исходников явно исключены; данные и бинарные ресурсы не объявлены построчным аудитом.
+- [x] Дополнить функции, обработчики, эффекты, CLI-этапы и тестовые сценарии содержательными русскими пояснениями без пересказа очевидных полей.
+- [x] Сверить действующие инструкции запуска, API/БД, интеграций, работы команды и выпуска; отделить исторические отчёты и прежний удалённый сервер от текущих утверждений.
+- [x] Составить актуальный справочник всех 3 688 существующих путей с назначением и блоками; поддержать проверку генерации в CI.
+- [x] Сохранить SQL, lockfile, API-контракт, медиа и машинные каталоги; проверить CSS и 1 792 JS/TS AST/literals. Нет неожиданных изменений или ошибок разбора; исключения перечислены в отчёте.
+- [x] Проверить типы, lint, backend build, API/границы/документы. Unit/HTTP: 4 118 passed, 98 skipped; отдельный бот: 78 passed. SQL, Docker image и живой браузер заново не принимались.
+- [x] Удалить только ранее доказанно временное: 45 файлов, 46,44 МиБ. Переносы этого этапа сохраняют исходники; базы, images, backups и оригиналы не удалялись.
+- [x] Исправить извлечение содержательных legacy-пояснений и охват README в проверке ссылок; добавить RED/GREEN регрессии. Убрать вшитый временный доступ из архивного Яндекс-helper, не исполняя его сетевую часть.
+- [x] Записать [итог, исключения и открытые приоритеты](../docs/development/source-explanation-2026-11-11.md). Документирование не означает закрытие всего аудита.
+- [x] Сохранить прежний перенос истории в публичный GitHub и GitLab remote. Текущий дополнительный проход остаётся локальным, без нового push или выкладки.
+
+## Порядок в папках и работа вдвоём — 11 ноября
+
+- [x] Разнести спецификации, план фронтенда, регрессионные тесты и файлы сборки по целевым каталогам.
+- [x] Сохранить независимые apps/backend и apps/frontend; описать владение общими API/пакетами и порядок PR.
+- [x] Закрепить размещение кода по функциям, роли app/features/domain/shared и предметных backend-модулей; отделить автоматические проверки от правил ревью, связать README и шаблон PR с регламентом.
+- [x] Проверить ссылки, импорты, команды, build contexts, типы, регрессии и справочник после переносов; два независимых review без обязательных замечаний.
+Автоматическое назначение ревьюеров не включалось: для него нужен подтверждённый GitHub-логин фронтендера с write-доступом. Настройки удалённого репозитория здесь не менялись.
+
+
+## Два клиентских замечания — 11 ноября
+
+- [x] По разрешению владельца исправить возврат к UUID-посту после входа через существующий разбор post address; сохранить числовые URL и защиту return intent.
+- [x] Разрешить точные публичные public-v1/VK cover-ключи в редакторе; сохранить запреты на приватные и неоднозначные URL.
+- [x] Воспроизвести ошибки тестами до правки, пройти 186 целевых тестов, типы и frontend lint; обновить единый документ.
+- [x] Завершить повтор общего unit/HTTP-прогона с доступом к локальным портам: 4 153 passed / 98 skipped, без падений; API-контракт, ссылки и границы прошли. Первая попытка остановлена из-за listen EPERM и не считается дефектом приложения.
+- [ ] Живая приёмка после будущего выпуска остаётся отдельным шагом. Пуш и выкладка здесь не выполняются.
+
+## Финальная локальная сверка — 11 ноября
+
+- [x] Повторить unit: 4 118 passed / 98 skipped; проверить типы, lint и сборку API.
+- [x] Проверить четыре offline Docker/Compose acceptance-сценария, без сборки образов и запуска БД.
+- [x] Исправить устаревшие утверждения README backend; повторно подтвердить два frontend-дефекта и сохранить задания в едином документе.
+- [ ] Отдельно закрыть оставшиеся архитектурные и внешние условия выпуска; локальный прогон их не заменяет. См. [итоговую сверку](../docs/audits/project-senior-review-2026-11-11.md).
 
 ## Возобновление задач после рестарта API — 9 ноября
 
@@ -4872,7 +4899,7 @@ boundaries799, backend+TEST build, docs, frozen lockfile и production audit0 п
   tmpfs768MiB/no volumes: принадлежность и изоляция проверены перед удалением.
   Working DB/S3/frontend/flags/платежи/почта/server не трогались; no push/deploy.
   RELEASE-D3/da47b54 этой правки не содержит. Контракт —
-  [SPEC](../SPEC-vk-catalog-access.md), [handoff](../docs/development/backend-handoff-2026-10-05.md).
+  [SPEC](../docs/specifications/SPEC-vk-catalog-access.md), [handoff](../docs/development/backend-handoff-2026-10-05.md).
 
 ### Дополнительная обработка ошибок сессии —19 октября, локально
 
@@ -6332,7 +6359,7 @@ boundaries799, backend+TEST build, docs, frozen lockfile и production audit0 п
   boundaries656, docs58, staged diff check — exit0.
   Полный Vitest без external/SQL credentials: **2339 pass, 1 fail, 1427 skipped,
   5 pending**, 255 файлов/3772 tests,51.26s, exit1. Единственный fail:
-  __tests__/web-viewport.test.ts — document is not defined (viewport.ts:73).
+  tests/regression/web-viewport.test.ts — document is not defined (viewport.ts:73).
   Адресный повтор:1 pass/1 fail. Test/viewport/config/setup одинаковы в обоих
   parents: это существующий пробел Node fixture (window задан, document нет),
   не новый merge conflict; исправление фронта/его тестов не разрешено.
@@ -6663,7 +6690,7 @@ backup/restore подтверждения и общей frontend/release при�
   без причины не повторялись. Это не сквозная приёмка всего C/S.
   Проверка документации: docs55/diff exit0, source/test coverage review.
 - [x] **AG8 — необходимый объём VK.** Статус: принят и реализован локально 14 октября.
-  [Контракт](../SPEC-vk-catalog-access.md): mixed catalog, additive reads/admin write,
+  [Контракт](../docs/specifications/SPEC-vk-catalog-access.md): mixed catalog, additive reads/admin write,
   0031/nullable YouTube ID, source-free cards, default-off VK_CATALOG_ENABLED.
   Native RED/GREEN: 88 backend checks в 11 файлах (21 VK SQL/HTTP + live Node worker
   с настоящим API/SQL); worker native 42 pass, skip=0, real VK не проверялся.
@@ -6802,7 +6829,7 @@ SMTP/API/SQL закрыты, synthetic data уничтожены, чужие д�
 ## Article-create-recovery — 13 октября 2026
 
 - [x] Подготовить proposed серверный контракт:
-  [SPEC-article-create-recovery](../SPEC-article-create-recovery.md), без кода/фронта.
+  [SPEC-article-create-recovery](../docs/specifications/SPEC-article-create-recovery.md), без кода/фронта.
 - [x] Human approval optional UUID key, numeric replay, read-only status,
   отдельный ledger без TTL; затем schema review и малые RED/GREEN срезы.
 - [x] Approval for local backend inferred from direct «я спать а ты делай дальше»
@@ -8285,7 +8312,7 @@ webmail exception согласован/проверен, обычный вход
   Dockerfile reverted as requested; no image-build mode selection added.
 - [ ] Shop 4.12: agree manager request form and server acceptance/outbox contract.
   Legacy Expo had online Prodamus checkout, no manager request form. No shop edit.
-  Details and remaining acceptance: `apps/frontend/WORK_PLAN.md`.
+  Details and remaining acceptance: `docs/development/frontend-work-plan.md`.
 
 ## Prodamus sandbox connection — 2026-10-08
 

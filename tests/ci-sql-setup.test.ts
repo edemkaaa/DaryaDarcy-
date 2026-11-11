@@ -1,3 +1,4 @@
+/** Изолированный дочерний Vitest доказывает preflight до выполнения даже одного потенциально записывающего SQL-теста. */
 import { expect, it } from "vitest";
 import {
   mkdtemp,
@@ -12,6 +13,7 @@ import { resolve, join } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
+/** В собственной temp-папке создаём marker-тест и небезопасный URL; ожидаем отказ без маркера и пароля в выводе, затем удаляем только fixture. */
 it("CI rejects an unsafe database before executing any SQL suite, without printing its credentials", async () => {
   const directory = await mkdtemp(join(tmpdir(), "daryadarcy-sql-preflight-"));
   try {

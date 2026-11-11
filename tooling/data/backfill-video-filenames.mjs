@@ -7,6 +7,7 @@ if (!url) {
   process.exit(1);
 }
 
+// Подключение выбирается из env, после чего UPDATE заполняет только пустые filename; отдельного dry-run нет.
 const conn = await mysql.createConnection(url);
 const [result] = await conn.query(
   "UPDATE post_media SET filename = SUBSTRING_INDEX(SUBSTRING_INDEX(url, '/', -1), '?', 1) WHERE type = 'video' AND (filename IS NULL OR filename = '')",

@@ -1,3 +1,4 @@
+// Старый DDL создаёт подтверждение SMS и уникальный phone; не использовать для нового неподтверждённого контактного номера.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,9 +12,12 @@ for (const line of fs.readFileSync(path.join(root, ".env"), "utf8").split(/\r?\n
   env[line.slice(0, i).trim()] = line.slice(i + 1).trim();
 }
 
+// С этого места выбранная БД реально изменяется; текущая история и рабочее назначение автоматически не проверены.
 const conn = await mysql.createConnection(env.DATABASE_URL.replace(/\r/g, "").trim());
 
 async function run(label, sql) {
+  // Применяет один старый DDL-запрос, подавляя только ожидаемые duplicate/already-exists ошибки; журнал миграций не ведётся.
+
   try {
     await conn.query(sql);
     console.log("ok:", label);

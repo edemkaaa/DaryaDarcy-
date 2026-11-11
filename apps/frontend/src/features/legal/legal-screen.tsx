@@ -5,6 +5,7 @@ import { ScrollArea } from "@/shared/ui/elements";
 import Link from "next/link";
 import { ScreenContainer } from "@/shared/ui/screen-container";
 import { LEGAL_HUB_LINKS } from "@/features/legal/legal-documents";
+/** Строим обзор по согласованному списку slug и отдельной ссылке политики; контент каждой страницы хранится независимо. */
 export default function LegalHubScreen() {
   return (
     <ScreenContainer backgroundColor="#FDF8F0">

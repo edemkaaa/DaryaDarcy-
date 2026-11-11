@@ -1,3 +1,4 @@
+/** Тестовые ожидания соответствуют Prodamus TEST; recovery-ожидания отключены, чтобы сценарий не подменился LIVE-покупкой. */
 import { defineConfig } from "@playwright/test";
 import base from "./playwright.config";
 

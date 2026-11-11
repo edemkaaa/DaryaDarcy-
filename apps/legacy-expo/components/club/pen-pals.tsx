@@ -1,3 +1,4 @@
+// Архив Expo. Архивная форма анкет/совпадений делегирует адресную приватность серверу и показывает адрес только после mutualConfirmed.
 import { useEffect, useRef, useState } from "react";
 import {
   Text,
@@ -45,6 +46,8 @@ interface PenPalsProps {
 }
 
 export function PenPals({ onClose }: PenPalsProps) {
+  // Архивная форма анкет/совпадений делегирует адресную приватность серверу и показывает адрес только после mutualConfirmed.
+
   const { isAuthenticated, loading: authLoading } = useAuth();
   const [screen, setScreen] = useState<Screen>("form");
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
@@ -67,6 +70,8 @@ export function PenPals({ onClose }: PenPalsProps) {
   const respondMatch = trpc.penPals.respondMatch.useMutation();
 
   useEffect(() => {
+    // Один раз после проверки сессии восстанавливает анкету и запускает поиск; bootRef не сбрасывается при смене аккаунта в этом архивном компоненте.
+
     if (bootRef.current) return;
     if (authLoading) return;
     if (!isAuthenticated) {
@@ -88,16 +93,20 @@ export function PenPals({ onClose }: PenPalsProps) {
     setSelectedInterests(profile.interests);
     find.mutate(undefined, {
       onSuccess: (result) => {
+        // После начального поиска восстанавливает совпадения и выбирает форму либо результаты.
+
         setMatches(result.matches);
         setSearched(true);
         setScreen(result.needsProfile ? "form" : "results");
         setBooting(false);
       },
-      onError: () => setBooting(false),
+      onError: () => /* Снимает начальный loading при неудачном поиске, не создавая анкету. */ setBooting(false),
     });
   }, [authLoading, isAuthenticated, meQuery.isLoading, meQuery.data, find]);
 
   const toggleInterest = (interest: string) => {
+    // Ограничивает локальный выбор максимум тремя интересами.
+
     setSelectedInterests((prev) => {
       if (prev.includes(interest)) return prev.filter((item) => item !== interest);
       if (prev.length >= 3) return prev;
@@ -112,6 +121,8 @@ export function PenPals({ onClose }: PenPalsProps) {
     adultConsent;
 
   const handleSubmit = () => {
+    // Отправляет имя, адрес, 2–3 интереса и явное согласие, затем запускает поиск.
+
     if (!canSubmit) return;
     upsert.mutate(
       {
@@ -122,8 +133,12 @@ export function PenPals({ onClose }: PenPalsProps) {
       },
       {
         onSuccess: () => {
+          // После сохранения анкеты запрашивает свежие совпадения.
+
           find.mutate(undefined, {
             onSuccess: (result) => {
+              // Отображает совпадения после сохранения анкеты.
+
               setMatches(result.matches);
               setSearched(true);
               setScreen("results");
@@ -135,8 +150,12 @@ export function PenPals({ onClose }: PenPalsProps) {
   };
 
   const handleFindMore = () => {
+    // Повторяет поиск по уже сохранённой анкете.
+
     find.mutate(undefined, {
       onSuccess: (result) => {
+        // Обновляет список результатов повторного поиска.
+
         setMatches(result.matches);
         setSearched(true);
       },
@@ -144,7 +163,11 @@ export function PenPals({ onClose }: PenPalsProps) {
   };
 
   const handleRemove = () => {
+    // Запрашивает подтверждение удаления анкеты и очищает UI только после серверного успеха.
+
     const clearLocal = () => {
+      // Сбрасывает локальную анкету и совпадения без изменения других аккаунтов.
+
       setFullName("");
       setAddress("");
       setSelectedInterests([]);
@@ -152,7 +175,7 @@ export function PenPals({ onClose }: PenPalsProps) {
       setSearched(false);
       setScreen("form");
     };
-    const run = () => remove.mutate(undefined, { onSuccess: clearLocal });
+    const run = () => /* Отправляет удаление текущей анкеты после подтверждения пользователя. */ remove.mutate(undefined, { onSuccess: clearLocal });
     if (Platform.OS === "web") {
       if (typeof window !== "undefined" && window.confirm("Удалить анкету из Почтового отделения?")) run();
       return;
@@ -166,8 +189,12 @@ export function PenPals({ onClose }: PenPalsProps) {
   const busy = upsert.isPending || find.isPending || remove.isPending || requestMatch.isPending || respondMatch.isPending;
 
   const refreshMatches = () => {
+    // Перечитывает совпадения после запроса или ответа на переписку.
+
     find.mutate(undefined, {
       onSuccess: (result) => {
+        // Обновляет карточки после изменения состояния переписки.
+
         setMatches(result.matches);
         setSearched(true);
       },
@@ -409,6 +436,7 @@ export function PenPals({ onClose }: PenPalsProps) {
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   container: {
     flex: 1,

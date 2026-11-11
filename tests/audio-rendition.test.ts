@@ -1,3 +1,4 @@
+/** Опциональная офлайн приёмка FFmpeg/ffprobe создаёт собственный ALAC tone и совместимую AAC копию, не трогая S3. */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -19,14 +20,17 @@ const available = ["ffmpeg", "ffprobe"].every(
   (bin) => spawnSync(bin, ["-version"]).status === 0,
 );
 const script = resolve("tooling/operations/prepare-audio-rendition.ts");
+/** Независимо хешируем bytes исходника/rendition для проверки неизменности и receipt. */
 const sha = (path: string) =>
   createHash("sha256").update(readFileSync(path)).digest("hex");
+/** Набор пропускается без установленных ffmpeg/ffprobe; наличие файла само по себе не доказывает декодирование. */
 describe.skipIf(!available)(
   "offline browser-compatible audio preparation",
   () => {
     let root: string;
     let source: string;
     let sequence = 0;
+    /** В собственной temp-папке генерируем3сек синтетического ALAC, без реальной записи пользователя. */
     beforeAll(() => {
       root = mkdtempSync(join(tmpdir(), "daryadarcy-audio-"));
       source = join(root, "original.m4a");
@@ -50,14 +54,17 @@ describe.skipIf(!available)(
       );
       expect(fixture.status, fixture.stderr?.toString()).toBe(0);
     });
+    /** Удаляем только owned audio fixture tree. */
     afterAll(() => {
       if (root) rmSync(root, { recursive: true });
     });
+    /** Каждый сценарий получает новый private0700 output directory. */
     const output = () => {
       const directory = join(root, `output-${++sequence}`);
       mkdirSync(directory, { mode: 0o700 });
       return directory;
     };
+    /** Запускаем настоящий операторский CLI с локальными путями, timeout и ограниченным выводом. */
     const run = (input: string, directory: string) =>
       spawnSync(
         process.execPath,
@@ -73,6 +80,7 @@ describe.skipIf(!available)(
         { encoding: "utf8", timeout: 15000, maxBuffer: 128000 },
       );
 
+    /** Проверяем AAC-LC codec, duration, moov перед mdat, реальные ненулевые PCM bytes и hashes обеих версий. */
     it("creates decodable AAC-LC with startup metadata first and preserves the ALAC original", () => {
       const originalHash = sha(source);
       const directory = output();
@@ -120,6 +128,7 @@ describe.skipIf(!available)(
       expect(readdirSync(directory)).toEqual([receipt.filename]);
     });
 
+    /** Повторное имя назначения не разрешает перезаписать готовую копию или original. */
     it("refuses to overwrite an existing rendition and leaves both files unchanged", () => {
       const directory = output();
       const first = run(source, directory);
@@ -134,6 +143,7 @@ describe.skipIf(!available)(
       expect(readdirSync(directory)).toEqual([receipt.filename]);
     });
 
+    /** Повреждённый local input не оставляет output и не меняется. */
     it("rejects a non-audio input before leaving output files", () => {
       const input = join(root, "not-audio.m4a");
       writeFileSync(input, "This is not an audio recording");
@@ -145,6 +155,7 @@ describe.skipIf(!available)(
       );
     });
 
+    /** Symlink не расширяет разрешённую область чтения/записи. */
     it("rejects symlink sources and symlink output directories", () => {
       const alias = join(root, "alias.m4a");
       symlinkSync(source, alias);
@@ -156,6 +167,7 @@ describe.skipIf(!available)(
       expect(readdirSync(directory)).toEqual([]);
     });
 
+    /** CLI не скачивает URL и не создаёт отсутствующую output папку. */
     it("does not accept remote URLs or create an unrequested output directory", () => {
       const directory = output();
       expect(
@@ -167,6 +179,7 @@ describe.skipIf(!available)(
       expect(readdirSync(directory)).toEqual([]);
     });
 
+    /** Публичные0755 права запрещены для временной подготовки закрытого материала. */
     it("requires a private output directory", () => {
       const directory = output();
       chmodSync(directory, 0o755);

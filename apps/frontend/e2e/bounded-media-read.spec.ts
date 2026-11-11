@@ -20,11 +20,13 @@ type BrowserReader = {
     ): Promise<Blob>;
   };
 };
+/** Каждый случай получает чистый документ и собранный исходный reader; stream/Blob остаются настоящими API браузера. */
 test.beforeEach(async ({ page }) => {
   await page.goto("about:blank");
   await page.addScriptTag({ content: script });
 });
 
+/** Проверяем переполнение как без Content-Length, так и с заведомо неверным маленьким значением; важен фактический поток. */
 for (const length of [null, "1"]) {
   test(`bounds a streamed body with Content-Length=${length}`, async ({
     page,
@@ -66,6 +68,7 @@ for (const length of [null, "1"]) {
     });
   });
 }
+/** Граничный размер должен сохранять исходные байты и MIME без ложного отказа. */
 test("preserves an exact-limit document in the browser", async ({ page }) => {
   const result = await page.evaluate(async () => {
     const response = new Response(new Uint8Array([1, 2, 3, 4]), {
@@ -81,6 +84,7 @@ test("preserves an exact-limit document in the browser", async ({ page }) => {
   });
   expect(result).toEqual({ bytes: [1, 2, 3, 4], type: "application/pdf" });
 });
+/** Отмена зависшего потока обязана отменить reader и освободить блокировку, не возвращая частичный файл. */
 test("cancels a stalled browser stream without returning a partial file", async ({
   page,
 }) => {

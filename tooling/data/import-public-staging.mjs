@@ -7,7 +7,7 @@ const integer = z.number().int().min(0).max(2147483647);
 const id = integer.min(1);
 const date = z.string().datetime();
 const hostedUrl = (host) =>
-  z
+  /* Ограничивает импорт доверенными HTTPS-хостами; произвольные внешние URL в публичный снимок не проходят. */ z
     .string()
     .url()
     .refine((value) => {
@@ -69,6 +69,8 @@ const schema = z.object({
 });
 
 export function preparePublicSnapshot(input) {
+  // Проверяет публичный снимок и связи; старый снимок без media дополняется пустым массивом, вложения не импортируются.
+
   // Our own export omits the empty media field; still reject attached source media.
   const source =
     input && Array.isArray(input.posts)
@@ -81,7 +83,7 @@ export function preparePublicSnapshot(input) {
   if (!parsed.success) throw new Error("Invalid public content snapshot");
   const data = parsed.data;
   const unique = (rows, key) =>
-    new Set(rows.map((row) => row[key])).size === rows.length;
+    /* Отклоняет повторяющиеся ключи до записи партии, чтобы импорт не зависел от порядка конфликтующих строк. */ new Set(rows.map((row) => row[key])).size === rows.length;
   const slugs = new Set(data.tags.map((row) => row.slug));
   if (
     ![data.posts, data.videos, data.tags].every((rows) => unique(rows, "id")) ||
@@ -96,6 +98,8 @@ export function preparePublicSnapshot(input) {
 }
 
 export function assertStagingDestination(database, app) {
+  // Проверяет назначение подключения и публичный origin до изменений; рабочую БД этим импортом выбирать нельзя.
+
   try {
     const db = new URL(database);
     if (
@@ -135,7 +139,7 @@ const tables = {
   videos: Object.keys(video.shape),
 };
 const lockName = "daryadarcy-staging-public-bootstrap";
-const summary = (data, applied) => ({
+const summary = (data, applied) => /* Возвращает счётчики проверенного снимка без секретов подключения и без изменения данных. */ ({
   applied,
   posts: data.posts.length,
   videos: data.videos.length,
@@ -148,6 +152,8 @@ export async function importPublicContent(
   input,
   { database, app, apply = false },
 ) {
+  // Проверяет пустые InnoDB-таблицы и переносит снимок транзакционно; существующий контент не перезаписывается.
+
   assertStagingDestination(database, app);
   const data = preparePublicSnapshot(input);
   let locked = false;
@@ -204,6 +210,8 @@ export async function importPublicContent(
 }
 
 export async function exportPublicSnapshot() {
+  // Собирает публичные данные старого API с ограничением размера и времени каждого ответа.
+
   const input = {};
   for (const [key, method] of Object.entries({
     posts: "feed.list",
@@ -224,6 +232,8 @@ export async function exportPublicSnapshot() {
 }
 
 async function main(args) {
+  // Разделяет экспорт, валидацию, dry-run и применение; запись требует явного подтверждения окружения staging.
+
   if (args.length === 2 && args[0] === "--export") {
     const data = await exportPublicSnapshot();
     await writeFile(args[1], JSON.stringify(data), { flag: "wx", mode: 0o600 });

@@ -18,8 +18,10 @@ import {
 
 type Transaction = Parameters<Parameters<MySql2Database["transaction"]>[0]>[0];
 type Match = typeof penPalMatches.$inferSelect;
+/** Возвращаем одинаковую недоступность заявки при чужом участнике или неактивной паре. */
 const unavailable = () =>
   new TRPCError({ code: "NOT_FOUND", message: "Заявка недоступна" });
+/** Ограничиваем SQL-предикат ID заявки и обязательным участием пользователя с любой стороны пары. */
 const ownedMatch = (id: number, actorId: number) =>
   and(
     eq(penPalMatches.id, id),
@@ -29,6 +31,7 @@ const ownedMatch = (id: number, actorId: number) =>
     ),
   );
 
+/** Блокируем обоих пользователей, затем анкеты по возрастанию ID и проверяем актуальную сессию инициатора и активность пары непосредственно перед записью. */
 async function requireActivePair(
   tx: Transaction,
   low: number,
@@ -56,6 +59,7 @@ async function requireActivePair(
   }
 }
 
+/** До взаимного подтверждения запрещаем просроченную или некорректную дату; завершённая пара не требует нового дедлайна. */
 function requireUnexpired(row: Match) {
   if (
     !row.mutualConfirmedAt &&
@@ -69,6 +73,7 @@ function requireUnexpired(row: Match) {
   }
 }
 
+/** Отмечаем согласие только своего участника под блокировкой и при неистёкшем сроке MySQL; повтор согласия не продлевает заявку, обе отметки фиксируют взаимное подтверждение. */
 async function confirm(tx: Transaction, row: Match, actorId: number) {
   requireUnexpired(row);
   const isLow = row.userLowId === actorId;
@@ -166,6 +171,7 @@ export async function respondMatch(
       (initial.userLowId !== userId && initial.userHighId !== userId)
     )
       throw unavailable();
+// Отказ не требует активных анкет, но всегда сначала проверяет текущую сессию и ограничивает DELETE собственным участием.
     if (!accept) {
       await lockPenPalActor(tx, actor);
       // Declining must remain possible even if an account/profile is no longer active.

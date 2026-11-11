@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { editorApi, failure, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
+/** Все fixture-платежи имеют одинаковую дату: порядок и границы страниц различаются по ID, а курсор остаётся непрозрачным для интерфейса. */
 const payment = (id: number) => ({
   id,
   userId: 201,
@@ -17,6 +18,7 @@ const payment = (id: number) => ({
   updatedAt: "2026-10-01T00:00:00Z",
 });
 
+/** Смена admin-owner начинает новую историю с головы и отбрасывает позднюю страницу прежнего владельца. */
 test("changing administrator starts a new history and discards the old pending page", async ({
   page,
 }) => {
@@ -85,6 +87,7 @@ test("changing administrator starts a new history and discards the old pending p
   }
 });
 
+/** Подтверждённая ручная выдача клуба инвалидирует paged-history; возврат на оплаты видит новый синтетический платёж. */
 test("a confirmed club grant invalidates the new payment history cache", async ({
   page,
 }) => {
@@ -131,13 +134,17 @@ test("a confirmed club grant invalidates the new payment history cache", async (
   await expect(rows(page)).toHaveCount(2);
   expect(reads).toBe(2);
 });
+/** Считаем только строки платёжной истории по различимым fixture-email. */
 const rows = (page: Page) =>
   page.getByText(/^PAYMENT_\d+@example\.test$/, { exact: true });
+/** Выбираем внутреннюю область активного admin-раздела. */
 const list = (page: Page) => page.locator("main .ui-scroll").last();
+/** Достигаем конца списка для автоматической следующей страницы. */
 const scrollEnd = (page: Page) =>
   list(page).evaluate((node) => {
     node.scrollTop = node.scrollHeight;
   });
+/** Посылаем стадии pull-refresh на вершине текущего scroll, не вызывая refetch напрямую. */
 async function refresh(page: Page) {
   await list(page).evaluate((node) => {
     node.scrollTop = 0;
@@ -155,10 +162,12 @@ async function refresh(page: Page) {
     }
   });
 }
+/** Заходим в admin и выбираем оплаты через обычную вкладку. */
 async function open(page: Page) {
   await gotoWithSession(page, "/admin");
   await page.getByRole("button", { name: "Оплаты", exact: true }).click();
 }
+/** Выдаём страницы по20 с opaque-token на ID-границу: удаление пограничной строки не должно ломать продолжение; legacy-read считаем отдельно. */
 async function fixture(page: Page, count = 65) {
   const state = {
     records: Array.from({ length: count }, (_, i) => payment(count - i)),
@@ -193,6 +202,7 @@ async function fixture(page: Page, count = 65) {
   return state;
 }
 
+/** Пустой, точный и многополосный объём проверяют границы, отсутствие дублей и отказ от старого усечённого списка. */
 for (const count of [0, 20, 51, 65]) {
   test(`${count} payments load in bounded pages with equal timestamps`, async ({
     page,
@@ -222,6 +232,7 @@ for (const count of [0, 20, 51, 65]) {
   });
 }
 
+/** Новая запись не попадает в продолжение прежней цепочки; явный refresh начинает её заново с головы. */
 test("a deleted boundary and a new payment do not skip old records; refresh starts a new chain", async ({
   page,
 }) => {
@@ -270,6 +281,7 @@ test("failed next page retains payments and retries the same cursor", async ({
   ]);
 });
 
+/** Отказ обновления сохраняет все подтверждённые страницы до успешного head-read. */
 test("failed refresh keeps all confirmed pages until a successful first-page retry", async ({
   page,
 }) => {
@@ -298,6 +310,7 @@ test("failed refresh keeps all confirmed pages until a successful first-page ret
   expect(state.reads).toEqual([null, "opaque-payment-token-46", null, null]);
 });
 
+/** Подтверждённый FORBIDDEN очищает прежние платёжные строки, в отличие от временного отказа. */
 test("forbidden next page hides retained payment records", async ({ page }) => {
   const state = await fixture(page);
   await open(page);
@@ -314,6 +327,7 @@ test("forbidden next page hides retained payment records", async ({ page }) => {
   expect(state.reads).toEqual([null, "opaque-payment-token-46", null]);
 });
 
+/** История не опрашивается сама; уход со вкладки инвалидирует ожидающую страницу, и возврат снова запрашивает исходный cursor. */
 test("payment history does not poll, and a late page after changing tabs is discarded", async ({
   page,
 }) => {

@@ -1,3 +1,4 @@
+// Архив Expo. Разбирает ограниченные bold/italic маркеры ответа в текстовые сегменты, не выполняя HTML.
 import React, { useCallback, useRef, useState } from "react";
 import {
   View,
@@ -41,6 +42,8 @@ const BROWN_TEXT = "#5C4033";
 
 // Render answer text with **bold** and _italic_ markdown-like formatting
 function RichAnswerText({ text, color, fontWeight }: { text: string; color: string; fontWeight: string }) {
+  // Разбирает ограниченные bold/italic маркеры ответа в текстовые сегменты, не выполняя HTML.
+
   // Parse: split by **bold** and _italic_ markers
   const parts: { text: string; bold?: boolean; italic?: boolean }[] = [];
   const regex = /(\*\*(.+?)\*\*)|(_(.+?)_)/g;
@@ -84,6 +87,8 @@ function RichAnswerText({ text, color, fontWeight }: { text: string; color: stri
 const SWIPE_QUESTION_IDS = [3, 5];
 
 export function QuizQuestion() {
+  // Выбирает текст, сетку либо карусель по типу вопроса и сохраняет ответ в общем reducer.
+
   const { state, dispatch } = useQuiz();
   const colors = useColors();
   const question = QUESTIONS[state.currentQuestion];
@@ -96,6 +101,8 @@ export function QuizQuestion() {
 
   const handleSelect = useCallback(
     (answerId: string) => {
+      // Сохраняет id ответа конкретного текущего вопроса с native haptic.
+
       if (Platform.OS !== "web") {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
@@ -109,6 +116,8 @@ export function QuizQuestion() {
   );
 
   const handleNext = useCallback(() => {
+    // Отправляет переход к следующему вопросу либо расчёт результата в reducer.
+
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
@@ -116,6 +125,8 @@ export function QuizQuestion() {
   }, [dispatch]);
 
   const handlePrev = useCallback(() => {
+    // Возвращает к предыдущему вопросу без потери выбранных ответов.
+
     dispatch({ type: "PREV_QUESTION" });
   }, [dispatch]);
 
@@ -123,6 +134,8 @@ export function QuizQuestion() {
 
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      // Запоминает индекс первого достаточно видимого ответа карусели.
+
       if (viewableItems.length > 0 && viewableItems[0].index != null) {
         setCurrentIndex(viewableItems[0].index);
       }
@@ -401,6 +414,7 @@ export function QuizQuestion() {
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   progressContainer: {
     paddingHorizontal: GRID_PADDING,

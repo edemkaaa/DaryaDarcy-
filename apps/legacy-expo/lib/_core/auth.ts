@@ -1,3 +1,4 @@
+// Архив Expo. Удаляет прежние web-токен/профиль из localStorage, чтобы браузер использовал HttpOnly-cookie.
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 import { SESSION_TOKEN_KEY, USER_INFO_KEY } from "@/constants/oauth";
@@ -18,6 +19,8 @@ export type User = {
 let webUser: User | null = null;
 
 function discardLegacyWebStorage(): void {
+  // Удаляет прежние web-токен/профиль из localStorage, чтобы браузер использовал HttpOnly-cookie.
+
   if (typeof window === "undefined") return;
   for (const key of [SESSION_TOKEN_KEY, USER_INFO_KEY]) {
     try {
@@ -29,6 +32,8 @@ function discardLegacyWebStorage(): void {
 }
 
 export async function getSessionToken(): Promise<string | null> {
+  // На web токен не читается; native получает его из SecureStore с null при ошибке.
+
   if (Platform.OS === "web") {
     discardLegacyWebStorage();
     return null; // Web requests authenticate with the server's HttpOnly cookie.
@@ -41,6 +46,8 @@ export async function getSessionToken(): Promise<string | null> {
 }
 
 export async function setSessionToken(token: string): Promise<void> {
+  // На web полагается на Set-Cookie, на native сохраняет сессию в защищённом хранилище.
+
   if (Platform.OS === "web") {
     discardLegacyWebStorage();
     return; // Set-Cookie was already processed by the credentialed login request.
@@ -53,6 +60,8 @@ export async function setSessionToken(token: string): Promise<void> {
 }
 
 export async function removeSessionToken(): Promise<void> {
+  // Очищает только локальное хранилище сессии; серверный отзыв выполняется отдельно.
+
   if (Platform.OS === "web") {
     discardLegacyWebStorage();
     return;
@@ -63,6 +72,8 @@ export async function removeSessionToken(): Promise<void> {
 }
 
 export async function getUserInfo(): Promise<User | null> {
+  // Читает необязательный кеш профиля в памяти web либо SecureStore native.
+
   if (Platform.OS === "web") {
     discardLegacyWebStorage();
     return webUser;
@@ -76,6 +87,8 @@ export async function getUserInfo(): Promise<User | null> {
 }
 
 export async function setUserInfo(user: User): Promise<void> {
+  // Сохраняет кеш для интерфейса, не делая его источником серверной авторизации.
+
   if (Platform.OS === "web") {
     discardLegacyWebStorage();
     webUser = user;
@@ -89,6 +102,8 @@ export async function setUserInfo(user: User): Promise<void> {
 }
 
 export async function clearUserInfo(): Promise<void> {
+  // Убирает локальный профиль текущей платформы, игнорируя необязательные ошибки удаления.
+
   if (Platform.OS === "web") {
     discardLegacyWebStorage();
     webUser = null;

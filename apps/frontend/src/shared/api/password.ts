@@ -4,7 +4,7 @@ import { ApiError, invalidResponse } from "./errors";
 import { runApiRequest } from "./request-lifecycle";
 import { parseRetryAfter } from "./retry-after";
 
-/** Public one-time proof. No session storage, logging or automatic retries. */
+/** Отправляем одноразовый токен без cookie и referrer; 400/429 получают отдельные сообщения, успех проверяется по ok=true. Токен не сохраняем, не логируем и не отправляем автоматически повторно. */
 export function completePassword(
   token: string,
   password: string,

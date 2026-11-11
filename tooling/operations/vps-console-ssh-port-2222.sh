@@ -3,11 +3,13 @@
 # Timeweb web console (root): SSH on port 2222 in addition to 22 (VPN often blocks 22 only).
 set -e
 CFG=/etc/ssh/sshd_config
+# Добавляется отдельный порт только при отсутствии строки; это изменение sshd_config.
 if ! grep -qE '^Port 2222\b' "$CFG"; then
   echo 'Port 2222' >> "$CFG"
   echo "added Port 2222 to sshd_config"
 fi
 ufw allow 2222/tcp comment 'SSH alt for VPN'
+# Конфигурация проверяется перед перезапуском; правило firewall уже изменено предыдущей командой.
 sshd -t
 systemctl restart ssh
 echo "=== listening ==="

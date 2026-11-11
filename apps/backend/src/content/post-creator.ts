@@ -21,6 +21,7 @@ import { assertContentWriteActor } from "./content-write-actor";
 import { assertPostHasBody } from "./post-body";
 import { bindContentFiles, hasPrivateContent, postPhotoReferences, postFileReferences } from "./private-content-binding";
 
+/** В общей транзакции создаём пост, видео, вложения и приватные привязки, затем проверяем непустое итоговое содержимое; ID нельзя возвращать до коммита вызывающей транзакции. */
 async function insertPost(
   writer: Pick<MySql2Database, "insert" | "delete" | "select" | "update" | "execute">,
   data: InsertPost,
@@ -38,6 +39,7 @@ async function insertPost(
 }
 
 /** Return the new ID only after the post and its initial videos have committed. */
+/** Совместимый путь создания разрешает приватные вложения по квитанциям, но для новых приватных фото требует идемпотентный контракт; обложки VK разрешаются до SQL-блокировок. */
 export async function createPostWithVideos(
   database: MySql2Database,
   data: InsertPost,
@@ -54,6 +56,7 @@ export async function createPostWithVideos(
 }
 
 /** Один ключ принятого намерения восстанавливает прежний результат, вместо создания дубля. */
+/** Под блокировкой исполнителя захватываем уникальный ключ намерения, проверяем окно восстановления и отпечаток; пост и его результат коммитятся вместе, поэтому повтор не создаёт дубль. */
 export async function createPostOnce(
   database: MySql2Database,
   data: InsertPost,

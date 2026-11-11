@@ -18,6 +18,7 @@ import { processScheduledAccountDeletions } from "../apps/backend/src/identity/a
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 
 // Actual local HTTP/JWT/SQL. No workers, external mail, payments or object storage.
+/** Настоящие локальные HTTP/JWT/SQL проверки удаления аккаунта без фоновых задач, писем, оплаты и S3. */
 describe.skipIf(!testDatabaseUrl)(
   "account deletion actor and replay guards",
   () => {
@@ -27,10 +28,12 @@ describe.skipIf(!testDatabaseUrl)(
       app: Awaited<ReturnType<typeof createBackendApplication>>,
       base: string,
       token: string;
+    /** Удаляем только профили оплаты и пользователей закреплённой одноразовой пары владельца/соседа. */
     const cleanup = async () => {
       await conn.query("DELETE FROM billing_profiles WHERE userId IN (?,?)", [owner, neighbor]);
       await conn.query("DELETE FROM users WHERE id IN (?,?)", [owner, neighbor]);
     };
+    /** Открываем разрешённую тестовую БД, задаём синтетический JWT и запускаем HTTP на loopback без workers. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -44,6 +47,7 @@ describe.skipIf(!testDatabaseUrl)(
         sessionVersion: 2,
       });
     });
+    /** Перед сценарием восстанавливаем только две исходные фикстуры пользователей с ожидаемым epoch. */
     beforeEach(async () => {
       await cleanup();
       await conn.query(
@@ -51,7 +55,9 @@ describe.skipIf(!testDatabaseUrl)(
         [owner, neighbor],
       );
     });
+    /** Возвращаем подменённые методы после сценария, чтобы задержки не влияли на соседние проверки. */
     afterEach(() => vi.restoreAllMocks());
+    /** Закрываем HTTP, очищаем свои записи, завершаем соединения и восстанавливаем окружение даже после проверки. */
     afterAll(async () => {
       await app?.close();
       if (conn) await cleanup();
@@ -59,6 +65,7 @@ describe.skipIf(!testDatabaseUrl)(
       await closeDb();
       vi.unstubAllEnvs();
     });
+    /** Отправляем настоящий tRPC-запрос удаления с заданным Bearer либо от гостя, ограничивая ожидание. */
     const request = (bearer = token) =>
       fetch(base + "/api/trpc/profileExtras.requestAccountDeletion", {
         method: "POST",
@@ -69,6 +76,7 @@ describe.skipIf(!testDatabaseUrl)(
         body: JSON.stringify({ json: null }),
         signal: AbortSignal.timeout(10000),
       });
+    /** Считываем обе записи целиком по важным полям, чтобы отказ не скрывал изменение владельца или соседа. */
     const read = async () =>
       (
         await conn.query<RowDataPacket[]>(
@@ -77,6 +85,7 @@ describe.skipIf(!testDatabaseUrl)(
         )
       )[0];
 
+    /** Удерживаем SQL-блокировку владельца до изменения epoch, блокировки или openId и проверяем отказ зависшего запроса без записи даты удаления. */
     it.each([
       {
         change: "epoch",
@@ -130,6 +139,7 @@ describe.skipIf(!testDatabaseUrl)(
         }
       },
     );
+    /** Повтор принятого запроса не сдвигает исходную дату, от которой зависит срок очистки. */
     it("preserves the first deletion date on replay instead of postponing retention", async () => {
       await conn.query(
         "UPDATE users SET accountDeletionRequestedAt='2026-10-30 10:00:00' WHERE id=?",
@@ -139,6 +149,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await request()).status).toBe(200);
       expect(await read()).toEqual(before);
     });
+    /** Задерживаем доменный вызов после аутентификации, окончательно обезличиваем аккаунт и убеждаемся, что старый actor не помечает его повторно. */
     it("does not mark an already retired account for deletion again", async () => {
       let enter!: () => void, release!: () => void;
       const entered = new Promise<void>((resolve) => {
@@ -180,6 +191,7 @@ describe.skipIf(!testDatabaseUrl)(
           .catch(() => {});
       }
     });
+    /** Успешный запрос меняет только дату удаления своего аккаунта, сохраняя все остальные поля и соседнюю запись. */
     it("records a current user's request while preserving the account and neighbor", async () => {
       const before = await read();
       const response = await request();
@@ -192,6 +204,7 @@ describe.skipIf(!testDatabaseUrl)(
         before[1],
       ]);
     });
+    /** Запрос ставит отмену только активному профилю владельца, не трогает закрытый/соседний и при повторе не обнуляет backoff. */
     it("queues only the owner's active billing profile and preserves the retry schedule", async () => {
       await conn.query(`INSERT INTO billing_profiles
         (profileKey,userId,domain,subscriptionId,profileId,email,amountMinor,cancelledAt)
@@ -221,6 +234,7 @@ describe.skipIf(!testDatabaseUrl)(
         nextAttemptAt: new Date("2026-11-30T10:00:00Z"),
       });
     });
+    /** Гостевой HTTP-вызов получает 401, оба пользователя остаются неизменными. */
     it("rejects a guest without changing either account", async () => {
       const before = await read();
       expect((await request("")).status).toBe(401);

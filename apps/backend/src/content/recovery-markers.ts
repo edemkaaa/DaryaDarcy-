@@ -7,6 +7,7 @@ import type { ContentTransaction } from "./post-deletion";
 export type ContentRecoveryKind =
   typeof contentRecoveryMarkers.$inferSelect.kind;
 type Reader = Pick<ContentTransaction, "select" | "execute">;
+/** Отказываем во временном восстановлении, когда нельзя надёжно прочитать доказательства использованных ключей. */
 const unavailable = () =>
   new TRPCError({
     code: "SERVICE_UNAVAILABLE",
@@ -14,6 +15,7 @@ const unavailable = () =>
   });
 
 /** The metadata lock lasts until the caller's transaction commits. No runtime DDL. */
+/** Проверяем таблицу и полный составной PRIMARY InnoDB без runtime-DDL; отсутствие старой таблицы допустимо лишь при выключенной политике срока. */
 export async function requireContentRecoveryMarkers(
   reader: Reader,
 ): Promise<boolean> {
@@ -52,6 +54,7 @@ export async function requireContentRecoveryMarkers(
 }
 
 /** Caller locks the original ledger key FIRST; compaction must use the same order. */
+/** После исходного ключа читаем маркеры в стабильном порядке: чужое доказательство означает сбой, любой свой маркер запрещает повтор даже после выключения политики срока. */
 export async function assertContentRecoveryNotSpent(
   reader: Reader,
   kind: ContentRecoveryKind,

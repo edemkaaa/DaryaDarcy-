@@ -1,8 +1,10 @@
+/** Проверяем копирование симлинков установленным @humanfs/node в собственном временном дереве. */
 import * as fs from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it } from "vitest";
 
+/** До рекурсивной очистки проверяет владельца, режим 0700 и тип корня; ссылки удаляет без разыменования. */
 async function removeOwnedFixture(root: string) {
   const rootStat = await fs.lstat(root);
   if (
@@ -13,6 +15,7 @@ async function removeOwnedFixture(root: string) {
   ) {
     throw new Error("Refusing cleanup of an unowned fixture");
   }
+  /** Обходит только реальные дочерние каталоги; симлинк удаляется как запись, его цель не читается. */
   async function removeDirectory(directory: string) {
     for (const name of await fs.readdir(directory)) {
       const child = join(directory, name);
@@ -26,6 +29,7 @@ async function removeOwnedFixture(root: string) {
   await removeDirectory(root);
 }
 
+/** copy/copyAll должны сохранить саму ссылку и обычный файл. Проверка не объявляет ссылку безопасной песочницей и не открывает её цель. */
 it.each(["copy", "copyAll"] as const)(
   "%s preserves symlinks instead of materializing out-of-tree contents",
   async (operation) => {

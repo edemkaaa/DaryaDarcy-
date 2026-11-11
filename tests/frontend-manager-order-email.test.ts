@@ -1,3 +1,4 @@
+/** Проверяем формирование mailto заказа менеджеру; доставка письма и факт оплаты этим не подтверждаются. */
 import { expect, it } from "vitest";
 import { managerOrderEmail } from "../apps/frontend/src/domain/product/manager-order-email";
 import { safeExternalUrl } from "../apps/frontend/src/shared/navigation/external-url";
@@ -9,6 +10,7 @@ const settings = {
 };
 const product = { id: "digital-1", title: "Пособие по атмосферной фотографии" };
 
+/** В письмо входят нужный товар и каноническая ссылка без придуманных цен или статуса отправки. */
 it.each([product, { id: "digital-2", title: "Винтажные книги и открытки" }])(
   "prepares the configured recipient and correct product $id without asserting payment or delivery",
   (product) => {
@@ -33,6 +35,7 @@ it.each([product, { id: "digital-2", title: "Винтажные книги и о
   },
 );
 
+/** Пунктуация и CRLF остаются текстом заказа, не создают Bcc/header и не сохраняют paid-query. */
 it("encodes punctuation and line breaks without creating additional recipients or headers", () => {
   const mail = new URL(
     managerOrderEmail(
@@ -51,6 +54,7 @@ it("encodes punctuation and line breaks without creating additional recipients o
   expect(mail.searchParams.get("body")).not.toContain("paid=1");
 });
 
+/** Исполняемые/локальные URL и credentials нельзя использовать как origin ссылки товара. */
 it.each([
   "javascript:alert(1)",
   "file:///tmp/shop",
@@ -59,6 +63,7 @@ it.each([
   expect(() => managerOrderEmail(settings, product, origin)).toThrow();
 });
 
+/** Неизвестный способ заказа и подмена получателя дают отказ без запасного адресата. */
 it("rejects injected recipients and an unsupported method instead of using a fallback", () => {
   expect(() =>
     managerOrderEmail(

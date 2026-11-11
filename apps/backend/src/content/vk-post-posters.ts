@@ -36,6 +36,7 @@ const videoResponse = z.object({
 
 // VK's embed includes a JSON video.get prefetch. Read data only; never execute
 // provider scripts or search unrelated URLs/images elsewhere in the document.
+/** Извлекаем только сбалансированный JSON-объект из известного маркера VK с учётом строк и экранирования; скрипт провайдера никогда не исполняется. */
 function prefetchData(html: string): unknown {
   const marker =
     /window\.cur\s*=\s*Object\.assign\(window\.cur\s*\|\|\s*\{\},\s*/.exec(
@@ -63,6 +64,7 @@ function prefetchData(html: string): unknown {
   return null;
 }
 
+/** Принимаем video.get только для точной пары owner/id исходного плеера и выбираем ограниченные кандидаты обложки и реального первого кадра. */
 function thumbnails(html: string, player: URL): string[] {
   const parsed = dataSchema.safeParse(prefetchData(html));
   if (!parsed.success) return [];
@@ -78,6 +80,7 @@ function thumbnails(html: string, player: URL): string[] {
         String(item.id) === player.searchParams.get("id"),
     );
   if (items.length !== 1) return [];
+  /** Фильтруем HTTPS-картинки по разрешённым хостам и путям без proxy, credentials и портов; сначала берём варианты без полей, затем наибольшую площадь. */
   function candidates(images: z.infer<typeof image>[], firstFrame = false) {
     const result = images.filter((candidate) => {
       try {
@@ -120,12 +123,14 @@ function thumbnails(html: string, player: URL): string[] {
   ];
 }
 
+/** Читаем ответ провайдера с ограничением заголовка и фактического числа байтов, поддерживаем отмену и всегда освобождаем reader. */
 async function readBody(
   response: Response,
   signal: AbortSignal,
   maxBytes = MAX_BODY,
 ): Promise<Buffer> {
   const reader = response.body?.getReader();
+  /** При общем дедлайне отменяем чтение тела, чтобы зависший provider не удерживал worker. */
   const abort = () => {
     void reader?.cancel().catch(() => {});
   };
@@ -155,6 +160,7 @@ async function readBody(
   }
 }
 
+/** Принимаем только поддерживаемый MIME и совпадающую сигнатуру изображения максимум 4 МиБ; остальное закрываем без сохранения. */
 async function usableImage(
   response: Response,
   signal: AbortSignal,
@@ -189,6 +195,7 @@ async function usableImage(
 /** Best effort, before the caller opens its SQL transaction. New public covers only.
  * The eight-link cap, two workers and one deadline bound provider work per save.
  * Failure leaves the video playable and any existing/manual poster unchanged. */
+/** До SQL по возможности получаем новые публичные обложки максимум восьми уникальных VK-ссылок двумя worker с общим дедлайном; неудача оставляет видео и прежний постер нетронутыми. */
 export async function resolveVkPostPosters(
   urls: string[],
   options: { fetchImpl?: typeof fetch; timeoutMs?: number } = {},
@@ -211,6 +218,7 @@ export async function resolveVkPostPosters(
   if (!links.length) return result;
   const signal = AbortSignal.timeout(options.timeoutMs ?? 5000);
   let next = 0;
+  /** Забираем следующую ссылку из общей очереди, читаем канонический плеер и пробуем ограниченные варианты картинки; ошибки одного ролика не останавливают остальные. */
   async function worker() {
     while (next < links.length && !signal.aborted) {
       const { original, player, sourceKey } = links[next++]!;

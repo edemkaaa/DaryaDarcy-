@@ -3,6 +3,7 @@
 set -euo pipefail
 APP=/var/www/daryadarcy
 
+# Самоподписанный сертификат создаётся для прежнего IP, а не для актуального домена Let’s Encrypt.
 if [ ! -f /etc/ssl/certs/daryadarcy.crt ] || [ ! -f /etc/ssl/private/daryadarcy.key ]; then
   openssl req -x509 -nodes -newkey rsa:2048 -days 825 \
     -keyout /etc/ssl/private/daryadarcy.key \
@@ -11,11 +12,13 @@ if [ ! -f /etc/ssl/certs/daryadarcy.crt ] || [ ! -f /etc/ssl/private/daryadarcy.
   chmod 600 /etc/ssl/private/daryadarcy.key
 fi
 
+# Загружается и устанавливается старый vhost из S3; содержимое следует сверить до применения.
 curl -fsSL -o "$APP/infrastructure/deploy/nginx-daryadarcy.conf" https://s3.twcstorage.ru/daryadarcy-s3/deploy/nginx-daryadarcy.conf
 cp "$APP/infrastructure/deploy/nginx-daryadarcy.conf" /etc/nginx/sites-available/daryadarcy
 ln -sfn /etc/nginx/sites-available/daryadarcy /etc/nginx/sites-enabled/daryadarcy
 rm -f /etc/nginx/sites-enabled/default
 
+# Изменяется firewall хоста; локальные HTTP-пробы ниже не подтверждают внешние маршруты.
 ufw allow OpenSSH
 ufw allow 80/tcp
 ufw allow 443/tcp

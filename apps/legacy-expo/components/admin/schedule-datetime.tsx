@@ -1,3 +1,4 @@
+// Архив Expo. Дополняет числовую часть даты до двух символов.
 import { createElement } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -8,14 +9,20 @@ const BROWN = "#4A3728";
 const ACCENT = "#8B7355";
 
 function pad(value: number) {
+  // Дополняет числовую часть даты до двух символов.
+
   return String(value).padStart(2, "0");
 }
 
 export function toDatetimeLocalValue(date: Date) {
+  // Сериализует локальные поля Date в datetime-local без UTC-сдвига.
+
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 function atHour(base: Date, hour: number) {
+  // Клонирует дату и устанавливает локальный час с нулевыми минутами.
+
   const next = new Date(base);
   next.setHours(hour, 0, 0, 0);
   return next;
@@ -29,10 +36,14 @@ interface ScheduleDatetimeProps {
 }
 
 export function ScheduleDatetime({ value, onChange, allowPast = false }: ScheduleDatetimeProps) {
+  // Объединяет web datetime-local и native picker; allowPast снимает только клиентское ограничение архива.
+
   const [showNative, setShowNative] = useState(false);
   const selected = value || atHour(allowPast ? new Date() : new Date(Date.now() + 24 * 60 * 60 * 1000), 10);
 
   const setPreset = (daysAhead: number) => {
+    // Выбирает локальные 10:00 через заданное число календарных дней.
+
     const date = new Date();
     date.setDate(date.getDate() + daysAhead);
     onChange(atHour(date, 10));
@@ -46,6 +57,8 @@ export function ScheduleDatetime({ value, onChange, allowPast = false }: Schedul
           value: toDatetimeLocalValue(selected),
           ...(allowPast ? {} : { min: toDatetimeLocalValue(new Date()) }),
           onChange: (event: { target?: { value?: string } }) => {
+            // Принимает только непустую корректную web-дату перед внешним callback.
+
             const next = event?.target?.value;
             if (!next) return;
             const parsed = new Date(next);
@@ -107,6 +120,7 @@ export function ScheduleDatetime({ value, onChange, allowPast = false }: Schedul
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   dateBtn: {
     flexDirection: "row",

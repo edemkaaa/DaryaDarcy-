@@ -7,6 +7,7 @@ import { useRouter } from "@/shared/navigation/router";
 import { TabMusicToggle } from "@/shared/ui/tab-music-toggle";
 
 // Material Icons, Google (Apache-2.0): glyphs/material-icons-LICENSE.txt.
+/** Собираем общую навигацию; явный backHref заменяет текущий маршрут, иначе возврат решает общий router. */
 export function TabHeader({
   overlay = false,
   variant = "default",

@@ -10,6 +10,7 @@ import { getClubPaymentMode } from "./payment-mode";
 import { ProdamusReturnDialog } from "./prodamus-return-dialog";
 import { StatusNotice } from "@/shared/ui/status-notice";
 
+/** Выбираем оболочку платежа по сборочным флагам; неверная комбинация отключает оплату вместо случайного выбора провайдера. */
 export function ClubCheckoutMode({ children }: { children: ReactNode }) {
   // Direct lookup is inlined by Next at build time. URL/storage cannot opt in.
   const mode = getClubPaymentMode();
@@ -30,6 +31,7 @@ export function ClubCheckoutMode({ children }: { children: ReactNode }) {
   return <TestCheckoutScreen />;
 }
 
+/** Передаём в тестовый результат состояние подтверждённой сессии и почту аккаунта, не выводя доступ из самого возврата оплаты. */
 function TestCheckoutScreen() {
   const active = useScreenActive();
   const { client } = trpc.useUtils();

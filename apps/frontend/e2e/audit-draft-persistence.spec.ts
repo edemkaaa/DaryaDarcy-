@@ -2,11 +2,14 @@ import { expect, test, type Page } from "@playwright/test";
 import { editorApi, ok, failure } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
+/** Заходим в текущий admin-раздел статей обычной навигацией. */
 async function articles(page: Page) {
   await gotoWithSession(page, "/admin");
   await page.getByRole("button", { name: "Статьи", exact: true }).click();
 }
+/** Адресуем изменяемый заголовок редактора статьи. */
 const title = (page: Page) => page.getByPlaceholder("Что посмотреть осенью...");
+/** Читаем new-slot из IndexedDB с настоящими File-байтами и закрываем соединение на успехе/ошибке. */
 async function savedDraft(page: Page) {
   return page.evaluate(
     () =>
@@ -47,6 +50,7 @@ async function savedDraft(page: Page) {
   );
 }
 
+/** Несохранённая статья восстанавливает поля и файл после reload без remote-write; удаление локального draft требует отдельного подтверждения. */
 test("an unsent article restores its fields and actual file bytes after reload", async ({
   page,
 }) => {
@@ -131,6 +135,7 @@ test("an unsent article restores its fields and actual file bytes after reload",
   await expect.poll(() => savedDraft(page)).toBeNull();
 });
 
+/** Устаревшая вкладка сохраняет свой ввод в форме, но не перезаписывает более новый durable-draft. */
 test("a second article tab cannot overwrite a newer draft", async ({
   page,
   context,
@@ -164,6 +169,7 @@ test("a second article tab cannot overwrite a newer draft", async ({
   await expect(title(page)).toHaveValue("DO_NOT_OVERWRITE");
 });
 
+/** Отказ local-put оставляет исходный durable-snapshot и не позволяет закрыть форму с несохранённым вводом. */
 test("article storage failure keeps the editor open and reports unsaved input", async ({
   page,
 }) => {
@@ -178,6 +184,7 @@ test("article storage failure keeps the editor open and reports unsaved input", 
     .toBe("BEFORE_FAILURE");
   await page.evaluate(() => {
     const put = IDBObjectStore.prototype.put;
+    /** Quota-error относится только к article-drafts, остальные IndexedDB операции сохраняют нативное поведение. */
     IDBObjectStore.prototype.put = function (...args) {
       if (this.transaction.db.name === "darcy-article-drafts")
         throw new DOMException("Full", "QuotaExceededError");
@@ -195,6 +202,7 @@ test("article storage failure keeps the editor open and reports unsaved input", 
   expect((await savedDraft(page))?.title).toBe("BEFORE_FAILURE");
 });
 
+/** Reload восстанавливает только уже подтверждённый storage-lock/write выбор и текущий номер вопроса. */
 test("quiz answers and current question survive reload", async ({ page }) => {
   await editorApi(page);
   await gotoWithSession(page, "/quiz");
@@ -219,6 +227,7 @@ test("quiz answers and current question survive reload", async ({ page }) => {
   expect(progress.answers.slice(0, 2).every(Boolean)).toBe(true);
 });
 
+/** Если durable-журнал имени недоступен, profile.update не отправляется, а ввод остаётся в поле. */
 test("profile storage failure is visible and prevents an unrecoverable mutation", async ({
   page,
 }) => {
@@ -236,6 +245,7 @@ test("profile storage failure is visible and prevents an unrecoverable mutation"
   await page.getByRole("button", { name: "Тест", exact: true }).click();
   await page.evaluate(() => {
     const set = Storage.prototype.setItem;
+    /** Отказываем только profile_name-ключам, сохраняя прочие записи приложения. */
     Storage.prototype.setItem = function (key, value) {
       if (key.includes("profile_name"))
         throw new DOMException("Full", "QuotaExceededError");
@@ -260,6 +270,7 @@ test("profile storage failure is visible and prevents an unrecoverable mutation"
   expect(writes).toBe(0);
 });
 
+/** Uncertain-update переживает reload и блокирует новый write до сверки исходного результата. */
 test("an uncertain article update remains blocked after reload", async ({
   page,
 }) => {
@@ -305,6 +316,7 @@ test("an uncertain article update remains blocked after reload", async ({
   expect(writes).toBe(1);
 });
 
+/** Новый account-scope не показывает чужой draft, сохраняя оригинал для первого владельца. */
 test("article drafts never appear in the next account", async ({ page }) => {
   await editorApi(page);
   await articles(page);
@@ -355,6 +367,7 @@ test("article drafts never appear in the next account", async ({ page }) => {
   expect((await savedDraft(page))?.title).toBe("FIRST_OWNER_PRIVATE_DRAFT");
 });
 
+/** Разные article-id имеют собственные draft-slots и переживают переключение форм без server-write. */
 test("separate article drafts both survive switching editors and reloading", async ({
   page,
 }) => {

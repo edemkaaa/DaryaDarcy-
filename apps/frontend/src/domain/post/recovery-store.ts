@@ -67,11 +67,13 @@ type StoredRecord =
         privateVideos?: StoredVideo[];
       };
     });
+/** Сбой сохранения черновика требует оставить редактор открытым, а не продолжить без durable-снимка. */
 const storageError = () =>
   new Error(
     "Не удалось сохранить черновик на этом устройстве. Освободите место или разрешите хранение данных сайта и попробуйте снова. Не закрывайте редактор.",
   );
 
+/** Восстанавливаем File только из проверенных бинарных метаданных хранилища. */
 function restoreFile(data: FileData): File {
   if (
     !data ||
@@ -86,6 +88,7 @@ function restoreFile(data: FileData): File {
     lastModified: data.lastModified,
   });
 }
+/** Сверяем выбранные фотографии, локальные ссылки и использованные coordinator объекты, сохраняя их общую идентичность. */
 function validPhotos(
   editor: PostEditorSnapshot,
   save: PostSaveSnapshot,
@@ -120,6 +123,7 @@ function validPhotos(
   }
 }
 
+/** Проверяем исходные видео, постеры и квитанции, а также соответствие файлов, уже начатых координатором. */
 function validVideos(
   editor: PostEditorSnapshot,
   save: PostSaveSnapshot,
@@ -161,7 +165,7 @@ function validVideos(
   }
 }
 
-/** Binary data uses ArrayBuffer: some WebKit contexts cannot persist Blob/File. */
+/** Читаем/пишем IndexedDB с дедлайном; Promise завершается после фактического commit транзакции, не после отдельного запроса. Бинарные исходники упакованы в ArrayBuffer для WebKit-контекстов, не умеющих сохранять Blob/File. */
 function transaction<T>(
   mode: IDBTransactionMode,
   work: (
@@ -175,6 +179,7 @@ function transaction<T>(
     let tx: IDBTransaction | undefined;
     let value: T;
     let settled = false;
+    /** Снимаем дедлайн, abort и соединение один раз, даже если IndexedDB пришлёт несколько событий ошибки. */
     const fail = (error = storageError()) => {
       if (settled) return;
       settled = true;
@@ -228,6 +233,7 @@ function transaction<T>(
   });
 }
 
+/** Проверяем восстановленный snapshot, статусы, ключи и согласованность файлов; непригодный журнал не считается пустым черновиком. */
 function validRecord(
   record: PostRecoveryRecord,
   ownerId: number,
@@ -366,6 +372,7 @@ export class PostRecoveryJournal {
   private closed = false;
   private loaded = false;
   private fileBytes = new WeakMap<File, Promise<ArrayBuffer>>();
+  /** Кешируем чтение неизменяемых File через WeakMap, чтобы текстовые checkpoint не перечитывали большие видео. */
   private async fileData(file: File): Promise<FileData> {
     let bytes = this.fileBytes.get(file);
     if (!bytes) {
@@ -380,18 +387,22 @@ export class PostRecoveryJournal {
       lastModified: file.lastModified,
     };
   }
+  /** Один журнал владеет слотом редактора конкретного аккаунта; очередь сериализует его локальные checkpoint. */
   constructor(
     readonly ownerId: number,
     readonly slot: string,
   ) {}
+  /** Формируем физический ключ IndexedDB из аккаунта и слота редактора. */
   private key() {
     return `${this.ownerId}:${this.slot}`;
   }
+  /** Локальный черновик нельзя читать или сохранять после смены personal-data владельца. */
   private assertOwner() {
     if (!isPersonalDataOwner(this.ownerId))
       throw new Error("Войдите в аккаунт владельца черновика");
   }
   // Чтение проверяет структуру и владельца до восстановления File и редактируемых полей.
+  /** Читаем старый или бинарный формат, восстанавливая alias-ссылки на общие файлы; до успешной проверки запись запрещена. */
   async load(): Promise<PostRecoveryRecord | null> {
     this.assertOwner();
     const stored = await transaction<StoredRecord | undefined>(
@@ -413,6 +424,7 @@ export class PostRecoveryJournal {
     try {
       if (stored.version === 2) {
         const restored = new Map<PostAttachment, PostAttachment>();
+        /** Восстанавливаем каждый shared attachment один раз, чтобы Map координатора ссылалась на тот же объект редактора. */
         const restore = (attachment: StoredAttachment): PostAttachment => {
           const existing = restored.get(attachment);
           if (existing) return existing;
@@ -424,6 +436,7 @@ export class PostRecoveryJournal {
           return result;
         };
         const restoredPhotos = new Map<StoredPhoto, PrivatePostPhoto>();
+        /** Сохраняем объектную идентичность фото между editor и save, восстанавливая File из явного буфера. */
         const restorePhoto = (stored: StoredPhoto): PrivatePostPhoto => {
           const existing = restoredPhotos.get(stored);
           if (existing) return existing;
@@ -433,6 +446,7 @@ export class PostRecoveryJournal {
           return result;
         };
         const restoredVideos = new Map<StoredVideo, PrivatePostVideo>();
+        /** Восстанавливаем видео вместе с собственным постером и сохраняем alias-связи между снимками. */
         const restoreVideo = (stored: StoredVideo): PrivatePostVideo => {
           const existing = restoredVideos.get(stored);
           if (existing) return existing;
@@ -481,6 +495,7 @@ export class PostRecoveryJournal {
     return record;
   }
   // Снимок формы и состояние координатора пишутся согласованно: нельзя вернуть поля от одной попытки и ключ от другой.
+  /** Снимаем согласованную копию сейчас, затем сериализуем в очередь; optimistic revision не даёт другой вкладке затереть intent. */
   write(editor: PostEditorSnapshot, save: PostSaveSnapshot): Promise<void> {
     if (this.closed) return Promise.reject(new Error("Редактор уже закрыт"));
     if (!this.loaded)
@@ -514,6 +529,7 @@ export class PostRecoveryJournal {
           file: photo.file,
         });
       });
+      /** После structuredClone сохраняем идентичность неизменяемых File, но не общую изменяемую метаинформацию формы. */
       const copyVideoFiles = (
         videos: PrivatePostVideo[] | undefined,
         copies: PrivatePostVideo[] | undefined,
@@ -533,6 +549,7 @@ export class PostRecoveryJournal {
     const action = this.queue.then(async () => {
       this.assertOwner();
       const packed = new Map<PostAttachment, StoredAttachment>();
+      /** Готовим байты вложения до IndexedDB-транзакции и сохраняем alias-ссылки редактора и coordinator. */
       const pack = async (item: PostAttachment): Promise<StoredAttachment> => {
         const existing = packed.get(item);
         if (existing) return existing;
@@ -557,6 +574,7 @@ export class PostRecoveryJournal {
       for (const [item, intent] of snapshot.save.privateUploads ?? [])
         privateUploads.push([await pack(item), intent]);
       const packedPhotos = new Map<PrivatePostPhoto, StoredPhoto>();
+      /** Пакуем фото единожды на snapshot, переиспользуя чтение байтов исходного File. */
       const packPhoto = async (
         photo: PrivatePostPhoto,
       ): Promise<StoredPhoto> => {
@@ -574,6 +592,7 @@ export class PostRecoveryJournal {
       for (const photo of snapshot.save.privatePhotos ?? [])
         savePhotos.push(await packPhoto(photo));
       const packedVideos = new Map<PrivatePostVideo, StoredVideo>();
+      /** Пакуем видео и его постер до открытия транзакции, чтобы await не вызвал преждевременный auto-commit IndexedDB. */
       const packVideo = async (
         video: PrivatePostVideo,
       ): Promise<StoredVideo> => {
@@ -642,6 +661,7 @@ export class PostRecoveryJournal {
     this.queue = action.catch(() => {});
     return action;
   }
+  /** Закрываем очередь новым записям и удаляем только совпадающую ревизию после уже поставленных checkpoint. */
   clear(): Promise<void> {
     this.closed = true;
     const action = this.queue.then(async () => {

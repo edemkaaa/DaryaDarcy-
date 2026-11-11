@@ -32,7 +32,7 @@ type State = {
   receipts: Record<string, AdminActionOutcome>;
 };
 export const adminReceiptKey = (kind: AdminActionKind, userId: number) =>
-  `${kind}:${userId}`;
+  /* Разделяет квитанции писем и продлений для одной участницы, чтобы подтверждение одного действия не подменяло другое. */ `${kind}:${userId}`;
 
 export function useAdminActionRecovery(
   active: boolean,
@@ -41,6 +41,8 @@ export function useAdminActionRecovery(
     signal: AbortSignal,
   ) => Promise<void>,
 ) {
+  // Привязывает журнал административных команд к текущему владельцу; чтение, первый запуск и повтор используют общую отменяемую область.
+
   const { user, isAuthenticated, loading, error, refreshError } = useAuth();
   const ownerId = user?.id;
   const ready =
@@ -66,9 +68,11 @@ export function useAdminActionRecovery(
   } | null>(null);
   const confirmedCallback = useRef(onConfirmed);
   useEffect(() => {
+    // Актуализирует callback подтверждения, не пересоздавая работающую операцию из-за рендера родителя.
+
     confirmedCallback.current = onConfirmed;
   }, [onConfirmed]);
-  useEffect(() => () => scope.cancel(), [scope, ready, ownerId]);
+  useEffect(() => () => /* Смена аккаунта, доступности или размонтирование отменяет ожидание, сохраняя durable журнал команды. */ scope.cancel(), [scope, ready, ownerId]);
 
   // start, check и replay используют одну область; переход между вкладками отменяет ожидание, но сохраняет журнал команды.
   const run = useCallback(
@@ -76,6 +80,8 @@ export function useAdminActionRecovery(
       mode: "check" | "start" | "replay",
       request?: { kind: AdminActionKind; userId: number },
     ) => {
+      // Передаёт прежний ключ журналу, проверяет область после ответа и удерживает ограниченную историю квитанций; потеря ответа не превращается в новый запрос.
+
       if (!ready || !ownerId) return;
       const task = scope.begin(mode, getSessionRequestSignal(), () =>
         isPersonalDataOwner(ownerId),
@@ -167,12 +173,16 @@ export function useAdminActionRecovery(
   );
 
   useEffect(() => {
+    // При входе и изменении storage читает статус журнала; очистка отключает слушатель и отложенный старт.
+
     if (!ready || !ownerId) return;
     let live = true;
     queueMicrotask(() => {
       if (live) void run("check");
     });
     const changed = (event: StorageEvent) => {
+      // Изменение журнала в соседней вкладке запускает чтение статуса, а не повтор действия.
+
       if (event.key === adminActionStorageKey(ownerId) || event.key === null)
         void run("check");
     };
@@ -183,6 +193,7 @@ export function useAdminActionRecovery(
     };
   }, [ready, ownerId, run]);
 
+  // Чужое состояние из прежнего аккаунта не отображается; retryAt ограничивает только повтор письма, чтение результата остаётся доступным.
   const current = state?.ownerId === ownerId ? state : null;
   const [now, setNow] = useState(() => Date.now());
   const retryAt =
@@ -190,6 +201,8 @@ export function useAdminActionRecovery(
       ? current.intent.retryAt
       : undefined;
   useEffect(() => {
+    // Снимает клиентскую задержку по серверному retryAt; таймер ограничен допустимым диапазоном и очищается.
+
     if (!retryAt || retryAt <= now) return;
     const timer = setTimeout(
       () => setNow(Date.now()),
@@ -213,10 +226,10 @@ export function useAdminActionRecovery(
       Boolean(current.intent && !current.confirmedKey) ||
       Boolean(current.error && !current.confirmedKey),
     checking: operation === "check",
-    check: () => run("check"),
-    replay: () => run("replay"),
+    check: () => /* Читает состояние исходной команды без отправки нового продления или письма. */ run("check"),
+    replay: () => /* Повторяет неизменяемую исходную команду с сохранённым ключом. */ run("replay"),
     start: (kind: AdminActionKind, userId: number) =>
-      run("start", { kind, userId }),
+      /* Создаёт намерение конкретного вида для выбранной участницы через общий механизм восстановления. */ run("start", { kind, userId }),
   };
 }
 export type AdminActionRecovery = ReturnType<typeof useAdminActionRecovery>;

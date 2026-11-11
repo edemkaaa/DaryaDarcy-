@@ -2,6 +2,7 @@
 @use "../styles/layers";
 
 @layer elements {
+  /* Горизонтальный scroll и его контент растянуты на рамку с заранее рассчитанной высотой. */
   .wrap {
     width: 100%;
     position: relative;
@@ -16,6 +17,7 @@
     }
   }
 
+  /* Каждый слайд обрезает картинку по своей области без дополнительного потока содержимого. */
   .action {
     overflow: hidden;
     background-color: #ede6da;
@@ -26,6 +28,7 @@
     inset: 0;
   }
 
+  /* Счётчик и точки накладываются на фото; счётчик не перехватывает касания. */
   .counter {
     pointer-events: none;
     position: absolute;
@@ -45,6 +48,7 @@
     font-weight: 600;
   }
 
+  /* Нижняя подложка сохраняет контраст индикаторов поверх светлых фотографий. */
   .dots {
     position: absolute;
     bottom: 12px;

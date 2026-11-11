@@ -1,3 +1,4 @@
+// Исторический импорт иллюстраций мудборда меняет локальные файлы и S3; прежние frontend-пути требуют проверки.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -23,6 +24,8 @@ const UI_DISK = "https://disk.yandex.ru/d/LHrZMBKItiPdiw";
 const AUTUMN_DISK = "https://disk.yandex.ru/d/PKw6NoYl1hln8g";
 
 async function listPublic(publicKey, dirPath = "") {
+  // Читает одну страницу публичного Диска с limit=500; отсутствие пагинации ограничивает полноту больших каталогов.
+
   const url = new URL("https://cloud-api.yandex.net/v1/disk/public/resources");
   url.searchParams.set("public_key", publicKey);
   url.searchParams.set("limit", "500");
@@ -33,6 +36,8 @@ async function listPublic(publicKey, dirPath = "") {
 }
 
 async function walkPublic(publicKey, dirPath = "") {
+  // Рекурсивно проходит папки публичного Диска и собирает метаданные файлов, не проверяя права на их дальнейшую публикацию.
+
   const node = await listPublic(publicKey, dirPath);
   const items = node._embedded?.items ?? [];
   const files = [];
@@ -46,6 +51,8 @@ async function walkPublic(publicKey, dirPath = "") {
 }
 
 async function downloadFile(item) {
+  // Скачивает файл либо ORIGINAL preview целиком в память; временная ссылка может быть уже недействительна.
+
   const href = item.file || item.sizes?.find((s) => s.name === "ORIGINAL")?.url;
   if (!href) throw new Error(`no download url for ${item.name}`);
   const res = await fetch(href);
@@ -54,6 +61,8 @@ async function downloadFile(item) {
 }
 
 function safeName(name) {
+  // Приводит известные сезонные имена к фиксированным UI-файлам, остальные очищает для ключа S3.
+
   const map = {
     "лето.png": "folder-summer.png",
     "осень.JPG": "folder-autumn.jpg",
@@ -66,10 +75,14 @@ function safeName(name) {
 }
 
 async function toWebp(buf, quality = 82) {
+  // Создаёт WebP с потерями по quality; это не lossless-перенос исходных пикселей.
+
   return sharp(buf).webp({ quality }).toBuffer();
 }
 
 async function main() {
+  // Исторически переносит UI и осенний каталог Диска в S3 и генерирует JSON в прежнем frontend-пути; запускается с внешней записью.
+
   console.log("Listing UI disk…");
   const uiFiles = await walkPublic(UI_DISK);
   console.log(

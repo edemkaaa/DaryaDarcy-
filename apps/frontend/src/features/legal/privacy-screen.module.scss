@@ -2,6 +2,7 @@
 @use "../../shared/styles/layers";
 
 @layer components {
+  /* Длинная политика читается внутри прокручиваемой страницы с запасом снизу. */
   .scroll {
     padding-left: 24px;
     padding-right: 24px;
@@ -38,6 +39,7 @@
     margin-bottom: 12px;
   }
 
+  /* Ссылка на связанные документы отделена от даты и основного текста. */
   .legalLink {
     align-self: center;
     margin-bottom: 20px;
@@ -50,6 +52,7 @@
     text-decoration-line: underline;
   }
 
+  /* Разделы документа используют повторяемую пару заголовок/тело, не превращая страницу в одну непрерывную строку. */
   .block {
     margin-bottom: 18px;
     gap: 8px;

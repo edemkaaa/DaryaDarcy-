@@ -8,6 +8,7 @@ import {
 
 // Reuse one batched hydration path for feed, detail, bookmarks and admin lists.
 // Connection ownership and visibility decisions remain with the callers.
+/** Одним запросом гидратируем вложения всей страницы по sortOrder, сохраняем порядок карточек и распространяем SQL-ошибку вместо тихой потери медиа; видимость обеспечивает вызывающий код. */
 export async function attachPostMedia<T extends { id: number }>(
   db: Pick<MySql2Database, "select">,
   page: T[],

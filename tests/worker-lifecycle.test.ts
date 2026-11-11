@@ -1,6 +1,8 @@
+/** Проверяем IntervalJobs под управляемыми часами: один выполняющийся вызов на задачу, отсутствие накопления тиков и честное завершение при stop. */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { IntervalJobs } from "../apps/backend/src/workers/interval-jobs";
 
+/** Даёт явный контроль над завершением задачи, чтобы проверить busy/stop без реальных таймеров и внешних эффектов. */
 function deferred() {
   let resolve!: () => void;
   let reject!: (reason: unknown) => void;
@@ -11,14 +13,18 @@ function deferred() {
   return { promise, resolve, reject };
 }
 
+/** Каждый сценарий управляет собственным виртуальным временем. */
 beforeEach(() => vi.useFakeTimers());
+/** Удаляем тестовые таймеры и возвращаем настоящий clock, не влияя на другие suites. */
 afterEach(() => {
   vi.clearAllTimers();
   vi.restoreAllMocks();
   vi.useRealTimers();
 });
 
+/** Набор проверяет локальный жизненный цикл runner; распределённая MySQL-блокировка проверяется отдельно. */
 describe("inert single-flight interval jobs", () => {
+  /** Конструктор не запускает работу и не создаёт timer; активация принадлежит явному start. */
   it("does not run or schedule anything until explicitly started", async () => {
     const events: string[] = [];
     new IntervalJobs([
@@ -35,6 +41,7 @@ describe("inert single-flight interval jobs", () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  /** Повторный start не удваивает задачи: один немедленный запуск и один timer следуют фиксированной сетке времени. */
   it("starts once immediately, then follows the fixed interval", async () => {
     const times: number[] = [];
     vi.setSystemTime(0);
@@ -58,6 +65,7 @@ describe("inert single-flight interval jobs", () => {
     expect(vi.getTimerCount()).toBe(1);
   });
 
+  /** Пока предыдущий promise не завершён, пропущенные тики не запускаются параллельно и не накапливаются на потом. */
   it("skips busy intervals without overlap or a catch-up backlog", async () => {
     const first = deferred();
     let runs = 0;
@@ -83,6 +91,7 @@ describe("inert single-flight interval jobs", () => {
     expect(runs).toBe(2);
   });
 
+  /** Зависшая billing-задача не останавливает другой maintenance interval. */
   it("keeps different jobs independent while one is blocked", async () => {
     const blocked = deferred();
     const events: string[] = [];
@@ -116,6 +125,7 @@ describe("inert single-flight interval jobs", () => {
     await vi.advanceTimersByTimeAsync(0);
   });
 
+  /** И throw, и reject дают безопасное предупреждение без исходного текста ошибки и разрешают следующий тик. */
   it.each(["throw", "reject"])(
     "recovers after a %s without logging private error data",
     async (mode) => {
@@ -146,6 +156,7 @@ describe("inert single-flight interval jobs", () => {
     },
   );
 
+  /** Остановка до активации терминальна: последующий start не создаёт таймер или callback. */
   it("stop before start permanently prohibits activation", async () => {
     const events: string[] = [];
     const jobs = new IntervalJobs([
@@ -164,6 +175,7 @@ describe("inert single-flight interval jobs", () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  /** Stop снимает только расписание, возвращая promise незавершённой работы; завершение не объявляется раньше фактического результата. */
   it("stops timers but honestly exposes an unfinished run until it settles", async () => {
     const work = deferred();
     let runs = 0;
@@ -203,6 +215,7 @@ describe("inert single-flight interval jobs", () => {
     expect(runs).toBe(1);
   });
 
+  /** Даже сохранённый callback старого timer не запускает новую работу после stop. */
   it("fences a timer callback already queued before stop", async () => {
     let runs = 0;
     const timers = vi.spyOn(globalThis, "setInterval");
@@ -228,6 +241,7 @@ describe("inert single-flight interval jobs", () => {
     expect(jobs.stop()).toEqual([]);
   });
 
+  /** Немедленный start/stop блокирует ещё не вошедшую в callback работу и дожидается её settlement. */
   it("stop fences initial work that has not yet entered its callback", async () => {
     let runs = 0;
     const jobs = new IntervalJobs([
@@ -247,6 +261,7 @@ describe("inert single-flight interval jobs", () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  /** Вызов stop внутри первой задачи предотвращает вход в уже поставленные соседние callbacks. */
   it("allows stop from inside a callback without starting other queued jobs", async () => {
     const events: string[] = [];
     const jobs = new IntervalJobs([
@@ -272,6 +287,7 @@ describe("inert single-flight interval jobs", () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  /** После остановки reject закрывает lifecycle promise без ложного утверждения об успешной внешней операции. */
   it("settles a rejected pending run after stop without claiming provider success", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const work = deferred();
@@ -289,6 +305,7 @@ describe("inert single-flight interval jobs", () => {
     expect(jobs.stop()).toEqual([]);
   });
 
+  /** Остановка runner не удаляет посторонний interval из того же процесса. */
   it("only clears timers owned by this runner", async () => {
     let unrelatedRuns = 0;
     const unrelated = setInterval(() => {

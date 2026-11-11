@@ -1,7 +1,6 @@
 "use client";
 /** Копию восстановительных данных скачиваем как текстовый файл по явному действию пользователя, не вставляя её в HTML. */
-
-/** An explicit user download; never render recovery data as HTML. */
+/** Временный текстовый Blob скачивается через скрытый anchor; URL отзывается с задержкой, чтобы браузер успел начать чтение. */
 export function downloadText(text: string, filename: string) {
   const url = URL.createObjectURL(
     new Blob([text], { type: "text/plain;charset=utf-8" }),

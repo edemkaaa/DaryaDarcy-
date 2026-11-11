@@ -2,6 +2,7 @@
 @use "../../shared/styles/layers";
 
 @layer components {
+  /* Запас снизу учитывает постоянное уведомление восстановления: последние поля должны прокручиваться выше него. */
   .form {
     padding: 16px;
     // Let the last controls scroll above the persistent recovery notice.
@@ -22,6 +23,7 @@
     margin-top: 6px;
   }
 
+  /* Типы блоков и настройки доступа допускают перенос на узкой ширине. */
   .row {
     flex-direction: row;
     flex-wrap: wrap;
@@ -50,6 +52,7 @@
     line-height: 18px;
   }
 
+  /* Предпросмотр статьи обрезается по собственной бумажной карточке, сохраняя отдельную обложку. */
   .previewPaper {
     border-radius: 12px;
     overflow: hidden;
@@ -103,6 +106,7 @@
     min-height: 64px;
   }
 
+  /* Каждый блок имеет самостоятельные поля и заголовок управления; это сохраняет визуальные границы составной статьи. */
   .blockCard {
     border-width: 1px;
     border-color: var(--border);
@@ -149,6 +153,7 @@
     font-weight: 600;
   }
 
+  /* Миниатюры и кнопки добавления переносятся вместо горизонтального расширения формы. */
   .carouselPreview {
     flex-direction: row;
     flex-wrap: wrap;
@@ -187,6 +192,7 @@
     font-weight: 600;
   }
 
+  /* Основное сохранение сгруппировано справа и отделено от действий добавления блоков. */
   .formActions {
     flex-direction: row;
     justify-content: flex-end;
@@ -206,6 +212,7 @@
     color: #7a6b5e;
   }
 
+  /* Каталог статей использует компактные обложки с текстом в оставшейся flex-области. */
   .list {
     padding: 16px;
     padding-bottom: 40px;
@@ -259,6 +266,7 @@
   .spinner {
     margin-top: 20px;
   }
+  /* Условные классы ниже выделяют выбранные типы/доступ и поверхности полей; это не отдельные состояния сервера. */
   .backgroundColorState {
     background-color: var(--muted);
   }

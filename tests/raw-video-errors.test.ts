@@ -1,3 +1,4 @@
+/** Регрессия окончательно отключённого legacy upload: любые подготовленные detector/storage ошибки не достигаются. */
 import express from "express";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -18,6 +19,7 @@ import { VideoUploadController } from "../apps/backend/src/content/video-upload.
 
 // Fault injection complements native real-worker tests; do not mock the policy or handler.
 let server: Server, base: string;
+/** Поднимаем собственный Express HTTP с настоящим parser/retired controller, без приложения и рабочих ресурсов. */
 beforeAll(async () => {
   const app = express();
   registerRequestBodies(app);
@@ -29,9 +31,11 @@ beforeAll(async () => {
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 });
+/** Закрываем только локальный сервер. */
 afterAll(async () => {
   await new Promise<void>((resolve) => server.close(() => resolve()));
 });
+/** Сбрасываем detector/storage spies; их ответы не должны понадобиться после закрытия legacy-маршрута. */
 beforeEach(() => {
   boundary.detect
     .mockReset()
@@ -40,6 +44,7 @@ beforeEach(() => {
     .mockReset()
     .mockResolvedValue({ url: "https://assets.example.test/raw-video" });
 });
+/** Историческая fault-матрица теперь во всех случаях получает 404 с инструкцией защищённой загрузки; ни detector, ни storage не вызываются. */
 it.each([
   [
     "detector input deadline",

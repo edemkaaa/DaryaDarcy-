@@ -3,6 +3,7 @@ import type { ViewportSize } from "@/shared/browser/viewport";
 
 import { getTagBoardDrawerContent } from "./tag-board-drawer.content";
 
+/** Ограничиваем прокрутку фильтров видимым остатком экрана, сохраняя исходную геометрию декоративной доски. */
 export function getTagBoardDrawerLayout(viewport: ViewportSize) {
   const {
     DRAWER_WIDTH,

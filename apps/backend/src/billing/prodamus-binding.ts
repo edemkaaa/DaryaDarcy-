@@ -7,6 +7,7 @@ export type ProdamusClubBinding = {
 };
 
 /** Только сопоставление полей; не проверяет подпись и не разрешает settlement. */
+/** Сопоставляет domain/RUB/paymentId и recurring subscription/profile; разовый semiannual остаётся допустимым без recurring-профиля, но не без SQL-привязки. */
 export function hasClubPaymentBinding(
   proof: PaymentProof,
   orderId: string,

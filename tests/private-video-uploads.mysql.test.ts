@@ -26,18 +26,21 @@ import { sdk } from "../apps/backend/src/_core/sdk";
 import { getDb } from "../apps/backend/src/db";
 
 // Real HTTP/JWT/SQL/AWS SDK; loopback object transport is NOT provider ACL acceptance.
+/** Проверяет raw private-video upload, durable recovery и привязку к посту на настоящем HTTP/SQL с loopback SDK-wire. */
 describe.skipIf(!testDatabaseUrl)(
   "private video upload HTTP/SQL recovery",
   () => {
     let conn: Connection, app: INestApplication, base: string, token: string;
     let wire: Awaited<ReturnType<typeof openPrivateUploadWire>>;
     const key = "vu1-original-video-intent";
+    /** Читает полные private-attachment receipts собственного редактора. */
     const rows = async () =>
       (
         await conn.query<RowDataPacket[]>(
           "SELECT * FROM private_attachment_uploads WHERE actorUserId=97680",
         )
       )[0];
+    /** Отправляет raw video body с настраиваемыми MIME, operation-key, Bearer и metadata-query. */
     async function upload(
       bytes = mp4Fixture,
       mime = "video/mp4",
@@ -58,6 +61,7 @@ describe.skipIf(!testDatabaseUrl)(
         signal: AbortSignal.timeout(20000),
       });
     }
+    /** Читает privateAttachmentStatus фиксированного video-key от выбранного owner. */
     async function status(bearer = token) {
       const input = encodeURIComponent(
         superjson.stringify({ idempotencyKey: key }),
@@ -72,6 +76,7 @@ describe.skipIf(!testDatabaseUrl)(
         data: json.result ? superjson.deserialize(json.result.data) : undefined,
       };
     }
+    /** Вызывает настоящую admin mutation для привязки или редактирования видео поста. */
     async function write(method: string, input: unknown) {
       const response = await fetch(`${base}/api/trpc/admin.${method}`, {
         method: "POST",
@@ -87,6 +92,7 @@ describe.skipIf(!testDatabaseUrl)(
         data: json.result ? superjson.deserialize(json.result.data) : undefined,
       };
     }
+    /** Создаёт клубный черновик с explicit privateAssetIds и стабильным create-key. */
     const postInput = (assetId: string) => ({
       text: "VU private video",
       photos: [],
@@ -97,6 +103,7 @@ describe.skipIf(!testDatabaseUrl)(
       idempotencyKey: "vu2-original-post-intent",
       privateAssetIds: [assetId],
     });
+    /** Удаляет только посты собственного source, их media и creation journals автора. */
     async function cleanupPosts() {
       await conn.query(
         "DELETE m FROM post_media m JOIN posts p ON p.id=m.postId WHERE p.source='vu1-video-suite'",
@@ -106,6 +113,7 @@ describe.skipIf(!testDatabaseUrl)(
         "DELETE FROM post_creation_requests WHERE actorUserId=97680",
       );
     }
+    /** Создаёт одноразовую content-схему, loopback object-wire, двух admin и будущего платного reader и настоящий API. */
     beforeAll(async () => {
       conn = await openContentTestDatabase();
       await conn.query(
@@ -127,6 +135,7 @@ describe.skipIf(!testDatabaseUrl)(
       base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
       token = await sdk.createSessionToken("vu1-admin", { sessionVersion: 0 });
     });
+    /** Очищает свои posts/receipts/период и возвращает права, private-флаги и normal storage-policy. */
     beforeEach(async () => {
       await cleanupPosts();
       await conn.query("DELETE FROM club_payments WHERE userId=97682");
@@ -143,6 +152,7 @@ describe.skipIf(!testDatabaseUrl)(
       vi.stubEnv("PRIVATE_POST_MEDIA_UPLOAD_ENABLED", "true");
       vi.stubEnv("PRIVATE_POST_MEDIA_DELIVERY_ENABLED", "true");
     });
+    /** Закрывает API, удаляет fixture и аккаунты и закрывает SQL-пул и wire. */
     afterAll(async () => {
       await app?.close();
       if (conn) {
@@ -161,6 +171,7 @@ describe.skipIf(!testDatabaseUrl)(
       await wire?.close();
       vi.unstubAllEnvs();
     });
+    /** MP4, MOV и WebM определяются по контейнеру и сохраняются побайтово одним private-объектом при повторе. */
     it.each([
       [mp4Fixture, "video/mp4"],
       [movFixture, "video/quicktime"],
@@ -194,6 +205,7 @@ describe.skipIf(!testDatabaseUrl)(
         ).toHaveLength(1);
       },
     );
+    /** После потерянного PUT-ACK pending receipt сохраняет assetId и подтверждает существующий объект без второго PUT. */
     it("recovers a lost PUT acknowledgement from durable pending evidence without a second PUT", async () => {
       wire.dropPutAck();
       expect((await upload()).status).toBe(503);
@@ -214,6 +226,7 @@ describe.skipIf(!testDatabaseUrl)(
         wire.effects.filter((effect) => effect.startsWith("PUT ")),
       ).toHaveLength(1);
     });
+    /** Реальный client disconnect закрывает медленный storage-request, но принятые storage-байты затем восстанавливаются тем же ключом. */
     it("cancels a slow S3 request on HTTP disconnect and recovers an accepted object without another PUT", async () => {
       const gate = wire.pausePut();
       const client = rawRequest(`${base}/api/admin/private-video-uploads?filename=lesson.mp4`, {
@@ -244,6 +257,7 @@ describe.skipIf(!testDatabaseUrl)(
         await vi.waitFor(() => expect(wire.objects.size).toBe(1));
       }
     });
+    /** Изменение bytes или filename старого operation-key даёт 409 без нового receipt или объекта. */
     it("rejects changed bytes and filenames under the original key", async () => {
       expect((await upload()).status).toBe(200);
       expect((await upload(movFixture)).status).toBe(409);
@@ -261,6 +275,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await rows()).toHaveLength(1);
       expect(wire.objects.size).toBe(1);
     });
+    /** Конкурентные raw uploads ограничены 429/Retry-After и после явного retry сходятся в один asset; другой owner не видит receipt. */
     it("isolates status from another account and converges simultaneous same-key uploads", async () => {
       const responses = await Promise.all([upload(), upload(), upload()]);
       expect(responses.map(response => response.status).sort()).toEqual([200, 429, 429]);
@@ -286,6 +301,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await rows()).toHaveLength(1);
       expect(wire.objects.size).toBe(1);
     });
+    /** Активный текст, MP3 и пустой body не считаются видео и отклоняются до journal/storage. */
     it.each([Buffer.from("<svg>not video</svg>"), mp3Fixture, Buffer.alloc(0)])(
       "rejects non-video before ledger/storage effects",
       async (bytes) => {
@@ -294,6 +310,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(wire.effects).toEqual([]);
       },
     );
+    /** Отсутствующий или слишком короткий operation-key отклоняется до эффектов. */
     it.each([null, "short"])(
       "requires a stable valid key before recording intent",
       async (invalid) => {
@@ -304,6 +321,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(wire.effects).toEqual([]);
       },
     );
+    /** Выключенный флаг закрывает маршрут; policy-refusal сохраняет pending без публичного fallback. */
     it("defaults off, and never falls back when storage policy is unavailable", async () => {
       vi.stubEnv("PRIVATE_POST_VIDEO_UPLOAD_ENABLED", "false");
       expect((await upload()).status).toBe(404);
@@ -314,6 +332,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await rows())[0].state).toBe("pending");
       expect(wire.objects.size).toBe(0);
     });
+    /** Demotion, блокировка и отзыв epoch запрещают raw upload до durable intent и storage. */
     it.each([
       ["role='user'", 403],
       ["blockedAt=NOW()", 401],
@@ -327,6 +346,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(wire.effects).toEqual([]);
       },
     );
+    /** Видео больше 80 МиБ даёт 413 без сохранения намерения. */
     it("keeps the 80MiB bound without a durable intent", async () => {
       expect((await upload(Buffer.alloc(80 * 1024 * 1024 + 1))).status).toBe(
         413,
@@ -334,6 +354,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await rows()).toEqual([]);
       expect(wire.effects).toEqual([]);
     });
+    /** Повторный filename, лишние поля и отсутствие metadata-query дают 400. */
     it.each([
       "filename=a.mp4&mimeType=video/mp4",
       "filename=a.mp4&filename=b.mp4",
@@ -346,6 +367,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await rows()).toEqual([]);
       expect(wire.effects).toEqual([]);
     });
+    /** Epoch, отозванный после первоначальной аутентификации во время загрузки тела, проверяется перед записью. */
     it("rechecks account revocation while an authenticated raw body is still streaming", async () => {
       let admit!: () => void;
       const admitted = new Promise<void>((resolve) => {
@@ -397,6 +419,7 @@ describe.skipIf(!testDatabaseUrl)(
         observer.mockRestore();
       }
     });
+    /** Одна private-video binding наследует draft/club/expiry права, а явное удаление закрывает файл и запрещает повторную привязку. */
     it("binds once, gates draft/club/expiry reads and revokes an explicitly removed video", async () => {
       const uploaded = await (await upload()).json();
       const input = postInput(uploaded.assetId);
@@ -468,6 +491,7 @@ describe.skipIf(!testDatabaseUrl)(
         ).status,
       ).toBe(409);
     });
+    /** Legacy videos[] управляет только legacy-URL, сохраняя private-video и его метаданные. */
     it("does not detach a private video when legacy videos[] is saved without it", async () => {
       const uploaded = await (await upload()).json();
       expect(
@@ -506,6 +530,7 @@ describe.skipIf(!testDatabaseUrl)(
         )[0],
       ).toEqual([{ id: asset.mediaId }]);
     });
+    /** Legacy-media validation не зависит от наличия private storage-конфигурации. */
     it("keeps legacy video removal validation independent of private storage configuration", async () => {
       expect((await write("createPost",{...postInput("unused"),privateAssetIds:[],videos:["https://vkvideo.ru/video-123_456"]})).status).toBe(200);
       const [[media]] = await conn.query<RowDataPacket[]>("SELECT m.id,m.postId FROM post_media m JOIN posts p ON p.id=m.postId WHERE p.source='vu1-video-suite'");
@@ -513,6 +538,7 @@ describe.skipIf(!testDatabaseUrl)(
       try { expect((await write("updatePost",{id:media.postId,removedMediaIds:[media.id]})).status).toBe(400); }
       finally { vi.stubEnv("S3_ENDPOINT",wire.endpoint); }
     });
+    /** Неавторизованные application/reserved private URL не принимаются как обычные videos[] и не создают пост. */
     it.each([
       "/api/media/post-attachments/123",
       "https://assets.example.test/content/private-v1/123",

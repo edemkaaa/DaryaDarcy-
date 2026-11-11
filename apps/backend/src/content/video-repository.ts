@@ -15,6 +15,7 @@ export type PublicVideo = Omit<
   Video,
   "provider" | "access" | "vkEmbedUrl" | "vkSourceKey" | "youtubeId" | "editRevision"
 > & { youtubeId: string };
+/** Преобразуем только запись с непустым YouTube ID в старый публичный контракт, убирая provider/access, VK-плеер и внутреннюю ревизию. */
 function publicVideo(row: Video): PublicVideo {
   if (typeof row.youtubeId !== "string" || !row.youtubeId)
     throw new Error("Invalid public video");
@@ -26,6 +27,7 @@ function publicVideo(row: Video): PublicVideo {
   };
 }
 
+/** Возвращаем опубликованные открытые YouTube-записи в старом порядке, не смешивая их с VK или клубным каталогом. */
 export async function getVideos(db: Database): Promise<PublicVideo[]> {
   requireContentDatabase(db);
   const rows = await db
@@ -43,6 +45,7 @@ export async function getVideos(db: Database): Promise<PublicVideo[]> {
 }
 
 /** Constant-size public authority for the legacy stream service, never a catalog. */
+/** Проверяем существование одной опубликованной публичной YouTube-записи для разрешения старой потоковой выдачи без загрузки каталога. */
 export async function isPublicYoutubeVideo(db: Database, youtubeId: string) {
   requireContentDatabase(db);
   const rows = await db.select({ id: videos.id }).from(videos).where(and(
@@ -52,6 +55,7 @@ export async function isPublicYoutubeVideo(db: Database, youtubeId: string) {
   return rows.length === 1;
 }
 
+/** Ищем числовой ID только среди опубликованных открытых YouTube-видео; отсутствие записи не раскрывает скрытый каталог. */
 export async function getVideoById(
   db: Database,
   id: number,
@@ -75,6 +79,7 @@ export async function getVideoById(
 }
 
 // Internal dedup includes unpublished rows and preserves the raw stored title.
+/** Внутренний поиск для дедупликации включает неопубликованные записи и сохраняет сырые поля; публичная граница должна проверять доступ отдельно. */
 export async function getVideoByYoutubeId(
   db: Database,
   youtubeId: string,
@@ -88,6 +93,7 @@ export async function getVideoByYoutubeId(
   return result[0];
 }
 
+/** Вставляем подготовленную внутренним вызывающим кодом запись и возвращаем SQL ID, не выполняя сетевой импорт. */
 export async function createVideo(
   db: Database,
   data: InsertVideo,
@@ -97,6 +103,7 @@ export async function createVideo(
   return Number(result[0].insertId);
 }
 
+/** Проверяем текущего администратора разделяемой блокировкой на всю транзакцию, пропускаем существующие YouTube ID и считаем только новые записи. */
 export async function bulkImportVideos(
   db: Database,
   items: InsertVideo[],
@@ -124,6 +131,7 @@ export async function bulkImportVideos(
   });
 }
 
+/** Обновляем подготовленные поля внутренней записи и всегда увеличиваем editRevision для последующей проверки конфликтов. */
 export async function updateVideo(
   db: Database,
   id: number,
@@ -133,6 +141,7 @@ export async function updateVideo(
   await db.update(videos).set({ ...data, editRevision: sql`${videos.editRevision} + 1` }).where(eq(videos.id, id));
 }
 
+/** Удаляем строку каталога по внутреннему ID; файлы и внешние ролики этим не удаляются. */
 export async function deleteVideo(db: Database, id: number): Promise<void> {
   if (!db) throw new Error("Database not available");
   await db.delete(videos).where(eq(videos.id, id));

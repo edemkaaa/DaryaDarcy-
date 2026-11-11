@@ -13,10 +13,12 @@ import { privateMediaUrl, privateReceiptForMedia } from "./private-attachment-as
 
 @Injectable()
 export class PrivateFilesService {
+  /** Используем текущую сессию для проверки клубного доступа при каждом запросе вложения. */
   constructor(
     @Inject(SessionService) private readonly sessions: SessionService,
   ) {}
 
+  /** Находим опубликованный пост с вложением, проверяем членство для Клуба и разрешённый MIME; новый внутренний URL требует совпадающей квитанции, старый URL допускается только из собственного хранилища. */
   async authorizedAttachment(id: number, req: Request): Promise<{ key: string; mime: string; etag?: string } | undefined> {
     const database = await getDb();
     if (!database) throw new Error("Database unavailable");

@@ -1,3 +1,4 @@
+// Архив Expo. Локально раскрывает содержимое и синхронно поворачивает стрелку темы.
 import { PropsWithChildren, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 
@@ -5,6 +6,8 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 
 export function Collapsible({ children, title }: PropsWithChildren & { title: string }) {
+  // Локально раскрывает содержимое и синхронно поворачивает стрелку темы.
+
   const [isOpen, setIsOpen] = useState(false);
   const colors = useColors();
 

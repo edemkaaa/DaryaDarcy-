@@ -20,6 +20,7 @@ export type ExpoPushMessage = {
 };
 
 /** Return valid Expo acceptance tickets, not device deliveries. Audiences are filtered in db helpers. */
+/** Повторно фильтруем получателей по категории и доступу, отправляем пачки до 100 с дедлайном и считаем только корректные acceptance tickets Expo; это не подтверждение доставки на устройство. */
 export async function sendExpoPushBatch(
   category: PushConsentType,
   messages: ExpoPushMessage[],
@@ -78,6 +79,7 @@ export async function sendExpoPushBatch(
 }
 
 /** Marketing/content push: new posts, promos, etc. Requires explicit user consent. */
+/** Отправляем краткое уведомление о новом посте только аудитории с явным маркетинговым согласием; ошибка push не откатывает публикацию и не ставится в гарантированную очередь. */
 export async function sendMarketingPostNotification(
   postText: string,
   postId: number,
@@ -105,6 +107,7 @@ export async function sendMarketingPostNotification(
 }
 
 /** Service push: purchases, subscription, account — no marketing consent required. */
+/** Выбираем устройства заданного пользователя и повторно проверяем принадлежность и доступ в отправке; служебное сообщение не требует маркетингового согласия, сбой возвращает ноль. */
 export async function sendServicePushNotification(input: {
   userId: number;
   title: string;

@@ -32,6 +32,7 @@ import {
   SERVICE_UNAVAILABLE_MESSAGE,
 } from "../_core/service-availability";
 
+/** Только при явно включённом серверном флаге проверяем дополнительное доказательство служебного входа и возвращаем подсказку requiresTotp без выдачи сессии. */
 function verifyStaffTotp(req: Request, res: Response): boolean {
   if (!adminTotpEnabled()) return true;
   const totp = typeof req.body?.totp === "string" ? req.body.totp.trim() : "";
@@ -52,6 +53,7 @@ function verifyStaffTotp(req: Request, res: Response): boolean {
   return true;
 }
 
+/** Сопоставляем совместимые ошибки SMS лимитам 429, временной недоступности 503 и неверному вводу 400. */
 function smsErrorStatus(message: string): number {
   if (
     message.includes("Подождите") ||
@@ -70,16 +72,19 @@ function smsErrorStatus(message: string): number {
 
 @Controller("api/auth")
 export class SessionController {
+  /** Подключаем единый сервис сессий для REST-входа, регистрации и совместимого SMS-контракта. */
   constructor(
     @Inject(SessionService) private readonly identity: SessionService,
   ) {}
 
+  /** Устанавливаем токен только в HttpOnly-cookie и возвращаем браузеру публичный профиль без JWT в JSON. */
   private async issueSession(req: Request, res: Response, user: User) {
     const session = await this.identity.issueSession(user);
     setSessionCookie(req, res, session.sessionToken);
     return { user: session.user };
   }
 
+  /** Ограничиваем регистрацию по IP, проверяем email и версию согласия, затем возвращаем нейтральный 202 независимо от создания или существования адреса. */
   @Post("register")
   @HttpCode(200)
   /** Публичный ответ не сообщает, существовал ли адрес; создание и доказательство владения разделены. */
@@ -139,6 +144,7 @@ export class SessionController {
     }
   }
 
+  /** Применяем IP-квоту и общий лимит аккаунта до проверки пароля, проверяем служебный proof при включённом флаге и выдаём cookie после успешного завершения попытки. */
   @Post("login")
   @HttpCode(200)
   /** IP-квота и лимит аккаунта применяются до дорогой проверки пароля; JWT уходит в HttpOnly-cookie. */
@@ -205,6 +211,7 @@ export class SessionController {
     }
   }
 
+  /** Сначала отзываем текущую версию серверных сессий и лишь после успеха очищаем cookie, чтобы неизвестный исход не выглядел завершённым выходом. */
   @Post("logout")
   @HttpCode(200)
   /** Отзыв на сервере предшествует очистке cookie, чтобы старый токен не продолжал работать. */
@@ -214,12 +221,14 @@ export class SessionController {
     res.json({ success: true });
   }
 
+  /** Возвращаем только явную публичную проекцию актуального пользователя; временная ошибка проверки сессии остаётся ошибкой сервера. */
   @Get("me")
   async me(@Req() req: Request, @Res() res: Response) {
     const user = await this.identity.optionalUser(req);
     res.json({ user: user ? publicUser(user) : null });
   }
 
+  /** После аутентификации запроса переносим переданный Bearer в session-cookie, возвращая профиль без дублирования токена в ответе. */
   @Post("session")
   @HttpCode(200)
   async session(@Req() req: Request, @Res() res: Response) {
@@ -238,6 +247,7 @@ export class SessionController {
     res.json({ success: true, user: publicUser(user) });
   }
 
+  /** При включённой SMS-возможности нормализуем российский номер и отправляем код через отдельный лимитированный сервис. */
   @Post("sms/send")
   @HttpCode(200)
   async sendSms(@Req() req: Request, @Res() res: Response) {
@@ -274,6 +284,7 @@ export class SessionController {
     }
   }
 
+  /** При включённом SMS-входе отделяем вход существующего номера, привязку к текущей сессии и создание нового SMS-аккаунта; чужой связанный номер не присваивается. */
   @Post("sms/verify")
   @HttpCode(200)
   async verifySms(@Req() req: Request, @Res() res: Response) {
@@ -301,6 +312,7 @@ export class SessionController {
         return;
       }
 
+      /** Выдаём cookie после погашения SMS-кода и при переданном согласии отдельно записываем его событие, возвращая лишь публичный профиль. */
       const finishSmsSession = async (user: User) => {
         const session = await this.issueSession(req, res, user);
         if (consentVersion && user.id) {

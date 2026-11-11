@@ -1,3 +1,4 @@
+/** Изолированный runner передаёт адрес настоящего временного API/frontend через fixture; конфигурация не использует рабочий стенд по умолчанию. */
 import { readFileSync } from "node:fs";
 import { defineConfig } from "@playwright/test";
 import base from "./playwright.config";

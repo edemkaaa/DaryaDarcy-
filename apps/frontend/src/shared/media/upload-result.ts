@@ -1,5 +1,6 @@
 /** Перед привязкой загруженного файла проверяем структуру результата, а не полагаемся только на успешный HTTP-статус. */
 import { invalidResponse } from "@/shared/api/errors";
+/** Проверяем URL, непустой MIME без управляющих символов и положительный целочисленный размер перед привязкой результата. */
 export function requireUploadedMedia(result: unknown): {
   url: string;
   mimeType: string;
@@ -23,6 +24,7 @@ export function requireUploadedMedia(result: unknown): {
   return { url, mimeType, fileSize };
 }
 
+/** Принимаем абсолютный HTTP(S)-адрес без учётных данных; успешный HTTP сам по себе не подтверждает пригодный результат загрузки. */
 export function requireUploadedUrl(result: unknown): string {
   const url =
     result && typeof result === "object"

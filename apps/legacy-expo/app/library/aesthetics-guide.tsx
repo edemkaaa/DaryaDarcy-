@@ -1,3 +1,4 @@
+// Архив Expo. Выбирает встроенный справочник семи эстетик; архивный bundle содержит тексты независимо от UI-gate.
 import React, { useState, useRef } from "react";
 import {
   View,
@@ -219,6 +220,8 @@ const INTERIORS: Record<AestheticKey, any[]> = {
 
 // Get club content for a given aesthetic
 function getClubContent(key: AestheticKey): CottagecoreResultContent | null {
+  // Выбирает встроенный справочник семи эстетик; архивный bundle содержит тексты независимо от UI-gate.
+
   if (key === "cottagecore") return COTTAGECORE_RESULT;
   if (key === "darkAcademia") return DARK_ACADEMIA_RESULT;
   if (key === "goblincore") return GOBLINCORE_RESULT;
@@ -231,6 +234,8 @@ function getClubContent(key: AestheticKey): CottagecoreResultContent | null {
 
 // Table headers per aesthetic
 function getTableHeaders(key: AestheticKey): [string, string] {
+  // Возвращает согласованную пару заголовков таблицы стиля для конкретной эстетики.
+
   switch (key) {
     case "darkAcademia": return ["Академическое настроение", "Романтическое настроение"];
     case "goblincore": return ["Практичное", "Игривое"];
@@ -243,15 +248,21 @@ function getTableHeaders(key: AestheticKey): [string, string] {
 }
 
 export default function AestheticsGuideScreen() {
+  // Показывает оглавление, клиентский gate и встроенные разделы гида с локальными каруселями иллюстраций.
+
   const colors = useColors();
   const scrollRef = useRef<ScrollView>(null);
   const { isSubscribed } = useClub();
 
   const handleBack = () => {
+    // Возвращает к предыдущему экрану Библиотеки.
+
     router.back();
   };
 
   const handleQuizCTA = () => {
+    // Открывает бесплатный тест с native haptic.
+
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -259,6 +270,8 @@ export default function AestheticsGuideScreen() {
   };
 
   const handleClubCTA = () => {
+    // Открывает страницу подписки Клуба.
+
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -269,6 +282,8 @@ export default function AestheticsGuideScreen() {
   const sectionRefs = useRef<Record<string, number>>({});
 
   const scrollToSection = (key: AestheticKey) => {
+    // Прокручивает к заранее измеренному разделу эстетики с небольшим верхним отступом.
+
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -668,6 +683,7 @@ export default function AestheticsGuideScreen() {
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 80,

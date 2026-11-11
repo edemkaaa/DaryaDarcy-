@@ -6,6 +6,7 @@
     width: 100%;
     min-width: 0;
   }
+  /* Scroll-контейнер занимает весь viewport карусели, сохраняя одинаковую высоту всех слайдов. */
   .viewport {
     > :global(.ui-scroll-horizontal) {
       position: absolute;
@@ -16,6 +17,7 @@
       }
     }
   }
+  /* Слайд не сжимается, snap-stop не даёт пролистывать несколько роликов одним остановочным шагом. */
   .slide {
     flex-shrink: 0;
     scroll-snap-stop: always;
@@ -23,6 +25,7 @@
     min-width: 0;
     overflow: hidden;
   }
+  /* Индикаторы образуют отдельную жестовую область поверх кадра, разрешая вертикальную прокрутку страницы. */
   .indicators {
     position: absolute;
     bottom: 0;
@@ -37,6 +40,7 @@
     user-select: none;
   }
   // Keep the swipe target above player controls, including cross-origin VK.
+  /* При наличии плеера свайп-полоса поднята выше его controls; у iframe счётчик сдвинут от правых кнопок VK. */
   .viewport:has(video, iframe) .indicators {
     bottom: 44px;
   }

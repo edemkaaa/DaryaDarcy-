@@ -19,7 +19,7 @@ export type AestheticVisualRequest = {
   interiors: Group;
 };
 
-/** Binding metadata belongs to the current account; image bytes stay no-store. */
+/** Параллельно читаем привязки нужных эстетик и сопоставляем их с порядком иллюстраций; старые результаты не переживают перепроверку доступа. Байты иллюстраций остаются no-store. */
 export function useAestheticVisuals(
   entries: readonly AestheticVisualRequest[],
 ) {

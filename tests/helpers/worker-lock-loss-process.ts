@@ -10,6 +10,8 @@ import { getDb } from "../../apps/backend/src/database/connection";
 import { runExclusiveWorker } from "../../apps/backend/src/database/coordination";
 
 async function main() {
+  // Управляет настоящим API и MySQL-lock через IPC; только тестовый перехват позволяет потерять собственную lease и проверить аварийный выход.
+
   const app = await createBackendApplication();
   await app.listen(0, "127.0.0.1");
   const db = await getDb();
@@ -26,6 +28,8 @@ async function main() {
   let release: (() => void) | undefined;
   let pending: Promise<void> | undefined;
   const effect = async () => {
+    // Записывает измеримый эффект в отдельную таблицу одноразовой БД, без писем, платежей и S3.
+
     const conn = await createConnection(process.env.DATABASE_URL!);
     try {
       await conn.query(
@@ -36,6 +40,7 @@ async function main() {
       await conn.end();
     }
   };
+  // Команда unlock освобождает только lease этого процесса для fault injection; production коду такой публичный маршрут не добавляется.
   process.on("message", (input: { action: string }) => {
     void (async () => {
       switch (input.action) {

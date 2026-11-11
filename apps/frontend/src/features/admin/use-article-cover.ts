@@ -21,6 +21,8 @@ export function useArticleCover(
   ownerId: number,
   operation: ReturnType<typeof useSessionOperation>,
 ) {
+  // Отделяет загрузку публичного баннера от сохранения статьи: исходные байты, ключ и снимок формы переживают потерю ответа.
+
   const utils = trpc.useUtils();
   const [journal] = useState(() => new ArticleCoverJournal(ownerId));
   const [record, setRecord] = useState<ArticleCoverRecord | null>(null);
@@ -33,6 +35,8 @@ export function useArticleCover(
   const [canRetry, setCanRetry] = useState(false);
   const pending = !!record && attachedKey === record.idempotencyKey;
   useEffect(() => {
+    // Читает журнал баннера при монтировании и ручном повторе; поздний ответ после закрытия формы игнорируется.
+
     let alive = true;
     void journal
       .load()
@@ -54,6 +58,8 @@ export function useArticleCover(
     };
   }, [journal, loadAttempt]);
   const fail = (cause: unknown, task: ScopedOperation, saved: boolean) => {
+    // Различает конфликт ключа, неизвестный исход отправки и локальный отказ до отправки; устаревшая область не меняет уведомления.
+
     checkOperationAccessError(cause);
     if (!task.isCurrent()) return;
     setCanRetry(false);
@@ -71,6 +77,8 @@ export function useArticleCover(
     task: ScopedOperation,
     commit: (url: string) => void,
   ) => {
+    // Требует подтверждённую квитанцию; лишь после очистки своего журнала передаёт URL форме, не создавая статью.
+
     const receipt = requirePublicCoverReceipt(value);
     task.assertCurrent();
     if (receipt.state !== "ready") {
@@ -90,7 +98,7 @@ export function useArticleCover(
     setMessage(null);
   };
   const upload = (saved: ArticleCoverRecord, task: ScopedOperation) =>
-    utils.client.admin.uploadPublicCover.mutate(
+    /* Отправляет неизменяемые байты с прежним ключом и сигналом текущей операции. */ utils.client.admin.uploadPublicCover.mutate(
       { ...saved.upload, idempotencyKey: saved.idempotencyKey },
       { signal: task.signal },
     );
@@ -100,13 +108,17 @@ export function useArticleCover(
     storageStatus,
     message,
     canRetry,
-    retryRead: () => setLoadAttempt((value) => value + 1),
+    retryRead: () => /* Повторяет чтение сохранённой загрузки после ошибки хранилища. */ setLoadAttempt((value) => value + 1),
     detach: () => {
+      // Отсоединяет журнал от текущей формы, не удаляя данные незавершённой загрузки.
+
       setAttachedKey(null);
       setCanRetry(false);
       setMessage(null);
     },
     attach: (saved: ArticleCoverRecord) => {
+      // Связывает восстановленный снимок с прежним ключом и требует проверки результата перед сохранением.
+
       setAttachedKey(saved.idempotencyKey);
       setCanRetry(false);
       setMessage(
@@ -118,6 +130,8 @@ export function useArticleCover(
       files: PrivateArticleFile[],
       commit: (url: string) => void,
     ) => {
+      // Сначала сохраняет файл и форму на устройстве; найденный прежний журнал блокирует новую отправку вместо перезаписи.
+
       if (record || storageStatus !== "ready") return;
       const task = operation.begin("photos");
       if (!task) return;
@@ -161,6 +175,8 @@ export function useArticleCover(
       }
     },
     recover: async (replay: boolean, commit: (url: string) => void) => {
+      // Сначала читает статус ключа, а повторяет байты только по явному запросу и разрешённому состоянию.
+
       if (!pending || !record || (replay && !canRetry)) return;
       const task = operation.begin("recover-cover");
       if (!task) return;
@@ -189,6 +205,8 @@ export function useArticleCover(
       }
     },
     discard: async () => {
+      // Удаляет только локальное намерение обложки; уже записанный серверный файл этим не удаляется.
+
       if (!record || !pending) return;
       const task = operation.begin("discard-cover");
       if (!task) return;

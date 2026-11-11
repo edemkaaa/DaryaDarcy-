@@ -22,6 +22,7 @@ const MIME_PARAMETERS =
   /^(?: *; *[!#$%&'*+.^_`|~a-z0-9-]+=(?:[!#$%&'*+.^_`|~a-z0-9-]+|"(?:[\x20-\x21\x23-\x5b\x5d-\x7e]|\\[\x20-\x7e])*"))* *$/i;
 
 /** Declared header policy only; compatible MIME is not proof of the file's bytes. */
+/** Проверяем синтаксис и длину заявленного MIME, сохраняем корректные параметры charset/codecs и сверяем категорию; это ещё не проверка байтов файла. */
 export function normalizeMediaContentType(
   type: MediaUploadInput["type"],
   declared: string,
@@ -58,6 +59,7 @@ export function normalizeMediaContentType(
 }
 
 /** Expects normalized declared metadata; signatures are not track/playback/safety validation. */
+/** Сверяем MIME с сигнатурой контейнера, отдельно валидируем текст; для аудио MP4/WebM не обещаем проверку дорожек, а legacy DOC сохраняет явно непроверенный формат. */
 export async function resolveMediaContentType(
   type: MediaUploadInput["type"],
   declared: string,
@@ -70,6 +72,7 @@ export async function resolveMediaContentType(
   // declared type remains unverified; do not claim a complete document boundary.
   if (type === "document" && declaredEssence === "application/msword")
     return declared;
+// Параметры исходного MIME сохраняются только при точном совпадении распознанного типа; иначе используется канонический тип сервера.
   const detected = await detectBinaryFileType(bytes);
   if (type === "document") {
     if (declaredEssence === "application/octet-stream") {

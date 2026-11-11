@@ -5,12 +5,13 @@ import type { AppRouter } from "./contract";
 import { invalidResponse } from "./errors";
 import { validateReadResponse } from "./read-response-contracts";
 
-/** Runs after SuperJSON decoding and before either direct readers or Query cache. */
+/** Ответы query проходят runtime-проверку после декодирования; при ошибке наружу выходит безопасный invalid-response без payload. Проверка выполняется до прямого reader и Query cache. */
 export const readResponseLink: TRPCLink<AppRouter> =
   () =>
   ({ op, next }) =>
     observable((observer) =>
       next(op).subscribe({
+        /** Только после проверки передаём результат дальше в кеш или direct reader; мутации используют свои квитанции. */
         next(result) {
           try {
             if (op.type === "query" && "data" in result.result)

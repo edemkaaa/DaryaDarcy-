@@ -1,3 +1,4 @@
+/** Офлайн preflight проверяет manifest/history по точным SQL bytes, не исправляя журнал и не применяя DDL. */
 import { describe, expect, it } from "vitest";
 import { createHash } from "node:crypto";
 import { readMigrationFiles } from "drizzle-orm/migrator";
@@ -20,7 +21,9 @@ const files = new Map([
   ["0001_second.sql", "ALTER TABLE example ADD name TEXT;\n"],
 ]);
 
+/** Различаем целостность файлов и префикс реально применённых миграций. */
 describe("non-mutating migration preflight", () => {
+  /** Hash считается от исходного SQL, отчёт не содержит DDL body. */
   it("records exact Drizzle-compatible hashes without exposing SQL", () => {
     const report = inspectMigrationManifest(journal, files);
     expect(report.issues).toEqual([]);
@@ -33,6 +36,7 @@ describe("non-mutating migration preflight", () => {
     });
     expect(JSON.stringify(report)).not.toContain("CREATE TABLE");
   });
+  /** Новый неучтённый SQL блокирует выпуск и не дописывается автоматически. */
   it("blocks orphaned SQL rather than silently adding it to the journal", () => {
     const extended = new Map(files).set(
       "0017_untracked.sql",
@@ -43,6 +47,7 @@ describe("non-mutating migration preflight", () => {
     );
     expect(journal.entries).toHaveLength(2);
   });
+  /** Каждому шагу нужен непустой локальный файл. */
   it("blocks missing and empty migration files", () => {
     expect(inspectMigrationManifest(journal, new Map()).issues).toContain(
       "missing-file:0000_first.sql",
@@ -54,6 +59,7 @@ describe("non-mutating migration preflight", () => {
       ).issues,
     ).toContain("empty-file:0000_first.sql");
   });
+  /** Path traversal, неправильные idx/time/tag/dialect делают journal недопустимым. */
   it.each([
     { entries: [{ ...journal.entries[0], tag: "../outside" }] },
     { ...journal, entries: [{ ...journal.entries[0], idx: 2 }] },
@@ -74,6 +80,7 @@ describe("non-mutating migration preflight", () => {
       "invalid-journal",
     );
   });
+  /** Только точный применённый префикс позволяет вычислить хвост pending. */
   it("accepts only a matching applied prefix and reports pending tags", () => {
     const migrations = inspectMigrationManifest(journal, files).migrations;
     expect(
@@ -88,6 +95,7 @@ describe("non-mutating migration preflight", () => {
       ),
     ).toEqual({ issues: [], pending: [] });
   });
+  /** Отсутствующий/пустой рабочий журнал не принимается за свежую БД. */
   it("blocks absent history rather than assuming a live database is new", () => {
     const migrations = inspectMigrationManifest(journal, files).migrations;
     expect(inspectMigrationHistory(migrations, undefined).issues).toContain(
@@ -97,6 +105,7 @@ describe("non-mutating migration preflight", () => {
       "database-history-empty",
     );
   });
+  /** Неизвестная дата, новый hash, повтор и дырка истории имеют явные issues. */
   it("blocks unknown, edited, duplicated and skipped historical migrations", () => {
     const migrations = inspectMigrationManifest(journal, files).migrations;
     expect(
@@ -119,6 +128,7 @@ describe("non-mutating migration preflight", () => {
       ]).issues,
     ).toContain("applied-history-gap:0000_first");
   });
+  /** Настоящий repository journal сравнивается с readMigrationFiles самого Drizzle, без SQL connection. */
   it("accepts the reconciled repository and hashes the same bytes as Drizzle", async () => {
     const folder = new URL("../packages/database/drizzle/", import.meta.url);
     const actual = JSON.parse(

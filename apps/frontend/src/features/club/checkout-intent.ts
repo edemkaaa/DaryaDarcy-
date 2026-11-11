@@ -35,6 +35,7 @@ const messages = {
 };
 
 class CheckoutIntentError extends Error {
+  /** Сохраняем машинную причину ошибки вместе с безопасным сообщением без подробностей browser storage. */
   constructor(readonly reason: keyof typeof messages) {
     super(messages[reason]);
     this.name = "CheckoutIntentError";
@@ -56,6 +57,7 @@ export type NextClubCheckoutRequest = {
   selection: ClubCheckoutSelection;
 };
 
+/** Нормализованную почту и план связываем хешем с TEST-режимом; требуем HTTPS, Web Locks и криптографию до подготовки покупки. */
 async function fingerprintSelection(input: ClubCheckoutIntent["input"]) {
   // Read browser globals only on invocation, never during server rendering.
   if (
@@ -79,6 +81,7 @@ async function fingerprintSelection(input: ClubCheckoutIntent["input"]) {
   ).join("");
 }
 
+/** Сначала записываем новый ключ и проверяем чтением; ключ предыдущей покупки повторно не используем. */
 function persistIntent(
   storage: Storage,
   selectionHash: string,
@@ -94,6 +97,7 @@ function persistIntent(
   return idempotencyKey;
 }
 
+/** Ограничиваем размер и строго проверяем запись, не затирая повреждённое свидетельство новой покупкой. */
 function parseSavedIntent(prior: string) {
   if (prior.length > 1024) throw new CheckoutIntentError("unreadable");
   try {
@@ -103,7 +107,7 @@ function parseSavedIntent(prior: string) {
   }
 }
 
-/** Read a return's evidence without reserving, rotating or erasing a purchase. */
+/** Читаем снимок ключа без ротации и удаления; наличие записи означает лишь возможность проверить исходную покупку. */
 export function readSavedClubCheckoutIntent(): {
   idempotencyKey: string;
 } | null {
@@ -122,11 +126,7 @@ export function readSavedClubCheckoutIntent(): {
   }
 }
 
-/**
- * Reserve one browser-wide test purchase before dispatch. This record is not
- * proof of payment. Never rotate it after a timeout, elapsed time or URL return;
- * only the explicit next-purchase flow may replace verified terminal evidence.
- */
+/** Под общей блокировкой вкладок возвращаем прежний ключ только для той же почты и плана либо надёжно резервируем первый. Ни timeout, ни возврат URL не разрешают заменять ключ незавершённой покупки. */
 export async function getClubCheckoutIntent(
   selection: ClubCheckoutSelection,
   callerSignal?: AbortSignal,
@@ -177,7 +177,7 @@ export async function getClubCheckoutIntent(
   }
 }
 
-/** Explicit next purchase: fresh server proof and replacement share one tab lock. */
+/** Смену ключа разрешаем после свежего терминального результата сервера под той же межвкладочной блокировкой. */
 export async function reserveNextClubCheckoutIntent(
   client: TRPCClient<AppRouter>,
   request: NextClubCheckoutRequest,

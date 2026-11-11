@@ -16,6 +16,8 @@ export function PostUploadStatus({
   busy: boolean;
   subject?: "поста" | "комментария";
 }) {
+  // Не скрывает выбранные, но не подтверждённые файлы; явный отказ очищает локальное ожидание, а не серверный объект.
+
   if (!selection.pending.length) return null;
   return (
     <StatusNotice tone="error">

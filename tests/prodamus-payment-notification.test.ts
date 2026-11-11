@@ -10,6 +10,7 @@ const initial =
   '{"currency":"rub","customer_email":"Member@Example.test","domain":"fixture.payform.ru","order_id":"123","order_num":"club-7-100","payment_status":"success","sum":"790.00"}';
 const recurring =
   '{"currency":"rub","customer_email":"Member@Example.test","domain":"fixture.payform.ru","order_id":"124","payment_status":"success","subscription":{"id":"7","profile_id":"23"},"sum":"790.00"}';
+/** Создаёт замороженный синтетический payload и независимую HMAC-подпись с наблюдаемыми fulfil/configuration портами. */
 function fixture(raw = initial, key = "initial-fixture-key") {
   const body = JSON.parse(raw) as Record<string, unknown>;
   Object.freeze(body);
@@ -27,6 +28,7 @@ function fixture(raw = initial, key = "initial-fixture-key") {
   const ports = { fulfil, clubConfiguration };
   return { body, signature, ports, fulfil, clubConfiguration };
 }
+/** Проверяет игнорирование неоплаченного уведомления до чтения merchant-конфигурации и dispatch. */
 it("ignores unpaid notifications without reading merchant configuration or dispatching", async () => {
   const f = fixture(initial.replace('"success"', '"pending"'));
   expect(await processPayment(f.body, f.signature, "", f.ports)).toEqual({
@@ -36,6 +38,7 @@ it("ignores unpaid notifications without reading merchant configuration or dispa
   expect(f.clubConfiguration).not.toHaveBeenCalled();
   expect(f.fulfil).not.toHaveBeenCalled();
 });
+/** Проверяет единственную передачу первоначального order-proof с нормализацией только предусмотренного email-hint. */
 it("forwards initial order proof once and normalizes only the existing email hint", async () => {
   const f = fixture();
   expect(await processPayment(f.body, f.signature, "", f.ports)).toEqual({
@@ -57,6 +60,7 @@ it("forwards initial order proof once and normalizes only the existing email hin
   });
   expect(f.clubConfiguration).toHaveBeenCalledExactlyOnceWith(false);
 });
+/** Проверяет recurring-конфигурацию и renewal-intent без доверия клиентскому userId получателя. */
 it("uses recurring configuration and the renewal intent, never a recipient user hint", async () => {
   const f = fixture(recurring, "recurring-fixture-key");
   f.clubConfiguration.mockReturnValue({
@@ -82,6 +86,7 @@ it("uses recurring configuration and the renewal intent, never a recipient user 
   });
   expect(f.clubConfiguration).toHaveBeenCalledExactlyOnceWith(true);
 });
+/** Проверяет отказ чужого домена, валюты и ключа до любого fulfilment. */
 it.each([
   [
     "foreign domain",
@@ -102,6 +107,7 @@ it.each([
   });
   expect(f.fulfil).not.toHaveBeenCalled();
 });
+/** Проверяет, что durable-отказ не подтверждается как успешный платёж. */
 it("does not acknowledge a durable refusal as success", async () => {
   const f = fixture();
   f.fulfil.mockResolvedValue(null);
@@ -111,6 +117,7 @@ it("does not acknowledge a durable refusal as success", async () => {
   });
   expect(f.fulfil).toHaveBeenCalledTimes(1);
 });
+/** Проверяет распространение settlement-ошибки без подтверждения и автоматического повторного вызова. */
 it("propagates a settlement failure without acknowledging or retrying", async () => {
   const f = fixture();
   const failure = new Error("synthetic private durable failure");
@@ -120,6 +127,7 @@ it("propagates a settlement failure without acknowledging or retrying", async ()
   );
   expect(f.fulfil).toHaveBeenCalledTimes(1);
 });
+/** Проверяет игнорирование success без order до чтения клубной конфигурации. */
 it("ignores a paid notification with no order without reading club configuration", async () => {
   const f = fixture('{"payment_status":"success"}');
   expect(await processPayment(f.body, f.signature, "", f.ports)).toEqual({
@@ -129,6 +137,7 @@ it("ignores a paid notification with no order without reading club configuration
   expect(f.clubConfiguration).not.toHaveBeenCalled();
   expect(f.fulfil).not.toHaveBeenCalled();
 });
+/** Проверяет сохранение решений non-club capability и settlement за прежним fulfilment-портом. */
 it("leaves non-club capability/settlement decisions to the existing fulfilment port", async () => {
   const f = fixture(initial.replace("club-7-100", "shop-digital-1-100"));
   f.fulfil.mockResolvedValue(null);
@@ -140,12 +149,14 @@ it("leaves non-club capability/settlement decisions to the existing fulfilment p
   expect(f.fulfil).toHaveBeenCalledTimes(1);
   expect(f.fulfil.mock.calls[0][0]).toBe("shop-digital-1-100");
 });
+/** Проверяет NULL пустого email-hint без выдуманного получателя, сохраняя пустое поле исходного proof. */
 it("preserves an empty initial email as null rather than inventing a recipient", async () => {
   const f = fixture(initial.replace("Member@Example.test", ""));
   await processPayment(f.body, f.signature, "", f.ports);
   expect(f.fulfil.mock.calls[0][1].email).toBeNull();
   expect(f.fulfil.mock.calls[0][1].proof.email).toBe("");
 });
+/** Проверяет запрет dispatch при пустом выбранном merchant-ключе. */
 it("does not dispatch when the selected merchant key is empty", async () => {
   const f = fixture();
   f.clubConfiguration.mockReturnValue({
@@ -159,6 +170,7 @@ it("does not dispatch when the selected merchant key is empty", async () => {
   });
   expect(f.fulfil).not.toHaveBeenCalled();
 });
+/** Проверяет немедленное распространение ошибки конфигурации без чтения другого ключа и dispatch. */
 it("does not read another configuration or dispatch after configuration fails", async () => {
   const f = fixture();
   const failure = new Error("synthetic invalid merchant configuration");
@@ -171,6 +183,7 @@ it("does not read another configuration or dispatch after configuration fails", 
   expect(f.clubConfiguration).toHaveBeenCalledTimes(1);
   expect(f.fulfil).not.toHaveBeenCalled();
 });
+/** Удерживает durable fulfilment и проверяет отсутствие успешного acknowledgement до его завершения. */
 it("does not resolve the acknowledgement while durable fulfilment is pending", async () => {
   const f = fixture();
   let finish!: (value: "club") => void;

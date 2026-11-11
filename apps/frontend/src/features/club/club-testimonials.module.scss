@@ -16,6 +16,7 @@
     text-wrap: balance;
   }
 
+  /* Горизонтальная дорожка использует snap и внутренний край 20px, чтобы письмо останавливалось с тем же отступом. */
   .track {
     position: relative;
     display: flex;
@@ -29,6 +30,7 @@
     scrollbar-color: #b19a7b transparent;
   }
 
+  /* Письмо не сжимается; подпись прижата к низу карточки независимо от длины цитаты. */
   .letter {
     display: flex;
     flex-direction: column;
@@ -47,6 +49,7 @@
     user-select: none;
   }
 
+  /* Переносы исходного текста сохраняются, длинные слова не раздвигают ширину письма. */
   .quote {
     margin: 8px 0 24px;
     font: 16px/24px var(--font-body);
@@ -69,6 +72,7 @@
     font: 12px/17px var(--font-italic);
   }
 
+  /* Ссылка имеет мобильную область нажатия; hover применяется только вне режима touch-press. */
   .source {
     display: flex;
     flex-direction: row;
@@ -87,6 +91,7 @@
     }
   }
 
+  /* Номер позиции использует табличные цифры, чтобы смена слайда не двигала стрелки. */
   .navigation {
     display: flex;
     justify-content: space-between;
@@ -124,6 +129,7 @@
     }
   }
 
+  /* Клавиатурный фокус видим на дорожке, стрелках и источнике; выделение цитаты имеет отдельный читаемый контраст. */
   .track:focus-visible,
   .arrow:focus-visible,
   .source:focus-visible {
@@ -136,6 +142,7 @@
     color: var(--ink);
   }
 
+  /* На узком viewport уменьшаются поля и видимый хвост соседней карточки, сохраняя её читаемую ширину. */
   @media (max-width: 360px) {
     .letter {
       padding-inline: 18px;

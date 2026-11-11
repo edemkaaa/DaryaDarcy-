@@ -1,4 +1,4 @@
-// Считает видео в локальных данных экспорта; такой отчёт не подтверждает опубликованный каталог или запуск плееров.
+// Считает строки videos в выбранной БД и показывает пример старых youtubeId; такой отчёт не подтверждает опубликованный каталог или запуск плееров.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,6 +12,7 @@ for (const line of fs.readFileSync(path.join(root, ".env"), "utf8").split(/\r?\n
   env[line.slice(0, i).trim()] = line.slice(i + 1).trim();
 }
 
+// Счётчик и пример читаются из таблицы videos выбранной БД; это не проверка локального JSON или воспроизведения.
 const conn = await mysql.createConnection(env.DATABASE_URL.replace(/\r/g, "").trim());
 const [rows] = await conn.query("SELECT COUNT(*) AS n FROM videos");
 const [sample] = await conn.query("SELECT id, youtubeId, title FROM videos ORDER BY sortOrder ASC LIMIT 3");

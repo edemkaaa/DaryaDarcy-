@@ -21,6 +21,8 @@ export async function uploadAdminPrivateVideo(
   key: string,
   signal?: AbortSignal,
 ) {
+  // Передаёт бинарный File в закрытый маршрут с постоянным Idempotency-Key; статус, задержка и квитанция проверяются до принятия результата.
+
   signal?.throwIfAborted();
   validatePrivatePostVideo({ file, key });
   const base = getApiBaseUrl().replace(/\/$/, "");

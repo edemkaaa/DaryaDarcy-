@@ -14,6 +14,7 @@ export type TrpcContext = {
   user: User | null;
 };
 
+/** Привязывает контекст к конкретному SessionService; подтверждённый гость допустим, инфраструктурный отказ становится tRPC 503. */
 export const createContextFactory =
   (sessions: Pick<SessionService, "optionalUser">) =>
   async (opts: CreateExpressContextOptions): Promise<TrpcContext> => {

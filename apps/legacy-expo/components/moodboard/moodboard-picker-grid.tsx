@@ -1,3 +1,4 @@
+// Архив Expo. Определяет прозрачные наклейки по метке либо PNG URI.
 import { useMemo } from "react";
 import {
   View,
@@ -20,6 +21,8 @@ const H_PADDING = 16;
 const COL_W = (Math.min(SCREEN_W, 480) - H_PADDING * 2 - MOODBOARD_GRID_GAP) / 2;
 
 function isCutoutImage(img: MoodboardCatalogImage): boolean {
+  // Определяет прозрачные наклейки по метке либо PNG URI.
+
   if (img.cutout) return true;
   return /\.png(\?|$)/i.test(img.uri);
 }
@@ -37,7 +40,11 @@ export function MoodboardPickerGrid({
   onToggle,
   contentPaddingBottom = 120,
 }: Props) {
+  // Балансирует masonry-колонки по рассчитанной высоте, сохраняя выбор id во внешнем Set.
+
   const { leftCol, rightCol } = useMemo(() => {
+    // Распределяет изображения по более короткой колонке, учитывая aspect и вертикальный зазор.
+
     const left: MoodboardCatalogImage[] = [];
     const right: MoodboardCatalogImage[] = [];
     let leftH = 0;
@@ -56,6 +63,8 @@ export function MoodboardPickerGrid({
   }, [images]);
 
   const renderTile = (img: MoodboardCatalogImage) => {
+    // Рисует cover/contain плитку и выделяет выбранное фото рамкой.
+
     const h = COL_W / img.aspect;
     const picked = selected.has(img.id);
     const cutout = isCutoutImage(img);
@@ -104,6 +113,8 @@ export function MoodboardPickerFooter({
   onAdd: () => void;
   disabled?: boolean;
 }) {
+  // Показывает число выбранных файлов и блокирует добавление пустого набора.
+
   return (
     <View style={styles.footer}>
       <Text style={styles.counter}>Выбрано: {selectedCount}</Text>
@@ -122,6 +133,7 @@ export function MoodboardPickerFooter({
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   grid: {
     flexDirection: "row",

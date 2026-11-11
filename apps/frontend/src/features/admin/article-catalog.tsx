@@ -28,6 +28,8 @@ export function ArticleCatalog({
   onEdit,
   onDelete,
 }: ArticleCatalogProps) {
+  // Оставляет пагинацию и якорь списка у каталога, а права на изменение и открытие редактора получает от родителя.
+
   const { list, scrollRef, lastCardRef } = catalog;
   return (
     <ScrollArea

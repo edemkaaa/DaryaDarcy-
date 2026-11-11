@@ -1,12 +1,12 @@
 "use client";
 /** Обычный DOM-click объединяет мышь, касание и клавиатуру без отдельного протокола мобильных нажатий. */
-/** Standard DOM click handling works on desktop, touch browsers and keyboard. */
+/** Возвращаем нативный click handler без второго touch-события, чтобы одно действие не выполнялось дважды. */
 export function pressableProps<Args extends unknown[]>(
   onClick: (...args: Args) => void,
 ) {
   return { onClick };
 }
-/** Keep the editor selection before a toolbar action steals focus. */
+/** Pointerdown сохраняет выделение и не уводит фокус с текста, а сама команда запускается обычным click. */
 export function formatToolbarProps(
   onAction: () => void,
   beforeAction?: () => void,

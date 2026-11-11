@@ -34,6 +34,7 @@ export class CancellationUnavailableError extends Error {}
 
 export type CancellationActor = Pick<User, "id" | "openId" | "sessionVersion">;
 export class CancellationActorError extends Error {
+  /** Сохраняет только безопасный код отказа actor, не контакт или платёжные данные. */
   constructor(readonly code: "UNAUTHORIZED" | "FORBIDDEN") {
     super(code);
   }
@@ -90,6 +91,7 @@ export async function queueCancellationForUser(
       ),
     );
 }
+/** Не подтверждает весь оплаченный период, пока остаётся активный профиль или неоднозначная monthly-оплата. */
 async function markConfirmed(tx: Transaction, userId: number) {
   const profiles = await tx
     .select()
@@ -103,6 +105,7 @@ async function markConfirmed(tx: Transaction, userId: number) {
   await markPaidPeriodConfirmed(tx, userId);
 }
 
+/** Отмечает подтверждённую отмену только у paid-периодов этого пользователя, не сокращая expiresAt. */
 async function markPaidPeriodConfirmed(tx: Transaction, userId: number) {
   await tx
     .update(clubPayments)

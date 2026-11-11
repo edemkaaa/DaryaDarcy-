@@ -1,3 +1,4 @@
+/** Настоящий Drizzle генерирует SQL через mock wire; реальные unique constraints/locks проверяются отдельным MySQL suite. */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const transport = vi.hoisted(() => ({
@@ -14,6 +15,7 @@ vi.mock("mysql2/promise", () => ({
 // emitted identity-write contract; actual constraint/locking acceptance is
 // covered separately by user-upsert-identity.mysql.test.ts.
 let database: typeof import("../apps/backend/src/db");
+/** Создаём synthetic pool, записываем emitted SQL/params и управляем найденным owner/ошибкой update. */
 beforeEach(async () => {
   vi.resetModules();
   vi.stubEnv("DATABASE_URL", "mysql://fixture@127.0.0.1:33317/backend_test");
@@ -36,12 +38,15 @@ beforeEach(async () => {
     );
   database = await import("../apps/backend/src/db");
 });
+/** Снимаем env/console spies. */
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.restoreAllMocks();
 });
 
+/** Upsert не может обновить credentials другой identity при unique collision. */
 describe("identity-scoped user upsert SQL boundary", () => {
+  /** No-op duplicate insert не меняет openId; отсутствие locked owner вызывает rollback без UPDATE. */
   it("rejects another identity's unique-key collision without sending a credential update", async () => {
     transport.owner = null;
     await expect(
@@ -64,6 +69,7 @@ describe("identity-scoped user upsert SQL boundary", () => {
     expect(transport.statements.at(-1)?.sql).toBe("rollback");
   });
 
+  /** FOR UPDATE выбирает нужный openId, patch применяется только к его id с profileRevision+1. */
   it("updates only the locked account for the requested openId, retaining explicit nulls", async () => {
     const signedIn = new Date("2026-10-10T12:00:00Z");
     await database.upsertUser({
@@ -100,6 +106,7 @@ describe("identity-scoped user upsert SQL boundary", () => {
     expect(transport.statements.at(-1)?.sql).toBe("commit");
   });
 
+  /** Ошибка UPDATE откатывает транзакцию и не логирует SQL/email/password hash. */
   it("rolls back a credential update rejected by another unique constraint", async () => {
     transport.failure = new Error("PRIVATE_SQL_FAILURE");
     await expect(
@@ -115,6 +122,7 @@ describe("identity-scoped user upsert SQL boundary", () => {
     );
   });
 
+  /** Omitted поля не обнуляются; update без имени меняет только lastSignedIn. */
   it("creates an identity with defaults and refreshes login without resetting absent fields", async () => {
     await database.upsertUser({ openId: "new-identity" });
     const insert = transport.statements.find(({ sql }) =>
@@ -131,6 +139,7 @@ describe("identity-scoped user upsert SQL boundary", () => {
     expect(write.params.at(-1)).toBe(41);
   });
 
+  /** Ненастроенная БД сохраняет совместимый undefined без SQL. */
   it("keeps the absent-database contract without emitting a write", async () => {
     vi.stubEnv("DATABASE_URL", "");
     await expect(

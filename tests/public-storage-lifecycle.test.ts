@@ -1,13 +1,16 @@
+/** SDK S3/Forge обращаются только к owned loopback-серверу, который принимает body и удерживает ACK. */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { storagePut } from "../apps/backend/src/storage";
 
+/** Проверяем timeout/abort после передачи байтов: успешное чтение body ещё не подтверждает сохранение. */
 describe("public storage lifecycle on owned loopback transports", () => {
   let server: Server;
   let requests: number;
   let closed: boolean;
   let received: Promise<void>;
+  /** Создаём новый локальный transport и synthetic credentials; ни один рабочий bucket не используется. */
   beforeEach(async () => {
     requests = 0;
     closed = false;
@@ -35,11 +38,13 @@ describe("public storage lifecycle on owned loopback transports", () => {
     vi.stubEnv("BUILT_IN_FORGE_API_URL", endpoint);
     vi.stubEnv("BUILT_IN_FORGE_API_KEY", "synthetic-forge");
   });
+  /** Разрываем оставшиеся сокеты, закрываем сервер и снимаем env. */
   afterEach(async () => {
     server.closeAllConnections();
     await new Promise<void>((resolve) => server.close(() => resolve()));
     vi.unstubAllEnvs();
   });
+  /** Неизвестный исход PUT должен завершиться отказом и закрытым сокетом без автоматического повторного write. */
   it("bounds a stalled public PUT below the client deadline without an automatic second write", async () => {
     const outcome = storagePut("covers/stalled.webp", "bytes").then(
       () => "success",
@@ -57,6 +62,7 @@ describe("public storage lifecycle on owned loopback transports", () => {
     await vi.waitFor(() => expect(closed).toBe(true));
     expect(requests).toBe(1);
   }, 16000);
+  /** Abort владельца прерывает уже идущую S3/Forge отправку быстрее внешнего защитного timeout. */
   it.each(["s3", "forge"])(
     "cancels an in-flight %s upload when its request owner aborts",
     async (backend) => {

@@ -43,6 +43,7 @@ interface CropperImage {
   width: number;
   height: number;
 }
+/** Первичную анкету восстанавливаем из черновика текущего владельца; изменения сессии в фоне не перетирают ввод. */
 export function ProfileSetup({ onComplete }: ProfileSetupProps) {
   const { user } = useAuth();
   const update = useProfileUpdate(
@@ -62,6 +63,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
   const [cropperImage, setCropperImage] = useState<CropperImage | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const completed = useRef(false);
+  /** Один раз восстанавливаем исходный профиль и legacy-черновик; отмена отсекает отложенную инициализацию. */
   useEffect(() => {
     const user = initialUser.current;
     const ownerId = user?.id;
@@ -99,6 +101,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
     };
     // Background session reads must not reset typing in this owner-scoped form.
   }, []);
+  /** Сохраняем текущий ввод только после восстановления и пока анкета не завершена этим владельцем. */
   useEffect(() => {
     if (completed.current || !ready || !user || !isPersonalDataOwner(user.id))
       return;
@@ -111,6 +114,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
     update.unknown ||
     avatar.busy ||
     avatar.unknown;
+  /** При неизвестном результате показываем исходную отправленную нагрузку, чтобы повтор не подменял её новым вводом. */
   useEffect(() => {
     if (!update.unknown || !update.pendingInput) return;
     if (update.pendingInput.name) setName(update.pendingInput.name);
@@ -119,6 +123,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
   const error = [avatar.error, update.error, update.draftError, draftError]
     .filter(Boolean)
     .join(" ");
+  /** Помечаем завершение и удаляем только старые поля черновика после подтверждения профиля, затем проверяем владельца перед callback. */
   const complete = async () => {
     const ownerId = initialUser.current?.id;
     if (!ownerId || !isPersonalDataOwner(ownerId)) return;
@@ -129,6 +134,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
     ]);
     if (isPersonalDataOwner(ownerId)) onComplete();
   };
+  /** Выбираем ограниченный по размеру исходник для кадрирования; отмена не меняет текущий аватар. */
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -150,13 +156,16 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
       });
     }
   };
+  /** Сохраняем подготовленное локальное изображение и закрываем кадрирование; сеть выполняется при отправке анкеты. */
   const handleCropComplete = (croppedUri: string) => {
     setAvatarUri(croppedUri);
     setCropperImage(null);
   };
+  /** Закрываем кадрирование, сохраняя прежний выбранный аватар и текст анкеты. */
   const handleCropCancel = () => {
     setCropperImage(null);
   };
+  /** Блокируем повтор синхронным ref; сначала подтверждаем загрузку аватара, затем сохраняем имя и пол через общий механизм сверки. */
   const handleSubmit = async () => {
     if (
       !name.trim() ||

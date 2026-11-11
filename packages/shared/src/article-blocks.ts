@@ -12,10 +12,12 @@ export interface ArticleBlock {
 
 const BLOCK_TYPES = new Set(["heading", "text", "photo", "png", "link", "carousel"]);
 
+/** Принимаем строковое поле старого или нового блока, для произвольного JSON возвращая пустую строку. */
 function asString(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
+/** Из массива выбираем только непустые строковые ссылки без утверждения об их безопасности или сетевой доступности. */
 function asUrlList(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.filter((item): item is string => typeof item === "string" && Boolean(item.trim()));
@@ -38,6 +40,7 @@ export function articleIdFromSource(source?: string | null): number | null {
 }
 
 /** Приводим сохранённые блоки к допустимой структуре перед дальнейшей обработкой. */
+/** Приводим новые типизированные и старые heading/photos/body блоки к одному формату, объединяем уникальные карусели и пропускаем неизвестные поля; пустой допустимый массив получает текстовый блок. */
 export function normalizeArticleBlocks(value: unknown): ArticleBlock[] {
   if (!Array.isArray(value)) return [];
   const blocks: ArticleBlock[] = [];
@@ -99,6 +102,7 @@ export type ArticleInline =
   | { kind: "link"; text: string; url: string };
 
 /** Разбираем встроенное форматирование текстового блока статьи. */
+/** Выделяем поддерживаемые Markdown-ссылки и жирные фрагменты в токены без исполнения HTML; безопасность URL проверяется отдельной границей. */
 export function parseArticleInlines(text: string): ArticleInline[] {
   const parts: ArticleInline[] = [];
   const pattern = /(\[[^\]]+\]\([^)\s]+\)|\*\*[^*]+\*\*)/g;

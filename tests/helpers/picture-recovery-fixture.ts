@@ -2,11 +2,14 @@ import { build } from "esbuild";
 import { createServer } from "node:http";
 import { resolve } from "node:path";
 export async function startPictureRecoveryFixture() {
+  // Проверяет восстановление настоящего Picture после двух временных отказов превью и отсутствие лишнего polling у ленивых изображений.
+
   const requests: string[] = [];
   const bundle = await build({
     stdin: {
       resolveDir: process.cwd(),
       loader: "tsx",
+      // Строковая мини-страница сохраняется дословно: она считает lazy-poll и переключает источник, а не имитирует внутреннее состояние Picture.
       contents: `
 import React,{useState} from 'react';
 import{createRoot}from'react-dom/client';
@@ -31,6 +34,8 @@ async function report(){const r=await(await fetch('/state')).json();document.get
       {
         name: "catalog",
         setup(p) {
+          // Убирает несвязанный статический каталог из тестовой сборки, сохраняя реальный DOM-адаптер изображения.
+
           p.onResolve({ filter: /static-image-catalog$/ }, () => ({
             path: "catalog",
             namespace: "fixture",
@@ -68,6 +73,7 @@ async function report(){const r=await(await fetch('/state')).json();document.get
       return res.end(JSON.stringify({ requests }));
     }
     requests.push(req.url!);
+    // Первые два preview HTTP намеренно отказывают; последующие ответы проверяют восстановление и cache без настоящего storage.
     if (
       u.pathname === "/_next/image" &&
       requests.filter((x) => x.startsWith("/_next/image")).length <= 2
@@ -89,7 +95,7 @@ async function report(){const r=await(await fetch('/state')).json();document.get
     origin: `http://127.0.0.1:${address.port}`,
     requests,
     close: () =>
-      new Promise<void>((done) => {
+      /* Завершает локальные соединения и сервер после сценария восстановления. */ new Promise<void>((done) => {
         server.closeAllConnections();
         server.close(() => done());
       }),

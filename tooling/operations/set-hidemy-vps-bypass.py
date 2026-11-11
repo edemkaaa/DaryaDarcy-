@@ -24,6 +24,7 @@ ROUTES = [
 ]
 
 
+# Меняет только конкретный Windows-конфиг VPN после создания соседней резервной копии; маршруты телефона этим не исправляются.
 def main() -> None:
     if not CONFIG.exists():
         raise SystemExit(f"Config not found: {CONFIG}")

@@ -4,12 +4,15 @@
 # Do not apply to the current shared 2-vCPU/4-GB staging host.
 # CPU ceilings are not reserved cores; their sum may exceed the host capacity.
 services:
+# Предел API учитывает обработку больших тел; он применяется поверх полного runtime-профиля.
   api:
     mem_limit: 1536m
     cpus: 1.5
+# Предел Next включает оптимизацию изображений; ограничение concurrency задаётся отдельным image-overlay.
   web:
     mem_limit: 2048m
     cpus: 2.0
+# Это верхняя граница процесса MySQL, а не размер InnoDB buffer pool или измеренная ёмкость.
   mysql:
     mem_limit: 2048m
     cpus: 1.0

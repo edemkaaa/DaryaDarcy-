@@ -27,11 +27,14 @@ const endpoint = "https://s3.twcstorage.ru",
   Bucket = "daryadarcy-s3";
 const policyHash =
   "0484dfa2cc0164225db616bc516c53e8be377aca975d32701b6a6467ce1715e8";
+/** Вычисляет SHA-256 принятой bucket policy, которую сценарий вправе проверить, но не менять. */
 const hash = (value: string) =>
   createHash("sha256").update(value).digest("hex");
 type Mode = "full" | "quick";
+/** Находит текстовое поле настоящего редактора по пользовательскому placeholder. */
 const field = (form: Locator) =>
   form.getByPlaceholder("Текст поста… Enter — новый абзац");
+/** Выбирает кнопку сохранения полного редактора либо публикации быстрого в зависимости от режима и редактирования. */
 const submit = (form: Locator, mode: Mode, editing = false) =>
   form
     .getByRole("button", {
@@ -42,6 +45,7 @@ const submit = (form: Locator, mode: Mode, editing = false) =>
 
 // Explicit opt-in: real browser -> unchanged Next rewrite -> real API -> SQL/S3.
 // The only response interference is a transport drop/hold AFTER upstream completion.
+/** Опциональная приёмка проверяет оба настоящих редактора через Next, API, отдельную SQL-базу и новые объекты Timeweb S3. */
 describe.skipIf(!enabled)(
   "private attachments through both real editors, API and Timeweb S3",
   () => {
@@ -58,12 +62,16 @@ describe.skipIf(!enabled)(
     const objects = new Map<string, RowDataPacket>();
     const messages: string[] = [];
     const pageErrors: string[] = [];
+    /** Читает контрольные записи отдельной базы по тексту и имени собственной фикстуры. */
     const rows = async (sql: string, values: unknown[] = []) =>
       (await conn.query<RowDataPacket[]>(sql, values))[0];
+    /** Считает выполненные настоящим API PUT для проверки отсутствия дублирующих загрузок. */
     const puts = () =>
       api.commands.filter((name) => name === "PutObjectCommand").length;
+    /** Отбирает завершённые запросы конкретной admin-процедуры из fault-proxy. */
     const calls = (name: string) =>
       proxy.calls.filter((call) => call.pathname === `/api/trpc/admin.${name}`);
+    /** Устанавливает host-scoped HttpOnly-cookie выбранного синтетического администратора или участника. */
     async function identity(id = 98910) {
       await browser.context.addCookies([
         {
@@ -75,6 +83,7 @@ describe.skipIf(!enabled)(
         },
       ]);
     }
+    /** Открывает нужный настоящий редактор, дожидается проверки локального журнала и выводит ограниченную диагностику при отказе открытия. */
     async function open(mode: Mode, editing = false) {
       const response = await page.goto(
         `${browser.origin}${mode === "full" ? "/admin" : editing ? "/club" : "/feed"}`,
@@ -121,6 +130,7 @@ describe.skipIf(!enabled)(
         .toBe(0);
       return form;
     }
+    /** Выбирает синтетический аудиофайл или документ настоящим filechooser и ждёт появления вложения в форме. */
     async function choose(
       form: Locator,
       kind: "Аудио" | "Документ",
@@ -140,11 +150,13 @@ describe.skipIf(!enabled)(
         .poll(() => form.getByText(name, { exact: true }).isVisible())
         .toBe(true);
     }
+    /** Нажимает явную проверку сохранения после неопределённого результата операции. */
     async function recover(form: Locator) {
       await form
         .getByRole("button", { name: "Проверить сохранение", exact: true })
         .click();
     }
+    /** Перезагружает документ, открывает редактор и явно восстанавливает его локальный черновик. */
     async function reload(form: Locator, mode: Mode, editing = false) {
       await page.reload({ waitUntil: "domcontentloaded" });
       form = await open(mode, editing);
@@ -153,12 +165,14 @@ describe.skipIf(!enabled)(
         .click();
       return form;
     }
+    /** Читает файл через настоящий browser request с cookie и опциональным Range. */
     async function read(url: string, method = "GET", range?: string) {
       return browser.context.request.fetch(`${browser.origin}${url}`, {
         method,
         headers: range ? { range } : {},
       });
     }
+    /** Проверяет место, владение пустым tmpfs-контейнером, политику и отсутствие versioning до создания синтетических ролей и browser-стенда. */
     beforeAll(async () => {
       const disk = await statfs(tmpdir());
       if (disk.bavail * disk.bsize < 2 * 1024 ** 3)
@@ -248,6 +262,7 @@ describe.skipIf(!enabled)(
       );
       workers = await privateAttachmentProcesses();
       browser = await privateFilesBrowser("", {
+        /** Перед запуском фронта создаёт отдельный API-процесс и fault-proxy, возвращая его адрес для штатного Next rewrite. */
         beforeStart: async (origin) => {
           api = await workers.start({ appOrigin: origin });
           proxy = await httpResponseFaultProxy(api.base);
@@ -274,6 +289,7 @@ describe.skipIf(!enabled)(
         await dialog.accept();
       });
     }, 60000);
+    /** Возвращает срок собственной подписки и сессию администратора, очищая захваченные alert. */
     beforeEach(async () => {
       if (!conn) return;
       await conn.query(
@@ -283,6 +299,7 @@ describe.skipIf(!enabled)(
       await identity();
       messages.length = 0;
     });
+    /** Останавливает browser/API/proxy и удаляет только свои подтверждённые новые S3-объекты после проверки metadata и ETag. */
     afterAll(async () => {
       await browser?.close();
       await proxy?.close();
@@ -351,6 +368,7 @@ describe.skipIf(!enabled)(
     }, 60000);
 
     for (const mode of ["full", "quick"] as const) {
+      /** Для обоих редакторов теряет upload и create-ответы после upstream-коммита, восстанавливает журнал и проверяет точные байты, доступ и отсутствие дублей. */
       it(`${mode}: lost upload and create replies, reload, real bytes/read denial and no duplicate rows/PUT`, async () => {
         const beforePuts = puts(),
           beforeCreates = calls("createPost").length;
@@ -447,6 +465,7 @@ describe.skipIf(!enabled)(
         await direct.body?.cancel();
       }, 90000);
 
+      /** Для обоих редакторов проверяет сохранение прежних вложений и отсутствие повторной привязки после потери update-ответа. */
       it(`${mode}: editing retains existing files; lost update reply cannot bind twice`, async () => {
         const id = posts.get(mode)!;
         expect(id).toBeTypeOf("number");
@@ -507,6 +526,7 @@ describe.skipIf(!enabled)(
       }, 60000);
 
       for (const stage of ["upload", "status"] as const) {
+        /** Меняет аккаунт во время удержанного upload/status-ответа и проверяет изоляцию ключей и восстановление только прежним владельцем. */
         it(`${mode}: account switch during ${stage} ignores late real receipt and cannot expose the owner's intent`, async () => {
           const name = `${prefix}-${mode}-${stage}.txt`,
             text = `${prefix}-${mode}-${stage}`;

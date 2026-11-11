@@ -10,6 +10,7 @@ for line in (root / ".env").read_text(encoding="utf-8").splitlines():
         k, v = line.split("=", 1)
         env[k.strip()] = v.strip()
 
+# Историческое подключение принимает неизвестный host key автоматически; доверие серверу нужно проверять отдельно.
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 sock = socket.create_connection((env["DEPLOY_HOST"], 22), 45)
@@ -33,6 +34,7 @@ grep -iE '\[email\]|shop purchase|deliverShop' /root/.pm2/logs/daryadarcy-api-ou
 echo '=== nodemailer ==='
 cd /var/www/daryadarcy && node -e "import('nodemailer').then(()=>console.log('nodemailer ok')).catch(e=>console.error('fail', e.message))"
 """
+# Выполняется сохранённый диагностический shell на удалённой машине; маскирование вывода не гарантирует отсутствие всех секретов.
 stdin, stdout, stderr = client.exec_command(cmd, timeout=60000)
 out = stdout.read().decode("utf-8", errors="replace")
 err = stderr.read().decode("utf-8", errors="replace")

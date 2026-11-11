@@ -4,6 +4,8 @@ import { open } from "node:fs/promises";
 import { pipeline } from "node:stream/promises";
 
 function byteRange(header, size) {
+  // Разбирает один диапазон с suffix и открытым концом, отклоняя небезопасные числа и multipart вместо догадок.
+
   if (!header) return { start: 0, end: size - 1, partial: false };
   const match = /^bytes=(\d*)-(\d*)$/.exec(header);
   if (!match || (!match[1] && !match[2])) return null;
@@ -17,6 +19,8 @@ function byteRange(header, size) {
 }
 
 function error(response, status) {
+  // Возвращает единое публичное сообщение при разных внутренних отказах, сохраняя HTTP-статус причины.
+
   response.writeHead(status, { "Content-Type": "application/json" });
   response.end(JSON.stringify({ error: "video unavailable" }));
 }
@@ -30,6 +34,8 @@ export function createVideoServer({
   maxRequests = 16,
   requestDeadlineMs = 170_000,
 }) {
+  // Проверяет метод, ID, лимит работы и актуальную публикацию до выдачи; файловая аренда освобождается при любом исходе запроса.
+
   let active = 0;
   const server = createServer(async (request, response) => {
     response.setHeader("X-Content-Type-Options", "nosniff");
@@ -57,7 +63,7 @@ export function createVideoServer({
     active++;
     const id = match[1];
     const controller = new AbortController();
-    const onClose = () => controller.abort();
+    const onClose = () => /* Отключение зрителя отменяет только его запрос; общий cache решает, остались ли другие потребители. */ controller.abort();
     response.once("close", onClose);
     const deadline = setTimeout(() => {
       controller.abort();
@@ -67,7 +73,7 @@ export function createVideoServer({
     let lease;
     let file;
     try {
-      const published = async () => readPublication
+      const published = async () => /* Сохраняет отказ закрытым и неизвестным источникам как в точечном, так и в совместимом пакетном контракте. */ readPublication
         ? (await readPublication(id, controller.signal)) === true
         :
         (await readCatalog(controller.signal)).some(

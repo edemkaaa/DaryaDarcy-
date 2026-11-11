@@ -22,6 +22,7 @@ type TraceWindow = typeof window & {
   blockQuizResultWrites: boolean;
 };
 
+/** Разделяем гостевые и пользовательские ключи, переключаем Web Locks/IndexedDB и наблюдаем порядок storage-записей, не заменяя алгоритм завершения теста. */
 async function fixture(
   page: Page,
   owner: "guest" | "member",
@@ -64,6 +65,7 @@ async function fixture(
       trace.blockQuizResultWrites = false;
       const set = Storage.prototype.setItem;
       const remove = Storage.prototype.removeItem;
+      /** Фиксируем только quiz-result/progress текущего владельца; управляемый отказ результата происходит до native-записи. */
       Storage.prototype.setItem = function (key, value) {
         if (this === localStorage && key === keys.result) {
           trace.quizResultWriteAttempts++;
@@ -80,6 +82,7 @@ async function fixture(
         )
           trace.quizStorageOperations.push({ kind: "set", key, value });
       };
+      /** Записываем удаление progress после успешного native-remove, чтобы сравнить фактический порядок операций. */
       Storage.prototype.removeItem = function (key) {
         remove.call(this, key);
         if (
@@ -95,6 +98,7 @@ async function fixture(
   return keys;
 }
 
+/** Готовим последний вопрос через существующий сериализатор, сохраняя различие legacy и versioned run. */
 async function lastQuestion(page: Page, key: string, legacy = false) {
   const raw = serializeQuizProgress(
     {
@@ -116,6 +120,7 @@ async function lastQuestion(page: Page, key: string, legacy = false) {
   return raw;
 }
 
+/** Дожидаемся результата и двух animation-frame, прежде чем проверять отсутствие лишнего writer из passive effects. */
 async function resultVisible(page: Page) {
   await expect(
     page.getByText(title, { exact: true }).filter({ visible: true }),
@@ -129,11 +134,14 @@ async function resultVisible(page: Page) {
   );
 }
 
+/** Читаем журнал успешных storage-операций текущей страницы. */
 const operations = (page: Page) =>
   page.evaluate(() => (window as TraceWindow).quizStorageOperations);
+/** Сравниваем сохранённое значение побайтно, не принимая повторную эквивалентную запись за отсутствие записи. */
 const rawResult = (page: Page, key: string) =>
   page.evaluate((key) => localStorage.getItem(key), key);
 
+/** В двух схемах блокировки и для гостя/участницы двойная активация завершает run один раз: сначала result, затем удаление progress. */
 for (const owner of ["guest", "member"] as const) {
   for (const fallback of [false, true]) {
     test(`${owner}: stores exactly once before removing progress (${fallback ? "IndexedDB" : "Web Locks"})`, async ({
@@ -192,6 +200,7 @@ for (const owner of ["guest", "member"] as const) {
   }
 }
 
+/** Legacy-завершение не выдумывает отсутствующий runId и не добавляет второго writer. */
 test("legacy progress completes without inventing run metadata or duplicating the write", async ({
   page,
 }) => {
@@ -215,6 +224,7 @@ test("legacy progress completes without inventing run metadata or duplicating th
   ).toHaveLength(1);
 });
 
+/** При отказе обязательной записи сохраняются прежний result и ответы; новый вычисленный результат остаётся в памяти с предупреждением. */
 test("a failed required write retains the old result and recoverable answers without a second writer", async ({
   page,
 }) => {
@@ -255,6 +265,7 @@ test("a failed required write retains the old result and recoverable answers wit
   expect(await operations(page)).toEqual([]);
 });
 
+/** Проходим десять реальных вопросов, затем проверяем новый runId и пустые ответы после явного повторного старта. */
 test("a complete guest journey saves once and restarting creates a new run", async ({
   page,
 }) => {

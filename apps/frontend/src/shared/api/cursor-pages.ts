@@ -1,7 +1,7 @@
 /** Чистые операции над страницами сохраняют навигационные курсоры без удержания всех ранее просмотренных карточек. */
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 
-/** A changed list contract starts from the head without clearing personal data. */
+/** Добавляем владельца и версию контракта к исходному queryKey, чтобы несовместимые страницы не разделили кеш. */
 export function cursorQueryKey(
   key: QueryKey,
   scope: string,
@@ -10,6 +10,7 @@ export function cursorQueryKey(
   return [...key, { ownerScope: scope, ...(version ? { version } : {}) }];
 }
 
+/** Откладываем проверку до microtask: соседний observer может подписаться в том же проходе React и ещё нуждаться в запросе. */
 export function cancelInactiveCursorQuery(client: QueryClient, key: QueryKey) {
   queueMicrotask(() => {
     const query = client.getQueryCache().find({ queryKey: key, exact: true });
@@ -26,12 +27,14 @@ export type CursorChain<P extends CursorPage> = {
   previousCursors?: (string | null)[];
 };
 export class CursorChainError extends Error {
+  /** Отдельный вид ошибки позволяет UI выбрать перечитывание цепочки вместо повторной отправки зацикленного курсора. */
   constructor() {
     super("Курсор списка повторился. Обновите список.");
   }
 }
 
 // Следующая страница обязана продвигать цепочку; повтор токена иначе привёл бы к бесконечной догрузке.
+/** Присоединяем страницу только при новом токене; повтор любого удержанного или возвратного курсора считается нарушением цепочки. */
 export function appendCursorPage<P extends CursorPage>(
   previous: CursorChain<P>,
   cursor: string,
@@ -59,12 +62,14 @@ export function appendCursorPage<P extends CursorPage>(
 
 export const POST_PAGE_WINDOW = { maxPages: 8, pageSize: 12 };
 export const CURSOR_PAGE_LIMIT = 8;
+/** Для сравнения головы достаточно порядка ID и nextCursor: полные тексты отброшенных карточек удерживать не нужно. */
 const boundary = (page: CursorPage): CursorPage => ({
   nextCursor: page.nextCursor,
   items: page.items.map(({ id }) => ({ id })),
 });
 
 // Сбрасываем далёкие карточки, оставляя лёгкие токены возврата и границу головы для будущего обновления.
+/** Оставляем окно нужного направления и лёгкую историю курсоров; начало окна определяет, какую сторону карточек освобождаем. */
 export function boundCursorChain<P extends CursorPage>(
   chain: CursorChain<P>,
   maxPages: number,
@@ -93,8 +98,7 @@ export function boundCursorChain<P extends CursorPage>(
   };
 }
 
-/** Opaque cursors cannot be derived or reversed. Keep navigation tokens only;
- * discarded cards are read again, never retained in a second page cache. */
+/** Возвращаем ранее отброшенную страницу по сохранённому непрозрачному токену и требуем совпадения её границы с текущей головой окна. Данные отброшенных карточек не остаются во втором кэше страниц. */
 export function prependCursorPage<P extends CursorPage>(
   chain: CursorChain<P>,
   page: P,
@@ -114,13 +118,13 @@ export function prependCursorPage<P extends CursorPage>(
   };
 }
 
+/** Порядок ID важен наравне с курсором: перестановка или исчезновение карточки требует пересборки соответствующего окна. */
 const sameBoundary = (a: CursorPage | undefined, b: CursorPage) =>
   a?.nextCursor === b.nextCursor &&
   a.items.length === b.items.length &&
   a.items.every((item, index) => item.id === b.items[index].id);
 
-/** Commit a refresh atomically. Offset shifts require rebuilding the retained
- * window; otherwise only the head and visible pages need network reads. */
+/** Читаем свежую голову и выбранные видимые страницы; смена границы запускает согласованную пересборку удержанного окна до commit. */
 export async function refreshCursorChain<P extends CursorPage>(
   previous: CursorChain<P> | undefined,
   fetchPage: (cursor: string | null) => Promise<P>,
@@ -128,6 +132,7 @@ export async function refreshCursorChain<P extends CursorPage>(
   mode: "background" | "all" | "restart",
 ): Promise<CursorChain<P>> {
   const fresh = new Map<string | null, P>();
+  /** В одном обновлении каждый курсор читается один раз, чтобы все сравнения использовали один ответ, а цикл курсоров завершался ошибкой. */
   const read = async (cursor: string | null) => {
     const cached = fresh.get(cursor);
     if (cached) return cached;

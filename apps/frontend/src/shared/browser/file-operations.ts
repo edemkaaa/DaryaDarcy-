@@ -11,6 +11,7 @@ export type FileSelectionOptions = {
   maxFiles?: number;
 };
 
+/** Проверяем ненулевой размер и предел байтов до чтения; MIME и структура содержимого относятся к следующему валидатору. */
 export function validateFileSize(
   blob: Blob,
   maxBytes = MAX_ATTACHMENT_BYTES,
@@ -20,15 +21,17 @@ export function validateFileSize(
     throw new Error(`Файл больше ${Math.round(maxBytes / 1024 / 1024)} МБ.`);
 }
 
-/** Bound retained bytes even when Content-Length is absent or incorrect. */
+/** Удерживаем не больше разрешённого тела даже без честного Content-Length; при завершении освобождаем reader и снимаем abort listener. */
 export async function readResponseBlob(
   response: Response,
   maxBytes: number,
   signal?: AbortSignal,
 ): Promise<Blob> {
+  /** Сообщение о превышении относится к переданному пределу этого чтения, а не к одному общему лимиту всех вложений. */
   const tooLarge = () =>
     new Error(`Файл больше ${Math.round(maxBytes / 1024 / 1024)} МБ.`);
   const reader = response.body?.getReader();
+  /** Отмена закрывает поток; возможная ошибка cancel не должна заслонить исходную причину отказа чтения. */
   const cancel = () => {
     void reader?.cancel().catch(() => {});
   };
@@ -61,7 +64,7 @@ export async function readResponseBlob(
   }
 }
 
-/** Check every selected file before decoding or reading any of them. */
+/** Проверяем количество и размер всего выбора до начала декодирования хотя бы первого файла, чтобы частичный набор не стал готовым выбором. */
 export function validateFileSelection(
   files: File[],
   options: FileSelectionOptions = {},
@@ -73,6 +76,7 @@ export function validateFileSelection(
   for (const file of files) validateFileSize(file, options.maxBytes);
 }
 
+/** Создаём одноразовый нативный input с конечным владельцем; change, cancel и abort завершают Promise только один раз и удаляют DOM. */
 export function chooseFiles(
   accept: string,
   multiple = false,
@@ -87,12 +91,14 @@ export function chooseFiles(
     input.multiple = multiple;
     input.hidden = true;
     let settled = false;
+    /** Однократно убираем input и все ссылки на его callbacks, прежде чем завершать Promise выбора. */
     const cleanup = () => {
       input.onchange = null;
       input.oncancel = null;
       options.signal?.removeEventListener("abort", cancel);
       input.remove();
     };
+    /** Внешняя отмена отвергает незавершённый выбор; settled не допускает гонку с поздним native change. */
     const cancel = () => {
       if (settled) return;
       settled = true;
@@ -102,6 +108,7 @@ export function chooseFiles(
           new DOMException("Выбор отменён", "AbortError"),
       );
     };
+    /** Сначала закрываем picker и подписки, затем валидируем полный набор; отменённый пользователем выбор даёт пустой массив. */
     const finish = (files: File[]) => {
       if (settled) return;
       settled = true;
@@ -127,6 +134,7 @@ export function chooseFiles(
   });
 }
 
+/** Связываем FileReader с внешней отменой и очищаем обработчики на каждом исходе; результат должен быть строковым data URL. */
 export function readFileDataUrl(
   blob: Blob,
   signal?: AbortSignal,
@@ -134,10 +142,12 @@ export function readFileDataUrl(
   signal?.throwIfAborted();
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
+    /** Отвязываем сигнал и FileReader-события на любом исходе чтения, не удерживая Blob через callbacks. */
     const cleanup = () => {
       signal?.removeEventListener("abort", cancel);
       reader.onload = reader.onerror = reader.onabort = null;
     };
+    /** Сначала снимаем callbacks, затем abort: нативный onabort не должен породить второе завершение. */
     const cancel = () => {
       cleanup();
       reader.abort();

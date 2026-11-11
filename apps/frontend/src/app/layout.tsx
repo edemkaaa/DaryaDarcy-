@@ -25,6 +25,7 @@ export const viewport: Viewport = {
   interactiveWidget: "resizes-content",
   themeColor: "#FDF8F0",
 };
+/** Дожидаемся request-time рендера ради nonce, затем отдаём общий документ; интерактивные провайдеры подключают вложенные layout. */
 export default async function RootLayout({
   children,
 }: {

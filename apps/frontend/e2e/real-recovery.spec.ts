@@ -24,9 +24,11 @@ const sessions = new Map<
   number,
   Awaited<ReturnType<BrowserContext["cookies"]>>
 >();
+/** Читаем SQL-эффекты только соединением одноразовой fixture, проверенной в beforeAll. */
 const query = async (sql: string, values: unknown[] = []) =>
   (await connection.query<RowDataPacket[]>(sql, values))[0];
 
+/** Запуск разрешён лишь из принадлежащего тестовому runner каталога и для loopback backend_test; production-адрес отклоняется до соединения. */
 test.beforeAll(async () => {
   if (!file || !basename(dirname(file)).startsWith("darcy-editor-acceptance-"))
     throw new Error("Owned fixture required");
@@ -47,6 +49,7 @@ test.beforeAll(async () => {
     timezone: "Z",
   });
 });
+/** Очищаем только таблицы disposable-fixture и возвращаем исходные payment/video данные перед каждым сценарием. */
 test.beforeEach(async ({ context }) => {
   for (const table of [
     "admin_action_operations",
@@ -66,13 +69,16 @@ test.beforeEach(async ({ context }) => {
   );
   await prepare(context);
 });
+/** Закрываем дополнительные browser-context после сценария, чтобы сессии не утекали в следующий. */
 test.afterEach(async () => {
   for (const context of contexts.splice(0)) await context.close();
 });
+/** Завершаем SQL-соединение после всей opt-in suite. */
 test.afterAll(async () => {
   await connection?.end();
 });
 
+/** Разрешаем browser-запросы только к loopback API fixture, задаём Origin и тестовую отметку профиля; внешние provider/SMTP не задействуются. */
 async function prepare(context: BrowserContext) {
   // Requests remain inside the test API's configured loopback origin.
   await context.setExtraHTTPHeaders({ Origin: publicOrigin });
@@ -92,6 +98,7 @@ async function prepare(context: BrowserContext) {
   );
   context.on("page", (page) => page.on("dialog", (dialog) => dialog.accept()));
 }
+/** Переиспользуем cookie уже созданной локальной сессии либо получаем её реальным login, не меняя пользовательские данные. */
 async function login(context: BrowserContext, id = 501) {
   const cached = sessions.get(id);
   if (cached) {
@@ -108,6 +115,7 @@ async function login(context: BrowserContext, id = 501) {
   expect(result.status()).toBe(200);
   sessions.set(id, await context.cookies());
 }
+/** Создаём изолированную сессию второго тестового администратора и регистрируем context для cleanup. */
 async function other(page: Page, id = 502) {
   const context = await page
     .context()
@@ -118,8 +126,10 @@ async function other(page: Page, id = 502) {
   await login(context, id);
   return context.newPage();
 }
+/** Читаем durable admin-intent, чтобы сравнить owner и ключ до/после реального ACK-loss. */
 const saved = (page: Page, key: string) =>
   page.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? "null"), key);
+/** Открываем заранее созданную fixture-участницу, не создавая произвольные аккаунты. */
 async function members(page: Page) {
   await page.goto("/admin");
   await page.getByRole("button", { name: "Участницы", exact: true }).click();
@@ -127,6 +137,7 @@ async function members(page: Page) {
     page.getByText("Real recovery member", { exact: true }),
   ).toBeVisible();
 }
+/** Отделяем ручное продление от enqueue-письма той же тестовой участнице. */
 const memberAction = (page: Page, kind: string) =>
   page
     .getByText("Real recovery member", { exact: true })
@@ -135,17 +146,21 @@ const memberAction = (page: Page, kind: string) =>
       name: kind === "grantClub" ? "Продлить клуб" : "Повторить письмо",
       exact: true,
     });
+/** Инициируем выбранное действие реальной кнопкой с подтверждением, подготовленным context. */
 const start = (page: Page, kind: string) => memberAction(page, kind).click();
+/** Ручная инспекция не является повторной мутацией. */
 const status = (page: Page) =>
   page.getByRole("button", {
     name: "Проверить результат действия",
     exact: true,
   });
+/** Явный replay использует прежний durable-key после сверки результата. */
 const replay = (page: Page) =>
   page.getByRole("button", {
     name: "Повторить исходное действие",
     exact: true,
   });
+/** Проверяем число реальных payment/outbox-эффектов; enqueue не запускает почтовый worker. */
 async function effects(kind: string) {
   return query(
     kind === "grantClub"
@@ -154,6 +169,7 @@ async function effects(kind: string) {
   );
 }
 
+/** Реальные Nest/SQL результаты теряются только после commit: проверяем reload, not-recorded replay, координацию вкладок и смену admin. */
 for (const kind of ["grantClub", "resendAccessEmail"]) {
   const endpoint =
     kind === "grantClub"
@@ -287,15 +303,19 @@ for (const kind of ["grantClub", "resendAccessEmail"]) {
   });
 }
 
+/** Адресуем заголовок реального VK-admin редактора. */
 const title = (page: Page) =>
   page.getByRole("textbox", { name: "Название видео VK", exact: true });
+/** Запись видео использует проверенную expectedRevision из формы. */
 const saveVideo = (page: Page) =>
   page.getByRole("button", { name: "Сохранить видео", exact: true });
+/** Сверка VK читает актуальную версию без объявления совпадения доказательством именно этого write. */
 const checkVideo = (page: Page) =>
   page.getByRole("button", {
     name: "Проверить актуальную версию",
     exact: true,
   });
+/** Открываем VK-раздел и при необходимости читаем fixture-id18; load=false оставляет восстановленный draft. */
 async function video(page: Page, load = true) {
   await page.goto("/admin");
   await page.getByRole("button", { name: "Видео", exact: true }).click();
@@ -312,6 +332,7 @@ async function video(page: Page, load = true) {
   }
   await expect(title(page)).toBeVisible();
 }
+/** Два реальных admin-context конкурируют за ревизию; SQL подтверждает победителя и последующий manual rebase. */
 test("VK: real concurrent revisions preserve the losing draft through reload and manual reconciliation", async ({
   page,
   context,
@@ -350,6 +371,7 @@ test("VK: real concurrent revisions preserve the losing draft through reload and
     await query("SELECT title,editRevision FROM videos WHERE id=18"),
   ).toMatchObject([{ title: "Second draft", editRevision: 2 }]);
 });
+/** Потерянный ACK после SQL commit сохраняет base0 отдельно от review1 даже при совпадении title. */
 test("VK: a lost committed ACK retains the original revision; matching SQL detail is not claimed as success", async ({
   page,
   context,
@@ -381,6 +403,7 @@ test("VK: a lost committed ACK retains the original revision; matching SQL detai
   expect(draft.base.editRevision).toBe(0);
   expect(draft.review.editRevision).toBe(1);
 });
+/** Сессия второго admin не принимает draft первого и не увеличивает серверную ревизию. */
 test("VK: switching administrator does not apply a previous draft", async ({
   page,
   context,

@@ -1,3 +1,4 @@
+/** Исторический streaming-handler проверяется в собранных дочерних loopback процессах; реальный YouTube/extractor заменён fixture. */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { build } from "esbuild";
 import { mkdtempSync, rmSync, rmdirSync } from "node:fs";
@@ -6,8 +7,10 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
 const run = promisify(execFile);
+/** Встроенный child payload создаёт upstream и API, инъекция esbuild подменяет только каталог/извлечение адреса; строки child-кода сохранены дословно. */
 describe("legacy API video streaming on isolated loopback processes", () => {
   let directory: string;
+  /** Собираем временный ESM probe и локальные подмены импортов, не запуская yt-dlp или сеть. */
   beforeAll(async () => {
     directory = mkdtempSync(resolve("node_modules/.cache-yt-stream-"));
     await build({
@@ -53,6 +56,7 @@ describe("legacy API video streaming on isolated loopback processes", () => {
       plugins: [
         {
           name: "synthetic-catalog-and-extractor",
+          /** Esbuild-plugin направляет db и child_process именно streaming-модуля в синтетические catalog/extractor exports. */
           setup(builder) {
             builder.onResolve({ filter: /^\.\/db$/ }, (args) =>
               args.importer.endsWith("youtube-stream.ts")
@@ -74,12 +78,14 @@ describe("legacy API video streaming on isolated loopback processes", () => {
       ],
     });
   });
+  /** Удаляем только созданный bundle и его отдельную папку. */
   afterAll(() => {
     if (directory) {
       rmSync(join(directory, "child.mjs"));
       rmdirSync(directory);
     }
   });
+  /** После обрыва источника или клиента процесс остаётся жив и закрывает upstream socket. */
   it.each(["broken", "disconnect"])(
     "survives %s and releases the upstream connection",
     async (mode) => {

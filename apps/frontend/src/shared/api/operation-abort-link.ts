@@ -4,11 +4,12 @@ import { observable } from "@trpc/server/observable";
 import type { AppRouter } from "./contract";
 import { ApiError } from "./errors";
 
-/** A batch's fetch lives until all operations abort; each result still belongs to its own signal. */
+/** Каждый observer прекращается по своему signal, даже если общий batch-fetch ещё нужен другим операциям; unsubscribe снимает подписку. */
 export const operationAbortLink: TRPCLink<AppRouter> =
   () =>
   ({ op, next }) =>
     observable((observer) => {
+      /** Создаём узнаваемую отмену без HTTP-отказа, чтобы интерфейс не счёл её доказательством отсутствия серверной записи. */
       const error = () =>
         new TRPCClientError<AppRouter>("Запрос отменён.", {
           cause: new ApiError(
@@ -24,6 +25,7 @@ export const operationAbortLink: TRPCLink<AppRouter> =
         return;
       }
       const subscription = next(op).subscribe(observer);
+      /** Прекращаем только свою доставку результата и подписку; общий HTTP-batch управляет сроком остальных операций самостоятельно. */
       const abort = () => {
         observer.error(error());
         subscription.unsubscribe();

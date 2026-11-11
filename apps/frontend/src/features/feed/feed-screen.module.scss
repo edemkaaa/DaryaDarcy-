@@ -3,6 +3,7 @@
 @use "../../shared/styles/search";
 
 @layer components {
+  /* Высота шапки выводится из её пропорции заранее; overflow прячет края изображения. */
   .bannerContainer {
     width: 100%;
     aspect-ratio: 5.595628415300546;
@@ -16,6 +17,7 @@
     height: 100%;
   }
 
+  /* Поиск и переключатели используют общий размер/зазор через переменные, mixin сохраняет одинаковую геометрию полей. */
   .searchRow {
     --search-control-size: 36px;
     --search-control-gap: 10px;
@@ -71,6 +73,7 @@
     align-items: center;
   }
 
+  /* Лента фильтров имеет собственный горизонтальный контент и не растягивает вертикальный список. */
   .chipScrollContent {
     padding-left: 16px;
     padding-right: 16px;
@@ -118,6 +121,7 @@
     font-family: var(--font-italic);
   }
 
+  /* Пустое/ошибочное состояние занимает минимум высоту viewport, а технический aria-hidden spacer не создаёт зазор. */
   .requestList {
     flex: 1 0 auto;
     min-height: 100%;
@@ -131,6 +135,7 @@
     padding: clamp(8px, 3dvh, 24px) 24px;
   }
 
+  /* Последняя запись может прокрутиться выше меню и плавающих кнопок; первый пост не дублирует верхний отступ. */
   .listContent {
     padding-bottom: max(
       100px,
@@ -152,10 +157,12 @@
     color: #7a6b5e;
   }
 
+  /* Сеточный режим использует тонкие одинаковые разделители вместо полей полноразмерных карточек. */
   .gridRow {
     gap: 1px;
     margin-bottom: 1px;
   }
+  /* Условные классы различают выбранные фильтры и режим вида; порядок выдачи постов стилями не меняется. */
   .opacityState {
     opacity: 0.5;
     --action-base-opacity: 0.5;

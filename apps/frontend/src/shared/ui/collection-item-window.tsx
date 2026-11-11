@@ -21,16 +21,18 @@ const ItemWindow = createContext<{
 
 /** Keep intentional local state and ongoing work alive when its row leaves view. */
 // Незавершённый ввод или медиасессия удерживают карточку, даже когда окно коллекции уходит дальше по списку.
+/** Выдаём явный токен удержания карточки на время ввода или операции; очистка освобождает только этот токен. */
 export function useCollectionItemRetention(retained: boolean) {
   const window = useContext(ItemWindow);
   const retain = window?.retain;
   useEffect(() => {
     if (retained) return retain?.();
+    // Токен снимается при завершении работы или размонтировании вызывающего компонента.
   }, [retained, retain]);
   return window?.nearby ?? true;
 }
 
-/** Reserve a previously measured section while its evicted data reloads. */
+/** Запоминаем высоту завершённого блока и резервируем её при повторном чтении вытесненных данных. */
 export function useCollectionItemPlaceholder(key: string, pending: boolean) {
   const cache = useContext(ItemWindow)?.measurements;
   const ref = useRef<HTMLDivElement>(null);
@@ -38,6 +40,7 @@ export function useCollectionItemPlaceholder(key: string, pending: boolean) {
   useLayoutEffect(() => {
     if (!cache || !ref.current || pending) return;
     const element = ref.current;
+    /** Сохраняем фактическую высоту блока в локальном кеше карточки; ResizeObserver отключается при смене ключа или ожидания. */
     const measure = () =>
       cache.set(key, element.getBoundingClientRect().height);
     measure();
@@ -48,7 +51,7 @@ export function useCollectionItemPlaceholder(key: string, pending: boolean) {
   return { ref, style: { minHeight: pending ? height : undefined } };
 }
 
-/** Measured spacers preserve geometry; only nearby or interacting rows stay mounted. */
+/** Оставляем далёкую строку измеренным spacer, но сохраняем React-состояние при фокусе, удержании или начатом воспроизведении. */
 export function CollectionItemWindow({
   root,
   anchorLocked,
@@ -82,6 +85,7 @@ export function CollectionItemWindow({
   const [mediaActive, setMediaActive] = useState(false);
   const [retained, setRetained] = useState(false);
   const tokens = useRef(new Set<symbol>());
+  /** Каждый потребитель получает отдельный Symbol; карточку можно освободить только после снятия всех удержаний. */
   const [retain] = useState(() => () => {
     const token = Symbol();
     tokens.current.add(token);
@@ -98,10 +102,12 @@ export function CollectionItemWindow({
   const keepState = focused || retained || mediaActive;
   useLayoutEffect(() => {
     if (itemKey !== undefined) onRetentionChange?.(itemKey, keepState);
+    // Сообщаем родительскому окну, какие данные нельзя вытеснить; cleanup снимает прежний ключ при смене карточки.
     return () => {
       if (itemKey !== undefined) onRetentionChange?.(itemKey, false);
     };
   }, [itemKey, onRetentionChange, keepState]);
+  /** После pause/ended проверяем все плееры: пауза с ненулевой позицией тоже удерживает состояние воспроизведения. */
   const updateMediaRetention = () => {
     setMediaActive(
       [...(node.current?.querySelectorAll("video, audio") ?? [])].some(
@@ -121,6 +127,7 @@ export function CollectionItemWindow({
   }, [focused, retained, mediaActive, mounted, measurement]);
   useEffect(() => {
     if (!focused) return;
+    /** Сверяем настоящий activeElement, потому что удаление кнопки из DOM может не породить blur. */
     const checkFocus = () => {
       if (!node.current?.contains(document.activeElement)) setFocused(false);
     };
@@ -133,6 +140,8 @@ export function CollectionItemWindow({
     const container =
       root.current ?? element?.closest<HTMLDivElement>(".ui-scroll");
     if (!element || !container || !mounted) return;
+    // Измеряем смонтированную строку; изменение высоты над viewport компенсируем только вне заблокированной фазы якоря.
+    /** Игнорируем нулевые размеры скрытой вкладки и обновляем spacer только по реальному layout текущей эпохи. */
     const measure = () => {
       const height = element.getBoundingClientRect().height;
       if (height <= 0 || container.clientHeight <= 0) return;
@@ -189,6 +198,7 @@ export function CollectionItemWindow({
       aria-label={mounted ? undefined : `Публикация ${index + 1}`}
       onFocusCapture={() => setFocused(true)}
       onBlurCapture={(event) => {
+        // Фокус внутри потомков всё ещё удерживает строку; освобождаем только при уходе за её границу.
         if (!event.currentTarget.contains(event.relatedTarget as Node | null))
           setFocused(false);
       }}

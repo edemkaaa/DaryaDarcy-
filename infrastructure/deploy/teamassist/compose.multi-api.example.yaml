@@ -4,6 +4,7 @@
 # private resolved config and actual host/SQL capacity before using it.
 # api.env must set mysql coordination/count=2 for TEST ingress as well.
 services:
+# Две реплики используют общую SQL-координацию и очередь burst; лимит памяти указан для каждой реплики отдельно.
   api:
     deploy: { replicas: 2 }
     environment:
@@ -13,9 +14,11 @@ services:
     mem_limit: 1536m
     cpus: 1.5
     stop_grace_period: 15s
+# Верхний предел Next не резервирует память у хоста; суммарная ёмкость проверяется отдельно.
   web:
     mem_limit: 2048m
     cpus: 2.0
+# Общий SQL обслуживает обе реплики; дополнительный CPU нужен для снятия очереди, max-connections должен покрывать оба пула.
   mysql:
     mem_limit: 2048m
     # Один CPU в локальном прогоне задерживал запросы и заполнял очереди обоих API.

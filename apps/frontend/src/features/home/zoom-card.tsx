@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { publicPath } from "@/shared/navigation/router";
+/** Навигационная карточка остаётся Link с проверенным внутренним маршрутом: клавиатура и открытие в новой вкладке работают нативно. */
 export function ZoomCard({
   route,
   style,

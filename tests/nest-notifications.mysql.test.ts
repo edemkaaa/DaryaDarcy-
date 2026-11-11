@@ -22,6 +22,7 @@ import { sendServicePushNotification } from "../apps/backend/src/push";
 import type { AppRouter } from "../apps/backend/src/routers";
 import * as capabilities from "../apps/backend/src/launch/capabilities";
 
+/** Проверяет регистрации устройств, согласия и удаление push-данных через настоящий HTTP, JWT и SQL. */
 describe.skipIf(!testDatabaseUrl)(
   "notifications through real HTTP, JWT and disposable SQL",
   () => {
@@ -29,8 +30,10 @@ describe.skipIf(!testDatabaseUrl)(
     let app: INestApplication;
     let base: string;
     const fixtureToken = "ExpoPushToken[synthetic-notification-http-device]";
+    /** Формирует узнаваемый уникальный токен устройства внутри собственного префикса. */
     const device = (suffix: string) => fixtureToken.replace("]", `${suffix}]`);
     let clock = Date.now();
+    /** Захватывает общий тестовый lock аудитории, создаёт нужные таблицы и запускает локальный API. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       // Audience checks query all devices: keep both fixtures mutually exclusive.
@@ -57,6 +60,7 @@ describe.skipIf(!testDatabaseUrl)(
       await app.listen(0, "127.0.0.1");
       base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
     });
+    /** Разрешает только тестовую capability-политику для enabled-ветки, сохраняя настоящий limiter и пересоздавая свои аккаунты. */
     beforeEach(async () => {
       // Production remains disabled. Only replace the capability policy for
       // enabled-path HTTP/JWT/SQL tests; the actual limiter is never doubled.
@@ -77,12 +81,14 @@ describe.skipIf(!testDatabaseUrl)(
       (8430,'notification-http-8430','admin'),(8431,'notification-http-8431','user'),
       (8432,'notification-http-8432','user'),(8433,'notification-http-8433','moderator')`);
     });
+    /** Удаляет собственный отказной триггер и возвращает подмены после сценария. */
     afterEach(async () => {
       await conn.query(
         "DROP TRIGGER IF EXISTS notification_http_write_refusal",
       );
       vi.restoreAllMocks();
     });
+    /** Удаляет свои устройства, согласия и пользователей, освобождает audience-lock и закрывает ресурсы. */
     afterAll(async () => {
       await app?.close();
       await conn?.query(
@@ -100,12 +106,14 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** Создаёт настоящий tRPC HTTP-клиент выбранного пользователя с управляемой эпохой сессии. */
     function client(userId?: number, sessionVersion = 0) {
       return createTRPCProxyClient<AppRouter>({
         links: [
           httpLink({
             url: `${base}/api/trpc`,
             transformer: superjson,
+            /** Подписывает JWT выбранного синтетического аккаунта либо отправляет гостевой запрос. */
             headers: async () =>
               userId === undefined
                 ? {}
@@ -116,6 +124,7 @@ describe.skipIf(!testDatabaseUrl)(
         ],
       });
     }
+    /** Отправляет настоящий REST-выход с исходной эпохой тестового аккаунта. */
     async function restLogout(userId: number) {
       const token = await sdk.createSessionToken(`notification-http-${userId}`, {
         sessionVersion: 0,
@@ -125,12 +134,14 @@ describe.skipIf(!testDatabaseUrl)(
         headers: { Authorization: `Bearer ${token}` },
       });
     }
+    /** Читает только устройства собственного префикса для точного сравнения привязок. */
     async function tokens() {
       const [rows] = await conn.query<RowDataPacket[]>(
         "SELECT token,userId,platform,enabled FROM push_tokens WHERE token LIKE 'ExpoPushToken[synthetic-notification-http-%' ORDER BY token",
       );
       return rows;
     }
+    /** Проверяет запрет вставки и повторного включения токенов при выключенной функции для гостя, участника и администратора. */
     it.each([undefined, 8431, 8430])(
       "disabled capability prevents inserts and re-enables for actor %s",
       async (actor) => {
@@ -150,6 +161,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await tokens()).toEqual(before);
       },
     );
+    /** Проверяет формат и длины входа до SQL без записи и внутренних ошибок. */
     it.each([
       { token: "   " },
       { token: "arbitrary-device" },
@@ -166,6 +178,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await tokens()).toEqual([]);
       },
     );
+    /** Проверяет реальную конкурентную квоту аккаунта до записи четырнадцати устройств. */
     it("limits an account's concurrent HTTP requests before SQL writes", async () => {
       const results = await Promise.all(
         Array.from({ length: 14 }, async (_, i) => {
@@ -186,6 +199,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(results.filter((result) => result === "limited")).toHaveLength(4);
       expect(await tokens()).toHaveLength(10);
     });
+    /** Проверяет единственную строку устройства, повторное включение и привязку только к текущему actor несмотря на поддельный userId. */
     it("upserts one device using the authenticated actor and re-enables it", async () => {
       expect(
         await client(8431).notifications.registerToken.mutate({
@@ -207,6 +221,7 @@ describe.skipIf(!testDatabaseUrl)(
         { token: fixtureToken, userId: 8431, platform: "android", enabled: 1 },
       ]);
     });
+    /** Проверяет анонимную регистрацию в разрешённой ветке без выдуманного пользователя и юридического согласия. */
     it("registers an anonymous device without inventing a user or consent", async () => {
       await client().notifications.registerToken.mutate({
         token: fixtureToken,
@@ -219,6 +234,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(events).toEqual([]);
     });
+    /** Проверяет перенос устройства другому аккаунту без переноса marketing-согласия и без анонимного захвата новой привязки. */
     it("moves a device to the new account without carrying over marketing consent", async () => {
       await client(8431).notifications.registerToken.mutate({
         token: fixtureToken,
@@ -240,6 +256,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await db.getPushTokensForUser(8432)).toEqual([fixtureToken]);
       expect(await db.getMarketingPushTokens()).not.toContain(fixtureToken);
     });
+    /** Проверяет исключение устройств вышедшего аккаунта из аудитории через оба транспорта без отзыва более позднего входа. */
     it.each(["REST", "tRPC"])(
       "removes the signed-out account's devices from audiences through %s logout",
       async (transport) => {
@@ -293,6 +310,7 @@ describe.skipIf(!testDatabaseUrl)(
         );
       },
     );
+    /** Проверяет атомарную сохранность сессии и устройств при отказе отвязки во время logout. */
     it("keeps the session and device binding when logout cannot detach the device", async () => {
       await client(8431).notifications.registerToken.mutate({
         token: fixtureToken,
@@ -310,6 +328,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await tokens()).toEqual(before);
       expect(await client(8431).auth.me.query()).toMatchObject({ id: 8431 });
     });
+    /** Перепривязывает устройство после чтения аудитории и проверяет повторную валидацию владельца перед персональной отправкой. */
     it("drops a personal push after the selected device switches accounts", async () => {
       await client(8431).notifications.registerToken.mutate({
         token: fixtureToken,
@@ -355,6 +374,7 @@ describe.skipIf(!testDatabaseUrl)(
         { to: fixtureToken, body: message.body },
       ]);
     });
+    /** Проверяет юридическое согласие текущего actor и последнее решение по ID при одинаковой секунде события. */
     it("persists legal consent for the session actor and honors the last same-second choice", async () => {
       expect(
         await client(8431).notifications.setMarketingConsent.mutate({
@@ -404,6 +424,7 @@ describe.skipIf(!testDatabaseUrl)(
         },
       );
     });
+    /** Проверяет запрет анонимной записи согласия без создания события. */
     it("refuses anonymous consent without recording an event", async () => {
       await expect(
         client().notifications.setMarketingConsent.mutate({ enabled: true }),
@@ -415,6 +436,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(events).toEqual([]);
     });
+    /** Приостанавливает запрос после JWT-проверки и проверяет отзыв полномочий перед записью consent, registration или admin purge. */
     it.each([
       { operation: "consent", change: "logout" },
       { operation: "consent", change: "block" },
@@ -453,13 +475,16 @@ describe.skipIf(!testDatabaseUrl)(
         );
         const request = client(actorId);
         const run = {
+          /** Отправляет запись marketing-согласия после управляемой паузы авторизации. */
           consent: () =>
             request.notifications.setMarketingConsent.mutate({ enabled: true }),
+          /** Отправляет привязку устройства после управляемой паузы авторизации. */
           registration: () =>
             request.notifications.registerToken.mutate({
               token: fixtureToken,
               platform: "android",
             }),
+          /** Отправляет административное удаление устройств целевого аккаунта после управляемой паузы авторизации. */
           purge: () => request.admin.purgeUserPushData.mutate({ userId: 8432 }),
         };
         const pending = run[operation]();
@@ -499,6 +524,7 @@ describe.skipIf(!testDatabaseUrl)(
         }
       },
     );
+    /** Проверяет удаление только устройств указанного пользователя с сохранением истории согласий и других устройств. */
     it("purges only the requested user's tokens and retains consent history", async () => {
       await client(8431).notifications.registerToken.mutate({
         token: fixtureToken,
@@ -537,6 +563,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(events).toEqual([{ userId: 8431, status: "granted" }]);
     });
+    /** Проверяет запрет purge для обычного пользователя и модератора без удаления устройства. */
     it.each([8431, 8433])(
       "refuses token purge by non-admin %s without deleting a device",
       async (actor) => {
@@ -553,12 +580,14 @@ describe.skipIf(!testDatabaseUrl)(
         ]);
       },
     );
+    /** Проверяет безопасный отказ без ложного успеха и SQL-текста при сбое persistence каждого вида операции. */
     it.each([
       {
         name: "registration",
         table: "push_tokens",
         event: "INSERT",
         row: "NEW",
+        /** Запускает регистрацию устройства, на которой должен сработать собственный отказной триггер. */
         run: () =>
           client(8431).notifications.registerToken.mutate({
             token: fixtureToken,
@@ -570,6 +599,7 @@ describe.skipIf(!testDatabaseUrl)(
         table: "push_consent_events",
         event: "INSERT",
         row: "NEW",
+        /** Запускает запись согласия, на которой должен сработать собственный отказной триггер. */
         run: () =>
           client(8431).notifications.setMarketingConsent.mutate({
             enabled: true,
@@ -580,6 +610,7 @@ describe.skipIf(!testDatabaseUrl)(
         table: "push_tokens",
         event: "DELETE",
         row: "OLD",
+        /** Запускает admin purge, на котором должен сработать собственный отказной триггер. */
         run: () =>
           client(8430).admin.purgeUserPushData.mutate({ userId: 8431 }),
       },

@@ -10,13 +10,16 @@ test.use({ timezoneId: "America/Los_Angeles" });
 
 const winter =
   "/assets/responsive/ea0b60bea0fe-EhNRvSBlhxWjRXfT.w1200.4cceecb893c4381e.webp";
+/** Различаем season и назначение SVG точным URL для проверки атомарной пары фон/баннер. */
 const imageUrl = (season: string, kind: string) =>
   `https://seasons.example.test/${season}-${kind}.svg`;
+/** Публичная appearance — серверный выбор, не вычисление сезона календарём браузера. */
 const appearance = (season: Season) => ({
   startsOn: "11-20",
   backgroundUrl: imageUrl(season, "background"),
   bannerUrl: imageUrl(season, "banner"),
 });
+/** Отдельная публичная конфигурация отдаёт только текущую appearance и контакт, без полного owner-editor snapshot. */
 const publicConfig = (season: Season = "winter") => ({
   revision: 7,
   season,
@@ -30,6 +33,7 @@ const publicConfig = (season: Season = "winter") => ({
     webPush: false,
   },
 });
+/** Полная owner-конфигурация имеет revision и четыре даты; managerEmail должен сохраниться при правке только сезонов. */
 const snapshot = (): LaunchConfigurationSnapshot => ({
   revision: 7,
   config: {
@@ -45,13 +49,19 @@ const snapshot = (): LaunchConfigurationSnapshot => ({
     },
   },
 });
+/** data-club-season позволяет отличить нейтральное loading от подтверждённого/резервного сезона. */
 const theme = (page: Page) => page.locator("[data-club-season]");
+/** Выбираем именно фоновую картинку контейнера, не карточки публикаций. */
 const background = (page: Page) => theme(page).locator(":scope > img");
+/** Адресуем сезонный баннер через его стабильный test-id. */
 const banner = (page: Page) =>
   page.getByTestId("club-season-banner").locator("img");
+/** Защищённые настройки сезонов измеряются отдельно от публичного оформления. */
 const form = (page: Page) =>
   page.getByRole("form", { name: "Настройки сезонов" });
+/** Ошибки edit/revision относятся только к owner-форме. */
 const alert = (page: Page) => form(page).getByRole("alert");
+/** Даём каждому configured URL декодируемый SVG без внешних источников. */
 async function images(page: Page) {
   await page.route("https://seasons.example.test/**", (route) =>
     route.fulfill({
@@ -60,21 +70,25 @@ async function images(page: Page) {
     }),
   );
 }
+/** Подтверждаем клубный доступ и подключаем локальные изображения оформления. */
 async function clubApi(page: Page) {
   await layoutApi(page, true);
   await images(page);
 }
+/** Открываем season-editor через admin и ждём полностью загруженную форму. */
 async function openSettings(page: Page) {
   await gotoWithSession(page, "/admin");
   await page.getByRole("button", { name: "Сезоны", exact: true }).click();
   await expect(form(page)).toBeVisible();
 }
 
+/** Синтетический SVG оставляет прозрачный низ и маленькую деталь у края, чтобы contain-проверка учитывала весь canvas. */
 const transparentBanner = (width: number, height: number) => ({
   contentType: "image/svg+xml",
   body: `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="${width}" height="${height * 0.7}" fill="#b3ad9b"/><rect x="10" y="${height - 10}" width="20" height="10" fill="#754630"/></svg>`,
 });
 
+/** После decode зимний configured-banner сохраняет естественное отношение сторон и верхнее выравнивание без обрезки прозрачного canvas. */
 async function expectWinterBannerFit(page: Page, url: string) {
   await expect(banner(page)).toHaveAttribute("src", url);
   await expect(banner(page)).toHaveCSS("object-fit", "contain");
@@ -92,6 +106,7 @@ async function expectWinterBannerFit(page: Page, url: string) {
     .toBeLessThan(0.1);
 }
 
+/** На трёх ширинах full-canvas баннер занимает пропорциональную высоту при прежнем фоне. */
 for (const width of [320, 390, 1440]) {
   test(`configured winter banner preserves its full transparent canvas at ${width}px`, async ({
     page,
@@ -127,6 +142,7 @@ for (const width of [320, 390, 1440]) {
   });
 }
 
+/** Размер применяется только для текущего декодированного URL: pending и поздний superseded image не меняют подтверждённую геометрию. */
 test("winter banner dimensions change with the decoded URL, not pending or superseded images", async ({
   page,
 }) => {
@@ -228,6 +244,7 @@ test("a failed winter banner preserves fallback geometry and explicit retry uses
   await expect(warning).toHaveCount(0);
 });
 
+/** До первого config нет вспышки ложного сезона: нейтральное loading сохраняется через navigation/reload. */
 test("entry and reload keep a neutral background until the configured season arrives", async ({
   page,
 }) => {
@@ -260,6 +277,7 @@ test("entry and reload keep a neutral background until the configured season arr
   }
 });
 
+/** Новая пара применяется только после готовности обеих картинок, прежние фон/баннер не смешиваются с новым сезоном. */
 test("a new season waits for both images while the confirmed pair stays visible", async ({
   page,
 }) => {
@@ -310,6 +328,7 @@ test("a new season waits for both images while the confirmed pair stays visible"
   );
 });
 
+/** Серверный сезон имеет приоритет над локальным календарём, включая зимний contain и остальные cover-баннеры. */
 for (const season of ["winter", "spring", "summer", "autumn"] as const) {
   test(`the server-selected ${season} appearance overrides the browser calendar`, async ({
     page,
@@ -339,6 +358,7 @@ for (const season of ["winter", "spring", "summer", "autumn"] as const) {
   });
 }
 
+/** В LA-browser переходим через московскую полночь и проверяем свежий серверный выбор, не локальную дату. */
 test("Moscow midnight refreshes the server season even in a Los Angeles browser", async ({
   page,
 }) => {
@@ -508,6 +528,7 @@ test("missing and failed images fall back without changing the banner dimensions
   });
 });
 
+/** Double-click сохраняет четыре сезона одним PUT с expectedRevision и неизменным managerEmail; reopening читает новую версию. */
 test("owner settings save all four seasons once, preserve manager email and survive reopening", async ({
   page,
 }, testInfo) => {
@@ -575,6 +596,7 @@ test("owner settings save all four seasons once, preserve manager email and surv
   });
 });
 
+/** Даты и direct HTTPS URL проверяются до PUT, включая одинаковые границы,29февраля и share-pages Яндекса. */
 for (const [field, value, message] of [
   [
     "Весна: дата начала",
@@ -615,6 +637,7 @@ for (const [field, value, message] of [
   });
 }
 
+/** Ошибка PUT сохраняет ввод и блокирует write до свежей проверки; неизменный server snapshot позволяет лишь ручной повтор. */
 test("unknown save and failed inspection retain input; fresh unchanged settings permit only a manual retry", async ({
   page,
 }) => {
@@ -661,6 +684,7 @@ test("unknown save and failed inspection retain input; fresh unchanged settings 
   await expect(field).toHaveValue(imageUrl("winter", "draft"));
 });
 
+/** Совпавшая свежая revision/config подтверждает применённый PUT без второго write. */
 test("a lost save reply is resolved by reading the matching revision without another PUT", async ({
   page,
 }) => {
@@ -694,6 +718,7 @@ test("a lost save reply is resolved by reading the matching revision without ano
   expect(writes).toBe(1);
 });
 
+/** Чужая revision не перезаписывает локальный draft: замена актуальным config требует отдельного подтверждения. */
 test("a revision conflict preserves draft and requires explicit replacement with the current settings", async ({
   page,
 }) => {
@@ -740,6 +765,7 @@ test("a revision conflict preserves draft and requires explicit replacement with
   expect(writes).toBe(1);
 });
 
+/** Недостаточно увеличенного revision: подтверждение должно соответствовать отправленному config, иначе draft остаётся. */
 test("malformed save confirmation does not clear the owner's draft", async ({
   page,
 }) => {
@@ -789,6 +815,7 @@ test("settings read failure offers retry without showing an empty editor", async
   await expect(form(page)).toBeVisible();
 });
 
+/** Пользователь и модератор не читают защищённые settings и не видят owner-controls. */
 for (const role of ["user", "moderator"]) {
   test(`${role} has no season controls or protected configuration reads`, async ({
     page,
@@ -829,6 +856,7 @@ for (const role of ["user", "moderator"]) {
   });
 }
 
+/** Потеря сессии во время PUT закрывает private-editor и не показывает поздний success старого владельца. */
 test("revoking a session during settings save prevents a late success and closes private UI", async ({
   page,
 }) => {

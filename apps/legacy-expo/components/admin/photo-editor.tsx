@@ -1,3 +1,4 @@
+// Архив Expo. Подавляет системное меню только на поверхности перетаскиваемого фото.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Dimensions, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
@@ -25,12 +26,16 @@ const webBlockImageMenu =
   Platform.OS === "web"
     ? {
         onContextMenu: (event: any) => {
+          // Подавляет системное меню только на поверхности перетаскиваемого фото.
+
           event.preventDefault?.();
           event.stopPropagation?.();
           event.nativeEvent?.preventDefault?.();
           return false;
         },
         onDragStart: (event: any) => {
+          // Отключает нативный browser image-drag, чтобы он не конфликтовал с RN Gesture.
+
           event.preventDefault?.();
         },
       }
@@ -45,6 +50,8 @@ interface PhotoEditorProps {
 }
 
 export function PhotoEditor({ photos, onRemove, onMove, onReorder, onReplace }: PhotoEditorProps) {
+  // Переставляет локальный массив фото через drag либо кнопки; свыше десяти кадров использует карусель.
+
   const tileRefs = useRef<(View | null)[]>([]);
   const tileLayouts = useRef<TileRect[]>([]);
   const dragFromRef = useRef<number | null>(null);
@@ -60,8 +67,12 @@ export function PhotoEditor({ photos, onRemove, onMove, onReorder, onReplace }: 
   const canDragReorder = Boolean(onReorder) && photos.length > 1;
 
   useEffect(() => {
+    // На web во время доступного reorder снимает системное меню с drag-элементов и удаляет свой capturing listener при cleanup.
+
     if (Platform.OS !== "web" || !canDragReorder) return;
     const blockMenu = (event: Event) => {
+      // Не даёт долгому нажатию на drag-плитку открыть контекстное меню браузера.
+
       const target = event.target as HTMLElement | null;
       if (target?.closest?.("[data-photo-drag]")) {
         event.preventDefault();
@@ -72,6 +83,8 @@ export function PhotoEditor({ photos, onRemove, onMove, onReorder, onReplace }: 
   }, [canDragReorder]);
 
   const measureAllTiles = useCallback(() => {
+    // Запоминает оконные прямоугольники всех видимых плиток для hit-testing drag.
+
     photos.forEach((_, index) => {
       tileRefs.current[index]?.measureInWindow((x, y, w, h) => {
         tileLayouts.current[index] = { x, y, width: w, height: h };
@@ -81,6 +94,8 @@ export function PhotoEditor({ photos, onRemove, onMove, onReorder, onReplace }: 
 
   const findIndexAtPoint = useCallback(
     (pageX: number, pageY: number) => {
+      // Ищет плитку под абсолютной координатой без изменения массива.
+
       for (let i = 0; i < photos.length; i++) {
         const rect = tileLayouts.current[i];
         if (!rect) continue;
@@ -99,6 +114,8 @@ export function PhotoEditor({ photos, onRemove, onMove, onReorder, onReplace }: 
   );
 
   const resetDrag = useCallback(() => {
+    // Сбрасывает ref и UI состояния источника, цели и смещения жеста.
+
     dragFromRef.current = null;
     overIndexRef.current = null;
     setDragFrom(null);
@@ -109,6 +126,8 @@ export function PhotoEditor({ photos, onRemove, onMove, onReorder, onReplace }: 
 
   const startDrag = useCallback(
     (index: number) => {
+      // Обновляет геометрию и отмечает исходную плитку перед перетаскиванием.
+
       measureAllTiles();
       dragFromRef.current = index;
       overIndexRef.current = index;
@@ -124,6 +143,8 @@ export function PhotoEditor({ photos, onRemove, onMove, onReorder, onReplace }: 
 
   const updateDragPosition = useCallback(
     (translationX: number, translationY: number, pageX: number, pageY: number) => {
+      // Обновляет визуальное смещение и последнюю допустимую цель под указателем.
+
       setDragOffset({ x: translationX, y: translationY });
       const next = findIndexAtPoint(pageX, pageY);
       if (next != null) {
@@ -135,6 +156,8 @@ export function PhotoEditor({ photos, onRemove, onMove, onReorder, onReplace }: 
   );
 
   const finishDrag = useCallback(() => {
+    // Вызывает внешний reorder только при разных допустимых индексах, затем очищает жест.
+
     const from = dragFromRef.current;
     const to = overIndexRef.current;
     if (from != null && to != null && from !== to && onReorder) {
@@ -148,7 +171,7 @@ export function PhotoEditor({ photos, onRemove, onMove, onReorder, onReplace }: 
 
   const makeDragGesture = useCallback(
     (index: number) =>
-      Gesture.Pan()
+      /* Подключает long-press pan и передаёт start/update/end из UI-потока в JS. */ Gesture.Pan()
         .activateAfterLongPress(LONG_PRESS_MS)
         .onStart(() => {
           runOnJS(startDrag)(index);
@@ -170,6 +193,8 @@ export function PhotoEditor({ photos, onRemove, onMove, onReorder, onReplace }: 
     imageStyle: object,
     surfaceStyle?: object,
   ) => {
+    // Размещает изображение без pointer events внутри единственной управляемой drag-поверхности.
+
     const image = (
       <Image
         source={{ uri }}
@@ -196,6 +221,8 @@ export function PhotoEditor({ photos, onRemove, onMove, onReorder, onReplace }: 
   };
 
   const tileChrome = (index: number) => {
+    // Поднимает источник над соседями и рисует рамку цели без изменения порядка данных.
+
     const isSource = dragging && dragFrom === index;
     const isTarget = dragging && overIndex === index && dragFrom !== index;
     return [
@@ -216,7 +243,7 @@ export function PhotoEditor({ photos, onRemove, onMove, onReorder, onReplace }: 
     ];
   };
 
-  const renderThumbStrip = () => (
+  const renderThumbStrip = () => /* Показывает компактную измеряемую ленту для перестановки длинной карусели. */ (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.thumbStrip}>
       {photos.map((uri, i) => (
         <View
@@ -327,6 +354,8 @@ function PhotoControls({
   hideReorder?: boolean;
   hideIndex?: boolean;
 }) {
+  // Показывает удаление/замену и кнопочный reorder только в допустимых позициях.
+
   return (
     <>
       <Pressable onPress={() => onRemove(index)} style={styles.removeBtn}>
@@ -360,6 +389,7 @@ function PhotoControls({
   );
 }
 
+// Drag-поверхность подавляет системный image-drag; поднятый source и рамка target независимы от порядка массива.
 const styles = StyleSheet.create({
   grid: {
     flexDirection: "row",

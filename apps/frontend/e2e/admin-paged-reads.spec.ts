@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { editorApi, failure, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
+/** Полный текст детали намеренно отличается от карточки: редактор должен отдельно загрузить detail. */
 const fullPost = (id: number) => ({
   id,
   text: `FULL_EDIT_BODY_${id}`,
@@ -20,6 +21,7 @@ const fullPost = (id: number) => ({
   createdAt: "2026-10-10T10:00:00Z",
   updatedAt: "2026-10-10T10:00:00Z",
 });
+/** Минимальная карточка списка не содержит полной нагрузки редактирования. */
 const card = (id: number) => ({
   id,
   text: `CARD_${id}`,
@@ -35,6 +37,7 @@ const card = (id: number) => ({
   createdAt: "2026-10-10T10:00:00Z",
 });
 const counts = { total: 742, published: 700, scheduled: 20, draft: 22 };
+/** Запрещаем внешний трафик; вся проверка использует локальный frontend и синтетический API. */
 test.beforeEach(async ({ page }) => {
   await page.route("**/*", (route) =>
     ["localhost", "127.0.0.1"].includes(new URL(route.request().url()).hostname)
@@ -43,6 +46,7 @@ test.beforeEach(async ({ page }) => {
   );
 });
 
+/** Проверяем ленивую загрузку страниц и отдельный bounded календарь без возвращения к огромному admin.posts. */
 test("admin loads pages only for posts and bounded calendar data for its own period", async ({
   page,
 }) => {
@@ -93,6 +97,7 @@ test("admin loads pages only for posts and bounded calendar data for its own per
   expect(reads.filter((r) => r.name === "admin.posts")).toHaveLength(0);
 });
 
+/** Удерживаем detail до смены раздела; поздний результат не должен сам открыть редактор. */
 test("editing fetches the full draft and discards a late read after switching sections", async ({
   page,
 }) => {
@@ -134,6 +139,7 @@ test("editing fetches the full draft and discards a late read after switching se
   }
 });
 
+/** Ошибка продолжения сохраняет уже показанные карточки, а повтор дедуплицирует перекрывающийся id. */
 test("a failed next page retries without losing cards or repeating an ID", async ({
   page,
 }) => {
@@ -165,6 +171,7 @@ test("a failed next page retries without losing cards or repeating an ID", async
   await expect(page.getByTestId("admin-post-20")).toHaveCount(1);
 });
 
+/** Исчезновение из текущей страницы не доказывает удаление: проверка должна запросить exact detail и не повторять write. */
 test("unknown deletion checks the exact post rather than an incomplete page", async ({
   page,
 }) => {
@@ -208,6 +215,7 @@ test("unknown deletion checks the exact post rather than an incomplete page", as
   expect(writes).toBe(1);
 });
 
+/** Отказ счётчиков отличается от нулей и восстанавливается независимо от страницы постов. */
 test("failed counters show no fake zero and can be retried independently", async ({
   page,
 }) => {
@@ -226,6 +234,7 @@ test("failed counters show no fake zero and can be retried independently", async
   await expect(page.getByText("742", { exact: true })).toBeVisible();
 });
 
+/** Меняем аккаунт до ответа detail; приватный текст прежнего администратора не должен попасть в новый scope. */
 test("a late private detail is discarded when the account changes", async ({
   page,
 }) => {
@@ -282,6 +291,7 @@ test("a late private detail is discarded when the account changes", async ({
   }
 });
 
+/** Создание быстрым редактором должно инвалидировать сохранённый список админки и его счётчики при возврате. */
 test("a quick editor save invalidates retained admin pages and counters", async ({
   page,
 }) => {

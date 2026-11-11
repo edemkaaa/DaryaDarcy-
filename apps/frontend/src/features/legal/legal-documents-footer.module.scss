@@ -10,6 +10,7 @@
     padding-right: 16px;
   }
 
+  /* Размер декоративной таблички фиксирует систему координат фонового изображения и ссылок. */
   .div2 {
     position: relative;
     align-items: center;
@@ -23,6 +24,7 @@
     inset: 0;
   }
 
+  /* Процентные границы размещают ссылки внутри свободной области исходной таблички. */
   .textOverlay {
     position: absolute;
     left: 13%;
@@ -38,6 +40,7 @@
     align-items: center;
   }
 
+  /* Малый текст имеет тень для читаемости на рисунке; состояние нажатия не двигает табличку. */
   .linkLine {
     font-family: EBGaramond-SemiBold;
     font-size: 11px;

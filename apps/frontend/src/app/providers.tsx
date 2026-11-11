@@ -16,6 +16,7 @@ import { BackgroundNoticeProvider } from "@/shared/ui/background-notice";
 import TabShell from "./tab-shell";
 import { NavigationHistory } from "@/shared/navigation/history";
 import { TouchPressGuard } from "@/shared/browser/touch-press-guard";
+/** Создаём клиентов один раз и вкладываем контексты в порядке зависимостей: подписка и фоновые операции читают уже установленную сессию. */
 export default function Providers({
   children,
   initialHomeDate,

@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 
+/** Собирает настоящий ESM API и в отдельном процессе проверяет 404 для raw upload при разных телах и текущих состояниях аккаунта. */
 it.skipIf(!testDatabaseUrl)(
   "keeps raw public uploads retired in compiled ESM regardless of live account state",
   async () => {

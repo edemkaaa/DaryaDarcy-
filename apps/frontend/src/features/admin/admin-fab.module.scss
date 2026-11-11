@@ -2,6 +2,7 @@
 @use "../../shared/styles/layers";
 
 @layer components {
+  /* Нижний отступ учитывает постоянное меню и служебное уведомление, чтобы плавающие действия не перекрывали их. */
   .stack {
     position: absolute;
     bottom: calc(
@@ -14,12 +15,14 @@
     z-index: 100;
   }
 
+  /* В низком viewport действия раскладываются в ряд, освобождая вертикальное пространство. */
   @media (max-height: 480px) {
     .stack {
       flex-direction: row;
     }
   }
 
+  /* Разный размер отделяет основное создание от вторичных действий. */
   .fabPressed {
     width: 44px;
     height: 44px;
@@ -41,6 +44,7 @@
     align-items: center;
     box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.25);
   }
+  /* Классы нажатия меняют масштаб/прозрачность без влияния на место кнопки в раскладке. */
   .transformState {
     transform: scale(0.92);
   }

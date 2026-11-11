@@ -14,6 +14,7 @@ export interface ClubTestimonial {
 
 // Verbatim excerpts of the existing public screenshots, not rewritten endorsements.
 // Names are shown only when visible in the original. Full screenshots stay linked.
+/** Цитаты связаны с существующими скриншотами по индексу; подпись автора добавляется только для видимого в оригинале имени. */
 export const COMMUNITY_TESTIMONIALS: readonly ClubTestimonial[] = [
   {
     id: "irina",

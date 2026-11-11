@@ -4,10 +4,12 @@ import { gotoWithSession, layoutApi } from "./layout-fixtures";
 const headerSelector = 'header[aria-label="Навигация профиля"]';
 const scrollSelector = "main .ui-scroll:not(.ui-scroll-horizontal):visible";
 
+/** Проверяем бумажную шапку целиком вместе с её фоном: скрытие не меняет viewport контента или положение нижнего меню. */
 for (const width of [390, 1440]) {
   test.describe(`paper header at ${width}px`, () => {
     test.use({ viewport: { width, height: 400 } });
 
+    /** Для страниц разной структуры даём достаточную высоту содержимого и сравниваем spacer, hit-testing, край прокрутки и возвращение шапки. */
     for (const path of [
       "/library/patterns",
       "/library/about-me",
@@ -158,6 +160,7 @@ for (const width of [390, 1440]) {
       });
     }
 
+    /** Полоса прогресса вопроса остаётся частью общего scroll, а не отдельной фиксированной полосой. */
     test("quiz progress also scrolls away, leaving no fixed strip", async ({
       page,
     }) => {

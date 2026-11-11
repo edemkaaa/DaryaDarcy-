@@ -1,3 +1,4 @@
+/** Базовая браузерная проверка использует один worker и уже собранный обычный frontend; каталог и платежные профили имеют отдельные конфигурации. */
 import { defineConfig } from "@playwright/test";
 
 // The base suite expects the default legacy-video build. Opt-in catalog builds

@@ -3,6 +3,10 @@
 - **Status:** Accepted for the user-approved local backend stage; not release approval
 - **Date:** 2026-10-02
 
+## Актуальность на 11 ноября 2026
+
+Принцип долговечных квитанций и отправки вне SQL сохранён. Действующая схема и границы неизвестного результата описаны в [архитектуре БД](../architecture/database.md) и [интеграциях](../architecture/integrations.md). Принятие письма SMTP не подтверждает доставку во входящие.
+
 ## Context
 
 Webhooks can repeat or arrive concurrently. Provider, database and SMTP cannot

@@ -1,3 +1,4 @@
+// Архив Expo. Определяет прямое видео по поддерживаемому расширению пути без query.
 import { splitVideoPhotos, mediaBasename } from "@/lib/post-media-photos";
 
 const VIDEO_URL_RE = /\.(mp4|m4v|mov|webm)(\?.*)?$/i;
@@ -17,6 +18,8 @@ export type ResolvedPostVideo = {
 };
 
 export function isVideoMediaUrl(url: string): boolean {
+  // Определяет прямое видео по поддерживаемому расширению пути без query.
+
   return VIDEO_URL_RE.test(url.split("?")[0] || "");
 }
 
@@ -25,6 +28,8 @@ export function resolvePostVideo(
   photos: string[] | undefined,
   media: PostMediaLike[] | undefined,
 ): ResolvedPostVideo {
+  // Предпочитает post_media.video, иначе исторический видео-URL в photos; отдельно собирает poster и галерею.
+
   const list = photos || [];
   const videoItem = media?.find((m) => m.type === "video");
 

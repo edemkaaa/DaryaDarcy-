@@ -1,3 +1,4 @@
+// Архив Expo. Архивный кроппер хранит pan/zoom на UI-потоке и показывает круглую маску; итог остаётся квадратным файлом.
 import { useState, useRef } from "react";
 import {
   View,
@@ -44,6 +45,8 @@ export function AvatarCropper({
   onCrop,
   onCancel,
 }: AvatarCropperProps) {
+  // Архивный кроппер хранит pan/zoom на UI-потоке и показывает круглую маску; итог остаётся квадратным файлом.
+
   const [cropping, setCropping] = useState(false);
 
   // Calculate initial scale to fill the circle
@@ -65,7 +68,8 @@ export function AvatarCropper({
   const displayWidth = aspectRatio >= 1 ? CIRCLE_SIZE : CIRCLE_SIZE * aspectRatio;
   const displayHeight = aspectRatio >= 1 ? CIRCLE_SIZE / aspectRatio : CIRCLE_SIZE;
 
-  const pinchGesture = Gesture.Pinch()
+  // Pinch и pan выполняются одновременно на UI-потоке; при завершении scale ниже единицы возвращается к единице.
+const pinchGesture = Gesture.Pinch()
     .onUpdate((e) => {
       scale.value = Math.max(0.5, Math.min(savedScale.value * e.scale, 4));
     })
@@ -99,6 +103,8 @@ export function AvatarCropper({
   }));
 
   const handleCrop = async () => {
+    // Переводит жесты в координаты оригинала, делает JPEG 400×400; при ошибке исторически отдаёт исходное изображение.
+
     setCropping(true);
     try {
       // Calculate crop region based on current transform
@@ -208,6 +214,7 @@ export function AvatarCropper({
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
+// Круглая overflow-маска ограничивает только preview; кнопки остаются вне зоны pinch/pan, итоговый файл квадратный.
 const styles = StyleSheet.create({
   container: {
     flex: 1,

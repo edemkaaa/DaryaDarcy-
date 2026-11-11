@@ -7,6 +7,8 @@ import {
 
 // stdin only: no .env, database connection, filesystem export, storage or URL fetch.
 async function main() {
+  // Ограничивает фактический stdin одним МиБ и принимает только известные снимки; ошибки не выводят исходные значения или подписанные URL.
+
   const chunks: Buffer[] = [];
   let bytes = 0;
   for await (const chunk of process.stdin) {

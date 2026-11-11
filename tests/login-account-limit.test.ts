@@ -1,17 +1,22 @@
+/** Процессный account limiter проверяется fake clock: нормализация адреса, cooldown и защита от запоздалого success. */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { LoginAccountLimiter } from "../apps/backend/src/identity/login-account-limit";
 
 let limiter: LoginAccountLimiter;
+/** Начинаем с нового лимитера и фиксированного времени. */
 beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-10-28T12:00:00Z"));
   limiter = new LoginAccountLimiter();
 });
+/** Возвращаем реальные часы. */
 afterEach(() => vi.useRealTimers());
+/** Занимаем пять разрешённых попыток одного нормализованного аккаунта. */
 const burst = (email = "member@example.test") => {
   for (let i = 0; i < 5; i++) expect(limiter.begin(email).ok).toBe(true);
 };
 
+/** Разный регистр/пробелы не обходят bucket; другой email имеет отдельный счётчик. */
 it("shares quota across case and whitespace variants but isolates another account", () => {
   burst();
   expect(limiter.begin("  MEMBER@EXAMPLE.TEST ")).toEqual({
@@ -20,6 +25,7 @@ it("shares quota across case and whitespace variants but isolates another accoun
   });
   expect(limiter.begin("other@example.test").ok).toBe(true);
 });
+/** Экспоненциальная пауза ограничена 30 секундами; отказ сам не ждёт на сервере. */
 it("increases cooldown to 30 seconds without a permanent lock or server-side sleep", () => {
   burst();
   for (const seconds of [1, 2, 4, 8, 16, 30, 30]) {
@@ -36,6 +42,7 @@ it("increases cooldown to 30 seconds without a permanent lock or server-side sle
     expect(limiter.begin("member@example.test").ok).toBe(true);
   }
 });
+/** Повторные отказы не продлевают назначенный cooldown. */
 it("refused retries do not move the deadline", () => {
   burst();
   for (let i = 0; i < 100; i++)
@@ -43,17 +50,20 @@ it("refused retries do not move the deadline", () => {
   vi.advanceTimersByTime(1000);
   expect(limiter.begin("member@example.test").ok).toBe(true);
 });
+/** Новое окно забывает счётчик прошлого интервала. */
 it("forgets old attempts after a fixed 15 minute observation window", () => {
   burst();
   vi.advanceTimersByTime(15 * 60_000);
   burst();
 });
+/** Успешная актуальная попытка снимает собственную квоту. */
 it("a completed successful sign-in clears its quota", () => {
   const attempt = limiter.begin("member@example.test");
   expect(attempt.ok).toBe(true);
   if (attempt.ok) attempt.succeeded();
   burst();
 });
+/** Запоздалый success не сбрасывает более новые попытки того же окна. */
 it("a slow earlier success cannot clear newer reservations", () => {
   const first = limiter.begin("member@example.test");
   for (let i = 0; i < 4; i++)
@@ -61,6 +71,7 @@ it("a slow earlier success cannot clear newer reservations", () => {
   if (first.ok) first.succeeded();
   expect(limiter.begin("member@example.test").ok).toBe(false);
 });
+/** Completion прошлого окна не сбрасывает новую серию. */
 it("a stale completion cannot clear a new observation window", () => {
   const first = limiter.begin("member@example.test");
   vi.advanceTimersByTime(15 * 60_000);
@@ -68,6 +79,7 @@ it("a stale completion cannot clear a new observation window", () => {
   if (first.ok) first.succeeded();
   expect(limiter.begin("member@example.test").ok).toBe(false);
 });
+/** Лимит 10 000 аккаунтов отказывает новому bucket без вытеснения активных и освобождается по сроку. */
 it("bounds distinct accounts, preserves active quotas and reclaims expired capacity", () => {
   burst();
   for (let i = 1; i < 10_000; i++)

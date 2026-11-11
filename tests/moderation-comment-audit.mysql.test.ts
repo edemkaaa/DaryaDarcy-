@@ -18,6 +18,7 @@ import { createBackendApplication } from "../apps/backend/src/_core/application"
 import { sdk } from "../apps/backend/src/_core/sdk";
 import { ModerationService } from "../apps/backend/src/moderation/moderation.service";
 
+/** Проверяет атомарное модераторское удаление комментария с обязательным аудитом и сохранением ответов. */
 describe.skipIf(!testDatabaseUrl)(
   "reported comment audit on disposable MySQL",
   () => {
@@ -25,6 +26,7 @@ describe.skipIf(!testDatabaseUrl)(
     let app: INestApplication;
     let base: string;
     const moderation = new ModerationService();
+    /** Создаёт изолированный content-стенд и настоящий локальный API для JWT-проверки. */
     beforeAll(async () => {
       conn = await openContentTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -33,6 +35,7 @@ describe.skipIf(!testDatabaseUrl)(
       await app.listen(0, "127.0.0.1");
       base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
     });
+    /** Удаляет собственный fault-триггер, аудит, обсуждение, пост и двух пользователей. */
     async function clearFixture() {
       await conn.query(
         "DROP TRIGGER IF EXISTS moderation_comment_audit_failure",
@@ -48,6 +51,7 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query("DELETE FROM posts WHERE id=8424");
       await conn.query("DELETE FROM users WHERE id IN (8420,8421)");
     }
+    /** Восстанавливает модератора, автора, корневой комментарий и ответ с независимыми лайками и жалобами. */
     beforeEach(async () => {
       await clearFixture();
       await conn.query(
@@ -66,11 +70,13 @@ describe.skipIf(!testDatabaseUrl)(
         "INSERT INTO comment_likes (commentId,userId) VALUES (8422,8420),(8423,8420)",
       );
     });
+    /** Снимает тестовый триггер отказа аудита после каждого сценария. */
     afterEach(async () => {
       await conn.query(
         "DROP TRIGGER IF EXISTS moderation_comment_audit_failure",
       );
     });
+    /** Закрывает API и даже при ошибке уборки закрывает оба соединения и возвращает окружение. */
     afterAll(async () => {
       await app?.close();
       try {
@@ -84,6 +90,7 @@ describe.skipIf(!testDatabaseUrl)(
         vi.unstubAllEnvs();
       }
     });
+    /** Читает комментарии, parentId, жалобы, лайки и аудит для проверки согласованного каскада. */
     async function state() {
       const [comments] = await conn.query<RowDataPacket[]>(
         "SELECT id,parentId,text FROM post_comments WHERE id IN (8422,8423) ORDER BY id",
@@ -99,10 +106,12 @@ describe.skipIf(!testDatabaseUrl)(
       );
       return { comments, reports, likes, audit };
     }
+    /** Создаёт триггер отказа вставки аудита только для собственного модератора. */
     async function rejectAudit() {
       await conn.query(`CREATE TRIGGER moderation_comment_audit_failure BEFORE INSERT ON admin_audit_log FOR EACH ROW
       BEGIN IF NEW.actorUserId=8420 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='synthetic comment audit failure'; END IF; END`);
     }
+    /** Отказ обязательного аудита откатывает удаление, реакции и отсоединение ответа. */
     it("restores comment, reply parent, likes and reports when its audit fails", async () => {
       const before = await state();
       await rejectAudit();
@@ -111,6 +120,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).rejects.toThrow();
       expect(await state()).toEqual(before);
     });
+    /** Реальный HTTP при отказе аудита возвращает 500 без SQL-деталей и без изменения обсуждения. */
     it("rolls back deletion through real HTTP and JWT without exposing SQL", async () => {
       const before = await state();
       await rejectAudit();
@@ -136,6 +146,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(body).not.toContain("admin_audit_log");
       expect(await state()).toEqual(before);
     });
+    /** Успех удаляет только выбранный комментарий с реакциями и коммитит audit; ответ сохраняется без parentId. */
     it("commits deletion and audit while retaining the detached reply and its reactions", async () => {
       expect(await moderation.deleteReportedComment({ id: 8420, sessionVersion: 0 }, 8422)).toEqual({
         ok: true,
@@ -154,6 +165,7 @@ describe.skipIf(!testDatabaseUrl)(
         ],
       });
     });
+    /** Отсутствующий комментарий даёт NOT_FOUND без каскада или ложного audit. */
     it("preserves NOT_FOUND without audit or cascade for an absent comment", async () => {
       const before = await state();
       await expect(
@@ -161,6 +173,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).rejects.toMatchObject({ code: "NOT_FOUND" });
       expect(await state()).toEqual(before);
     });
+    /** Отсутствие жалоб не мешает модераторскому удалению с обязательной записью аудита. */
     it("continues to delete a comment without reports and records its audit", async () => {
       await conn.query("DELETE FROM comment_reports WHERE commentId=8422");
       await moderation.deleteReportedComment({ id: 8420, sessionVersion: 0 }, 8422);

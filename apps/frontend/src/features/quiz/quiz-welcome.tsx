@@ -16,11 +16,13 @@ import { ScreenContainer } from "@/shared/ui/screen-container";
 import { useQuiz } from "@/domain/quiz/quiz-state";
 
 import { PAPER_TEXTURE_URI } from "./quiz-welcome.content";
+/** Показываем условия теста и запускаем новый проход через reducer, оставляя сохранение владельцу потока. */
 export function QuizWelcome() {
   const viewport = useViewport();
   const { stylesLayout } = getQuizWelcomeLayout(viewport);
 
   const { dispatch } = useQuiz();
+  /** Передаём намерение начать: очистка предыдущего прохода и запись нового выполняются последовательно в QuizFlow. */
   const handleStart = () => {
     dispatch({ type: "START_QUIZ" });
   };

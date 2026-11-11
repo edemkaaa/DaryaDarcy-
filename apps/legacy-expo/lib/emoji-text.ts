@@ -1,3 +1,4 @@
+// Архив Expo. Выделяет emoji-сегменты для системного шрифта, сохраняя порядок и обычный текст между ними.
 /** Split plain text so emoji render with system fonts (EBGaramond has no emoji glyphs). */
 const EMOJI_SEGMENT_RE =
   /(\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*)/gu;
@@ -5,6 +6,8 @@ const EMOJI_SEGMENT_RE =
 export type TextEmojiSegment = { value: string; isEmoji: boolean };
 
 export function splitForEmojiRendering(text: string): TextEmojiSegment[] {
+  // Выделяет emoji-сегменты для системного шрифта, сохраняя порядок и обычный текст между ними.
+
   if (!text) return [];
 
   const parts: TextEmojiSegment[] = [];

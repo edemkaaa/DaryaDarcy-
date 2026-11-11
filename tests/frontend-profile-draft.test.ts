@@ -1,3 +1,4 @@
+/** Черновик профиля хранит исходную ревизию и принадлежность аккаунту, не выдавая старый ввод за новую серверную версию. */
 import { describe, expect, it } from "vitest";
 import {
   restoreProfileDraft,
@@ -18,12 +19,15 @@ const old: ProfileDraft = {
   needsReview: false,
 };
 
+/** Проверяем совместимость старых форматов и сохранение нерешённого сравнения после reload. */
 describe("profile draft baselines", () => {
+  /** Свежий профиль не заменяет base, с которым пользователь начал редактирование. */
   it("restores the original snapshot rather than the latest server revision", () => {
     expect(
       restoreProfileDraft(JSON.stringify(old), 101, fresh, defaults, true),
     ).toEqual(old);
   });
+  /** Прежняя строка имени сохраняется буквально, даже если похожа на JSON; базовая ревизия неизвестна. */
   it.each(["Old name", "123", "null", "true", '"Quoted name"', "[]"])(
     "keeps legacy literal name %s while requiring review",
     (name) => {
@@ -36,6 +40,7 @@ describe("profile draft baselines", () => {
       });
     },
   );
+  /** Повторный вход не стирает already-pending review при появлении следующей серверной версии. */
   it("preserves an unresolved comparison across reload", () => {
     const awaiting = { ...old, needsReview: true, review: fresh };
     expect(
@@ -48,6 +53,7 @@ describe("profile draft baselines", () => {
       ),
     ).toEqual(awaiting);
   });
+  /** Старая пара имя/пол требует явной сверки, а не автоматического присвоения текущей ревизии. */
   it("migrates legacy setup without assigning it a server version", () => {
     expect(
       restoreProfileDraft(
@@ -63,11 +69,13 @@ describe("profile draft baselines", () => {
       needsReview: true,
     });
   });
+  /** Черновик другого ownerId не применяется к текущему профилю. */
   it("rejects another owner's draft", () => {
     expect(() =>
       restoreProfileDraft(JSON.stringify(old), 202, fresh, defaults, true),
     ).toThrow("другому аккаунту");
   });
+  /** Неизвестную версию структуры не интерпретируем как допустимый patch. */
   it("leaves unsupported structured drafts out of writes", () => {
     expect(() =>
       restoreProfileDraft(

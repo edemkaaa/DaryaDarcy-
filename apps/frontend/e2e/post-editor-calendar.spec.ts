@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { editorApi } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
+/** Проверяем, что дата и club-target календаря принадлежат отдельному редактору, а следующая обычная публикация начинает с чистых defaults. */
 test("calendar opens an independent scheduled club editor and a subsequent new post starts with its defaults", async ({
   page,
 }) => {

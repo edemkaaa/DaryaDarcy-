@@ -1,3 +1,4 @@
+/** Сверка неизменяемых SQL и канонического журнала выполняется офлайн без применения DDL. */
 import { readFile, readdir } from "node:fs/promises";
 import { expect, it } from "vitest";
 import { createHash } from "node:crypto";
@@ -7,6 +8,7 @@ import {
   inspectMigrationManifest,
 } from "../tooling/scripts/migration-policy";
 
+/** Проверяем одинаковый fresh/canonical план, закреплённый hash первых 42 записей, список последующих миграций и отказ при исторической дыре 0017–0019. */
 it("uses the already accepted fresh identities as the canonical release journal without changing SQL", async () => {
   const folder = new URL("../packages/database/drizzle/", import.meta.url);
   const journal = JSON.parse(

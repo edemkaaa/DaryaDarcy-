@@ -38,6 +38,7 @@ import {
   OUTFITS,
   INTERIORS,
 } from "./aesthetics-screen.content";
+/** Выбираем редакционные названия двух колонок стиля; структура данных остаётся romantic/workwear для всех эстетик. */
 function getTableHeaders(key: AestheticKey): [string, string] {
   switch (key) {
     case "darkAcademia":
@@ -56,6 +57,7 @@ function getTableHeaders(key: AestheticKey): [string, string] {
       return ["Романтическое", "Рабочее"];
   }
 }
+/** Совмещаем бесплатную аннотацию эстетики с отдельно полученными клубными текстами и иллюстрациями; ошибка одного источника не подменяет его публичной копией. */
 export default function AestheticsGuideScreen() {
   const router = useRouter();
   const viewport = useViewport();
@@ -77,13 +79,16 @@ export default function AestheticsGuideScreen() {
   const guideError =
     guides.find((guide) => guide.error)?.error ||
     visuals.find((query) => query.error)?.error;
+  /** Открываем бесплатный тест из оглавления и завершающего блока гайда. */
   const handleQuizCTA = () => {
     router.push("/quiz");
   };
+  /** Переводим гостя к экрану клуба для получения доступа к полному гайду. */
   const handleClubCTA = () => {
     router.push("/club");
   };
   const sectionRefs = useRef<Partial<Record<AestheticKey, HTMLDivElement>>>({});
+  /** Находим живой DOM-узел главы и пересчитываем смещение после возможной загрузки картинок. */
   const scrollToSection = (key: AestheticKey) => {
     const section = sectionRefs.current[key];
     if (section && scrollRef.current) {
@@ -232,7 +237,7 @@ export default function AestheticsGuideScreen() {
             </>
           )}
 
-          {/* Aesthetic Sections (only for subscribers) */}
+          {/* Тексты и иллюстрации приходят раздельно; повтор запрашивает оба набора, а главы связываются по единому AESTHETIC_ORDER. */}
           {hasClubAccess && (loadingGuides || guideError) && (
             <PrivateLibraryState
               isLoading={loadingGuides}
@@ -351,7 +356,7 @@ export default function AestheticsGuideScreen() {
                     </div>
                   ) : null}
 
-                  {/* Premium Content (Club only) */}
+                  {/* Закрытые разделы появляются только с подтверждённым текстом API; публичный результат теста выше не содержит этих полей. */}
                   {hasClubAccess && clubContent && (
                     <>
                       {/* СТИЛЬ */}

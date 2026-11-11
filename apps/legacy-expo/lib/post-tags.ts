@@ -1,3 +1,4 @@
+// Архив Expo. Показывает русское название известного slug, неизвестный оставляет как есть.
 export type PostTag = {
   slug: string;
   label: string;
@@ -50,11 +51,15 @@ export const ALL_POST_TAGS: PostTag[] = CLUB_TAGS;
 const LABEL_BY_SLUG = new Map(ALL_POST_TAGS.map((tag) => [tag.slug, tag.label.toLowerCase()]));
 
 export function postTagLabel(slug: string): string {
+  // Показывает русское название известного slug, неизвестный оставляет как есть.
+
   const found = ALL_POST_TAGS.find((tag) => tag.slug === slug);
   return found?.label || slug;
 }
 
 export function postHasTag(tags: string[] | null | undefined, filter: string): boolean {
+  // Сопоставляет фильтр как со slug, так и с русским названием без учёта регистра.
+
   const needle = filter.trim().toLowerCase();
   if (!needle) return false;
   return (tags || []).some((tag) => {
@@ -64,6 +69,8 @@ export function postHasTag(tags: string[] | null | undefined, filter: string): b
 }
 
 export function tagsForTarget(target: "feed" | "club" | "both"): PostTag[] {
+  // Выбирает набор рубрик и тем для целевого раздела редактора.
+
   if (target === "club") return CLUB_TAGS;
   if (target === "feed") return FEED_TAGS;
   return ALL_POST_TAGS;

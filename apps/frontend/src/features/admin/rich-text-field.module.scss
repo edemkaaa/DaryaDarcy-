@@ -2,6 +2,7 @@
 @use "../../shared/styles/layers";
 
 @layer components {
+  /* Общий контейнер берёт размеры и поверхность из CSS-переменных владельца формы. */
   .div {
     overflow: hidden;
     background-color: var(--editor-background, #fff);
@@ -11,6 +12,7 @@
     min-height: var(--editor-min-height, 200px);
   }
 
+  /* Рамка фокуса принадлежит контейнеру: вложенный textarea не добавляет вторую рамку. */
   .div:focus-within {
     border-color: var(--muted);
   }
@@ -24,6 +26,7 @@
     min-height: 168px;
   }
 
+  /* Текстовый input и слой подсветки обязаны иметь одинаковые отступы, шрифт и переносы для совпадения символов. */
   .editorInputWithBar,
   .highlightContent {
     padding-bottom: 8px;
@@ -45,6 +48,7 @@
     caret-color: var(--editor-color, var(--ink));
   }
 
+  /* При подсветке видимый текст рисует overlay, но каретка и выделение остаются у настоящего input. */
   .editorInputWithBar[data-highlighted="true"] {
     color: transparent;
     -webkit-text-fill-color: transparent;
@@ -56,6 +60,7 @@
     background-color: #ded2c2;
   }
 
+  /* Слой подсветки не перехватывает pointer-события и обрезается тем же viewport. */
   .highlightViewport {
     position: absolute;
     inset: 0;
@@ -75,6 +80,7 @@
     background-color: #eee5d7;
   }
 
+  /* Панель форматирования отделена от области ввода и не участвует в текстовых переносах. */
   .inlineToolbar {
     flex-direction: row;
     align-items: center;
@@ -150,6 +156,7 @@
     border-color: var(--border);
   }
 
+  /* Диалог ссылки центрируется отдельно, с ограниченной шириной карточки и явными действиями отмены/применения. */
   .linkModalOverlay {
     flex: 1;
     background-color: rgba(0, 0, 0, 0.35);
@@ -221,6 +228,7 @@
     font-weight: 600;
     color: var(--paper);
   }
+  /* Нижние классы переключают выбранное начертание и нажатие без изменения геометрии текста. */
   .appearanceState {
     border-color: var(--muted);
     background-color: var(--muted);

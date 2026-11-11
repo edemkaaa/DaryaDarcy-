@@ -1,3 +1,4 @@
+/** Проверяем идемпотентную очистку гостевой cookie через прямой tRPC caller; серверный отзыв проверяется отдельными SQL/HTTP-сценариями. */
 import { describe, expect, it } from "vitest";
 import { appRouter } from "../apps/backend/src/routers";
 import { COOKIE_NAME } from "../packages/shared/src/const";
@@ -10,6 +11,7 @@ type CookieCall = {
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 
+/** Строит синтетического пользователя и response-recorder, чтобы проверить точные параметры clearCookie. */
 function createAuthContext(): {
   ctx: TrpcContext;
   clearedCookies: CookieCall[];
@@ -52,7 +54,9 @@ function createAuthContext(): {
   return { ctx, clearedCookies };
 }
 
+/** Здесь проверяется гостевой путь без записи БД; отзыв авторизованной сессии этим набором не подтверждается. */
 describe("auth.logout", () => {
+  /** Проверяем success и удаление правильной защищённой cookie без maxAge. */
   it("idempotently clears a guest session cookie and reports success", async () => {
     const { ctx, clearedCookies } = createAuthContext();
     // Cookie cleanup is also idempotent for guests; authenticated revocation is

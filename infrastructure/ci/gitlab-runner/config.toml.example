@@ -6,6 +6,7 @@ check_interval = 3
 shutdown_timeout = 30
 log_level = "info"
 
+# Одна проектная регистрация принимает по одному job; токен заменяется в закрытой копии вне Git.
 [[runners]]
   name = "daryadarcy-staging-ci"
   url = "https://git.reeskeen.ru/"
@@ -17,6 +18,7 @@ log_level = "info"
   debug_trace_disabled = true
   environment = ["FF_NETWORK_PER_BUILD=true"]
 
+# Job и единственный MySQL-service ограничены отдельными ресурсами, без privileged, cache и host mounts.
   [runners.docker]
     image = "node:22-bookworm"
     privileged = false

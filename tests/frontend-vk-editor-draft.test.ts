@@ -1,3 +1,4 @@
+/** VK editor сохраняет base revision/uncertain payload между reload, не подменяя ручной ввод свежим серверным ответом. */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { setPersonalDataOwner } from "../apps/frontend/src/shared/browser/storage";
 import { parseVkEditorDetail } from "../apps/frontend/src/features/videos/catalog-api";
@@ -20,6 +21,7 @@ const detail = {
   editRevision: 0,
 };
 let values: Map<string, string>;
+/** Map sessionStorage принадлежит synthetic owner101. */
 beforeEach(() => {
   values = new Map();
   vi.stubGlobal("window", {
@@ -30,11 +32,13 @@ beforeEach(() => {
   });
   setPersonalDataOwner(101);
 });
+/** Снимаем owner/globals/spies. */
 afterEach(() => {
   setPersonalDataOwner(null);
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
+/** Revision0 валиден; parser убирает дополнительные поля, update содержит expectedRevision0. */
 it("accepts revision zero, nullable embed, and compatible additional fields", () => {
   expect(
     parseVkEditorDetail({ ...detail, embedUrl: null, extra: true }, 18),
@@ -44,6 +48,7 @@ it("accepts revision zero, nullable embed, and compatible additional fields", ()
     expectedRevision: 0,
   });
 });
+/** Неверные id/revision/URL/boolean не становятся base редактирования. */
 it.each([
   {},
   { ...detail, id: 19 },
@@ -55,6 +60,7 @@ it.each([
 ])("rejects malformed or mismatched detail %j", (value) => {
   expect(() => parseVkEditorDetail(value, 18)).toThrow();
 });
+/** Review свежего snapshot сохраняет ввод и старый base до явного reconcile, после которого write использует новую ревизию. */
 it("persists draft, original revision and uncertain state across reload without rebasing", () => {
   const store = new VkEditorDraftStore(101);
   const draft = {
@@ -80,6 +86,7 @@ it("persists draft, original revision and uncertain state across reload without 
     expectedRevision: 1,
   });
 });
+/** Scope owner не даёт другому аккаунту прочитать/заменить прежний draft. */
 it("another actor cannot read or overwrite the previous account's draft", () => {
   const store = new VkEditorDraftStore(101);
   store.save(draftFromVkDetail(101, detail));
@@ -88,6 +95,7 @@ it("another actor cannot read or overwrite the previous account's draft", () => 
   expect(() => store.save(emptyVkEditorDraft(101))).toThrow();
   expect(new VkEditorDraftStore(102).read()).toBeNull();
 });
+/** Corrupt/foreign/base revision/write/readback failure не разрешают отправку без журнала. */
 it.each(["corrupt", "owner", "revision", "write", "verify"])(
   "exposes %s persistence failures before mutation",
   (fault) => {
@@ -116,6 +124,7 @@ it.each(["corrupt", "owner", "revision", "write", "verify"])(
     expect(() => store.save(draftFromVkDetail(101, detail))).toThrow();
   },
 );
+/** Create payload не притворяется update существующего video. */
 it("new videos never receive an ID or expected revision", () => {
   expect(
     vkEditorPayload(
@@ -129,6 +138,23 @@ it("new videos never receive an ID or expected revision", () => {
     published: false,
   });
 });
+/** Публичная обложка попадает в запрос создания и редактирования без изменения ревизии. */
+it.each([false, true])("saves a public-v1 cover with editing=%s", (editing) => {
+  const thumbnailUrl =
+    "https://s3.twcstorage.ru/daryadarcy-s3/covers/public-v1/12345678-1234-4234-8234-123456789abc.webp";
+  const draft = editing
+    ? draftFromVkDetail(101, detail)
+    : { ...emptyVkEditorDraft(101), title: "New", embedUrl: detail.embedUrl };
+  const payload = vkEditorPayload(
+    { ...draft, thumbnailChanged: true, thumbnailUrl },
+    true,
+  );
+  expect(payload.thumbnailUrl).toBe(thumbnailUrl);
+  if (editing) expect(payload).toMatchObject({ id: 18, expectedRevision: 0 });
+  else expect(payload).not.toHaveProperty("id");
+});
+
+/** Uncertain writePayload неизменен после reload даже при другом thumbnail build flag. */
 it("a create replay retains its original cover payload even if build flags change after reload", () => {
   const draft = {
     ...emptyVkEditorDraft(101),
@@ -144,6 +170,7 @@ it("a create replay retains its original cover payload even if build flags chang
     payload,
   );
 });
+/** Редактирование без current matching base или после conflict требует сверки, не blind overwrite. */
 it("requires a matching loaded base for an update and a fresh base after 409/412", () => {
   expect(() =>
     vkEditorPayload(
@@ -168,6 +195,7 @@ it("requires a matching loaded base for an update and a fresh base after 409/412
   ).toThrow();
   expect(() => reconcileVkDraft(draftFromVkDetail(101, detail))).toThrow();
 });
+/** Omitted/null/new cover не смешиваются; explicit removal сохраняется через review/reconcile. */
 it("keeps omitted cover, explicit removal and replacement distinct after reconciliation", () => {
   const draft = draftFromVkDetail(101, detail);
   expect(vkEditorPayload(draft, true)).not.toHaveProperty("thumbnailUrl");

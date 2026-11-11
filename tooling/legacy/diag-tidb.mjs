@@ -1,9 +1,12 @@
+// Сравнивает два способа подключения к прежней БД; диагностические ошибки не следует публиковать целиком.
 import "dotenv/config";
 import mysql from "mysql2/promise";
 import { drizzle } from "drizzle-orm/mysql2";
 import { sql } from "drizzle-orm";
 
 async function main() {
+  // Сравнивает прямое MySQL и Drizzle-чтение tags; сообщения ошибок могут содержать приватные параметры окружения.
+
   const url = process.env.DATABASE_URL;
   if (!url) {
     console.log("NO_DATABASE_URL");

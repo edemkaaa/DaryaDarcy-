@@ -1,3 +1,4 @@
+/** Проверяем реальные brace-expansion из цепочки ESLint/minimatch с ограниченными процессами и входами. */
 import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { expect, it } from "vitest";
@@ -7,6 +8,7 @@ const globRequire = createRequire(lintRequire.resolve("minimatch"));
 const expansionPath = globRequire.resolve("brace-expansion");
 
 // The real lint dependency, not a separately installed parser or version check.
+/** Большую последовательность проверяем в процессе с ограниченными heap, timeout и stdout; закрепляем верхний предел результата. */
 it("caps default sequence output in a bounded disposable child", () => {
   const output = execFileSync(
     process.execPath,
@@ -32,14 +34,17 @@ const expand = globRequire("brace-expansion") as (
   options?: { max?: number; maxLength?: number },
 ) => string[];
 
+/** Явный max ограничивает число комбинаций, сохраняя их ожидаемый порядок. */
 it("bounds Cartesian products by output count", () => {
   expect(expand("{a,b}{1,2,3}", { max: 3 })).toEqual(["a1", "a2", "a3"]);
 });
 
+/** maxLength ограничивает суммарные символы, не только количество строк. */
 it("bounds accumulated output characters", () => {
   expect(expand("{aa,bb,cc}", { maxLength: 4 })).toEqual(["aa", "bb"]);
 });
 
+/** Регрессионная таблица сохраняет совместимость обычных lint-шаблонов, шагов диапазона и экранирования. */
 it("preserves ordinary lint braces, ranges, escapes and legacy dollar syntax", () => {
   const fixtures: [string, string[]][] = [
     ["src/*.{ts,tsx}", ["src/*.ts", "src/*.tsx"]],

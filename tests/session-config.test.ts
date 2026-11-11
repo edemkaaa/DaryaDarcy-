@@ -1,9 +1,12 @@
+/** Fail-fast конфигурация JWT: локальные тесты и production имеют разные требования. */
 import { afterEach, expect, it, vi } from "vitest";
 import { validateSessionConfiguration } from "../apps/backend/src/_core/session-config";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import type { AddressInfo } from "node:net";
 
+/** Возвращаем окружение после каждого варианта запуска. */
 afterEach(() => vi.unstubAllEnvs());
+/** Пустой и короткий production-ключ отвергается ещё до HTTP. */
 it.each(["", " ", "short", "x".repeat(31)])(
   "refuses a missing or short production JWT key",
   (key) => {
@@ -12,11 +15,13 @@ it.each(["", " ", "short", "x".repeat(31)])(
     expect(() => validateSessionConfiguration()).toThrow(/JWT_SECRET/);
   },
 );
+/** Отсутствие боевого ключа не мешает изолированному тестовому окружению. */
 it("allows local tests without a production signing key", () => {
   vi.stubEnv("NODE_ENV", "test");
   vi.stubEnv("JWT_SECRET", "");
   expect(() => validateSessionConfiguration()).not.toThrow();
 });
+/** Локальный health-порт запускается с достаточно длинным фиктивным ключом и без БД; приложение всегда закрывается. */
 it("starts the production API with a sufficiently long synthetic signing key", async () => {
   vi.stubEnv("NODE_ENV", "production");
   vi.stubEnv("JWT_SECRET", "synthetic-test-only-production-key-32-bytes");

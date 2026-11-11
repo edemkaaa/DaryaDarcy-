@@ -1,3 +1,4 @@
+// Архив Expo. Публичный re-export темы: потребители не зависят от внутреннего расположения палитры.
 /**
  * Thin re-exports so consumers don't need to know about internal theme plumbing.
  * Full implementation lives in lib/_core/theme.ts.

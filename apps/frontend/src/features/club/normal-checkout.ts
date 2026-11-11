@@ -42,6 +42,7 @@ const intentSchema = z
 export type NormalCheckoutIntent = z.infer<typeof intentSchema>;
 export type NormalCheckoutStatus = z.infer<typeof statusSchema>;
 export type NormalCheckoutResult = z.infer<typeof resultSchema>;
+/** Проверяем статус боевой покупки отдельно от результата создания; дата окончания приходит через tRPC как Date. */
 export function parseNormalCheckoutStatus(
   value: unknown,
 ): NormalCheckoutStatus {
@@ -49,6 +50,7 @@ export function parseNormalCheckoutStatus(
   if (!result.success) throw invalidResponse();
   return result.data;
 }
+/** Проверяем ответ создания и дополнительно ограничиваем платёжный URL для pending. */
 export function parseNormalCheckoutResult(
   value: unknown,
 ): NormalCheckoutResult {
@@ -58,10 +60,12 @@ export function parseNormalCheckoutResult(
     ? { ...result.data, url: requirePaymentUrl(result.data.url) }
     : result.data;
 }
+/** Возвращаем безопасное сообщение о недоступном хранилище, не предлагая начать новую покупку. */
 const unreadable = () =>
   new Error(
     "Не удалось проверить сохранённую покупку. Новая покупка не начата. Разрешите хранение данных сайта и попробуйте снова.",
   );
+/** Отделяем смену намерения другой вкладкой от подтверждённого результата оплаты. */
 const changed = () =>
   new Error(
     "Сохранённая покупка изменилась. Повторите проверку её результата.",
@@ -69,14 +73,18 @@ const changed = () =>
 
 /** One account's NORMAL intent; URL, email and payment proof are never persisted. */
 export class NormalCheckoutJournal {
+  /** Закрепляем журнал NORMAL за одним идентификатором аккаунта. */
   constructor(readonly ownerId: number) {}
+  /** Разделяем локальные свидетельства покупки по владельцу. */
   private storageKey() {
     return `darcy:user:${this.ownerId}:normal-checkout:v1`;
   }
+  /** Проверяем и сигнал операции, и актуального владельца персонального storage. */
   private assertOwner(signal?: AbortSignal) {
     signal?.throwIfAborted();
     if (!isPersonalDataOwner(this.ownerId)) throw changed();
   }
+  /** Строго читаем ограниченный снимок; повреждённая запись блокирует новый заказ вместо незаметного сброса. */
   read(): NormalCheckoutIntent | null {
     this.assertOwner();
     try {
@@ -91,6 +99,7 @@ export class NormalCheckoutJournal {
       throw unreadable();
     }
   }
+  /** Сериализуем проверенное намерение и подтверждаем его обратным чтением. */
   private persist(value: NormalCheckoutIntent) {
     this.assertOwner();
     try {
@@ -103,6 +112,7 @@ export class NormalCheckoutJournal {
     }
     return value;
   }
+  /** Координируем вкладки через Web Locks с ограничением ожидания; проверяем владельца до и после работы. */
   private async locked<T>(
     signal: AbortSignal,
     work: () => Promise<T> | T,
@@ -135,6 +145,7 @@ export class NormalCheckoutJournal {
       clearTimeout(timer);
     }
   }
+  /** Проверяем обязательный телефон нового заказа и создаём отличный от предыдущего UUID до сетевого вызова. */
   private newIntent(
     plan: NormalCheckoutIntent["plan"],
     previous?: NormalCheckoutIntent,
@@ -155,6 +166,7 @@ export class NormalCheckoutJournal {
     });
   }
   // Перед сетью сверяем сохранённую версию: другая вкладка могла уже заменить или завершить намерение.
+  /** Перед продолжением сравниваем ключ, план и контакт с актуальной записью, не присваивая результат другому намерению. */
   requireCurrent(
     intent: NormalCheckoutIntent,
     signal: AbortSignal,
@@ -170,6 +182,7 @@ export class NormalCheckoutJournal {
       throw changed();
     return current;
   }
+  /** Повторно используем существующее намерение; новую месячную покупку готовим только при его отсутствии. */
   prepare(
     signal: AbortSignal,
     contactPhone?: string,
@@ -180,6 +193,7 @@ export class NormalCheckoutJournal {
     );
   }
   // После первого ответа заказ привязан к ключу; другой orderId нельзя принять за продолжение той же покупки.
+  /** Привязываем первый серверный orderId к намерению и отклоняем последующие несовпадающие идентификаторы. */
   rememberOrder(
     intent: NormalCheckoutIntent,
     result: NormalCheckoutStatus,
@@ -197,6 +211,7 @@ export class NormalCheckoutJournal {
     });
   }
   // Новый ключ разрешается после свежей проверки завершённого заказа, а не по устаревшему состоянию кнопки.
+  /** Создаём следующий ключ лишь после свежего succeeded/failed по прежнему заказу под той же блокировкой. */
   next(
     client: TRPCClient<AppRouter>,
     intent: NormalCheckoutIntent,
@@ -223,6 +238,7 @@ export class NormalCheckoutJournal {
   }
 }
 
+/** Запрашиваем статус исходного ключа и сохраняем проверенную привязку заказа без создания оплаты. */
 export async function checkNormalCheckout(
   client: TRPCClient<AppRouter>,
   journal: NormalCheckoutJournal,
@@ -240,6 +256,7 @@ export async function checkNormalCheckout(
   journal.requireCurrent(current, signal);
   return { intent: current, result };
 }
+/** Отправляем сохранённый ключ и контакты в payload NORMAL; TEST-заголовок здесь не используется. */
 export async function createNormalCheckout(
   client: TRPCClient<AppRouter>,
   journal: NormalCheckoutJournal,

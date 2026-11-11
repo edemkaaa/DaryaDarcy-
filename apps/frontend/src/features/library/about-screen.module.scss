@@ -2,6 +2,7 @@
 @use "../../shared/styles/layers";
 
 @layer components {
+  /* Портретная пропорция слайда резервирует место, изображение заполняет рамку, индикаторы остаются ниже. */
   .carouselItem {
     aspect-ratio: 0.75;
   }
@@ -48,6 +49,7 @@
     text-transform: uppercase;
   }
 
+  /* Оглавление отделено карточкой от основного рассказа; подпись пункта занимает оставшуюся ширину строки. */
   .tocContainer {
     margin-left: 24px;
     margin-right: 24px;
@@ -95,6 +97,7 @@
     flex: 1;
   }
 
+  /* Тематические части имеют собственные заголовки, изображения 3:2 и текстовые поля. */
   .partContainer {
     padding-left: 20px;
     padding-right: 20px;
@@ -146,6 +149,7 @@
     letter-spacing: 1px;
   }
 
+  /* Возврат к началу отделён от финальной подписи, чтобы оставаться явным действием. */
   .backToTopButton {
     align-self: center;
     padding-left: 24px;
@@ -163,6 +167,7 @@
     color: var(--brown);
     letter-spacing: 1px;
   }
+  /* Разный размер точки отмечает текущий слайд; размер области карусели при этом не меняется. */
   .appearanceState {
     width: 8px;
     height: 8px;

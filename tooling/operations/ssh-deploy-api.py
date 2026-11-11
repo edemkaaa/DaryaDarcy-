@@ -13,6 +13,7 @@ for line in (root / ".env").read_text(encoding="utf-8").splitlines():
 
 ssh_port = int((env.get("DEPLOY_SSH_PORT") or "22").strip() or "22")
 
+# Повторяется только установление соединения до передачи, а не потенциально завершившийся удалённый deploy.
 sock = None
 last_error = None
 for attempt in range(1, 4):
@@ -41,6 +42,7 @@ client.connect(
     look_for_keys=False,
 )
 
+# Заменяется dist/index.mjs на сервере; проверка версии и отдельный образ отката этим не создаются.
 sftp = client.open_sftp()
 sftp.put(str(root / "dist" / "index.mjs"), "/var/www/daryadarcy/dist/index.mjs")
 sftp.close()
@@ -57,6 +59,7 @@ curl -sS --max-time 8 http://127.0.0.1:3000/api/health || true
 echo
 echo DONE
 """
+# Удалённый PM2-процесс пересоздаётся; скрипт относится к прежней архитектуре без двух API-реплик.
 stdin, stdout, stderr = client.exec_command(cmd, timeout=60)
 out = stdout.read().decode("utf-8", errors="replace")
 err = stderr.read().decode("utf-8", errors="replace")

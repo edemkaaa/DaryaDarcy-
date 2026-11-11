@@ -1,3 +1,4 @@
+/** App-scoped session service проверяется настоящими локальными HTTP uploads до JSON-парсера. */
 import { afterEach, expect, it, vi } from "vitest";
 import type { INestApplication } from "@nestjs/common";
 import type { AddressInfo } from "node:net";
@@ -6,12 +7,14 @@ import { SessionService } from "../apps/backend/src/identity/session.service";
 import type { User } from "../packages/database/src/schema";
 
 const apps: INestApplication[] = [];
+/** Закрываем все приложения текущего теста, снимаем spies и env. */
 afterEach(async () => {
   await Promise.all(apps.splice(0).map((app) => app.close()));
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
 });
 
+/** Гость/user получают 401/403 до повреждённого 300 КБ JSON; только admin доходит до parser 400. */
 it("each app checks its own session before parsing an upload body", async () => {
   vi.stubEnv("DATABASE_URL", "");
   for (const [role, expected] of [
@@ -40,6 +43,7 @@ it("each app checks its own session before parsing an upload body", async () => 
   }
 });
 
+/** Сбой optionalUser превращается в 503 без parse, cookie и раскрытия внутренней причины. */
 it("an app-owned session failure at upload admission stays unavailable without parsing or leaking details", async () => {
   vi.stubEnv("DATABASE_URL", "");
   const app = await createBackendApplication();

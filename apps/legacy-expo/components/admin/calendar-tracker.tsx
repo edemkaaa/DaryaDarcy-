@@ -1,3 +1,4 @@
+// Архив Expo. Архивный календарь группирует полный admin.posts на клиенте и показывает два соседних месяца.
 import { useState, useMemo } from "react";
 import {
   Text,
@@ -43,6 +44,8 @@ interface CalendarTrackerProps {
 }
 
 export function CalendarTracker({ onPostPress, onDayPress }: CalendarTrackerProps) {
+  // Архивный календарь группирует полный admin.posts на клиенте и показывает два соседних месяца.
+
   const [currentDate, setCurrentDate] = useState(new Date());
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -50,6 +53,8 @@ export function CalendarTracker({ onPostPress, onDayPress }: CalendarTrackerProp
   const { data: allPosts, isLoading } = trpc.admin.posts.useQuery();
 
   const postsByDay = useMemo(() => {
+    // Выбирает scheduledAt, затем publishedAt/createdAt и группирует записи в локальных календарных днях.
+
     const byMonth = new Map<string, Map<number, ScheduledPost[]>>();
     if (!allPosts) return byMonth;
 
@@ -69,6 +74,8 @@ export function CalendarTracker({ onPostPress, onDayPress }: CalendarTrackerProp
   }, [allPosts]);
 
   const upcoming = useMemo(() => {
+    // Сортирует отложенные публикации по времени и оставляет восемь ближайших из полного списка.
+
     if (!allPosts) return [] as ScheduledPost[];
     return (allPosts as ScheduledPost[])
       .filter((post) => post.status === "scheduled" && post.scheduledAt)
@@ -77,16 +84,22 @@ export function CalendarTracker({ onPostPress, onDayPress }: CalendarTrackerProp
   }, [allPosts]);
 
   const goToPrevMonth = () => {
+    // Сдвигает опорный месяц назад с native haptic.
+
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setCurrentDate(new Date(year, month - 1, 1));
   };
 
   const goToNextMonth = () => {
+    // Сдвигает опорный месяц вперёд с native haptic.
+
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setCurrentDate(new Date(year, month + 1, 1));
   };
 
   const getStatusColor = (status: string) => {
+    // Назначает декоративный цвет опубликованному, отложенному и черновому статусу.
+
     switch (status) {
       case "published": return OLIVE;
       case "scheduled": return ACCENT;
@@ -96,6 +109,8 @@ export function CalendarTracker({ onPostPress, onDayPress }: CalendarTrackerProp
   };
 
   const monthStats = (y: number, m: number) => {
+    // Считает статусы внутри уже сгруппированного месяца без нового запроса.
+
     const map = postsByDay.get(`${y}-${m}`) || new Map();
     const posts = [...map.values()].flat();
     return {
@@ -212,6 +227,8 @@ function MonthGrid({
   onPostPress?: (post: ScheduledPost) => void;
   onDayPress?: (date: Date) => void;
 }) {
+  // Строит сетку с понедельника, миниатюрой первого поста дня и переходом в пост либо создание на дату.
+
   const firstDayOfMonth = new Date(year, month, 1);
   let startDay = firstDayOfMonth.getDay() - 1;
   if (startDay < 0) startDay = 6;
@@ -290,6 +307,7 @@ function MonthGrid({
 }
 
 // ── Styles ──
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   container: { padding: 16 },
   loadingContainer: { padding: 40, alignItems: "center" },

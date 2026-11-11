@@ -1,5 +1,6 @@
 // Generated locally from silence / a single black 16x16 frame with FFmpeg.
 // No user files, remote media, storage transport or production detector used.
+// Base64 хранит локальную тишину и чёрный кадр; фикстуры не содержат пользовательских файлов и должны сохраняться побайтово.
 export const mp3Fixture = Buffer.from(
   "SUQzBAAAAAAAIlRTU0UAAAAOAAADTGF2ZjYzLjEuMTAyAAAAAAAAAAAAAAD/4xjEAAAAA0gAAAAATEFNRTQuMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/4xjEOwAAA0gAAAAAVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/4xjEdgAAA0gAAAAAVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVU=",
   "base64",
@@ -20,6 +21,8 @@ export const movFixture = Buffer.from(
 );
 
 export function wavFixture(sample = 0): Buffer {
+  // Конструирует минимальный mono PCM WAV с одним управляемым sample, чтобы детектор работал на реальном заголовке без чужих записей.
+
   const bytes = Buffer.alloc(46);
   bytes.write("RIFF", 0);
   bytes.writeUInt32LE(38, 4);

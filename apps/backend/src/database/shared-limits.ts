@@ -9,6 +9,7 @@ type Reservation =
   | { ok: true; key: string; generation: string; attempt: number }
   | { ok: false; retryAfterSec: number };
 type Kind = "rate" | "login";
+/** Выполняем параметризованную команду общей квоты с конечным пятисекундным таймаутом на заимствованном соединении. */
 const query = <T extends RowDataPacket[]>(
   connection: PoolConnection,
   sql: string,
@@ -79,6 +80,7 @@ async function reserve(
           if (Number(size[0].n) >= 10_000)
             return { ok: false as const, retryAfterSec: 60 };
         }
+// Начиная с пятой попытки входа назначаем возрастающую задержку до 30 секунд; используется общее время MySQL, а не часы реплик.
         const delay =
           kind === "login" && attempt >= 5
             ? Math.min(30_000, 1000 * 2 ** Math.min(attempt - 5, 5))
@@ -133,6 +135,7 @@ export async function beginSharedLogin(
   if (!admission.ok) return admission;
   return {
     ok: true,
+    /** Сбрасываем только поколение и номер успешно завершённой попытки под общей блокировкой; старый успех не снимает более новый счётчик перебора. */
     succeeded: async () => {
       try {
         const result = await withDatabaseLock(

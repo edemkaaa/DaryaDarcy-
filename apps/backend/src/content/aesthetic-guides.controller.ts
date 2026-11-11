@@ -9,10 +9,12 @@ import { aestheticGuides } from "./aesthetic-guides";
 
 @Controller("api/library/guides/aesthetics")
 export class AestheticGuidesController {
+  /** Получает единый SessionService приложения, чтобы выдача гида учитывала актуальный epoch пользователя. */
   constructor(
     @Inject(SessionService) private readonly sessions: SessionService,
   ) {}
 
+  /** Валидирует ключ/отсутствие query и требует текущую сессию с клубным доступом; denial скрыт под 404, инфраструктурная ошибка даёт 503 и no-store. */
   @Get(":key")
   async read(
     @Param("key") key: string,

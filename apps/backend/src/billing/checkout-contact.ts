@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { contactPhoneSchema } from "../../../../packages/shared/src/checkout-contact";
 import { billingKey } from "./protocol";
 
+/** Применяет общую схему телефона и возвращает канонический контакт; неверный номер отклоняется BAD_REQUEST без SMS. */
 export function requireCheckoutContact(value: unknown): string {
   const parsed = contactPhoneSchema.safeParse(value);
   if (!parsed.success)

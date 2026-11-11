@@ -6,7 +6,9 @@ const png = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==",
   "base64",
 );
+/** Свежие даты fixture сохраняют открытое окно обсуждения. */
 const now = () => new Date().toISOString();
+/** Генерируем канонический receipt commentPhoto с уникальным assetId, отдельно от исходных blob-URL. */
 const privatePhoto = (input: Record<string, unknown>, index: number) => {
   const assetId = `3af23d8c-140f-454b-a123-${String(index).padStart(12, "0")}`;
   return {
@@ -19,6 +21,7 @@ const privatePhoto = (input: Record<string, unknown>, index: number) => {
     url: `/api/media/content-files/${assetId}`,
   };
 };
+/** Owner и parentId различают собственную строку, чужой комментарий и ответ без настоящих аккаунтов. */
 const comment = (id = 11, userId = 101) => ({
   id,
   userId,
@@ -32,6 +35,7 @@ const comment = (id = 11, userId = 101) => ({
   likeCount: 0,
   likedByMe: false,
 });
+/** Подготовленная участница используется для admin block/grant сценариев. */
 const member = () => ({
   id: 201,
   email: "member@example.test",
@@ -43,6 +47,7 @@ const member = () => ({
   blockedAt: null,
   blockedReason: null,
 });
+/** Жалоба связывает конкретные commentId/reportId/author, чтобы действия не затрагивали произвольную строку. */
 const report = () => ({
   id: 31,
   commentId: 12,
@@ -57,6 +62,7 @@ const report = () => ({
   reporterUserId: 202,
   reporterName: "Участница",
 });
+/** Общая synthetic-discussion допускает точечные overrides и отдельную роль; отсутствие custom-ответа сохраняет согласованный доступ. */
 async function commentsApi(
   page: Page,
   answer?: Parameters<typeof editorApi>[1],
@@ -113,11 +119,13 @@ async function commentsApi(
     }),
   );
 }
+/** Открываем клубную рубрику обсуждений и ждём собственный комментарий до действия. */
 async function openComments(page: Page) {
   await gotoWithSession(page, "/club");
   await page.getByRole("button", { name: "Комьюнити", exact: true }).click();
   await expect(page.getByText("OWN_COMMENT", { exact: true })).toBeVisible();
 }
+/** Выбираем две локальные PNG одновременно; upload не должен начаться до отправки комментария. */
 async function choosePhotos(page: Page) {
   const chooser = page.waitForEvent("filechooser");
   await page.getByRole("button", { name: "Фото (0/2)", exact: true }).click();
@@ -131,6 +139,7 @@ async function choosePhotos(page: Page) {
     })),
   );
 }
+/** Собираем alert и подтверждаем prompt/confirm с синтетической причиной блокировки. */
 function dialogs(page: Page) {
   const messages: string[] = [];
   page.on("dialog", async (dialog) => {
@@ -141,6 +150,7 @@ function dialogs(page: Page) {
   return messages;
 }
 
+/** После частичного upload-failure весь frozen-comment остаётся неподтверждённым; discard очищает локальный intent, не отправляя комментарий с неполным набором фото. */
 test("a partial private photo failure blocks the frozen comment until explicit discard refreshes the list", async ({
   page,
 }) => {
@@ -192,6 +202,7 @@ test("a partial private photo failure blocks the frozen comment until explicit d
   expect(uploads).toBe(2);
 });
 
+/** Unknown-toggle комментария не повторяется до успешного read; неудачный read сохраняет блокировку. */
 test("an unknown like cannot be repeated until a successful read, and a failed read keeps it blocked", async ({
   page,
 }) => {
@@ -229,6 +240,7 @@ test("an unknown like cannot be repeated until a successful read, and a failed r
   expect(likes).toBe(1);
 });
 
+/** Уже подтверждённые liked/count переживают сбой последующего обновления списка. */
 test("a confirmed comment like and count survive a failed refresh", async ({
   page,
 }) => {
@@ -252,6 +264,7 @@ test("a confirmed comment like and count survive a failed refresh", async ({
   await expect(liked).toContainText("8");
 });
 
+/** Read списка сам не доказывает unknown-create; нужен keyed-replay либо явный discard локальной отправки. */
 test("an unknown comment creation keeps its draft and cannot be unlocked by reading alone", async ({
   page,
 }) => {
@@ -288,6 +301,7 @@ test("an unknown comment creation keeps its draft and cannot be unlocked by read
   expect(sends).toHaveLength(1);
 });
 
+/** Pending-edit блокирует отмену формы; известный отказ возвращает ввод без его потери. */
 test("canceling an edit is disabled while the server is saving it", async ({
   page,
 }) => {
@@ -323,6 +337,7 @@ test("canceling an edit is disabled while the server is saving it", async ({
   await expect(field).toHaveValue("EDIT_DRAFT");
 });
 
+/** Два синхронных native-click на admin-block дают один write, пока первый ждёт ответа. */
 test("two synchronous admin block clicks send one write", async ({ page }) => {
   let blocks = 0;
   let release!: () => void;
@@ -352,6 +367,7 @@ test("two synchronous admin block clicks send one write", async ({ page }) => {
   release();
 });
 
+/** Неполный grant-ACK не объявляет продление успешным. */
 test("an invalid grant response cannot be announced as a successful extension", async ({
   page,
 }) => {
@@ -371,6 +387,7 @@ test("an invalid grant response cannot be announced as a successful extension", 
   ).toEqual([]);
 });
 
+/** Модератор читает только report-inbox; owner-only admin-процедуры не запрашиваются, действия остаются доступными на узких экранах. */
 test("a moderator can use the report inbox without requesting owner-only admin data", async ({
   page,
 }, testInfo) => {
@@ -426,6 +443,7 @@ test("a moderator can use the report inbox without requesting owner-only admin d
   await page.screenshot({ path: testInfo.outputPath("moderation-1440.png") });
 });
 
+/** Собственный комментарий допускает edit/delete; чужой даёт report пользователю и delete сотруднику, не делая роль авторством. */
 for (const role of ["user", "moderator", "admin"]) {
   test(`${role}: comment menus expose only permitted actions`, async ({
     page,
@@ -477,6 +495,7 @@ for (const role of ["user", "moderator", "admin"]) {
   });
 }
 
+/** Два подтверждённых photo-receipt прикрепляются к одному keyed reply; double-click не дублирует запись, total обновляется. */
 test("a reply with two confirmed photos is sent once and updates the loaded comment count", async ({
   page,
 }) => {
@@ -529,6 +548,7 @@ test("a reply with two confirmed photos is sent once and updates the loaded comm
   ]);
 });
 
+/** Edit меняет только текст и сохраняет исходные photos через известный отказ и явный повтор. */
 test("a rejected text edit retains the draft and leaves existing comment photos untouched", async ({
   page,
 }) => {
@@ -575,6 +595,7 @@ test("a rejected text edit retains the draft and leaves existing comment photos 
   ).toBeVisible();
 });
 
+/** Known400 и unknown503 при закрытии жалобы сохраняют строку; unknown снимается только успешной свежей инспекцией. */
 for (const status of [400, 503]) {
   test(`report dismissal ${status}: failure keeps the report and only a fresh read can release an unknown action`, async ({
     page,
@@ -621,6 +642,7 @@ for (const status of [400, 503]) {
   });
 }
 
+/** Удаление reported-comment обновляет inbox и передаёт точную пару commentId/reportId. */
 test("a confirmed moderator deletion refreshes the inbox and affected comments", async ({
   page,
 }) => {
@@ -644,6 +666,7 @@ test("a confirmed moderator deletion refreshes the inbox and affected comments",
   expect(writes).toEqual([{ commentId: 12, reportId: 31 }]);
 });
 
+/** Поздний grant-ACK не сохраняет admin-UI и не сообщает успех после подтверждённого logout. */
 test("a revoked session cannot show a late successful grant or retain admin UI", async ({
   page,
 }) => {
@@ -679,6 +702,7 @@ test("a revoked session cannot show a late successful grant or retain admin UI",
   ).toEqual([]);
 });
 
+/** Пост для quick-tag/delete сценариев отделён от discussion-fixture. */
 const managedPost = () => ({
   id: 1,
   text: "MANAGED_POST",
@@ -696,6 +720,7 @@ const managedPost = () => ({
   commentCount: 0,
 });
 
+/** Quick-tags сохраняют выбор после отказа; unknown требует read до нового явного update, double-click дедуплицируется. */
 for (const status of [400, 503]) {
   test(`quick tags preserve selection after ${status} and require inspection before retrying an unknown write`, async ({
     page,
@@ -745,6 +770,7 @@ for (const status of [400, 503]) {
   });
 }
 
+/** Void delete-ответ подтверждается отсутствием точечного поста, а не одним HTTP200. */
 test("a void post deletion response is not confirmed while the post still exists", async ({
   page,
 }) => {
@@ -783,6 +809,7 @@ test("a void post deletion response is not confirmed while the post still exists
   expect(deletes).toBe(1);
 });
 
+/** Успешный grant использует returned expiry и свежий member-read, не вычисляя срок локально. */
 test("a confirmed club grant announces the returned expiry and refreshes members", async ({
   page,
 }) => {

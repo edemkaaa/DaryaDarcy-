@@ -20,6 +20,8 @@ export async function uploadAdminVideoBlob(
   filename: string,
   signal?: AbortSignal,
 ): Promise<string> {
+  // Совместимый бинарный транспорт проверяет размер, формат и возвращённый URL; автоматического повтора не делает.
+
   signal?.throwIfAborted();
   validateFileSize(blob, MAX_VIDEO_BYTES);
   if (
@@ -93,6 +95,8 @@ export async function uploadAdminVideoFromUri(
   mimeType?: string,
   signal?: AbortSignal,
 ): Promise<string> {
+  // Читает источник с ограничением размера и при необходимости уточняет MIME перед общей отправкой.
+
   const blob = await runApiRequest(uri, { signal }, async (response) => {
     if (!response.ok) throw new Error("Не удалось прочитать видеофайл");
     return readResponseBlob(response, MAX_VIDEO_BYTES, signal);

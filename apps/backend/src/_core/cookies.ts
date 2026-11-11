@@ -7,6 +7,7 @@ import {
 
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
 
+/** Отличает IPv4/IPv6 от доменного hostname только для удаления старой доменной cookie. */
 function isIpAddress(host: string) {
   // Для старой доменной cookie достаточно отличить IP от доменного имени.
   if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return true;
@@ -46,12 +47,14 @@ export function getSessionCookieOptions(
   };
 }
 
+/** Удаляет прежнюю parent-domain cookie, не распространяя новую сессию на соседние поддомены. */
 function expireLegacySessionCookie(req: Request, res: Response): void {
   const domain = legacyParentDomain(req.hostname);
   if (domain)
     res.clearCookie(COOKIE_NAME, { ...getSessionCookieOptions(req), domain });
 }
 
+/** Перед новой host-only сессией удаляет старую доменную cookie; выставляет HttpOnly и годовой срок. */
 export function setSessionCookie(
   req: Request,
   res: Response,

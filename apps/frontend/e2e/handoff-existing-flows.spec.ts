@@ -13,6 +13,7 @@ const person = {
 };
 const receipt =
   "Запрос принят. Проверьте почту: в письме будет ссылка для установки пароля.";
+/** Удерживаем персональный read до явной recovery-проверки и освобождаем его в finally. */
 const deferred = () => {
   let resolve!: () => void;
   const promise = new Promise<void>((done) => {
@@ -20,6 +21,7 @@ const deferred = () => {
   });
   return { promise, resolve };
 };
+/** Синтетические сессия, пароль, доступ, detail/комментарии и toggle меняются независимо; это client-handoff проверки, не SQL/hash/SMTP тест. */
 async function fixture(page: Page, authenticated = true) {
   const state = {
     user: authenticated ? { ...person } : (null as typeof person | null),
@@ -43,6 +45,7 @@ async function fixture(page: Page, authenticated = true) {
     liked: [] as number[],
     saved: [] as number[],
   };
+  /** Одна карточка объединяет обычное фото и video-attachment, чтобы fresh refusal убирал все способы чтения прежнего содержимого. */
   const post = () => ({
     id: 1,
     text: "HANDOFF_POST",
@@ -176,6 +179,7 @@ async function fixture(page: Page, authenticated = true) {
   );
   return state;
 }
+/** Проходим регистрацию с согласием через реальную форму без локального входа. */
 async function register(page: Page) {
   await gotoWithSession(page, "/login");
   await page
@@ -188,11 +192,13 @@ async function register(page: Page) {
     .getByRole("button", { name: "Получить письмо", exact: true })
     .click();
 }
+/** Отдельный login использует введённый пароль и возвращает профиль только после ответа synthetic auth. */
 async function login(page: Page, password: string) {
   await page.getByLabel("Email", { exact: true }).fill(person.email);
   await page.getByLabel("Пароль", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Войти", exact: true }).click();
 }
+/** Эмулируем hidden→visible на document, чтобы запустить реальную client revalidation без фокуса ОС. */
 async function wake(page: Page) {
   await page.evaluate(() => {
     Object.defineProperty(document, "visibilityState", {
@@ -217,6 +223,7 @@ async function wake(page: Page) {
     document.dispatchEvent(new Event("visibilitychange", { bubbles: true }));
   });
 }
+/** 202 означает принятие инструкции: форма разрешает явный повтор, но не объявляет доставку или создание сессии. */
 test("202 keeps registration and explicit resend without claiming delivery or a session", async ({
   page,
 }) => {
@@ -239,6 +246,7 @@ test("202 keeps registration and explicit resend without claiming delivery or a 
     path: test.info().outputPath("registration-accepted-mobile.png"),
   });
 });
+/** Временный отказ регистрации сохраняет поля и допускает новый явный запрос без открытия password-input. */
 test("SMTP refusal keeps fields and permits a deliberate registration retry", async ({
   page,
 }) => {
@@ -262,6 +270,7 @@ test("SMTP refusal keeps fields and permits a deliberate registration retry", as
   await expect(page.getByText(receipt, { exact: true })).toBeVisible();
   expect(state.logins).toEqual([]);
 });
+/** Запрос инструкции не является сменой пароля и сам не делает старый пароль непригодным. */
 test("accepted password instructions stay separate from login and leave the old password usable", async ({
   page,
 }) => {
@@ -285,6 +294,7 @@ test("accepted password instructions stay separate from login and leave the old 
   await login(page, "initial-password");
   await expect(page).toHaveURL(/\/profile$/);
 });
+/** Завершение password-формы требует отдельного login и не создаёт сессию по одному success-сообщению. */
 test("the frontend password page reports completion and still requires a separate login", async ({
   page,
 }) => {
@@ -316,6 +326,7 @@ test("the frontend password page reports completion and still requires a separat
   await login(page, "installed-password");
   await expect(page).toHaveURL(/\/profile$/);
 });
+/** Подтверждённый отзыв сессии убирает личный доступ, сохраняя оплаченный период после разрешённого повторного входа. */
 for (const reason of ["password reset", "blocking"] as const) {
   test(`${reason} closes the old session and a new login preserves paid expiry`, async ({
     page,
@@ -347,6 +358,7 @@ for (const reason of ["password reset", "blocking"] as const) {
     await expect(page.getByText(/1 ноября 2040/)).toBeVisible();
   });
 }
+/** Missing/undefined/403/404 свежего detail закрывают прежний body, viewer и video; временный 503 проверяется отдельно. */
 for (const outcome of ["missing", "undefined", 403, 404] as const) {
   test(`fresh post result ${outcome} removes old content, photo viewer and media`, async ({
     page,
@@ -384,6 +396,7 @@ for (const outcome of ["missing", "undefined", 403, 404] as const) {
     ).toBeVisible();
   });
 }
+/** Временная ошибка обновления не превращает подтверждённый материал в «не найден».  */
 test("temporary post failure preserves confirmed content and does not manufacture absence", async ({
   page,
 }) => {
@@ -412,6 +425,7 @@ test("guest public discussion offers login without calling authenticated comment
   ).toBeVisible();
   expect(state.commentsReads).toBe(0);
 });
+/** Вошедший без подписки читает обсуждение открытого feed/both-поста; это не платный club-only gate. */
 for (const target of ["feed", "both"] as const) {
   test(`an unpaid signed-in person reads public ${target} discussion without a paid gate`, async ({
     page,
@@ -433,6 +447,7 @@ for (const target of ["feed", "both"] as const) {
   });
 }
 
+/** Подтверждённый отказ комментариев очищает старые фото, текст и private-input; после восстановления черновик не возвращается. */
 for (const status of [403, 404]) {
   test(`comment refetch ${status} removes old photos, text and editing form`, async ({
     page,
@@ -468,6 +483,7 @@ for (const status of [403, 404]) {
     await expect(draft).toHaveValue("");
   });
 }
+/** Навигация не снимает unknown-toggle: новая запись разрешается только после успешного явного read, без replay. */
 test("returning after an unknown save keeps recovery available before allowing another toggle", async ({
   page,
 }) => {

@@ -13,6 +13,7 @@ interface DocumentAttachmentProps {
   mimeType?: string;
   fileSize?: number;
 }
+/** Выбираем декоративный значок по MIME; неизвестный тип остаётся обычным документом. */
 function getDocIcon(mimeType?: string): keyof typeof MaterialIcons.glyphMap {
   if (!mimeType) return "insert-drive-file";
   if (mimeType.includes("pdf")) return "picture-as-pdf";
@@ -24,18 +25,21 @@ function getDocIcon(mimeType?: string): keyof typeof MaterialIcons.glyphMap {
     return "slideshow";
   return "insert-drive-file";
 }
+/** Отображаем размер в B/KB/MB, не подменяя исходное число байтов и не угадывая отсутствующее значение. */
 function formatFileSize(bytes?: number): string {
   if (!bytes) return "";
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
+/** Собираем читаемую подпись и метаданные документа; реальный доступ по URL проверяется при открытии сервером. */
 export function DocumentAttachmentCard({
   url,
   filename,
   mimeType,
   fileSize,
 }: DocumentAttachmentProps) {
+  /** Передаём адрес общему проверенному механизму внешнего открытия по явному действию пользователя. */
   const handlePress = () => {
     openExternalUrl(url);
   };

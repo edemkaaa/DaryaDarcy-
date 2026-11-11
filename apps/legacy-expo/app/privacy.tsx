@@ -1,3 +1,4 @@
+// Архив Expo. Отображает историческую статическую политику и ссылки на общие документы; юридический текст этим проходом не актуализируется.
 import { ScrollView, Text, Pressable, StyleSheet, View } from "react-native";
 import { router } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
@@ -78,6 +79,8 @@ const SECTIONS: { title: string; body: string[] }[] = [
 ];
 
 export default function PrivacyScreen() {
+  // Отображает историческую статическую политику и ссылки на общие документы; юридический текст этим проходом не актуализируется.
+
   return (
     <ScreenContainer containerClassName="bg-[#FDF8F0]">
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -103,6 +106,7 @@ export default function PrivacyScreen() {
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: 24,

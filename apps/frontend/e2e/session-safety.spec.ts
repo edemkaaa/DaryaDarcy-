@@ -2,6 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { gotoWithSession } from "./layout-fixtures";
 
 test.setTimeout(45_000);
+/** Разные id задают независимые области локальных данных; фикстура не подтверждает ни настоящий вход, ни серверное право подписки. */
 const member = (id: number) => ({
   id,
   openId: `member-${id}`,
@@ -15,6 +16,7 @@ const member = (id: number) => ({
   lastSignedIn: "2026-10-04T10:00:00Z",
 });
 type Member = ReturnType<typeof member>;
+/** tRPC-ошибка намеренно содержит внутренний текст: сценарии проверяют, что клиент различает статусы и не показывает технические детали. */
 const failure = (status = 500) => ({
   error: {
     json: {
@@ -33,6 +35,7 @@ const failure = (status = 500) => ({
   },
 });
 
+/** Общий мок отделяет подтверждённого гостя от пользователя, сетевого сбоя и отзыва прав; current читается при каждом запросе, позволяя моделировать смену сессии. */
 async function mockApp(
   page: Page,
   current: () => Member | null = () => null,
@@ -75,6 +78,7 @@ async function mockApp(
     const names = new URL(route.request().url()).pathname
       .split("/api/trpc/")[1]
       .split(",");
+    /** Отвечаем на каждый элемент пакетного tRPC-запроса отдельно; пользовательский answer переопределяет только нужную процедуру. */
     const results = names.map((name) => {
       const custom = answer?.(name);
       if (custom !== undefined) return custom;
@@ -111,12 +115,14 @@ async function mockApp(
     });
   });
 }
+/** Вводим тестовые данные через форму, чтобы пройти её блокировки и обработчик отправки, а не подменять состояние сессии напрямую. */
 async function enter(page: Page, email: string) {
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel("Пароль", { exact: true }).fill("Test-only-password");
   await page.getByRole("button", { name: /^Войти(?: →)?$/ }).click();
 }
 
+/** Удерживаем первоначальную проверку гостя до успешного входа: устаревший ответ не должен отменить новую сессию, даже если декорации ещё загружаются. */
 test("a delayed initial session check cannot undo a successful login", async ({
   page,
 }) => {
@@ -175,6 +181,7 @@ test("a delayed initial session check cannot undo a successful login", async ({
   }
 });
 
+/** Выход и вход другого пользователя проверяют изоляцию локальных имени и результата теста; серверная карточка имеет приоритет над старым локальным именем. */
 test("switching people cannot transfer local profile or quiz data", async ({
   page,
 }) => {
@@ -226,6 +233,7 @@ test("switching people cannot transfer local profile or quiz data", async ({
   ).toBeNull();
 });
 
+/** При неподтверждённом выходе локально закрываем доступ и сохраняем pending-маркер через reload; снимаем его только после успешного повтора выхода. */
 test("failed logout hides private UI and survives reload until confirmed", async ({
   page,
 }) => {
@@ -259,6 +267,7 @@ test("failed logout hides private UI and survives reload until confirmed", async
   ).toBeNull();
 });
 
+/** Обрыв проверки сессии показывает восстановимую ошибку; кнопка гостевого входа появляется только после успешного ответа user:null. */
 test("session network failure offers retry rather than claiming the person is a guest", async ({
   page,
 }) => {
@@ -281,6 +290,7 @@ test("session network failure offers retry rather than claiming the person is a 
   ).toBeVisible();
 });
 
+/** Вызываем нативную отправку в обход React, чтобы проверить безопасный fallback формы без email и пароля в адресной строке. */
 test("native form submission never puts credentials in the URL", async ({
   page,
 }) => {
@@ -298,6 +308,7 @@ test("native form submission never puts credentials in the URL", async ({
   );
 });
 
+/** Имитируем Retry-After от сервера: форма блокирует повтор на указанный интервал; серверный limiter этим сценарием не проверяется. */
 test("email rate limiting prevents immediate repeated submissions", async ({
   page,
 }) => {
@@ -323,6 +334,7 @@ test("email rate limiting prevents immediate repeated submissions", async ({
   ).toBeEnabled({ timeout: 5000 });
 });
 
+/** Неполная карточка пользователя не становится ни сессией, ни гостем; клиент предлагает повтор проверки некорректного ответа. */
 test("malformed session data is shown as a recoverable response error", async ({
   page,
 }) => {
@@ -339,6 +351,7 @@ test("malformed session data is shown as a recoverable response error", async ({
   ).toBeVisible();
 });
 
+/** Разделяем временную ошибку видео и подтверждённый 404; технический текст из ответа не попадает в интерфейс. */
 test("video API errors offer retry and preserve a real not-found state", async ({
   page,
 }) => {
@@ -368,6 +381,7 @@ test("video API errors offer retry and preserve a real not-found state", async (
   ).toBeVisible();
 });
 
+/** Некорректный адрес видео отклоняется до запроса, исключая частичное чтение числового префикса. */
 test("malformed content IDs do not cause API calls", async ({ page }) => {
   let calls = 0;
   await mockApp(
@@ -385,6 +399,7 @@ test("malformed content IDs do not cause API calls", async ({ page }) => {
   expect(calls).toBe(0);
 });
 
+/** Ошибка проверки подписки не превращается в предложение купить её как будто отсутствующую; остаётся явное восстановимое состояние. */
 test("subscription failure does not become a confirmed absent subscription", async ({
   page,
 }) => {
@@ -402,6 +417,7 @@ test("subscription failure does not become a confirmed absent subscription", asy
   ).toBeVisible();
 });
 
+/** 401 защищённого чтения сбрасывает старую сессию и убирает персональные данные, даже если начальная проверка пользователя была успешной. */
 test("an expired session closes private data after a protected query returns 401", async ({
   page,
 }) => {
@@ -424,6 +440,7 @@ test("an expired session closes private data after a protected query returns 401
   ).toHaveCount(0);
 });
 
+/** Не-JSON ответ прокси с 401 также инициирует перепроверку сессии и скрывает профиль без показа HTML-текста. */
 test("an HTML 401 from a protected query closes private data through the session recheck", async ({
   page,
 }) => {
@@ -451,6 +468,7 @@ test("an HTML 401 from a protected query closes private data through the session
   ).toHaveCount(0);
 });
 
+/** Две страницы одного browser context разделяют хранилище; выход в первой должен закрыть приватный экран второй без её перезагрузки. */
 test("logout is reflected in another tab", async ({ page, context }) => {
   let current: Member | null = member(1);
   await mockApp(page, () => current);
@@ -481,6 +499,7 @@ test("logout is reflected in another tab", async ({ page, context }) => {
   ).toHaveCount(0);
 });
 
+/** После ухода с формы регистрации позднее подтверждение запроса не возвращает пользователя назад и не показывает сообщение уже покинутого экрана. */
 test("late registration completion cannot redirect a screen the user left", async ({
   page,
 }) => {
@@ -512,6 +531,7 @@ test("late registration completion cannot redirect a screen the user left", asyn
   );
 });
 
+/** Временный сетевой сбой фоновой проверки сохраняет открытый редактор и ввод; событие online восстанавливает проверку без потери фокуса редактора. */
 test("a temporary session check failure preserves an administrator's unsaved text", async ({
   page,
 }) => {
@@ -543,6 +563,7 @@ test("a temporary session check failure preserves an administrator's unsaved tex
   await expect(text).toHaveValue("UNSAVED_TEST_DRAFT");
 });
 
+/** Даже truthy-строка subscribed не проходит проверку контракта подписки и не открывает клубный интерфейс. */
 test("a string subscription flag never grants club access", async ({
   page,
 }) => {
@@ -577,6 +598,7 @@ test("a string subscription flag never grants club access", async ({
   ).toBeVisible();
 });
 
+/** Запоминаем ссылку на DOM-узел, прокрутку и timeOrigin: последующие проверки отличают сохранение экрана от незаметной перезагрузки или пересоздания. */
 async function rememberScreen(page: Page) {
   const verticalScroll = page
     .locator("main .ui-scroll:not(.ui-scroll-horizontal)")
@@ -595,6 +617,7 @@ async function rememberScreen(page: Page) {
       documentRequests++;
   });
   return {
+    /** Сверяем тот же подключённый узел и документ, а не только внешне похожий экран с восстановленной прокруткой. */
     async expectPreserved() {
       expect(await node.evaluate((element) => element.isConnected)).toBe(true);
       expect(await node.evaluate((element) => element.scrollTop)).toBe(
@@ -609,6 +632,7 @@ async function rememberScreen(page: Page) {
   };
 }
 
+/** Синтетически вызываем обработчики возврата в приложение; фактическое сворачивание Telegram и системные события устройства здесь не проверяются. */
 async function returnToWindow(page: Page, event = "visibilitychange") {
   await page.evaluate((event) => {
     (event === "focus" ? window : document).dispatchEvent(
@@ -617,6 +641,7 @@ async function returnToWindow(page: Page, event = "visibilitychange") {
   }, event);
 }
 
+/** Парные focus/visibilitychange моделируют один возврат: оба порядка событий должны дать одну фоновую проверку без сброса гостевого экрана. */
 for (const event of ["focus", "visibilitychange"]) {
   test(`a guest's club scroll survives a pending ${event} session check`, async ({
     page,
@@ -658,6 +683,7 @@ for (const event of ["focus", "visibilitychange"]) {
   });
 }
 
+/** Фоновая ошибка и явный повтор не пересоздают гостевой экран Клуба: сохраняем тот же DOM, прокрутку и документ. */
 test("a guest's club scroll survives a failed background check and retry", async ({
   page,
 }) => {
@@ -683,6 +709,7 @@ test("a guest's club scroll survives a failed background check and retry", async
   await screen.expectPreserved();
 });
 
+/** Сетевой отказ и явный 503 оставляют подтверждённый профиль на месте; восстановление проверяется без нового документа и без потери прокрутки. */
 for (const problem of ["network", "503"]) {
   test(`profile scroll survives a temporary background session ${problem} failure`, async ({
     page,
@@ -723,6 +750,7 @@ for (const problem of ["network", "503"]) {
   });
 }
 
+/** Три формы временного сбоя подписки сохраняют выбранный клубный раздел; успешный повтор снимает предупреждение, не пересоздавая экран. */
 for (const problem of ["network", "503", "html503"]) {
   test(`the selected club section survives a temporary subscription ${problem} failure`, async ({
     page,
@@ -781,6 +809,7 @@ for (const problem of ["network", "503", "html503"]) {
   });
 }
 
+/** Сохранение интерфейса при сетевой ошибке не распространяется на подтверждённый отзыв подписки: прежняя приватная вкладка должна исчезнуть. */
 test("a confirmed subscription revocation still removes the private club screen", async ({
   page,
 }) => {
@@ -822,6 +851,7 @@ test("a confirmed subscription revocation still removes the private club screen"
   ).toHaveCount(0);
 });
 
+/** 403 означает отказ доступа, а не временное обновление: ранее открытая клубная вкладка закрывается. */
 test("a subscription permission denial never keeps the previously active club visible", async ({
   page,
 }) => {
@@ -847,6 +877,7 @@ test("a subscription permission denial never keeps the previously active club vi
   ).toHaveCount(0);
 });
 
+/** 401 проверки доступа имеет приоритет над параллельным сетевым сбоем auth/me; прежний профиль больше не остаётся видимым. */
 test("a 401 during an offline session recheck still closes the profile", async ({
   page,
 }) => {

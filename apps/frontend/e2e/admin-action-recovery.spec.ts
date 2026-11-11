@@ -17,6 +17,7 @@ const member = {
 };
 type Kind = "grantClub" | "resendAccessEmail";
 type Request = { idempotencyKey: string; userId: number };
+/** Ведём синтетический ledger квитанций отдельно от отправленных запросов; потеря ACK может происходить после единственного эффекта. */
 async function setup(page: Page, kind: Kind) {
   const state = {
     writes: [] as Request[],
@@ -62,6 +63,7 @@ async function setup(page: Page, kind: Kind) {
       return ok({ ok: true, expiresAt: expiry });
     }
   });
+  /** На границе записи проверяем, что attempted-намерение уже сохранено на устройстве; один ключ создаёт не больше одного эффекта. */
   async function accept(request: Request) {
     state.writes.push(request);
     expect(request).toEqual({
@@ -103,11 +105,13 @@ async function setup(page: Page, kind: Kind) {
   });
   return state;
 }
+/** Открываем список участников после подтверждения сессии и ждём целевую строку. */
 async function open(page: Page) {
   await gotoWithSession(page, "/admin");
   await page.getByRole("button", { name: "Участницы", exact: true }).click();
   await expect(page.getByText(member.name, { exact: true })).toBeVisible();
 }
+/** Явно подтверждаем первое действие пользователя, выбирая продление или постановку письма в очередь. */
 async function start(page: Page, kind: Kind) {
   page.once("dialog", (dialog) => dialog.accept());
   await page
@@ -117,12 +121,14 @@ async function start(page: Page, kind: Kind) {
     })
     .click();
 }
+/** Отдельным подтверждённым нажатием повторяем исходное намерение, а не создаём новую команду. */
 async function replay(page: Page) {
   page.once("dialog", (dialog) => dialog.accept());
   await page
     .getByRole("button", { name: "Повторить исходное действие", exact: true })
     .click();
 }
+/** Различаем квитанцию продления и queued-письмо: постановка в очередь не доказывает доставку. */
 const confirmed = (page: Page, kind: Kind) =>
   kind === "grantClub"
     ? page.getByText(/Продление подтверждено.*01.12.2041/)
@@ -132,6 +138,7 @@ const confirmed = (page: Page, kind: Kind) =>
         )
         .first();
 
+/** Оба типа действий проходят потерю ACK, status-only восстановление, явный replay и вторую вкладку с общим ключом. */
 for (const kind of ["grantClub", "resendAccessEmail"] as const) {
   test(`${kind}: lost committed ACK is restored after reload with status only`, async ({
     page,
@@ -245,6 +252,7 @@ for (const kind of ["grantClub", "resendAccessEmail"] as const) {
   });
 }
 
+/** Одновременный старт из двух готовых вкладок должен выбрать один durable key до сети. */
 test("two simultaneously ready tabs cannot create separate intents", async ({
   page,
   context,
@@ -282,6 +290,7 @@ test("two simultaneously ready tabs cannot create separate intents", async ({
   await other.close();
 });
 
+/** Ошибка storage, несовпадающая квитанция, status503 и подтверждённый отказ не должны молча заменить исходный ключ. */
 for (const fault of ["storage", "mismatch", "status503", "rejected"] as const) {
   test(`saved admin action handles ${fault} without replacing its key`, async ({
     page,
@@ -333,6 +342,7 @@ for (const fault of ["storage", "mismatch", "status503", "rejected"] as const) {
   });
 }
 
+/** Пауза повтора переживает reload; читающая проверка доступна отдельно и не создаёт повторный эффект. */
 test("429 persists a cooldown through reload and status remains available", async ({
   page,
 }) => {
@@ -368,6 +378,7 @@ test("429 persists a cooldown through reload and status remains available", asyn
   expect(state.effects).toBe(1);
 });
 
+/** На коротком узком экране действия восстановления и строка участницы должны оставаться достижимыми над меню. */
 test("recovery actions and members remain reachable at 320x400", async ({
   page,
 }) => {

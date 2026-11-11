@@ -16,6 +16,7 @@ type DomImageProps = Omit<
   fit?: CSSProperties["objectFit"];
 };
 export const DomImage = Object.assign(
+  /** Выбираем доступный вариант статического ресурса и передаём пользовательские sizes/srcSet с приоритетом над вычисленными. */
   forwardRef<HTMLImageElement, DomImageProps>(function DomImage(
     { source, style, fit = "cover", alt = "", decoding = "async", ...props },
     ref,
@@ -46,6 +47,7 @@ export const DomImage = Object.assign(
     );
   }),
   {
+    /** Измеряем естественные размеры отдельным Image с пределом ожидания 10 секунд; возвращённая функция отменяет загрузку и callbacks. */
     getSize: (
       uri: string,
       success: (width: number, height: number) => void,
@@ -53,6 +55,7 @@ export const DomImage = Object.assign(
     ) => {
       const img = new window.Image();
       let finished = false;
+      /** Завершаем измерение один раз: снимаем таймер, обработчики и адреса, чтобы поздний ответ не вызвал чужой callback. */
       const cancel = () => {
         finished = true;
         clearTimeout(timer);
@@ -82,6 +85,7 @@ export const DomImage = Object.assign(
       img.src = attributes.src!;
       return cancel;
     },
+    /** Прогреваем браузерную загрузку изображения; Promise отражает onload/onerror, отдельного таймаута у этого пути нет. */
     prefetch: (uri: string) =>
       new Promise<boolean>((resolve, reject) => {
         const img = new window.Image();

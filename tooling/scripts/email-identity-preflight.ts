@@ -8,6 +8,8 @@ import {
 export async function inspectEmailIdentityData(
   conn: Pick<Connection, "query">,
 ): Promise<string[]> {
+  // Проходит всех signed INT пользователей keyset-партиями и ищет конфликты выражения нового индекса, не выводя адреса в отчёт.
+
   // Include every signed INT primary key, not just auto-generated positive IDs.
   let cursor = -2147483649;
   let noncanonical = false;
@@ -55,6 +57,8 @@ export async function inspectEmailIdentityData(
 
 /** Never load application .env files or repair identities during inspection. */
 export async function readEmailIdentityIssues(uri: string) {
+  // Открывает ограниченную read-only транзакцию для проверки email и всегда закрывает её без исправления аккаунтов.
+
   const url = new URL(uri);
   if (url.protocol !== "mysql:" || !url.pathname || url.pathname === "/")
     throw new Error("Invalid preflight connection");

@@ -19,6 +19,8 @@ const exec = promisify(execFile);
 const batchSize = 100;
 
 async function main() {
+  // После проверки локального контейнера выбирает точные tombstone-аккаунты; запись и удаление токенов включаются только apply-local внутри InnoDB-транзакции.
+
   const [mode = "--dry-run", ...rest] = process.argv.slice(2);
   if (
     rest.length ||

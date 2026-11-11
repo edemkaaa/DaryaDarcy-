@@ -19,6 +19,7 @@ import { requestMemberEmailBinding } from "../apps/backend/src/identity/email-bi
 import { maintainMemberEmailBindings } from "../apps/backend/src/identity/email-binding-lifecycle";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 
+/** Проверяет срок proof, очистку секретов и terminal-retention привязки email с конкурентными cleaner. */
 describe.skipIf(!testDatabaseUrl)(
   "email binding lifecycle on owned MySQL",
   () => {
@@ -26,9 +27,11 @@ describe.skipIf(!testDatabaseUrl)(
     let pool: Pool;
     let database: MySql2Database;
     const actor = { userId: 91001, sessionVersion: 2 };
+    /** Читает intents, outbox, пользователей и audit прямо через контрольное соединение. */
     async function rows(query: string, params: unknown[] = []) {
       return (await conn.query<RowDataPacket[]>(query, params))[0];
     }
+    /** Удаляет собственный fault-триггер, intents/outbox, audit и три аккаунта suite. */
     async function cleanup() {
       await conn.query(
         "DROP TRIGGER IF EXISTS email_binding_lifecycle_audit_failure",
@@ -44,6 +47,7 @@ describe.skipIf(!testDatabaseUrl)(
         "DELETE FROM users WHERE id IN (91001,91002,91003) AND openId LIKE 'email-binding-lifecycle-%'",
       );
     }
+    /** Открывает одноразовую БД и отдельный UTC-пул на восемь соединений. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       pool = mysql.createPool({
@@ -53,6 +57,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       database = drizzle(pool);
     });
+    /** Создаёт администратора и двух получателей с прежними credentials и synthetic ключом ссылок. */
     beforeEach(async () => {
       await cleanup();
       await conn.query(`INSERT INTO users (id,openId,phone,passwordHash,sessionVersion,role,updatedAt) VALUES
@@ -64,6 +69,7 @@ describe.skipIf(!testDatabaseUrl)(
         Buffer.alloc(32, 32).toString("base64"),
       );
     });
+    /** Удаляет fixture, закрывает соединения и возвращает окружение. */
     afterAll(async () => {
       if (conn) {
         await cleanup();
@@ -72,7 +78,9 @@ describe.skipIf(!testDatabaseUrl)(
       if (pool) await pool.end();
       vi.unstubAllEnvs();
     });
+    /** Возвращает настоящие часы после проверки точных временных границ. */
     afterEach(() => vi.useRealTimers());
+    /** Создаёт уникальный pending-intent выбранного собственного получателя. */
     async function queue(userId = 91002) {
       const requestKey = randomUUID();
       await requestMemberEmailBinding(database, actor, {
@@ -82,6 +90,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       return requestKey;
     }
+    /** Читает intent вместе с шифром, lease и discardedAt соответствующего outbox. */
     async function binding(requestKey: string) {
       return (
         await rows(
@@ -90,6 +99,7 @@ describe.skipIf(!testDatabaseUrl)(
         )
       )[0];
     }
+    /** Истечение proof удаляет email, hash и cipher, снимает lease, записывает audit и разрешает новое намерение без смены аккаунтов. */
     it("expires unused proofs, scrubs delivery secrets, and permits a fresh intent without modifying accounts", async () => {
       const expired = await queue();
       const neighbor = await queue(91003);
@@ -140,6 +150,7 @@ describe.skipIf(!testDatabaseUrl)(
         purged: 0,
       });
     });
+    /** Terminal-история удаляется вместе с outbox только после 30 дней, свежая запись сохраняется. */
     it.each(["confirmed", "expired", "cancelled"])(
       "purges %s history only after 30 days, including its outbox",
       async (state) => {
@@ -172,6 +183,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await binding(recent)).toEqual(before);
       },
     );
+    /** Отказ audit откатывает state и очистку секретов, наружу выходит безопасная unavailable. */
     it("rolls back expiry and scrubbing when the audit cannot be persisted", async () => {
       const key = await queue();
       await conn.query(
@@ -186,6 +198,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(await binding(key)).toEqual(before);
     });
+    /** Партия ограничена, а два cleaner суммарно истекают оставшийся intent один раз с одним audit. */
     it("bounds each pass and concurrent cleaners never expire an intent twice", async () => {
       await queue();
       await queue(91003);
@@ -209,6 +222,7 @@ describe.skipIf(!testDatabaseUrl)(
         ),
       ).toHaveLength(2);
     });
+    /** Точный expiresAt и ровно 30 дней completedAt включены в соответствующие переходы. */
     it("includes the exact expiry and 30-day retention boundaries", async () => {
       const expired = await queue();
       const old = await queue(91003);
@@ -228,6 +242,7 @@ describe.skipIf(!testDatabaseUrl)(
         purged: 1,
       });
     });
+    /** После ожидания recipient-lock cleaner перечитывает подтверждённый другим владельцем state и не истекает его повторно. */
     it("re-reads lifecycle state after waiting for the recipient lock", async () => {
       const key = await queue();
       await conn.query(
@@ -273,6 +288,7 @@ describe.skipIf(!testDatabaseUrl)(
         await running?.catch(() => undefined);
       }
     });
+    /** Невалидный или чрезмерный batch-limit даёт invalid_input без изменения intent. */
     it.each([0, -1, 101, 1.5, NaN, Infinity])(
       "rejects an invalid batch size without modifying an intent (%s)",
       async (limit) => {

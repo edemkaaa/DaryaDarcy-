@@ -1,3 +1,4 @@
+/** Admin owner-notify проходит настоящий loopback tRPC; только фиксированный внешний provider fetch синтетический. */
 import {
   afterAll,
   afterEach,
@@ -22,6 +23,7 @@ const provider = "https://forge.example.test/";
 const payload = { title: "Fixture", content: "Fixture content" };
 let app: INestApplication;
 let client: ReturnType<typeof createTRPCProxyClient<AppRouter>>;
+/** Поднимаем локальный app и типизированный HTTP-client. */
 beforeAll(async () => {
   app = await createBackendApplication();
   await app.listen(0, "127.0.0.1");
@@ -35,6 +37,7 @@ beforeAll(async () => {
     ],
   });
 });
+/** Задаём synthetic provider/key и admin сессию, перехватываем безопасные warnings. */
 beforeEach(() => {
   vi.stubEnv("DATABASE_URL", "");
   vi.stubEnv("BUILT_IN_FORGE_API_URL", provider);
@@ -46,16 +49,19 @@ beforeEach(() => {
     blockedAt: null,
   } as User);
 });
+/** Возвращаем clocks, spies, fetch и env. */
 afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
 });
+/** Закрываем приложение. */
 afterAll(async () => {
   await app.close();
 });
 
+/** Локальный API использует настоящий fetch; только fixture provider перехватывается, остальные origin запрещены. */
 function transport(send: (init: RequestInit) => Promise<Response>) {
   vi.stubGlobal("fetch", (url: string | URL, init: RequestInit) => {
     if (String(url).startsWith(provider)) return send(init);
@@ -65,6 +71,7 @@ function transport(send: (init: RequestInit) => Promise<Response>) {
   });
 }
 
+/** HTTP503/network отказ дают success:false без provider body/key в логах. */
 it.each(["rejected", "network"] as const)(
   "native admin notify contains %s failure without logging provider data",
   async (failure) => {
@@ -83,6 +90,7 @@ it.each(["rejected", "network"] as const)(
   },
 );
 
+/** Даже успешный ответ не читается ради диагностики; stream отменяется для освобождения соединения. */
 it.each([200, 503])(
   "native admin notify releases the unread HTTP %s body",
   async (status) => {
@@ -109,6 +117,7 @@ it.each([200, 503])(
   },
 );
 
+/** Гость/user не достигают provider и получают401/403. */
 it.each([null, "user"] as const)(
   "%s cannot trigger an owner notification",
   async (role) => {
@@ -129,6 +138,7 @@ it.each([null, "user"] as const)(
   },
 );
 
+/** Десятисекундный deadline отменяет единственный запрос и освобождает timer без повторной отправки. */
 it("bounds a stalled provider request without retrying it", async () => {
   vi.useFakeTimers();
   let finish: ((value: Response) => void) | undefined;

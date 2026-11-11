@@ -18,6 +18,7 @@ import { requestMemberEmailBinding } from "../apps/backend/src/identity/email-bi
 import { completePassword } from "../apps/backend/src/identity/access";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 
+/** Проверяет первое admin-намерение привязки email: отдельный proof, encrypted outbox и обязательный audit без смены аккаунта. */
 describe.skipIf(!testDatabaseUrl)(
   "first email binding request on owned MySQL",
   () => {
@@ -27,10 +28,13 @@ describe.skipIf(!testDatabaseUrl)(
     const actor = { userId: 90801, sessionVersion: 7 };
     const email = "email-binding-request@example.test";
     const key = Buffer.alloc(32, 19);
+    /** Создаёт bounded-запрос собственного получателя с новым UUID операции. */
     const input = () => ({ userId: 90802, email, requestKey: randomUUID() });
+    /** Читает фактические users, intents, outbox и audit через контрольное соединение. */
     async function rows(query: string, params: unknown[] = []) {
       return (await conn.query<RowDataPacket[]>(query, params))[0];
     }
+    /** Удаляет только собственный fault-trigger, journals/outbox, audit и пять fixture-аккаунтов. */
     async function cleanup() {
       await conn.query(
         "DROP TRIGGER IF EXISTS email_binding_request_audit_failure",
@@ -48,6 +52,7 @@ describe.skipIf(!testDatabaseUrl)(
         "DELETE FROM users WHERE id IN (90801,90802,90803,90804,90805) AND openId LIKE 'email-binding-request-%'",
       );
     }
+    /** Открывает одноразовую БД и отдельный пул и настраивает synthetic 256-битный ключ ссылок. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       pool = mysql.createPool({
@@ -58,6 +63,7 @@ describe.skipIf(!testDatabaseUrl)(
       database = drizzle(pool);
       vi.stubEnv("AUTH_LINK_ENCRYPTION_KEY", key.toString("base64"));
     });
+    /** Восстанавливает admin, второго admin, двух телефонных получателей и занятого email-владельца. */
     beforeEach(async () => {
       await cleanup();
       await conn.query(`INSERT INTO users (id,openId,email,phone,passwordHash,sessionVersion,role) VALUES
@@ -68,6 +74,7 @@ describe.skipIf(!testDatabaseUrl)(
       (90805,'email-binding-request-member2',NULL,'+70000090805','MEMBER2_HASH',1,'user')`);
       vi.stubEnv("AUTH_LINK_ENCRYPTION_KEY", key.toString("base64"));
     });
+    /** Очищает fixture и закрывает соединения с восстановлением окружения. */
     afterAll(async () => {
       if (conn) {
         await cleanup();
@@ -76,6 +83,7 @@ describe.skipIf(!testDatabaseUrl)(
       if (pool) await pool.end();
       vi.unstubAllEnvs();
     });
+    /** Требует отсутствие собственного intent, audit и outbox после отказа до коммита. */
     async function expectNoRequest() {
       expect(
         await rows(
@@ -91,6 +99,7 @@ describe.skipIf(!testDatabaseUrl)(
         [],
       );
     }
+    /** Создание нормализует email и сохраняет 24-часовой proof в отдельном namespace с AEAD-привязкой к intent без изменения users. */
     it("atomically queues a separate encrypted proof and audits without touching any user fields", async () => {
       const request = { ...input(), email: `  ${email.toUpperCase()}  ` };
       const before = await rows(
@@ -167,6 +176,7 @@ describe.skipIf(!testDatabaseUrl)(
         },
       ]);
     });
+    /** Повтор нормализованного намерения возвращает receipt без нового proof, outbox или audit даже без текущего encryption-key. */
     it("replays the same normalized intent without regenerating proof, mail or audit", async () => {
       const request = input();
       const receipt = await requestMemberEmailBinding(database, actor, request);
@@ -185,6 +195,7 @@ describe.skipIf(!testDatabaseUrl)(
         await rows("SELECT id FROM admin_audit_log WHERE actorUserId=90801"),
       ).toHaveLength(1);
     });
+    /** Изменённые email или userId с тем же requestKey конфликтуют и сохраняют исходный intent. */
     it.each([
       { email: "email-binding-different@example.test" },
       { userId: 90805 },
@@ -205,6 +216,7 @@ describe.skipIf(!testDatabaseUrl)(
         ).toHaveLength(1);
       },
     );
+    /** Второй admin не может присвоить уже занятый requestKey первого инициатора. */
     it("another administrator cannot reuse an intent key", async () => {
       const request = input();
       await requestMemberEmailBinding(database, actor, request);
@@ -219,6 +231,7 @@ describe.skipIf(!testDatabaseUrl)(
         await rows("SELECT id FROM admin_audit_log WHERE actorUserId=90804"),
       ).toEqual([]);
     });
+    /** Terminal receipt восстанавливается после очистки PII без нового proof и повторного audit. */
     it("replays a terminal intent after its PII is scrubbed without issuing another proof", async () => {
       const request = input();
       await requestMemberEmailBinding(database, actor, request);
@@ -243,6 +256,7 @@ describe.skipIf(!testDatabaseUrl)(
         await rows("SELECT id FROM admin_audit_log WHERE actorUserId=90801"),
       ).toHaveLength(1);
     });
+    /** Отсутствующий admin отклоняется до сохранения intent. */
     it("refuses a missing actor before committing any intent", async () => {
       await expect(
         requestMemberEmailBinding(
@@ -253,6 +267,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).rejects.toMatchObject({ code: "forbidden" });
       await expectNoRequest();
     });
+    /** Отсутствующий получатель не оставляет даже claim-запись. */
     it("refuses a missing recipient without keeping its claim", async () => {
       await expect(
         requestMemberEmailBinding(database, actor, {
@@ -262,6 +277,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).rejects.toMatchObject({ code: "recipient_unavailable" });
       await expectNoRequest();
     });
+    /** Повтор намерения заново проверяет текущие роль, блокировку, epoch и удаление инициатора. */
     it.each([
       ["moderator", "role='moderator'"],
       ["ordinary user", "role='user'"],
@@ -282,6 +298,7 @@ describe.skipIf(!testDatabaseUrl)(
         ).toHaveLength(1);
       },
     );
+    /** Первая привязка допускается только доступному обычному телефонному аккаунту без существующей почты. */
     it.each([
       ["email already present", "email='email-binding-existing@example.test'"],
       ["whitespace email", "email='   '"],
@@ -307,6 +324,7 @@ describe.skipIf(!testDatabaseUrl)(
         }
       },
     );
+    /** Занятый нормализованный email вызывает конфликт без изменения прежнего владельца. */
     it("rejects an occupied normalized address without modifying its owner", async () => {
       const before = await rows("SELECT * FROM users WHERE id=90803");
       await expect(
@@ -318,6 +336,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await rows("SELECT * FROM users WHERE id=90803")).toEqual(before);
       await expectNoRequest();
     });
+    /** Пустой, неверный и чрезмерный email отклоняются до записи. */
     it.each(["", "not-an-email", "a".repeat(321) + "@example.test"])(
       "validates the email before creating anything: %j",
       async (badEmail) => {
@@ -330,6 +349,7 @@ describe.skipIf(!testDatabaseUrl)(
         await expectNoRequest();
       },
     );
+    /** Нет encryption-key — claim откатывается, секретное намерение не создаётся. */
     it("fails closed with missing encryption and rolls back the claim", async () => {
       vi.stubEnv("AUTH_LINK_ENCRYPTION_KEY", "");
       await expect(
@@ -337,6 +357,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).rejects.toMatchObject({ code: "unavailable" });
       await expectNoRequest();
     });
+    /** Неканонический Base64 или ключ не 32 байта запрещает запись proof и PII. */
     it.each([
       "not-base64",
       Buffer.alloc(31).toString("base64"),
@@ -351,6 +372,7 @@ describe.skipIf(!testDatabaseUrl)(
         await expectNoRequest();
       },
     );
+    /** Невалидные UUID, userId и лишние поля отклоняются как invalid_input. */
     it.each([
       { requestKey: "not-an-intent" },
       { userId: -1 },
@@ -362,6 +384,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).rejects.toMatchObject({ code: "invalid_input" });
       await expectNoRequest();
     });
+    /** Отказ обязательного audit откатывает intent и outbox и скрывает SQL-детали. */
     it("rolls back proof and outbox when auditing fails, without leaking SQL details", async () => {
       await conn.query(`CREATE TRIGGER email_binding_request_audit_failure BEFORE INSERT ON admin_audit_log FOR EACH ROW BEGIN
       IF NEW.actorUserId=90801 AND NEW.action='request_member_email_binding' THEN
@@ -376,6 +399,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       await expectNoRequest();
     });
+    /** Шесть параллельных повторов создают один intent, один outbox и один audit. */
     it("concurrent identical intent retries create exactly one request, outbox and audit", async () => {
       const request = input();
       const results = await Promise.all(
@@ -398,6 +422,7 @@ describe.skipIf(!testDatabaseUrl)(
         await rows("SELECT id FROM admin_audit_log WHERE actorUserId=90801"),
       ).toHaveLength(1);
     });
+    /** Разные admin и ключи за одного получателя создают только один pending-proof. */
     it("competing intent keys for the same member produce one pending binding, not two proofs", async () => {
       const results = await Promise.allSettled([
         requestMemberEmailBinding(database, actor, input()),

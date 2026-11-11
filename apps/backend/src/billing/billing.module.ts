@@ -42,12 +42,14 @@ export type BillingServices = ClubBillingServices & {
   providers: [
     {
       provide: ProdamusSandboxService,
+      /** Создаёт диагностический sandbox с конфигурацией процесса без портов рабочей БД и выдачи доступа. */
       useFactory: () => new ProdamusSandboxService(process.env),
     },
     YookassaClubService,
     ProdamusTestClubService,
     {
       provide: ClubCheckoutService,
+      /** Передаёт checkout оба TEST-сервиса явно, оставляя выбор режима прикладной политике. */
       useFactory: (
         yookassa: YookassaClubService,
         prodamusTest: ProdamusTestClubService,
@@ -57,21 +59,26 @@ export type BillingServices = ClubBillingServices & {
     ClubSubscriptionService,
     {
       provide: ClubCancellationService,
+      /** Связывает обработчик отмены с общей БД и подтверждением профиля после проверки webhook. */
       useFactory: () =>
         new ClubCancellationService({
+          /** Предоставляет обработчику отмены текущий общий клиент БД по запросу, не открывая его при сборке binding. */
           getDb: () => db.getDb(),
+          /** Передаёт подтверждённый профиль в транзакционный confirmProviderCancellation на указанной БД. */
           confirm: (database, profile) =>
             confirmProviderCancellation(database, profile),
         }),
     },
     {
       provide: ClubSettlementService,
+      /** Подключает settlement к существующей атомарной операции db.settleClubPayment. */
       useFactory: () =>
         new ClubSettlementService((input) => db.settleClubPayment(input)),
     },
     {
       provide: PRODAMUS_WEBHOOK_HANDLER,
       // Binding создаётся для приложения, а не как изменяемое состояние всего процесса.
+      /** Создаёт webhook-handler конкретного приложения с отдельными портами settlement и cancellation. */
       useFactory: (
         settlement: ClubSettlementService,
         cancellation: ClubCancellationService,

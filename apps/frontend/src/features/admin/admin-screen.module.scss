@@ -2,6 +2,7 @@
 @use "../../shared/styles/layers";
 
 @layer components {
+  /* Компактный список админки отделяет миниатюру, сведения, теги и действия, не используя пользовательскую полноразмерную карточку. */
   .postItem {
     background-color: var(--paper);
     border-radius: 10px;
@@ -96,6 +97,7 @@
     align-self: center;
   }
 
+  /* Действия переносятся на узких экранах; разделитель отделяет их от метаданных поста. */
   .postItemActions {
     flex-direction: row;
     flex-wrap: wrap;
@@ -111,6 +113,7 @@
     padding: 6px;
   }
 
+  /* Visual viewport и app-height удерживают редактор в доступной области при появлении клавиатуры; прокрутка делегирована форме. */
   .editorDialog {
     top: var(--visual-viewport-top, 0px);
     bottom: auto;
@@ -162,6 +165,7 @@
     color: var(--paper);
   }
 
+  /* Переключатель редактирования/предпросмотра остаётся вне прокручиваемого содержимого. */
   .previewToggleRow {
     flex-direction: row;
     border-bottom-width: 1px;
@@ -193,6 +197,7 @@
     padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   }
 
+  /* Предпросмотр ограничивает фото и вложения собственной карточкой, не меняя размеры исходных файлов. */
   .previewCard {
     background-color: #fff;
     border-radius: 12px;
@@ -289,6 +294,7 @@
     font-style: italic;
   }
 
+  /* Форма скрывается с сохранением геометрии, чтобы смена серверного состояния не прыгала по высоте. */
   .formLoading {
     visibility: hidden;
   }
@@ -309,6 +315,7 @@
     color: var(--ink);
   }
 
+  /* CSS-переменные передают параметры общему rich-text редактору вместо дублирования внутренних селекторов. */
   .textArea {
     --editor-background: #fff;
     --editor-border-width: 1px;
@@ -350,6 +357,7 @@
     margin-top: 8px;
   }
 
+  /* Вложения и теги переносятся независимо; имя файла занимает остаток строки рядом с удалением. */
   .videoList {
     gap: 8px;
     margin-top: 8px;
@@ -430,6 +438,7 @@
     width: 80px;
   }
 
+  /* Черновик почты занимает отдельную строку участника и не сжимает соседние действия. */
   .memberEmailDraft {
     flex-basis: 100%;
     gap: 8px;
@@ -465,6 +474,7 @@
     border-radius: 16px;
   }
 
+  /* Общая статистика и вкладки отделены от списка; вкладки допускают перенос и сохраняют минимальную высоту нажатия. */
   .statsRow {
     flex-direction: row;
     justify-content: space-around;
@@ -534,6 +544,7 @@
     padding-bottom: 40px;
   }
 
+  /* Нижние отступы списков резервируют доступ к последним действиям; отдельный posts-профиль уменьшает лишний запас. */
   .listContent {
     padding-left: 16px;
     padding-right: 16px;
@@ -551,6 +562,7 @@
     padding-top: 24px;
   }
 
+  /* Повтор загрузки имеет устойчивую область нажатия и перенос текста в пределах списка. */
   .postsRetry {
     max-width: 100%;
     min-height: 44px;
@@ -609,6 +621,7 @@
     font-size: 13px;
     color: #7a6b5e;
   }
+  /* Оставшиеся условные классы задают статусы, выбранные рубрики и disabled/pressed-состояния; порядок каскада сохраняется. */
   .backgroundColorState {
     background-color: #fff3cd;
   }
@@ -689,6 +702,7 @@
     color: #7a6b5e;
   }
 
+  /* Набор служебных классов выводит технический input из видимой области, не удаляя его из DOM. */
   .positionState {
     position: absolute;
   }
@@ -713,6 +727,7 @@
     overflow: hidden;
   }
 
+  /* Блокировка pointer events отделена от визуальной прозрачности; одна opacity сама не запрещает действие. */
   .pointerEventsState {
     pointer-events: none;
   }

@@ -4,10 +4,12 @@ import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 import { closeDb, getDb } from "../apps/backend/src/database/connection";
 import { withDatabaseLock } from "../apps/backend/src/database/coordination";
 
+/** Проверяет ограничение очереди настоящего пула и запрет выполнения работы после истечения ожидания. */
 describe.skipIf(!testDatabaseUrl)(
   "bounded admission on the real application pool",
   () => {
     let pool: Pool;
+    /** Проверяет тестовую схему, выключает расширенную очередь и получает настоящий прикладной mysql2-пул. */
     beforeAll(async () => {
       const fixture = await openTestDatabase();
       await fixture.end();
@@ -15,11 +17,13 @@ describe.skipIf(!testDatabaseUrl)(
       vi.stubEnv("API_DB_BURST_QUEUE_ENABLED", "");
       pool = ((await getDb()) as unknown as { $client: Pool }).$client;
     });
+    /** Закрывает прикладной пул и возвращает флаги окружения. */
     afterAll(async () => {
       await closeDb();
       vi.unstubAllEnvs();
     });
 
+    /** Занимает все десять соединений; при частичном отказе возвращает уже полученные в пул. */
     async function occupy() {
       const held: PoolConnection[] = [];
       try {
@@ -31,6 +35,7 @@ describe.skipIf(!testDatabaseUrl)(
       }
     }
 
+    /** Короткая занятость пула не теряет обычный ожидающий запрос после освобождения соединения. */
     it("lets an ordinary queued query resume after a short busy period", async () => {
       const held = await occupy();
       const waiting = pool.query<RowDataPacket[]>("SELECT 42 AS value");
@@ -42,10 +47,12 @@ describe.skipIf(!testDatabaseUrl)(
       }
     });
 
+    /** Две волны перегрузки получают 503 с ограниченной очередью; просроченные callbacks не выполняются после восстановления. */
     it("bounds expired waiters across bursts, returns 503 and never runs their work later", async () => {
       const held = await occupy();
       let runs = 0;
       const results: number[] = [];
+      /** Параллельно запрашивает тридцать DB-lock операций и фиксирует успешный допуск либо HTTP-код отказа. */
       const wave = () =>
         Promise.all(
           Array.from({ length: 30 }, async (_, i) => {
@@ -92,11 +99,13 @@ describe.skipIf(!testDatabaseUrl)(
       expect(runs).toBe(0);
     }, 15000);
 
+    /** Новый пул с burst-флагом принимает ровно сорок ожидающих и немедленно отклоняет сорок первого. */
     it("admits exactly 40 waiters with the burst queue enabled", async () => {
       await closeDb();
       vi.stubEnv("API_DB_BURST_QUEUE_ENABLED", "true");
       pool = ((await getDb()) as unknown as { $client: Pool }).$client;
       const held = await occupy();
+      /** Получает и сразу возвращает соединение, преобразуя переполнение очереди в проверяемое значение ошибки. */
       const acquire = () =>
         pool.getConnection().then(
           (connection) => {

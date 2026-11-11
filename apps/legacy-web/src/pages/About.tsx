@@ -1,6 +1,8 @@
+/** Архивная страница автора с фиксированными текстами и галереей. */
 import { Link } from "react-router-dom";
 import { ABOUT_PHOTOS } from "../data";
 
+/** Показывает прежнюю биографию и список фотографий без запроса к API. */
 export default function About() {
   return (
     <div className="page article">

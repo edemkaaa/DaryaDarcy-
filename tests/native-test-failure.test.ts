@@ -1,8 +1,10 @@
+/** Проверка безопасной диагностики дочерних тестов: произвольный stdout/stderr остаётся приватным. */
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { expect, test } from "vitest";
 import * as diagnostics from "./helpers/native-test-failure";
 
+/** Разрешённый список строится только из статических локальных test-имён, включая многострочную запись. */
 test("recognizes multiline literal names but never dynamic diagnostic names", () => {
   expect(diagnostics).toHaveProperty("nativeTestNames");
   const names = diagnostics.nativeTestNames([
@@ -15,6 +17,7 @@ test("recognizes multiline literal names but never dynamic diagnostic names", ()
   ).toContain("multiline");
 });
 
+/** Настоящий дочерний процесс печатает фиктивные приватные данные; наружу разрешено только заранее известное имя провала. */
 test("reports only trusted failed native test names, never child error details", async () => {
   expect(diagnostics).toHaveProperty("nativeTestFailure");
   const failure = await promisify(execFile)(process.execPath, [
@@ -32,6 +35,7 @@ test("reports only trusted failed native test names, never child error details",
   expect(Object.keys(safe)).toEqual([]);
 });
 
+/** Timeout, maxBuffer, неизвестный TAP, spawn-error и null получают безопасную категорию без cause/вывода. */
 test.each([
   [{ killed: true, stdout: "private", stderr: "private" }, "deadline"],
   [

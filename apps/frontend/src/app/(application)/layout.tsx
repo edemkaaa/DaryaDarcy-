@@ -3,7 +3,7 @@ import "../tab-styles";
 import type { ReactNode } from "react";
 import Providers from "../providers";
 
-/** Keep the session, retained tabs and background effects out of password setup. */
+/** Общие провайдеры и фоновые эффекты включаем только для application-группы; установка пароля остаётся снаружи. */
 export default function ApplicationLayout({
   children,
 }: {

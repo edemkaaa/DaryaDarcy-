@@ -2,6 +2,7 @@
 /** Компонент переводит параметры градиента в CSS, сохраняя общий способ объединения стилей. */
 import { mergeStyles } from "@/shared/ui/css";
 import { type BoxProps } from "@/shared/ui/elements";
+/** Переводим вектор start/end и доли остановок в CSS linear-gradient; внешние стили могут переопределить результат. */
 export function LinearGradient({
   colors,
   locations,

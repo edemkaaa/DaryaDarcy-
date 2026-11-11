@@ -1,5 +1,8 @@
+// Архив Expo. Извлекает JPEG-кадр из web Blob после seek; возвращает null при ошибке и освобождает object URL.
 /** Extract a JPEG poster frame from a video blob (web admin upload). */
 export async function extractVideoPosterBlob(videoBlob: Blob): Promise<Blob | null> {
+  // Извлекает JPEG-кадр из web Blob после seek; возвращает null при ошибке и освобождает object URL.
+
   const doc = (globalThis as { document?: Document }).document;
   if (!doc) return null;
 
@@ -11,6 +14,8 @@ export async function extractVideoPosterBlob(videoBlob: Blob): Promise<Blob | nu
     video.preload = "auto";
 
     const cleanup = () => {
+      // Освобождает временное видео и object URL после результата или ошибки.
+
       URL.revokeObjectURL(objectUrl);
       video.removeAttribute("src");
       video.load();

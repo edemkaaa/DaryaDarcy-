@@ -1,3 +1,4 @@
+/** Сетевой клиент отмены проверяется injected fetch без реального изменения provider profile. */
 import { afterEach, expect, it, vi } from "vitest";
 import { createHmac } from "node:crypto";
 import { cancelProdamusProfile } from "../apps/backend/src/billing/prodamus-cancellation-client";
@@ -13,8 +14,10 @@ const config = Object.freeze({
   secret: "synthetic-client-fixture",
   production: true,
 });
+/** Снимаем console/spies после каждого сценария. */
 afterEach(() => vi.restoreAllMocks());
 
+/** Независимый HMAC и полная form-строка подтверждают active_manager/user=0, фиксированный endpoint, signal и redirect:error. */
 it.each([false, true])(
   "sends exactly the signed manager=%s cancellation to the configured endpoint",
   async (manager) => {
@@ -44,6 +47,7 @@ it.each([false, true])(
   },
 );
 
+/** Чужой merchant/subscription или отсутствующий profile не отправляется. */
 it.each([
   { domain: "other.payform.ru" },
   { subscriptionId: "8" },
@@ -57,6 +61,7 @@ it.each([
   expect(send).not.toHaveBeenCalled();
 });
 
+/** Без ключа запрос даже не формируется. */
 it("refuses a missing secret before transport", async () => {
   const send = vi.fn<typeof fetch>();
   expect(
@@ -65,6 +70,7 @@ it("refuses a missing secret before transport", async () => {
   expect(send).not.toHaveBeenCalled();
 });
 
+/** HTTP loopback допустим только non-production fixture; реальный payform требует HTTPS. */
 it.each([
   {
     url: "http://fixture.payform.ru",
@@ -114,6 +120,7 @@ it.each([
   },
 );
 
+/** Отсутствующий доверенный tariff ID не допускает отмену. */
 it("does not send a profile when configured subscription is missing", async () => {
   const send = vi.fn<typeof fetch>();
   expect(
@@ -126,6 +133,7 @@ it("does not send a profile when configured subscription is missing", async () =
   expect(send).not.toHaveBeenCalled();
 });
 
+/** Невалидный URL сохраняет TypeError до fetch. */
 it("preserves rejection of a malformed configured URL before transport", async () => {
   const send = vi.fn<typeof fetch>();
   await expect(
@@ -138,6 +146,7 @@ it("preserves rejection of a malformed configured URL before transport", async (
   expect(send).not.toHaveBeenCalled();
 });
 
+/** Provider failure возвращает false и только общий warning без private cause. */
 it("does not confirm or expose private transport errors", async () => {
   const send = vi.fn<typeof fetch>(async () => {
     throw new Error("PRIVATE_PROVIDER_DETAIL");

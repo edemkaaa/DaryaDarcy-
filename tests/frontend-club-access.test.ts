@@ -1,3 +1,4 @@
+/** Проверяем форму подтверждённого сервером доступа к Клубу, отделяя подписку, служебный доступ и отмену. */
 import { describe, expect, it } from "vitest";
 import {
   parseClubAccess,
@@ -13,7 +14,9 @@ const paid = {
   isOwner: false,
   monthlyPrice: "790",
 };
+/** Клиент валидирует серверное решение, не выводит оплату из одного флага или возврата браузера. */
 describe("server-confirmed club access", () => {
+  /** Состояние отмены сохраняется даже при отсутствии текущего оплаченного периода. */
   it.each(["none", "pending", "confirmed"] as const)(
     "preserves cancellation state %s independently from paid access",
     (cancellationStatus) => {
@@ -32,12 +35,14 @@ describe("server-confirmed club access", () => {
       });
     },
   );
+  /** Неизвестное или нетекстовое состояние нельзя принимать за подтверждённую отмену. */
   it.each([undefined, null, "unknown", false, 1])(
     "rejects malformed cancellation state %j",
     (cancellationStatus) => {
       expect(() => parseClubAccess({ ...paid, cancellationStatus })).toThrow();
     },
   );
+  /** Дата ISO и Date после SuperJSON должны нормализоваться в одно значение. */
   it.each([paid.expiresAt, new Date(paid.expiresAt)])(
     "accepts a real expiry in the transport format %s",
     (expiresAt) => {
@@ -46,11 +51,13 @@ describe("server-confirmed club access", () => {
       );
     },
   );
+  /** Owner-доступ допускается без выдуманной даты оплаты. */
   it("allows owner access without a paid period", () => {
     expect(
       parseClubAccess({ ...paid, isOwner: true, expiresAt: null }).subscribed,
     ).toBe(true);
   });
+  /** Подтверждённое отсутствие доступа остаётся закрытым состоянием. */
   it("keeps a server-confirmed inactive account inactive", () => {
     expect(
       parseClubAccess({
@@ -61,6 +68,7 @@ describe("server-confirmed club access", () => {
       }).subscribed,
     ).toBe(false);
   });
+  /** hasClubAccess может быть true независимо от subscribed и оплаченного срока. */
   it("accepts service access without inventing a paid subscription", () => {
     expect(
       parseClubAccess({ ...paid, subscribed: false, expiresAt: null }),
@@ -73,11 +81,13 @@ describe("server-confirmed club access", () => {
       isOwner: false,
     });
   });
+  /** Нельзя заменить явный отказ hasClubAccess положительным subscribed. */
   it("preserves the server's access decision independently of subscribed", () => {
     expect(
       parseClubAccess({ ...paid, hasClubAccess: false }).hasClubAccess,
     ).toBe(false);
   });
+  /** Неполные boolean/цена/дата и невозможный оплаченный период отклоняются. */
   it.each([
     null,
     [],
@@ -97,6 +107,7 @@ describe("server-confirmed club access", () => {
   ])("rejects malformed paid access %j", (value) => {
     expect(() => parseClubAccess(value)).toThrow();
   });
+  /** Форма claimPending проверяется отдельно и сама не выдаёт право открыть контент. */
   it.each([
     { granted: false, orderId: null },
     { granted: true, orderId: "club-paid" },
@@ -106,6 +117,7 @@ describe("server-confirmed club access", () => {
       expect(() => requireClubClaim(value)).not.toThrow();
     },
   );
+  /** Несогласованные granted/orderId не должны становиться подтверждением покупки. */
   it.each([
     null,
     {},

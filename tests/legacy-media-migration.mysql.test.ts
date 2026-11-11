@@ -26,11 +26,13 @@ import {
 } from "../apps/backend/src/content/legacy-media-migration";
 
 const uri = process.env.LEGACY_MEDIA_REHEARSAL_DATABASE_URL;
+/** Вычисляет хеш синтетических байтов и идентичности миграции для воспроизводимых манифестов. */
 const hash = (value: string | Buffer) =>
   createHash("sha256").update(value).digest("hex");
 const source =
   "https://s3.twcstorage.ru/daryadarcy-s3/feed/photos/owned-synthetic.jpg";
 const actor = { id: 98851, sessionVersion: 0 };
+/** Проверяет миграцию старых привязок на отдельной SQL-базе, настоящем API и локальном S3-протоколе. */
 describe.skipIf(!uri)(
   "legacy migration on current fresh SQL, real API and owned SDK wire",
   () => {
@@ -38,6 +40,7 @@ describe.skipIf(!uri)(
     let wire: Awaited<ReturnType<typeof openPrivateUploadWire>>;
     let photo: Buffer;
     const tokens: Record<string, string> = {};
+    /** Формирует манифест конкретного слота с ожидаемым прежним URL, длиной и хешем без разрешения менять оригинал. */
     function input(
       bytes = photo,
       kind = "postPhoto",
@@ -61,6 +64,7 @@ describe.skipIf(!uri)(
         bytes,
       };
     }
+    /** Создаёт локальный видеоисточник с Unicode-ключом и манифест потокового копирования по точному ETag. */
     function copyInput() {
       const bytes = Buffer.concat([
         Buffer.from([0, 0, 0, 24]),
@@ -92,9 +96,11 @@ describe.skipIf(!uri)(
         probe: bytes,
       };
     }
+    /** Читает контрольные строки постов, статей и durable-квитанций. */
     async function rows(sql: string, args: unknown[] = []) {
       return (await conn.query<RowDataPacket[]>(sql, args))[0];
     }
+    /** Читает защищённый URL через локальный API с выбранной ролью и заголовками Range. */
     async function read(
       path: string,
       who = "member",
@@ -107,6 +113,7 @@ describe.skipIf(!uri)(
         },
       });
     }
+    /** Удаляет только свои миграционные записи, контент, подписку и отказной триггер. */
     async function clear() {
       await conn.query("DROP TRIGGER IF EXISTS legacy_migration_refusal");
       await conn.query(
@@ -122,6 +129,7 @@ describe.skipIf(!uri)(
         "DELETE FROM club_payments WHERE orderId='legacy-synthetic-access'",
       );
     }
+    /** Запускает свежий процесс импортёра с синтетическим локальным хранилищем и опционально теряет подтверждение результата. */
     async function restartedApply(
       request: ReturnType<typeof input> | ReturnType<typeof copyInput>,
       discard = false,
@@ -153,6 +161,7 @@ describe.skipIf(!uri)(
         },
       );
     }
+    /** Проверяет текущую историю миграций и поднимает локальный SDK wire, четыре роли, синтетическую картинку и API. */
     beforeAll(async () => {
       assertTestDatabase(uri!);
       conn = await mysql.createConnection(uri!);
@@ -195,6 +204,7 @@ describe.skipIf(!uri)(
       await app.listen(0, "127.0.0.1");
       base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
     });
+    /** Возвращает полномочия тестовых ролей и создаёт закрытые и публичные sentinel-привязки перед сценарием. */
     beforeEach(async () => {
       await clear();
       wire.objects.clear();
@@ -227,6 +237,7 @@ describe.skipIf(!uri)(
       vi.stubEnv("PRIVATE_CONTENT_FILES_ENABLED", "true");
       vi.stubEnv("PRIVATE_POST_MEDIA_UPLOAD_ENABLED", "true");
     });
+    /** Удаляет только собственные записи и закрывает приложение, SQL-пул и локальный SDK wire. */
     afterAll(async () => {
       await app?.close();
       if (conn) {
@@ -240,6 +251,7 @@ describe.skipIf(!uri)(
       await wire?.close();
       vi.unstubAllEnvs();
     });
+    /** Проверяет точное копирование байтов и замену только выбранного слота при сохранении общих публичных ссылок. */
     it("copies exact bytes and binds only the selected slot, preserving public references", async () => {
       const result = await applyLegacyMedia(actor, input());
       expect(result.state).toBe("committed");
@@ -262,6 +274,7 @@ describe.skipIf(!uri)(
       );
       expect(Buffer.from(await response.arrayBuffer())).toEqual(photo);
     });
+    /** Проверяет доступ администратора и участницы и отказ гостю, постороннему, просроченному или заблокированному аккаунту без лишних запросов storage. */
     it("authorizes admin/member and denies guest, outsider, expiry, blocking and direct storage", async () => {
       const result = await applyLegacyMedia(actor, input());
       for (const name of ["admin", "member"])
@@ -285,6 +298,7 @@ describe.skipIf(!uri)(
         (await fetch(`${wire.endpoint}/${wire.bucket}/${key}`)).status,
       ).toBe(403);
     });
+    /** Проверяет восстановление после потери PUT-ответа с единственным объектом и единственной привязкой. */
     it("recovers a lost PUT acknowledgement with one object and one binding", async () => {
       wire.dropPutAck();
       await expect(applyLegacyMedia(actor, input())).rejects.toMatchObject({
@@ -305,6 +319,7 @@ describe.skipIf(!uri)(
         ),
       ).toHaveLength(1);
     });
+    /** Проверяет сохранение прежней ссылки при отказе SQL-коммита и последующее использование уже загруженной копии. */
     it("keeps the source binding when commit fails, then resumes the staged copy", async () => {
       await conn.query(
         "CREATE TRIGGER legacy_migration_refusal BEFORE UPDATE ON posts FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='synthetic refusal'",
@@ -326,6 +341,7 @@ describe.skipIf(!uri)(
       expect((await applyLegacyMedia(actor, input())).state).toBe("committed");
       expect(wire.objects.size).toBe(1);
     });
+    /** Проверяет отказ изменившегося источника и публичного родителя до любых storage-эффектов. */
     it("rejects an edited source and public parents before storage effects", async () => {
       await conn.query(
         "UPDATE posts SET photos=JSON_ARRAY('https://example.test/changed.jpg') WHERE id=98851",
@@ -338,6 +354,7 @@ describe.skipIf(!uri)(
       ).rejects.toMatchObject({ code: "CONFLICT" });
       expect(wire.effects).toHaveLength(0);
     });
+    /** Проверяет актуальную роль, версию сессии, флаги и соответствие actor и payload исходной операции. */
     it("rejects foreign accounts, stale sessions, disabled flags and wrong-key payload", async () => {
       await expect(
         applyLegacyMedia({ id: 98854, sessionVersion: 0 }, input()),
@@ -361,6 +378,7 @@ describe.skipIf(!uri)(
         applyLegacyMedia(actor, { ...input(), filename: "changed" }),
       ).rejects.toMatchObject({ code: "CONFLICT" });
     });
+    /** Проверяет повторяемый откат только своей привязки без удаления объекта и без возобновления отменённой миграции. */
     it("rolls back only its binding, disables its private reference and refuses replay", async () => {
       const request = input(),
         result = await applyLegacyMedia(actor, request);
@@ -382,6 +400,7 @@ describe.skipIf(!uri)(
         false,
       );
     });
+    /** Проверяет, что откат не перезаписывает более позднее изменение редактора. */
     it("does not overwrite a later editor change during rollback", async () => {
       await applyLegacyMedia(actor, input());
       await conn.query(
@@ -394,6 +413,7 @@ describe.skipIf(!uri)(
         (await rows("SELECT photos FROM posts WHERE id=98851"))[0].photos,
       ).toEqual(["https://example.test/editor.jpg"]);
     });
+    /** Проверяет побайтовое сохранение анимированного GIF и публичной обложки при переносе вложения статьи. */
     it("preserves animated GIF bytes and covers while binding article media", async () => {
       const bytes = await sharp(
         Buffer.concat([
@@ -430,6 +450,7 @@ describe.skipIf(!uri)(
           .sections[0].url,
       ).toBe(source);
     });
+    /** Проверяет раздельные слоты карусели и документа без изменения соседних блоков статьи. */
     it("binds article carousel and document slots without touching other blocks", async () => {
       const image = await applyLegacyMedia(
         actor,
@@ -450,6 +471,7 @@ describe.skipIf(!uri)(
       expect(blocks[1].urls).toEqual([image.url]);
       expect(blocks[2].url).toBe(file.url);
     });
+    /** Проверяет DOCX с точным Unicode-адресом через namespace вложений и возврат исходной ссылки при откате. */
     it("migrates a DOCX with an exact Unicode source URL through the attachment namespace", async () => {
       const documents = await openPrivateUploadWire();
       vi.stubEnv("S3_ENDPOINT", documents.endpoint);
@@ -487,6 +509,7 @@ describe.skipIf(!uri)(
         await documents.close();
       }
     });
+    /** Проверяет сохранение ID, sortOrder, точных видеобайтов и Range при переносе и откате. */
     it("keeps video IDs, order, bytes and byte ranges through migration and rollback", async () => {
       const bytes = Buffer.concat([
         Buffer.from([0, 0, 0, 24]),
@@ -513,6 +536,7 @@ describe.skipIf(!uri)(
         code: "CONFLICT",
       });
     });
+    /** Проверяет потоковый SHA-256 и точные байты destination при сохранении оригинального источника и безопасном повторе. */
     it("copies within storage, verifies streaming SHA and preserves the source", async () => {
       const request = copyInput();
       await conn.query("UPDATE post_media SET url=? WHERE id=98851", [
@@ -542,6 +566,7 @@ describe.skipIf(!uri)(
         (await rows("SELECT url FROM post_media WHERE id=98851"))[0].url,
       ).toBe(request.expectedOldUrl);
     });
+    /** Приостанавливает PUT и проверяет отсутствие длительной SQL-блокировки строки администратора во время storage-работы. */
     it("does not hold the administrator row lock while storage is uploading", async () => {
       const gate = wire.pausePut(),
         pending = applyLegacyMedia(actor, input());
@@ -561,6 +586,7 @@ describe.skipIf(!uri)(
       await pending;
       expect(changed).toBe(true);
     });
+    /** Проверяет восстановление закоммиченного результата свежим процессом после отброшенного первого ответа без дублей. */
     it("recovers the committed result in a fresh process after the first response is discarded", async () => {
       await expect(restartedApply(input(), true)).rejects.toMatchObject({
         code: 23,
@@ -577,6 +603,7 @@ describe.skipIf(!uri)(
         ),
       ).toHaveLength(1);
     });
+    /** Проверяет межпроцессный потоковый перенос и восстановление потерянного результата с единственным PUT. */
     it("runs the stream transfer in an independent process and recovers its discarded response", async () => {
       const request = copyInput();
       await conn.query("UPDATE post_media SET url=? WHERE id=98851", [
@@ -599,6 +626,7 @@ describe.skipIf(!uri)(
         ),
       ).toHaveLength(1);
     });
+    /** Меняет роль во время PUT и проверяет повторную авторизацию перед привязкой и допустимое продолжение после возврата роли. */
     it("rechecks role after storage work and can resume only after permission returns", async () => {
       const gate = wire.pausePut(),
         pending = applyLegacyMedia(actor, input());
@@ -616,6 +644,7 @@ describe.skipIf(!uri)(
         wire.effects.filter((effect) => effect.startsWith("PUT ")),
       ).toHaveLength(1);
     });
+    /** Отменяет pending-копию во время PUT и проверяет, что поздний storage-ответ не воскрешает её привязку. */
     it("does not resurrect a cancelled pending copy when a late storage response arrives", async () => {
       const gate = wire.pausePut(),
         pending = applyLegacyMedia(actor, input());
@@ -632,6 +661,7 @@ describe.skipIf(!uri)(
         false,
       );
     });
+    /** Проверяет восстановление потерянного ACK потокового PUT без ещё одной копии. */
     it("recovers a lost streaming PUT ACK without another copy", async () => {
       const request = copyInput();
       await conn.query("UPDATE post_media SET url=? WHERE id=98851", [
@@ -649,6 +679,7 @@ describe.skipIf(!uri)(
         wire.effects.filter((effect) => effect.startsWith("PUT ")),
       ).toHaveLength(1);
     });
+    /** Проверяет отказ изменённого ETag источника и повреждённых байтов destination до публикации новой привязки. */
     it("refuses changed source or corrupt destination evidence before binding", async () => {
       const request = copyInput();
       await conn.query("UPDATE post_media SET url=? WHERE id=98851", [

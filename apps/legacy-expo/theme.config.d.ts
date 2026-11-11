@@ -1,3 +1,4 @@
+// Архив Expo. TypeScript-описание JS-токенов темы без отдельного runtime состояния.
 export const themeColors: {
   primary: { light: string; dark: string };
   background: { light: string; dark: string };

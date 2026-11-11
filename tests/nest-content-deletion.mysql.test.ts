@@ -21,10 +21,12 @@ import { sdk } from "../apps/backend/src/_core/sdk";
 import type { AppRouter } from "../apps/backend/src/routers";
 
 // Real native composition, HTTP, JWT and SQL; no storage/network delivery.
+/** Проверяет native admin-удаление контента и каскада без storage или уведомлений. */
 describe.skipIf(!testDatabaseUrl)(
   "admin content deletion over HTTP/JWT/MySQL",
   () => {
     let conn: Connection, app: INestApplication, base: string;
+    /** Открывает одноразовую content-схему и запускает настоящий локальный API. */
     beforeAll(async () => {
       conn = await openContentTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -33,6 +35,7 @@ describe.skipIf(!testDatabaseUrl)(
       await app.listen(0, "127.0.0.1");
       base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
     });
+    /** Удаляет только свой fault-trigger, реакции, комментарии, media, посты и два аккаунта. */
     async function cleanup() {
       await conn.query("DROP TRIGGER IF EXISTS content_delete_refusal");
       await conn.query("DELETE FROM comment_reports WHERE reporterUserId=8470");
@@ -46,6 +49,7 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query("DELETE FROM posts WHERE id IN (8470,8471)");
       await conn.query("DELETE FROM users WHERE id IN (8470,8471)");
     }
+    /** Восстанавливает целевой и соседний пост с media, обсуждением и cross-post legacy-ответом. */
     beforeEach(async () => {
       await cleanup();
       await conn.query(
@@ -73,9 +77,11 @@ describe.skipIf(!testDatabaseUrl)(
         "INSERT INTO saved_posts (userId,postId) VALUES (8470,8470),(8470,8471)",
       );
     });
+    /** Убирает адресный trigger отказа финального DELETE. */
     afterEach(async () => {
       await conn.query("DROP TRIGGER IF EXISTS content_delete_refusal");
     });
+    /** Закрывает API, очищает fixture и соединения и возвращает окружение. */
     afterAll(async () => {
       await app?.close();
       if (conn) {
@@ -87,12 +93,14 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** Создаёт HTTP-клиент admin, member либо гостя. */
     function client(actor: "admin" | "member" | null = "admin") {
       return createTRPCProxyClient<AppRouter>({
         links: [
           httpLink({
             url: `${base}/api/trpc`,
             transformer: superjson,
+            /** Выпускает JWT выбранной роли перед запросом или оставляет гостевые заголовки пустыми. */
             headers: async () =>
               actor
                 ? {
@@ -103,6 +111,7 @@ describe.skipIf(!testDatabaseUrl)(
         ],
       });
     }
+    /** Снимает все связанные строки двух постов для проверки точного каскада и отката. */
     async function snapshot() {
       const queries = {
         posts: "SELECT id,text FROM posts WHERE id IN (8470,8471) ORDER BY id",
@@ -123,6 +132,7 @@ describe.skipIf(!testDatabaseUrl)(
         [result[key]] = await conn.query<RowDataPacket[]>(sql);
       return result;
     }
+    /** Удаление целевого поста убирает его зависимости и сохраняет соседний ответ без parentId с его реакциями. */
     it("deletes the requested post's dependents and detaches a surviving legacy reply", async () => {
       const before = await snapshot();
       expect(
@@ -145,6 +155,7 @@ describe.skipIf(!testDatabaseUrl)(
         saves: [{ postId: 8471 }],
       });
     });
+    /** Сбой последнего DELETE поста откатывает все очищенные зависимости и parentId surviving reply. */
     it("rolls back every dependent and parent detachment when final post deletion fails", async () => {
       const before = await snapshot();
       await conn.query(`CREATE TRIGGER content_delete_refusal BEFORE DELETE ON posts FOR EACH ROW
@@ -157,6 +168,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       expect(await snapshot()).toEqual(before);
     });
+    /** Удаление одного media не меняет посты, соседние вложения и реакции. */
     it("deletes only one attachment while retaining posts, other media and reactions", async () => {
       const before = await snapshot();
       expect(
@@ -167,6 +179,7 @@ describe.skipIf(!testDatabaseUrl)(
         media: before.media.slice(1),
       });
     });
+    /** Повтор удаления отсутствующего post/media сохраняет совместимый no-op без других изменений. */
     it.each(["deletePost", "deleteMedia"] as const)(
       "%s retains the missing-ID no-op",
       async (operation) => {
@@ -177,6 +190,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await snapshot()).toEqual(before);
       },
     );
+    /** Гость и обычный участник не удаляют ни пост, ни media. */
     it.each([
       [null, "deletePost"],
       [null, "deleteMedia"],

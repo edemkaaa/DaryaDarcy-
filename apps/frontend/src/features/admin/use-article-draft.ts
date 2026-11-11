@@ -18,6 +18,8 @@ export function useArticleDraft(
   snapshot: ArticleDraftSnapshot,
   files: PrivateArticleFile[],
 ) {
+  // Сериализует автосохранение по аккаунту и статье; локальная ревизия предотвращает незаметную замену черновика из другой вкладки.
+
   const [journal] = useState(() => new ArticleDraftJournal(ownerId));
   const current = useRef(new Map<number | null, ArticleDraftRecord>());
   const [records, setRecords] = useState<ArticleDraftRecord[]>([]);
@@ -36,6 +38,8 @@ export function useArticleDraft(
   } | null>(null);
   const running = useRef<Promise<void> | null>(null);
   const report = useCallback((cause: unknown) => {
+    // Сохраняет ошибку и для ожидающего flush, и для видимого предупреждения, не обновляя размонтированный компонент.
+
     errorRef.current =
       cause instanceof Error
         ? cause.message
@@ -43,10 +47,14 @@ export function useArticleDraft(
     if (alive.current) setError(errorRef.current);
   }, []);
   const invalidatePendingReads = useCallback(() => {
+    // Меняет поколение чтений, чтобы прежняя инспекция не восстановила уже закрытый снимок.
+
     readSequence.current++;
   }, []);
   // Номер чтения не даёт более старой инспекции затереть состояние после нового чтения или закрытия редактора.
   const reload = useCallback(async () => {
+    // Принимает только последнее завершённое чтение журнала и отдельно показывает повреждённые записи.
+
     const sequence = ++readSequence.current;
     try {
       const inspection = await journal.inspect();
@@ -69,6 +77,8 @@ export function useArticleDraft(
     }
   }, [journal]);
   useEffect(() => {
+    // При монтировании читает журнал; при закрытии инвалидирует поздние инспекции без удаления данных.
+
     alive.current = true;
     void reload().catch(() => {});
     return () => {
@@ -79,6 +89,8 @@ export function useArticleDraft(
 
   // Единственный писатель последовательно догоняет последнюю очередь; параллельные flush используют ту же работу.
   const flush = useCallback(async (): Promise<void> => {
+    // Разделяет одну выполняющуюся запись между всеми ожидающими и последовательно догоняет самый новый поставленный снимок.
+
     if (running.current) return running.current;
     if (!queue.current) {
       if (errorRef.current) throw new Error(errorRef.current);
@@ -86,6 +98,8 @@ export function useArticleDraft(
     }
     if (alive.current) setSaving(true);
     const work = async () => {
+      // Сохраняет снимок с ожидаемой локальной ревизией; новый ввод во время записи остаётся в очереди следующей итерации.
+
       while (queue.current) {
         const next = queue.current;
         const saved = await journal.save(
@@ -125,7 +139,7 @@ export function useArticleDraft(
     editConflict,
   } = snapshot;
   const input = useMemo(
-    () => ({
+    () => /* Фиксирует зависимости формы одним снимком для автосохранения, включая ревизию и неопределённость предыдущей отправки. */ ({
       editingId,
       title,
       coverUrl,
@@ -149,6 +163,8 @@ export function useArticleDraft(
     ],
   );
   useEffect(() => {
+    // Ставит согласованные поля и только используемые файлы в очередь, если форма активна и журнал успешно прочитан.
+
     if (!enabled || !loaded || paused.current) return;
     try {
       queue.current = {
@@ -161,7 +177,11 @@ export function useArticleDraft(
     }
   }, [enabled, loaded, input, files, flush, report]);
   useEffect(() => {
+    // Регистрирует защиту ухода на время несохранённого ввода; при закрытии слушатель снимается.
+
     const warn = (event: BeforeUnloadEvent) => {
+      // Предупреждает уход только при несохранённой очереди, незавершённой записи или ошибке хранения.
+
       if (!queue.current && !running.current && !errorRef.current) return;
       event.preventDefault();
       event.returnValue = "";
@@ -171,6 +191,8 @@ export function useArticleDraft(
   }, []);
   // Обычная очистка ждёт сохранения ввода; явный discard отдельно отказывается только от локального черновика.
   const clear = async (discard = false, slot = editingId) => {
+    // Останавливает автозапись: обычное завершение ждёт flush, явный отказ отбрасывает очередь, но не чужую ревизию.
+
     paused.current = true;
     try {
       if (discard) {
@@ -192,6 +214,8 @@ export function useArticleDraft(
   };
   // До отправки update сохраняем неопределённость в черновике, чтобы перезагрузка не разрешила слепой повтор.
   const markWriteStarted = async (editConflict?: 409 | 412) => {
+    // До сетевого update сохраняет признак неизвестного исхода и приостанавливает редактируемые записи, запрещая слепой повтор после перезагрузки.
+
     await flush();
     const value = current.current.get(editingId);
     if (!value)
@@ -214,17 +238,21 @@ export function useArticleDraft(
   return {
     reload,
     archiveDamaged: async (key: string) => {
+      // Переносит повреждённую локальную запись в архив и перечитывает список вместо её молчаливого удаления.
+
       await journal.archiveDamaged(key);
       await reload();
     },
     damaged,
     readError,
     isDamaged: (slot: number | null) =>
-      damaged.some((entry) => entry.key === `${ownerId}:${slot ?? "new"}`),
+      /* Проверяет повреждение конкретного слота владельца, чтобы другая статья оставалась доступна. */ damaged.some((entry) => entry.key === `${ownerId}:${slot ?? "new"}`),
     saveSnapshot: async (
       snapshot: ArticleDraftSnapshot,
       files: PrivateArticleFile[],
     ) => {
+      // Ждёт текущего писателя и сохраняет явный снимок с локальной ревизией перед заменой рабочей базы.
+
       await running.current;
       const saved = await journal.save(
         snapshot,
@@ -245,6 +273,8 @@ export function useArticleDraft(
     clear,
     markWriteStarted,
     resume: () => {
+      // Возобновляет постановку изменяемого черновика после разрешения неопределённой операции.
+
       paused.current = false;
     },
   };

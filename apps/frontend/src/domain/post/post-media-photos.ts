@@ -1,8 +1,11 @@
 "use client";
 /** Фото и дополнительные вложения поста приводим к формату отображения, сохраняя порядок исходных материалов. */
+
+/** Извлекаем декодированное имя последнего сегмента без query для сопоставления legacy-файла и его миниатюры. */
 export function mediaBasename(url: string): string {
   return decodeURIComponent(url.split("/").pop()?.split("?")[0] || "");
 }
+/** Распознаём историческую пометку _thumb в имени, а не по размерам изображения. */
 function isThumbUrl(url: string): boolean {
   const name = mediaBasename(url).toLowerCase();
   return (
@@ -11,6 +14,7 @@ function isThumbUrl(url: string): boolean {
     name.endsWith("_thumb.jpeg")
   );
 }
+/** Ищем миниатюру с тем же basename ролика, чтобы не присвоить обложку соседнего видео. */
 function thumbForVideo(
   thumbs: string[],
   videoFilename: string,
@@ -25,6 +29,7 @@ function thumbForVideo(
     );
   });
 }
+/** Отделяем legacy-превью от галереи; неоднозначный fallback разрешён только явным параметром вызывающего кода. */
 export function splitVideoPhotos(
   photos: string[] | undefined,
   videoFilename?: string | null,

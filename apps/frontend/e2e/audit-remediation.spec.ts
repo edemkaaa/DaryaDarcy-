@@ -3,7 +3,9 @@ import { editorApi, failure, ok } from "./editor-fixtures";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
 import { PUBLIC_CONTACT_EMAIL } from "../src/shared/config/contact";
 
+/** Используем свежую дату fixture, чтобы окно комментариев оставалось открытым независимо от дня запуска. */
 const now = () => new Date().toISOString();
+/** Клубная карточка объявляет вторую страницу комментариев для проверки точечного обновления хвоста. */
 const post = (id: number) => ({
   id,
   text: `AUDIT_POST_${id}`,
@@ -18,6 +20,7 @@ const post = (id: number) => ({
   commentCount: 21,
 });
 
+/** Два публичных URL политики должны публиковать один configured contact, без устаревшего адреса. */
 test("both public privacy pages expose the same support address", async ({
   request,
 }) => {
@@ -30,6 +33,7 @@ test("both public privacy pages expose the same support address", async ({
   }
 });
 
+/** Подтверждённое и потерянное редактирование хвостового комментария обновляют retained-страницу; первый ответ дочитывает ветку без повторного edit-write. */
 for (const lostEdit of [false, true]) {
   test(`${lostEdit ? "lost" : "confirmed"} edits and first replies update a retained second comment page`, async ({
     page,
@@ -37,6 +41,7 @@ for (const lostEdit of [false, true]) {
     let edited = false,
       replied = false;
     let editWrites = 0;
+    /** Снимок хвостового комментария отражает отдельно подтверждённый текст и появление первого ответа. */
     const comment = (id: number) => ({
       id,
       postId: 1,
@@ -125,10 +130,12 @@ for (const lostEdit of [false, true]) {
   });
 }
 
+/** Глобальный copy-handler клуба действует только при видимой клубной панели и снимается при переходе к профилю. */
 test("copy protection is released when the retained Club screen is hidden", async ({
   page,
 }) => {
   await layoutApi(page, true);
+  /** Проверяем cancelable copy-event по результату dispatch, не читая clipboard ОС. */
   const blocked = () =>
     page.evaluate(
       () =>
@@ -153,6 +160,7 @@ test("copy protection is released when the retained Club screen is hidden", asyn
   await expect.poll(blocked).toBe(false);
 });
 
+/** Фоновое обновление ограничено головой, а wire-cursor остаётся числом; ручная догрузка не должна незаметно стать полной refresh-цепочкой. */
 test("Club background refresh reads the head only and keeps numeric wire cursors", async ({
   page,
 }) => {
@@ -190,6 +198,7 @@ test("Club background refresh reads the head only and keeps numeric wire cursors
   expect(reads.filter((cursor) => cursor > 0)).toHaveLength(tailReads);
 });
 
+/** Интерфейс не предлагает модератору блокировать самого себя по жалобе на собственный комментарий. */
 test("moderation never offers to block the signed-in author", async ({
   page,
 }) => {
@@ -222,12 +231,14 @@ test("moderation never offers to block the signed-in author", async ({
   ).toHaveCount(0);
 });
 
+/** Потерянный delete-ACK сверяется по хвостовой странице: исчезновение/сохранение строки устанавливается read, без второй мутации. */
 for (const committed of [false, true]) {
   test(`lost deletion of a second-page comment is inspected without repeating it, committed=${committed}`, async ({
     page,
   }) => {
     let removed = false,
       writes = 0;
+    /** Строки имеют стабильные ID при синтетическом удалении, чтобы инспекция проверяла именно вторую страницу. */
     const comment = (id: number) => ({
       id,
       postId: 1,

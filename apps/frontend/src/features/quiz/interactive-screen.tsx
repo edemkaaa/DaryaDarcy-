@@ -16,6 +16,7 @@ import { useRouter } from "@/shared/navigation/router";
 import Animated, { FadeInDown } from "@/shared/browser/motion";
 import { PAPER_TEXTURE_URI } from "./interactive-screen.content";
 const quizCover = { uri: "/assets/interactive/quiz-cover.webp" };
+/** Показываем точку входа в бесплатный тест; карточка перекрывает нижние хвосты декора шапки. */
 export default function InteractiveScreen() {
   const router = useRouter();
   return (

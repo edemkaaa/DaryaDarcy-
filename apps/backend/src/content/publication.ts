@@ -8,6 +8,7 @@ import { assertContentWriteActor, type ContentWriteActor } from "./content-write
 export type PostPublication = Pick<Post, "id" | "text" | "target">;
 
 /** Return an announcement only for this call's committed visibility transition. */
+/** Блокируем текущий пост после исполнителя и публикуем лишь при реальном изменении видимости; один победивший вызов получает данные уведомления, повтор не дублирует его. */
 export async function confirmPostPublication(
   database: MySql2Database,
   postId: number,

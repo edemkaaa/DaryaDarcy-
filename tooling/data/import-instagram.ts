@@ -36,6 +36,8 @@ interface ProcessedPost {
 }
 
 async function main() {
+  // Вставляет ещё не встречавшиеся shortcode из локального JSON; исторический sortOrder не описывает нынешнюю сортировку API.
+
   console.log("=== Instagram Import Script ===\n");
 
   // Check DATABASE_URL

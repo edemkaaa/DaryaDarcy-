@@ -1,3 +1,4 @@
+// Архив Expo. Показывает публичный вход в тест; карточка своим zIndex закрывает нижние хвосты декоративного плюща.
 import { Text, View, ScrollView, StyleSheet, Pressable,
   ImageBackground,
 } from "react-native";
@@ -19,6 +20,8 @@ const ivyRight = require("@/assets/interactive/ivy-right.png");
 const keyDecor = require("@/assets/interactive/key-decor.png");
 
 export default function InteractiveScreen() {
+  // Показывает публичный вход в тест; карточка своим zIndex закрывает нижние хвосты декоративного плюща.
+
   return (
     <ScreenContainer containerClassName="bg-background">
       <ImageBackground source={{ uri: PAPER_TEXTURE_URI }} resizeMode="cover" style={{ flex: 1 }}>
@@ -96,6 +99,7 @@ export default function InteractiveScreen() {
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 40,

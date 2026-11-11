@@ -3,6 +3,7 @@ import type { ViewportSize } from "@/shared/browser/viewport";
 
 import { getAestheticsScreenContent } from "./aesthetics-screen.content";
 
+/** Задаём разные пропорции для образов, мудбордов и интерьеров; все размеры масштабируются от текущей ширины viewport. */
 export function getAestheticsScreenLayout(viewport: ViewportSize) {
   const { width } = getAestheticsScreenContent(viewport);
   const stylesLayout = {

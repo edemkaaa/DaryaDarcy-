@@ -17,6 +17,8 @@ interface LibraryBrowserFixture {
 }
 
 export async function ensureArticles(connection: Pick<Connection, "query">) {
+  // Создаёт минимальную таблицу лишь в соединении одноразовой фикстуры; не является production-миграцией.
+
   await connection.query(`CREATE TABLE IF NOT EXISTS articles (
     id INT AUTO_INCREMENT PRIMARY KEY,title VARCHAR(255) NOT NULL,coverUrl TEXT,
     access ENUM('public','club') NOT NULL DEFAULT 'public',published BOOLEAN NOT NULL DEFAULT TRUE,
@@ -27,6 +29,8 @@ export async function ensureArticles(connection: Pick<Connection, "query">) {
 }
 
 async function articleData(response: Response, id: number) {
+  // Выбирает детализацию по ID внутри tRPC batch, где рядом может идти проверка подписки.
+
   // Subscription reads may share the same tRPC batch; select this detail by ID.
   const batch: { result?: { data?: { json?: { id?: number } } } }[] =
     await response.json();
@@ -37,7 +41,11 @@ async function articleData(response: Response, id: number) {
 export function registerLibraryBrowserCases(
   fixture: () => LibraryBrowserFixture,
 ) {
+  // Проверяет гостя, клубный доступ, черновик, сетевой отказ и истечение доступа на собственных статьях без изменения аккаунта.
+
   it("C3 opens public library articles but does not disclose club or draft bodies to guests", async () => {
+    // Сценарий: Гостевой список не содержит тел клубных статей или черновиков; отсутствие материала отделено от сетевого отказа с ручным retry.
+
     const { rows, connection, context, frontend } = fixture();
     // Catches public listing leaking hidden rows and detail bypassing club access.
     try {
@@ -180,6 +188,8 @@ export function registerLibraryBrowserCases(
     }
   }, 30_000);
   it("C3 reloads a paid club article and removes its body after access expiry without changing identity", async () => {
+    // Сценарий: Платный читатель получает статью после reload; истечение только синтетического доступа убирает тело, сохраняя статью и личность.
+
     const { rows, connection, context, frontend, memberId } = fixture();
     const articleSql = "SELECT * FROM articles WHERE id=94645";
     const identitySql =
@@ -212,7 +222,7 @@ export function registerLibraryBrowserCases(
       ]);
       const page = await context.newPage();
       const read = () =>
-        page.waitForResponse((response) =>
+        /* Ожидает конкретный ответ детализации статьи, а не случайную параллельную проверку подписки. */ page.waitForResponse((response) =>
           response.url().includes("articles.getById"),
         );
       const opened = read();

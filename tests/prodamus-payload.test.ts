@@ -1,7 +1,10 @@
+/** Parser провайдера сохраняет legacy query/form/JSON семантику до проверки подписи. */
 import { describe, expect, it } from "vitest";
 import { parseProdamusPayload } from "../apps/backend/src/billing/prodamus-payload";
 
+/** Различаем query first scalar, form last duplicate и целое body-переопределение; доверие payload здесь не устанавливается. */
 describe("Prodamus payload parsing compatibility", () => {
+  /** Повторный query берёт первый scalar, посторонние структуры не разворачиваются. */
   it("takes the first repeated scalar query value and ignores structured query values", () => {
     const query = {
       payment_status: ["pending", "success"],
@@ -17,6 +20,7 @@ describe("Prodamus payload parsing compatibility", () => {
     });
   });
 
+  /** Buffer/string/object body заменяет поле целиком, не смешивает nested subscription с query. */
   it.each(["buffer", "string", "object"])(
     "%s body overrides whole query fields, not individual nested keys",
     (encoding) => {
@@ -54,6 +58,7 @@ describe("Prodamus payload parsing compatibility", () => {
     },
   );
 
+  /** Form bracket paths и plus/percent decoding сохраняют прежний wire-контракт. */
   it.each(["buffer", "string"])(
     "decodes %s form data with indexed objects and last duplicate values",
     (encoding) => {
@@ -73,6 +78,7 @@ describe("Prodamus payload parsing compatibility", () => {
     },
   );
 
+  /** Scalar/object collision определяется порядком form-ключей. */
   it.each([
     {
       raw: "subscription=old&subscription[id]=7",
@@ -93,6 +99,7 @@ describe("Prodamus payload parsing compatibility", () => {
     },
   );
 
+  /** Валидный JSON primitive/array не парсится второй раз как form. */
   it.each([
     "null",
     "7",
@@ -106,6 +113,7 @@ describe("Prodamus payload parsing compatibility", () => {
     });
   });
 
+  /** Отсутствующее/пустое body не стирает query. */
   it.each([
     { name: "undefined", body: undefined },
     { name: "null", body: null },
@@ -118,6 +126,7 @@ describe("Prodamus payload parsing compatibility", () => {
     });
   });
 
+  /** Опасные bracket path segments отбрасываются без загрязнения прототипа. */
   it.each(["__proto__", "constructor", "prototype"])(
     "blocks %s path segments in query and form before authentication",
     (blocked) => {
@@ -136,6 +145,7 @@ describe("Prodamus payload parsing compatibility", () => {
     },
   );
 
+  /** Own JSON ключ не удаляется перед HMAC и не меняет Object.prototype. */
   it("preserves own JSON __proto__ fields for signature verification", () => {
     const raw =
       '{"__proto__":{"note":"signed"},"subscription":{"__proto__":"nested"},"products":[{"__proto__":null}]}';

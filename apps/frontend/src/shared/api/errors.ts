@@ -6,7 +6,9 @@ export type ApiErrorKind =
   | "cancelled"
   | "invalid-response";
 
+/** Классификация ошибки хранит безопасное сообщение вместе с HTTP-статусом, задержкой и машинным видом сбоя. */
 export class ApiError extends Error {
+  /**   Сообщение передаётся Error, остальные поля остаются структурированными признаками для UI и политики повторов. */
   constructor(
     message: string,
     public status = 0,
@@ -19,6 +21,7 @@ export class ApiError extends Error {
   }
 }
 
+/** Повреждённый успешный ответ выделяем в отдельный вид; он не доказывает, что запись не состоялась. */
 export function invalidResponse(): ApiError {
   return new ApiError(
     "Некорректный ответ сервера. Попробуйте ещё раз.",
@@ -29,6 +32,7 @@ export function invalidResponse(): ApiError {
   );
 }
 
+/** Извлекаем безопасное объяснение из ApiError или HTTP-кода; неизвестную внутреннюю ошибку не показываем дословно. */
 export function getRequestErrorMessage(error: unknown): string {
   if (error instanceof ApiError) return error.message;
   const cause =
@@ -53,6 +57,7 @@ export function getRequestErrorMessage(error: unknown): string {
   return "Не удалось выполнить запрос. Попробуйте ещё раз.";
 }
 
+/** Сохраняем один способ чтения статуса для REST ApiError и tRPC-обёртки с cause или data.httpStatus. */
 export function getHttpStatus(error: unknown): number | undefined {
   if (error instanceof ApiError) return error.status;
   if (!error || typeof error !== "object") return undefined;
@@ -64,6 +69,7 @@ export function getHttpStatus(error: unknown): number | undefined {
 
 /** A failed background read is not evidence that previously confirmed access ended. */
 // Только временная ошибка допускает сохранение ранее подтверждённого содержимого на экране.
+/** Сетевой сбой, timeout и 5xx допускают сохранение прежнего экрана; отмена и invalid-response сюда не входят. */
 export function isTemporaryRequestError(error: unknown): boolean {
   const status = getHttpStatus(error);
   if (status) return status >= 500 && status < 600;
@@ -79,6 +85,7 @@ export function isTemporaryRequestError(error: unknown): boolean {
 }
 
 // Автоповтор ограничен чтением и временными сбоями; отказ доступа или повреждённый ответ не исправляются повтором.
+/** Разрешаем не больше одного автоматического повтора чтения; явные 4xx и распознанная отмена/поломка контракта прекращают его. */
 export function shouldRetryQuery(
   failureCount: number,
   error: unknown,

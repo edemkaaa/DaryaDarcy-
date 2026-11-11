@@ -1,7 +1,8 @@
+/** Общий Vitest setup заменяет бинарные require картинок стабильным marker; код приложения и сетевые вызовы здесь не запускаются. */
 import { vi } from "vitest";
 import Module from "module";
 
-// Intercept require calls for image files
+// Перехват нужен для старых модулей, импортирующих картинки как CommonJS-ресурсы; остальные require делегируются исходному loader.
 const originalRequire = Module.prototype.require;
 // @ts-ignore
 Module.prototype.require = function (id: string) {

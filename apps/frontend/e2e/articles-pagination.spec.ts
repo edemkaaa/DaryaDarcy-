@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { editorApi, failure, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
+/** Даём карточке краткие поля и полный sections для выбранного detail, чтобы проверить разделение списков и редактора. */
 const article = (id: number) => ({
   id,
   title: `PAGED_ARTICLE_${id}`,
@@ -13,27 +14,34 @@ const article = (id: number) => ({
   updatedAt: "2026-10-30T12:00:00Z",
   sections: [{ type: "text", text: `BODY_${id}` }],
 });
+/** Считаем краткие карточки статей по их различимым названиям. */
 const titles = (page: Page) =>
   page.getByText(/^PAGED_ARTICLE_\d+$/, { exact: true });
+/** Выбираем действие конкретной карточки независимо от номера страницы. */
 const edit = (page: Page, id: number) =>
   page
     .getByText(`PAGED_ARTICLE_${id}`, { exact: true })
     .locator("..")
     .getByRole("button", { name: "Править", exact: true });
+/** Берём scroll активного admin-раздела для следующей страницы. */
 const list = (page: Page) => page.locator("main .ui-scroll").last();
+/** Догружаем страницу настоящим достижением конца списка. */
 const scrollEnd = (page: Page) =>
   list(page).evaluate((node) => {
     node.scrollTop = node.scrollHeight;
   });
+/** Адресуем текстовый блок открытой полной статьи, который не должен появляться из частичного detail. */
 const body = (page: Page) =>
   page.getByPlaceholder(
     "Абзац. Пустая строка — новый абзац. Ссылка: [название](https://...)",
   );
 
+/** Входим в admin и открываем статьи обычной навигацией. */
 async function open(page: Page) {
   await gotoWithSession(page, "/admin");
   await page.getByRole("button", { name: "Статьи", exact: true }).click();
 }
+/** Отсекаем внешние адреса, сохраняя локальный app-server и synthetic API. */
 test.beforeEach(async ({ page }) => {
   await page.route("**/*", (route) =>
     ["localhost", "127.0.0.1"].includes(new URL(route.request().url()).hostname)
@@ -42,6 +50,7 @@ test.beforeEach(async ({ page }) => {
   );
 });
 
+/** Paged-карточки не читают полный архив; только выбранный редактор запрашивает detail, а сохранение начинает новую paged-цепочку. */
 test("article cards load by opaque cursor and only the selected editor reads full content", async ({
   page,
 }) => {
@@ -114,6 +123,7 @@ test("article cards load by opaque cursor and only the selected editor reads ful
   ]);
 });
 
+/** Null и неполные detail не должны открывать пустую форму и разрешать случайную запись. */
 for (const result of [
   null,
   {},
@@ -206,6 +216,7 @@ test("a late article detail is discarded after switching admin sections", async 
   }
 });
 
+/** Отсутствие на первой странице не доказывает удаление: нужен точечный detail=null до разблокировки создания. */
 test("absence from the first page cannot confirm article deletion", async ({
   page,
 }) => {
@@ -273,6 +284,7 @@ test("an article detail failure retries without creating a partial form", async 
   expect(reads).toBe(2);
 });
 
+/** После чтения, подтвердившего незавершённое удаление, повтор write возможен только новым явным действием. */
 test("a checked unknown deletion that did not commit allows a deliberate retry", async ({
   page,
 }) => {
@@ -298,6 +310,7 @@ test("a checked unknown deletion that did not commit allows a deliberate retry",
   expect(writes).toBe(2);
 });
 
+/** Смена admin-owner отбрасывает старый detail и начинает список нового владельца с головы. */
 test("account change discards an old article detail and starts the new owner's page", async ({
   page,
 }) => {

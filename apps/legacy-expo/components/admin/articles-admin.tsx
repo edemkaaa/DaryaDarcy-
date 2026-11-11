@@ -1,3 +1,4 @@
+// Архив Expo. Архивный редактор статей совмещает полный список, форму блоков и preview; использует старые uploadPhoto и мутации без ревизий.
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -45,33 +46,41 @@ const BLOCK_LABELS: Record<ArticleBlock["type"], string> = {
 };
 
 export function ArticlesAdmin() {
+  // Архивный редактор статей совмещает полный список, форму блоков и preview; использует старые uploadPhoto и мутации без ревизий.
+
   const utils = trpc.useUtils();
   const list = trpc.admin.articles.useQuery();
   const create = trpc.admin.createArticle.useMutation({
     onSuccess: () => {
+      // После создания перечитывает админский/публичный списки и Клуб, затем очищает форму.
+
       void utils.admin.articles.invalidate();
       void utils.articles.list.invalidate();
       void utils.club.list.invalidate();
       reset();
     },
-    onError: (err) => notify(err.message),
+    onError: (err) => /* Показывает серверное пояснение ошибки, сохраняя введённую форму. */ notify(err.message),
   });
   const update = trpc.admin.updateArticle.useMutation({
     onSuccess: () => {
+      // После обновления сбрасывает кеши выдачи и закрывает локальную форму.
+
       void utils.admin.articles.invalidate();
       void utils.articles.list.invalidate();
       void utils.club.list.invalidate();
       reset();
     },
-    onError: (err) => notify(err.message),
+    onError: (err) => /* Показывает серверное пояснение ошибки, сохраняя введённую форму. */ notify(err.message),
   });
   const remove = trpc.admin.deleteArticle.useMutation({
     onSuccess: () => {
+      // После удаления инвалидирует списки, не затрагивая исходные файлы.
+
       void utils.admin.articles.invalidate();
       void utils.articles.list.invalidate();
       void utils.club.list.invalidate();
     },
-    onError: (err) => notify(err.message),
+    onError: (err) => /* Показывает серверное пояснение ошибки, сохраняя введённую форму. */ notify(err.message),
   });
   const upload = trpc.admin.uploadPhoto.useMutation();
 
@@ -85,11 +94,15 @@ export function ArticlesAdmin() {
   const [uploading, setUploading] = useState(false);
 
   const notify = (message: string) => {
+    // Выбирает browser alert либо native диалог ошибки.
+
     if (Platform.OS === "web") window.alert(message);
     else Alert.alert("Ошибка", message);
   };
 
   const reset = () => {
+    // Закрывает редактор и возвращает пустую клубную статью с одним текстовым блоком.
+
     setEditingId(null);
     setShowForm(false);
     setTitle("");
@@ -100,6 +113,8 @@ export function ArticlesAdmin() {
   };
 
   const pickImages = async (preserveAlpha: boolean, multiple: boolean): Promise<string[]> => {
+    // Последовательно отправляет выбранные изображения старой публичной загрузке, опционально сохраняя alpha; успешные URL накапливаются отдельно от статьи.
+
     try {
       setUploading(true);
       const urls: string[] = [];
@@ -137,6 +152,8 @@ export function ArticlesAdmin() {
   };
 
   const insertBlock = (index: number, type: ArticleBlock["type"]) => {
+    // Вставляет новый пустой блок после выбранного индекса.
+
     setBlocks((prev) => {
       const next = [...prev];
       next.splice(index + 1, 0, emptyBlock(type));
@@ -145,10 +162,14 @@ export function ArticlesAdmin() {
   };
 
   const updateBlock = (index: number, patch: Partial<ArticleBlock>) => {
+    // Применяет patch только к одному блоку без перестройки остальных.
+
     setBlocks((prev) => prev.map((block, i) => (i === index ? { ...block, ...patch } : block)));
   };
 
   const moveBlock = (index: number, direction: -1 | 1) => {
+    // Меняет соседние блоки местами в допустимых границах массива.
+
     setBlocks((prev) => {
       const to = index + direction;
       if (to < 0 || to >= prev.length) return prev;
@@ -159,6 +180,8 @@ export function ArticlesAdmin() {
   };
 
   const save = () => {
+    // Требует заголовок и отправляет статью с published=true; архивный экран не различает безопасное восстановление потерянного ответа.
+
     if (!title.trim()) {
       notify("Напишите название статьи");
       return;
@@ -182,6 +205,8 @@ export function ArticlesAdmin() {
     published: boolean;
     sections: unknown;
   }) => {
+    // Копирует текущую запись в форму, нормализуя sections для renderer.
+
     setEditingId(item.id);
     setTitle(item.title);
     setCoverUrl(item.coverUrl || "");
@@ -192,7 +217,9 @@ export function ArticlesAdmin() {
   };
 
   const confirmDelete = (id: number) => {
-    const run = () => remove.mutate({ id });
+    // Запрашивает платформенное подтверждение перед удалением ровно одного id.
+
+    const run = () => /* Отправляет deleteArticle только после подтверждения пользователя. */ remove.mutate({ id });
     if (Platform.OS === "web") {
       if (window.confirm("Удалить статью?")) run();
       return;
@@ -453,6 +480,7 @@ export function ArticlesAdmin() {
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   list: { padding: 16, paddingBottom: 40, gap: 12 },
   form: { padding: 16, paddingBottom: 60, gap: 10 },

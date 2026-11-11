@@ -1,3 +1,4 @@
+// Архив Expo. Архивная опциональная SMS-форма разделяет получение кода и подтверждение login/bind; доступность задаётся внешним capability.
 import { useEffect, useRef, useState } from "react";
 import {
   View,
@@ -27,6 +28,8 @@ type Props = {
 };
 
 export function SmsCodeForm({ purpose, onSuccess }: Props) {
+  // Архивная опциональная SMS-форма разделяет получение кода и подтверждение login/bind; доступность задаётся внешним capability.
+
   const [phoneInput, setPhoneInput] = useState("");
   const [code, setCode] = useState("");
   const [step, setStep] = useState<"phone" | "code">("phone");
@@ -41,12 +44,16 @@ export function SmsCodeForm({ purpose, onSuccess }: Props) {
   const phone = normalizeRuPhone(phoneInput);
 
   useEffect(() => {
+    // Раз в секунду уменьшает локальный countdown, снимая предыдущий таймер.
+
     if (retryAfter <= 0) return;
     const timer = setTimeout(() => setRetryAfter((value) => Math.max(0, value - 1)), 1000);
     return () => clearTimeout(timer);
   }, [retryAfter]);
 
   const send = async () => {
+    // Нормализует RU номер, требует согласие login и сохраняет серверную задержку повтора.
+
     setError(null);
     if (!phone) {
       setError("Укажите российский номер: +7 9XX XXX-XX-XX");
@@ -74,6 +81,8 @@ export function SmsCodeForm({ purpose, onSuccess }: Props) {
   };
 
   const verify = async () => {
+    // Защищает подтверждение ref от дубля и передаёт код/необязательный TOTP серверу.
+
     setError(null);
     if (!phone || code.trim().length < 4) {
       setError("Введите код из SMS");
@@ -101,6 +110,8 @@ export function SmsCodeForm({ purpose, onSuccess }: Props) {
   };
 
   useEffect(() => {
+    // Автоматически отправляет ровно заполненный шестизначный код при незанятой форме.
+
     if (step !== "code" || code.length !== 6 || busy || verifyingRef.current) return;
     void verify();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- auto-submit once the 6-digit code is complete
@@ -230,6 +241,7 @@ export function SmsCodeForm({ purpose, onSuccess }: Props) {
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   phoneRow: {
     flexDirection: "row",

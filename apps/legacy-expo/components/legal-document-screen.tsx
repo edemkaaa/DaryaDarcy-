@@ -1,3 +1,4 @@
+// Архив Expo. Отображает переданный юридический документ и необязательное изображение, не редактируя опубликованный текст.
 import { ScrollView, Text, Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
 import { Image } from "expo-image";
 import { router } from "expo-router";
@@ -13,6 +14,8 @@ type Props = {
 };
 
 export function LegalDocumentScreen({ document }: Props) {
+  // Отображает переданный юридический документ и необязательное изображение, не редактируя опубликованный текст.
+
   const { width } = useWindowDimensions();
   const imageWidth = Math.min(width - 48, 480);
 
@@ -48,6 +51,7 @@ export function LegalDocumentScreen({ document }: Props) {
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: 24,

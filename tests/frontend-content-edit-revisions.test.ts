@@ -29,8 +29,10 @@ const draft: PostDraft = {
 };
 const original = postDraftSnapshot(draft);
 const edited = { ...original, text: "my text" };
+/** Выдаёт действующую операцию сохранения, привязанную к собственному AbortSignal. */
 const task = () =>
   new OperationScope().begin("save", new AbortController().signal, () => true)!;
+/** Создаёт изолированный API-double с подтверждённой серверной ревизией и наблюдаемыми записями. */
 function fixture() {
   return {
     create: vi.fn(async (_input: object, _signal: AbortSignal) => 42),
@@ -49,7 +51,9 @@ function fixture() {
   };
 }
 
+/** Проверяет лимит UTF-8 байтов отдельно от длины строки и сохранения локального ввода. */
 describe("documented UTF-8 text limit", () => {
+  /** Принимает ровно 65535 UTF-8 байтов для разных алфавитов без изменения текста. */
   it.each([
     "a".repeat(65535),
     "я".repeat(32767) + "a",
@@ -59,6 +63,7 @@ describe("documented UTF-8 text limit", () => {
     expect(() => assertPostTextSize(text)).not.toThrow();
     expect(serializePostDraft({ ...draft, text }).text).toBe(text);
   });
+  /** Сохраняет слишком длинный текст в черновике, но отклоняет сериализацию запроса записи. */
   it.each(["a".repeat(65536), "я".repeat(32768), "🧶".repeat(16384)])(
     "retains an overlong draft but blocks submission (%#)",
     (text) => {
@@ -66,6 +71,7 @@ describe("documented UTF-8 text limit", () => {
       expect(() => serializePostDraft({ ...draft, text })).toThrow("65 535");
     },
   );
+  /** Отклоняет превышение размера до probes, загрузок и записи, в том числе при восстановлении создания. */
   it("rejects before capability probes, uploads, or writes, including a replayed create", async () => {
     const api = { ...fixture(), checkUploadsAvailable: vi.fn() };
     const value = { ...edited, text: "я".repeat(32768) };
@@ -91,6 +97,7 @@ describe("documented UTF-8 text limit", () => {
   });
 });
 
+/** После восстановления использует исходную editRevision, а не ревизию заново открытых деталей. */
 it("restores the original revision instead of borrowing a newer detail revision", async () => {
   const old = new PostSaveCoordinator(42, original, "opaque:old");
   const state = structuredClone(old.snapshot());
@@ -110,6 +117,7 @@ it("restores the original revision instead of borrowing a newer detail revision"
   expect(api.read).toHaveBeenCalledTimes(1);
 });
 
+/** Сохраняет конфликт и ввод до явного сравнения и принятия новой ревизии без скрытой повторной записи. */
 it.each([409, 412])(
   "keeps a rejected revision and input until a deliberate comparison decision (%s)",
   async (status) => {
@@ -154,6 +162,7 @@ it.each([409, 412])(
   },
 );
 
+/** Подтверждает уже записанный результат чтением после потери ответа или конфликта без второго update. */
 it.each([
   new TypeError("lost response"),
   new ApiError("conflict after prior commit", 409),
@@ -175,6 +184,7 @@ it.each([
   },
 );
 
+/** Не разрешает ещё одну запись, если чтение после подтверждённого update завершилось ошибкой. */
 it("a failed post-ACK read never unlocks another mutation", async () => {
   const api = fixture();
   api.read.mockRejectedValueOnce(new TypeError("offline"));
@@ -189,6 +199,7 @@ it("a failed post-ACK read never unlocks another mutation", async () => {
   expect(api.update).toHaveBeenCalledTimes(1);
 });
 
+/** Не подставляет ревизию в старый журнал, где она отсутствовала, даже после успешного сравнения. */
 it("keeps a missing legacy revision missing on restore and never adopts it from comparison", async () => {
   const coordinator = new PostSaveCoordinator(42, original, "new");
   coordinator.restore({ ...coordinator.snapshot(), editRevision: undefined });
@@ -199,6 +210,7 @@ it("keeps a missing legacy revision missing on restore and never adopts it from 
   await coordinator.compareUpdate(
     {
       ...api,
+      /** Возвращает серверные детали с новой ревизией для проверки, что сравнение само её не принимает. */
       read: async () => ({
         id: 42,
         ...original,
@@ -211,6 +223,7 @@ it("keeps a missing legacy revision missing on restore and never adopts it from 
   expect(coordinator.snapshot().editRevision).toBeUndefined();
 });
 
+/** Не снимает неопределённость записи только потому, что GET пока вернул прежнюю ревизию. */
 it("never accepts a same-version unresolved write just because a GET is still old", async () => {
   const coordinator = new PostSaveCoordinator(42, original, "old");
   const api = fixture();
@@ -226,6 +239,7 @@ it("never accepts a same-version unresolved write just because a GET is still ol
   ).rejects.toThrow("ещё может");
 });
 
+/** Отменяет позднее чтение при утрате владения операцией и не меняет состояние координатора. */
 it("does not transfer a late read to another owner", async () => {
   const scope = new OperationScope();
   const operation = scope.begin(
@@ -245,6 +259,7 @@ it("does not transfer a late read to another owner", async () => {
   expect(coordinator.snapshot().phase).toBe("idle");
 });
 
+/** Сохраняет базу редактирования статьи и её текст без применения отдельного лимита постов. */
 it("preserves article revisions and original snapshots without imposing the post text limit", () => {
   const payload = {
     title: "Article",
@@ -274,6 +289,7 @@ it("preserves article revisions and original snapshots without imposing the post
   ).toEqual({ id: 7, published: false, expectedRevision: "opaque:article" });
 });
 
+/** Сравнивает реальные поля и даты консервативно, учитывая удалённые media и непроверяемые privateAssetIds. */
 it("compares actual fields and dates conservatively, including retained and removed media", () => {
   const detail = {
     ...edited,

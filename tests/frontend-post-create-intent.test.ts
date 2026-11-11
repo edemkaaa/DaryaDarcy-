@@ -1,3 +1,4 @@
+/** Coordinator различает новые создания, definite rejection и unknown outcome, сохраняя UUID намерения и полный payload. */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 vi.mock("../apps/frontend/src/shared/media/read-attachment", () => ({
   attachmentBase64: vi.fn(async () => "FILE_BASE64"),
@@ -21,6 +22,7 @@ const payload = serializePostDraft({
   publishedAt: new Date("2026-10-04T09:00:00Z"),
   sortOrder: 0,
 });
+/** Каждая попытка получает актуальное operation-владение. */
 const scope = () =>
   new OperationScope().begin("save", new AbortController().signal, () => true)!;
 const api = {
@@ -34,10 +36,14 @@ const api = {
 };
 const uuid =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+/** Извлекаем реально переданный create key для сравнения между попытками. */
 const keyAt = (index: number) => api.create.mock.calls[index][0].idempotencyKey;
+/** Сбрасываем api-call history без настоящего HTTP. */
 beforeEach(() => vi.clearAllMocks());
+/** Возвращаем crypto/globals. */
 afterEach(() => vi.unstubAllGlobals());
 
+/** Два сознательных одинаковых поста — разные намерения, не dedup по содержимому. */
 it("independent creations send distinct secure UUIDs even for identical content", async () => {
   await new PostSaveCoordinator().save(payload, [], [], api, scope());
   await new PostSaveCoordinator().save(payload, [], [], api, scope());
@@ -46,6 +52,7 @@ it("independent creations send distinct secure UUIDs even for identical content"
   expect(keyAt(1)).not.toBe(keyAt(0));
 });
 
+/** Исправимый400 с тем же содержимым сохраняет UUID и input. */
 it("retains the key and complete payload after a definite rejection of unchanged content", async () => {
   const coordinator = new PostSaveCoordinator();
   api.create.mockRejectedValueOnce(new ApiError("Отклонено", 400));
@@ -57,6 +64,7 @@ it("retains the key and complete payload after a definite rejection of unchanged
   expect(api.create.mock.calls[1][0]).toEqual(api.create.mock.calls[0][0]);
 });
 
+/** Новое содержимое после достоверного отказа получает новый key. */
 it("uses a new intent if the user changes content after a definite rejection", async () => {
   const coordinator = new PostSaveCoordinator();
   api.create.mockRejectedValueOnce(new ApiError("Отклонено", 400));
@@ -75,6 +83,7 @@ it("uses a new intent if the user changes content after a definite rejection", a
   expect(keyAt(1)).not.toBe(keyAt(0));
 });
 
+/** Изменённый attachment набор меняет create intent, сохраняя уже подтверждённые uploads. */
 it("removing a confirmed attachment changes the intent without uploading retained files again", async () => {
   const coordinator = new PostSaveCoordinator();
   const files = ["one.wav", "two.wav"].map((name) => ({
@@ -95,6 +104,7 @@ it("removing a confirmed attachment changes the intent without uploading retaine
   expect(api.create.mock.calls[1][0].attachments).toHaveLength(1);
 });
 
+/** Update существующей записи не выдаётся за keyed create. */
 it("an existing post is updated without an idempotency key or browser crypto", async () => {
   vi.stubGlobal("crypto", undefined);
   await new PostSaveCoordinator(42).save(payload, [], [], api, scope());
@@ -102,6 +112,7 @@ it("an existing post is updated without an idempotency key or browser crypto", a
   expect(api.create).not.toHaveBeenCalled();
 });
 
+/** Без crypto нет незажурналенного create; после восстановления можно явно повторить. */
 it("missing secure UUID support fails before dispatch and leaves closing or retry possible", async () => {
   const crypto = globalThis.crypto;
   vi.stubGlobal("crypto", undefined);
@@ -116,6 +127,7 @@ it("missing secure UUID support fails before dispatch and leaves closing or retr
   expect(keyAt(0)).toMatch(uuid);
 });
 
+/** Пока final create ждёт ответ, другой save не начинает второй заказ создания поста. */
 it("a pending final create cannot dispatch a second intent through the same editor", async () => {
   const coordinator = new PostSaveCoordinator();
   let release!: (id: number) => void;
@@ -143,6 +155,7 @@ it("a pending final create cannot dispatch a second intent through the same edit
   }
 });
 
+/** После500 unknown изменённый payload не отправляется с новым или старым ключом автоматически. */
 it("an unknown create sends a key but still forbids blind replay with changed content", async () => {
   const coordinator = new PostSaveCoordinator();
   api.create.mockRejectedValueOnce(new ApiError("Нет ответа", 500));
@@ -156,6 +169,7 @@ it("an unknown create sends a key but still forbids blind replay with changed co
   expect(api.create).toHaveBeenCalledTimes(1);
 });
 
+/** Поздний concurrent upload не делает второй create/update после confirmed/unknown финального намерения. */
 it.each(["confirmed", "unknown"])(
   "a concurrent upload cannot write again after a %s final create",
   async (outcome) => {

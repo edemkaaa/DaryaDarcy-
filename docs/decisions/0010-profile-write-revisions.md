@@ -3,6 +3,10 @@
 - **Status:** Accepted; rollout completed after separate user authorization on 2026-10-28
 - **Date:** 2026-10-28
 
+## Актуальность на 11 ноября 2026
+
+Ревизия профиля остаётся обязательной границей записи; она не заменяет версию сессии или квитанцию аватара. Описанный выпуск 28 октября — исторический факт из отчёта, а не подтверждение доступности сервера сегодня.
+
 ## Context
 
 A client timeout does not cancel an already admitted SQL write. Reading old

@@ -1,7 +1,10 @@
+/** Сериализация исходящего Prodamus query проверяется отдельно от подписи и HTTP. */
 import { describe, expect, it } from "vitest";
 import { buildProdamusQuery } from "../apps/backend/src/billing/prodamus-query";
 
+/** Таблица сохраняет порядок/false/0, PHP brackets и sparse indices; кодирование не должно превращать значения в новые поля. */
 describe("Prodamus outbound query format", () => {
+  /** Сравниваем полную wire-строку с независимо заданным результатом, включая Unicode и literal plus. */
   it.each([
     {
       name: "keeps zero and false while omitting only empty and nullish values",
@@ -56,6 +59,7 @@ describe("Prodamus outbound query format", () => {
     expect(buildProdamusQuery(input)).toBe(want);
   });
 
+  /** Inherited/hidden свойства не сериализуются, но собственный enumerable __proto__ остаётся обычным ключом. */
   it("includes only own enumerable fields, including a literal __proto__ key", () => {
     const nested = Object.create({ inherited: "ignore" });
     Object.defineProperty(nested, "hidden", { value: "ignore" });
@@ -72,6 +76,7 @@ describe("Prodamus outbound query format", () => {
     );
   });
 
+  /** Обход query не сортирует и не переписывает вложенные frozen структуры. */
   it("does not mutate frozen nested input", () => {
     const product = Object.freeze({ name: "Club", count: 1 });
     const products = Object.freeze([product]);

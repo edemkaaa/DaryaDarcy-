@@ -23,6 +23,7 @@ const application = "https://daryadarcy.dev.reeskeen.ru";
 const unavailable = "Тестовая оплата Prodamus не настроена";
 const productName = "Клуб Darcy — ТЕСТ, 30 дней без автосписаний";
 
+/** Принимает числовую или строковую сумму уведомления через общий точный парсер денег; другие типы дают null. */
 const notificationMinor = (value: unknown) =>
   typeof value === "string" || typeof value === "number"
     ? moneyMinor(String(value))
@@ -82,10 +83,12 @@ export function requireProdamusTestConfiguration() {
 
 /** Разовый dev-доступ; диагностический и LIVE-приёмники сохраняют свои границы. */
 export class ProdamusTestClubService {
+  /** Проверяет отдельную TEST-конфигурацию перед read-only capability результата заказа. */
   async result(token: string) {
     const configured = requireProdamusTestConfiguration();
     return readProdamusTestResult(token, configured.key);
   }
+  /** Создаёт один разовый месячный TEST-заказ с подписанным demo payload и return-proof, сохраняя pending без автосписаний и сессии. */
   async createCheckout(
     email: string,
     existing: User | null | undefined,
@@ -135,6 +138,7 @@ export class ProdamusTestClubService {
     return { url, user: null } as const;
   }
 
+  /** Проверяет отдельный TEST-key/demo/order/валютные доказательства; только подписанный success вызывает durable settlement на 30 дней. */
   async notification(
     raw: unknown,
     signature: unknown,

@@ -2,12 +2,14 @@
 @use "../styles/layers";
 
 @layer elements {
+  /* Рамка является якорем слоя ошибки и может сжиматься внутри flex-ячейки благодаря min-width:0. */
   .frame {
     position: relative;
     width: 100%;
     height: 100%;
     min-width: 0;
   }
+  /* Слой недоступности полностью закрывает плеер и прокручивается, если пояснение длиннее кадра. */
   .notice {
     position: absolute;
     inset: 0;
@@ -23,6 +25,7 @@
     font-size: 13px;
     overflow: auto;
   }
+  /* Повтор остаётся отдельным доступным действием с минимальной высотой 44px. */
   .retry {
     color: #fff;
     text-decoration: underline;

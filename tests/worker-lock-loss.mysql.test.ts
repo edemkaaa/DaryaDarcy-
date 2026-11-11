@@ -8,6 +8,7 @@ import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 
 // Только loopback-транспорт одноразовой БД. Позволяет потерять серверную
 // сессию, не доставляя клиенту FIN/error: должен сработать timeout проверки.
+/** Создаёт только loopback MySQL-прокси для тихого обрыва транспорта без FIN или socket error клиенту. */
 async function blackholeProxy() {
   const target = new URL(testDatabaseUrl!);
   if (!["127.0.0.1", "localhost"].includes(target.hostname))
@@ -39,9 +40,11 @@ async function blackholeProxy() {
   target.port = String((server.address() as AddressInfo).port);
   return {
     url: target.toString(),
+    /** Перестаёт передавать байты обоих направлений, оставляя клиентский socket открытым для проверки guard-timeout. */
     drop() {
       silent = true;
     },
+    /** Уничтожает только сокеты прокси и закрывает его локальный listener. */
     async close() {
       for (const socket of sockets) socket.destroy();
       await new Promise<void>((done) => server.close(() => done()));
@@ -49,9 +52,11 @@ async function blackholeProxy() {
   };
 }
 
+/** Проверяет остановку API-процесса при потере именованной блокировки активной фоновой задачи. */
 describe.skipIf(!testDatabaseUrl)("running worker loses its named lock", () => {
   let conn: Connection;
   let lockName: string;
+  /** Создаёт собственную таблицу эффектов и вычисляет lock namespace по реальному имени одноразовой БД. */
   beforeAll(async () => {
     conn = await openTestDatabase();
     const [rows] = await conn.query<RowDataPacket[]>("SELECT DATABASE() AS db");
@@ -68,13 +73,16 @@ describe.skipIf(!testDatabaseUrl)("running worker loses its named lock", () => {
       "CREATE TABLE backend_lock_loss_effects(id INT AUTO_INCREMENT PRIMARY KEY,actor VARCHAR(20) NOT NULL) ENGINE=InnoDB",
     );
   });
+  /** Очищает только собственные эффекты предыдущего сценария. */
   beforeEach(async () => {
     await conn.query("DELETE FROM backend_lock_loss_effects");
   });
+  /** Удаляет только тестовую таблицу эффектов и закрывает соединение. */
   afterAll(async () => {
     await conn?.query("DROP TABLE IF EXISTS backend_lock_loss_effects");
     await conn?.end();
   });
+  /** Запускает отдельный API-процесс с минимальным тестовым окружением и ожидает готовность по IPC. */
   async function replica(
     actor: string,
     children: ChildProcess[],
@@ -101,6 +109,7 @@ describe.skipIf(!testDatabaseUrl)("running worker loses its named lock", () => {
     const exited = new Promise<{ code: number | null; signal: string | null }>(
       (done) => child.once("exit", (code, signal) => done({ code, signal })),
     );
+    /** Ожидает единственный IPC-ответ с deadline и обработкой преждевременного exit. */
     function answer(timeout = 5000): Promise<{
       base?: string;
       connectionId?: number;
@@ -110,12 +119,15 @@ describe.skipIf(!testDatabaseUrl)("running worker loses its named lock", () => {
       unlocked?: boolean;
     }> {
       return new Promise((done, reject) => {
+        /** Преобразует преждевременный exit реплики в ошибку ожидающего IPC-запроса. */
         const onExit = () => finish(new Error("Replica exited before reply"));
+        /** Передаёт полученный IPC-ответ общему завершителю ожидания. */
         const onMessage = (value: object) => finish(undefined, value);
         const timer = setTimeout(
           () => finish(new Error("Replica reply timeout")),
           timeout,
         );
+        /** Снимает таймер и IPC/exit listeners перед resolve или reject. */
         function finish(error?: Error, value?: object) {
           clearTimeout(timer);
           child.off("exit", onExit);
@@ -133,6 +145,7 @@ describe.skipIf(!testDatabaseUrl)("running worker loses its named lock", () => {
       child,
       exited,
       base: ready.base!,
+      /** Подписывается на ответ до отправки IPC-команды, исключая потерю быстрого ответа. */
       ask(action: string) {
         const p = answer();
         child.send({ action });
@@ -140,6 +153,7 @@ describe.skipIf(!testDatabaseUrl)("running worker loses its named lock", () => {
       },
     };
   }
+  /** Сверяет соединение с текущим владельцем именно fixture-lock перед адресным KILL CONNECTION. */
   async function killOwnedLock(id: number) {
     const [rows] = await conn.query<RowDataPacket[]>(
       "SELECT IS_USED_LOCK(?) AS owner",
@@ -150,6 +164,7 @@ describe.skipIf(!testDatabaseUrl)("running worker loses its named lock", () => {
       throw new Error("Invalid fixture connection");
     await conn.query(`KILL CONNECTION ${id}`);
   }
+  /** Ограничивает ожидание выхода процесса и всегда снимает вспомогательный таймер. */
   async function waitForExit(exited: Promise<unknown>, timeout = 2500) {
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
@@ -163,6 +178,7 @@ describe.skipIf(!testDatabaseUrl)("running worker loses its named lock", () => {
       clearTimeout(timer);
     }
   }
+  /** Завершает только оставшиеся дочерние процессы suite и ждёт их exit. */
   async function cleanup(children: ChildProcess[]) {
     await Promise.all(
       children.map((child) => {
@@ -175,6 +191,7 @@ describe.skipIf(!testDatabaseUrl)("running worker loses its named lock", () => {
       }),
     );
   }
+  /** Потерявший lock процесс выходит до продолжения старой задачи, а вторая реплика выполняет единственный эффект. */
   it.each(["connection-killed", "lock-released"])(
     "stops the old process before it can resume stale work after %s",
     async (mode) => {
@@ -210,6 +227,7 @@ describe.skipIf(!testDatabaseUrl)("running worker loses its named lock", () => {
     },
     20000,
   );
+  /** После нормального окончания guard снят: сбой idle-соединения не завершает здоровый API. */
   it("removes the guard after normal completion so a later idle connection failure does not kill the API", async () => {
     const children: ChildProcess[] = [];
     try {
@@ -231,6 +249,7 @@ describe.skipIf(!testDatabaseUrl)("running worker loses its named lock", () => {
       await cleanup(children);
     }
   }, 15000);
+  /** Тихий сетевой blackhole обнаруживается guard-timeout; вторая реплика остаётся доступна и выполняет эффект одна. */
   it("stops on a silent transport timeout while another API remains available", async () => {
     const children: ChildProcess[] = [];
     const proxy = await blackholeProxy();

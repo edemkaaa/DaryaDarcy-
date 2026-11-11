@@ -1,9 +1,11 @@
+/** Общий reader пакетирует cache misses лайков/сохранений и распределяет результат только живым потребителям. */
 import { expect, it, vi } from "vitest";
 import { QueryClient } from "@tanstack/react-query";
 import { createPostInteractionReader } from "../apps/frontend/src/domain/post/post-interaction-reader";
 import type { PostInteractions } from "../apps/frontend/src/domain/post/post-interaction-data";
 
 const empty: PostInteractions = { likedIds: [], savedIds: [] };
+/** Ручной promise-barrier удерживает batch response для проверки отмены без гонки таймеров. */
 const deferred = <T>() => {
   let resolve!: (value: T) => void;
   const promise = new Promise<T>((done) => {
@@ -12,6 +14,7 @@ const deferred = <T>() => {
   return { promise, resolve };
 };
 
+/** Перекрывающиеся экраны повторно используют свежие ID; новый batch содержит только cache misses. */
 it("batches per-post cache misses and reuses fresh marks across overlapping screens", async () => {
   const client = new QueryClient();
   const load = vi.fn(async (ids: number[]) => ({
@@ -19,6 +22,7 @@ it("batches per-post cache misses and reuses fresh marks across overlapping scre
     savedIds: [],
   }));
   const reader = createPostInteractionReader(load);
+  /** Один postId читается через настоящий QueryClient со staleTime30сек и отдельным query signal. */
   const read = (id: number) =>
     client.fetchQuery({
       queryKey: ["marks", id],
@@ -43,6 +47,7 @@ it("batches per-post cache misses and reuses fresh marks across overlapping scre
   }
 });
 
+/** 121ID разбиваются50/50/21; каждый caller получает только собственные marks. */
 it("never exceeds 50 IDs and distributes only each post's marks", async () => {
   const load = vi.fn(async (ids: number[]) => ({
     likedIds: ids,
@@ -65,6 +70,7 @@ it("never exceeds 50 IDs and distributes only each post's marks", async () => {
   ).toBe(true);
 });
 
+/** Retry нескольких QueryClient consumers объединяется в один повтор чтения, не12запросов. */
 it("coalesces automatic retries after a transient batch failure", async () => {
   const client = new QueryClient();
   const load = vi
@@ -93,6 +99,7 @@ it("coalesces automatic retries after a transient batch failure", async () => {
   }
 });
 
+/** Отмена до flush не отправляет HTTP или пустой batch. */
 it("drops cancelled work before dispatch without sending an empty batch", async () => {
   const load = vi.fn(async () => empty);
   const reader = createPostInteractionReader(load);
@@ -104,6 +111,7 @@ it("drops cancelled work before dispatch without sending an empty batch", async 
   expect(load).not.toHaveBeenCalled();
 });
 
+/** Один abort не убивает transport остальных и не принимает поздний result отменённому caller. */
 it("cancelling one post neither cancels the other posts nor delivers a late mark to it", async () => {
   const gate = deferred<typeof empty>();
   let transport!: AbortSignal;
@@ -124,6 +132,7 @@ it("cancelling one post neither cancels the other posts nor delivers a late mark
   expect((await b).likedIds).toEqual([2]);
 });
 
+/** Reader.cancel отменяет общий транспорт, но последующий новый scope снова может читать. */
 it("aborts the transport after the last consumer leaves and can restart after effect cleanup", async () => {
   const gate = deferred<typeof empty>();
   const signals: AbortSignal[] = [];
@@ -144,6 +153,7 @@ it("aborts the transport after the last consumer leaves and can restart after ef
   );
 });
 
+/** Повреждённый/чужой marks DTO отвергается всеми участниками batch. */
 it.each([
   null,
   { likedIds: [99], savedIds: [] },
@@ -157,6 +167,7 @@ it.each([
   expect(results.every((result) => result.status === "rejected")).toBe(true);
 });
 
+/** Только успешное новое чтение повышает readVersion; ошибка не выдаёт новое свидетельство. */
 it("propagates failures and issues a new receipt only for a successful explicit read", async () => {
   const load = vi
     .fn()

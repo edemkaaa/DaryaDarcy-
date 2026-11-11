@@ -36,10 +36,14 @@ export function createArticleEditorExit({
   refreshRelatedContent,
   reset,
 }: ArticleEditorExitDependencies) {
+  // Разделяет завершение, выход и явный отказ от неопределённой записи, чтобы закрытие формы не уничтожало журнал операции.
+
   const completeCreation = async (
     record: ArticleCreationRecord,
     task: ScopedOperation,
   ) => {
+    // Сначала перечитывает серверный каталог, затем очищает только соответствующие черновик и операцию, проверяя актуальность аккаунта после ожиданий.
+
     await readCurrentArticles(task);
     task.assertCurrent();
     if (draft.record?.snapshot.editingId === (record.media?.editingId ?? null))
@@ -53,6 +57,8 @@ export function createArticleEditorExit({
     reset();
   };
   const cancelEditing = async () => {
+    // Останавливает ожидание, но не серверный POST; сохраняет ввод и заново читает журнал перед закрытием редактора.
+
     operation.cancel();
     const task = operation.begin("cancel-article");
     if (!task) return;
@@ -79,6 +85,8 @@ export function createArticleEditorExit({
     }
   };
   const discardUnknownEdit = async () => {
+    // Явно отбрасывает локальное ожидание существующей статьи только после чтения сервера; не удаляет серверную статью.
+
     if (!creation?.media?.editingId || creation.media.phase !== "write") return;
     const task = operation.begin("discard-article");
     if (!task) return;

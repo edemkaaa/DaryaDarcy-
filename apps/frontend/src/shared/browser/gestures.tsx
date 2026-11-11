@@ -21,6 +21,7 @@ type GestureEvent = {
   scale: number;
 };
 type Handler = (event: GestureEvent) => void;
+/** Цепочка builder-методов только описывает обработчики и пороги; browser events устанавливает отдельный GestureDetector. */
 class PointerGesture {
   start?: Handler;
   update?: Handler;
@@ -30,46 +31,57 @@ class PointerGesture {
   taps = 1;
   offsetY?: number[];
   offsetX?: number[];
+  /** Вид жеста определяет, какие callbacks и координаты использует detector, не устанавливая listeners при создании описания. */
   constructor(public kind: "pan" | "pinch" | "tap") {}
+  /** Регистрируем начало распознанного pan; возвращаем тот же builder для цепочки настроек. */
   onStart(fn: Handler) {
     this.start = fn;
     return this;
   }
+  /** Сохраняем обработчик промежуточных координат без запуска самого жеста. */
   onUpdate(fn: Handler) {
     this.update = fn;
     return this;
   }
+  /** Сохраняем штатное завершение; системная отмена направляется отдельному callback. */
   onEnd(fn: Handler) {
     this.end = fn;
     return this;
   }
+  /** Сохраняем отмену активного pan, чтобы владелец мог вернуть временное состояние. */
   onCancel(fn: Handler) {
     this.cancel = fn;
     return this;
   }
+  /** Откладываем активацию pan до удержания; заметное движение до таймера отменяет распознавание. */
   activateAfterLongPress(ms: number) {
     this.longPress = ms;
     return this;
   }
+  /** Задаём необходимое число коротких последовательных tap для запуска end-handler. */
   numberOfTaps(n: number) {
     this.taps = n;
     return this;
   }
+  /** Задаём вертикальный коридор ожидания: pan начинается только после выхода за его границу. */
   activeOffsetY(v: number[] | number) {
     this.offsetY = typeof v === "number" ? [-Math.abs(v), Math.abs(v)] : v;
     return this;
   }
+  /** Горизонтальный выход за коридор отменяет этот pan, позволяя отличать его от другого направления. */
   failOffsetX(v: number[]) {
     this.offsetX = v;
     return this;
   }
 }
+/** Фабрики совместимого API создают независимые описания; Simultaneous группирует их для одного DOM-detector. */
 export const Gesture = {
   Pan: () => new PointerGesture("pan"),
   Pinch: () => new PointerGesture("pinch"),
   Tap: () => new PointerGesture("tap"),
   Simultaneous: (...gestures: PointerGesture[]) => gestures,
 };
+/** Один detector хранит pointers, временные пороги и активность; callbacks получают нормализованное событие pan/pinch/tap. */
 export function GestureDetector({
   gesture,
   children,
@@ -104,6 +116,7 @@ export function GestureDetector({
   const pan = gestures.find((g) => g.kind === "pan"),
     pinch = gestures.find((g) => g.kind === "pinch"),
     tap = gestures.find((g) => g.kind === "tap");
+  /** Считаем translation от старта и velocity между последними измерениями, ограничивая нулевой интервал времени. */
   const event = (e: PointerEvent): GestureEvent => {
     const s = state.current,
       dt = Math.max(1, performance.now() - s.lastTime);
@@ -122,6 +135,7 @@ export function GestureDetector({
   return (
     <div
       onPointerDown={(e) => {
+        // Фиксируем исходные точки и таймер long-press; второй указатель задаёт базовую дистанцию pinch.
         if (pointerTypes && !pointerTypes.includes(e.pointerType)) return;
         const s = state.current;
         s.points.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -148,6 +162,7 @@ export function GestureDetector({
         (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
       }}
       onPointerMove={(e) => {
+        // Сначала обрабатываем pinch, затем коридоры fail/activation pan, чтобы один move не сообщил несовместимые состояния.
         const s = state.current;
         if (!s.points.has(e.pointerId)) return;
         s.points.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -193,6 +208,7 @@ export function GestureDetector({
         s.lastTime = performance.now();
       }}
       onPointerUp={(e) => {
+        // Штатный конец выбирается по активному виду жеста; короткий неподвижный pointer может накопить taps.
         const s = state.current;
         if (!s.points.has(e.pointerId)) return;
         clearTimeout(s.timer);
@@ -214,6 +230,7 @@ export function GestureDetector({
         s.points.delete(e.pointerId);
       }}
       onPointerCancel={(e) => {
+        // Системная отмена снимает long-press и активность, не вызывая штатный end для перестановки.
         if (!state.current.points.has(e.pointerId)) return;
         if (state.current.active && !state.current.failed)
           pan?.cancel?.(event(e));
@@ -222,6 +239,7 @@ export function GestureDetector({
         state.current.active = false;
       }}
       onLostPointerCapture={(e) => {
+        // Захват мог уйти другому контролу: завершаем нашу точку так же безопасно, как при системной отмене.
         if (!state.current.points.has(e.pointerId)) return;
         if (state.current.active && !state.current.failed)
           pan?.cancel?.(event(e));

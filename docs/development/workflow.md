@@ -13,6 +13,8 @@
 
 Изменения делайте небольшими проверяемыми этапами. Сначала изучайте текущий код и задачи, сохраняйте чужие незакоммиченные изменения. После этапа обновляйте [чеклист](../../tasks/todo.md), не закрывая непроверенные пункты.
 
+Разделение ответственности двух разработчиков и порядок изменения API описаны в [совместном процессе](team-workflow.md).
+
 ## Окружение и зависимости
 
 - Node.js 22, pnpm 9.12.0; версии зафиксированы в CI и package.json.
@@ -26,6 +28,7 @@
 ```sh
 pnpm check:boundaries
 pnpm check:docs
+pnpm check:files
 pnpm check
 pnpm test
 pnpm build
@@ -37,11 +40,15 @@ pnpm verify
 
 Основной клиент — Next.js: `pnpm build:web` пишет его `.next`. Vite остаётся отдельной совместимой сборкой `pnpm build:web:vite` с результатом в `web-dist`. Эти результаты не подменяют друг друга; Expo исключён из активного workspace.
 
-Общие статические веб-ресурсы лежат в [apps/frontend/public](../../apps/frontend/public/). Упаковка обеих сборок требует manifest.webmanifest и privacy.html: пропуск любого файла завершает её с ошибкой, а не выпускает неполный сайт.
+Общие статические веб-ресурсы лежат в [apps/frontend/public](../../apps/frontend/public/). Next.js обслуживает их из public. Архивный Vite-процесс использует отдельную упаковку copy-web-public; результаты сборок и их проверки не взаимозаменяемы.
 
 ## Интеграционные тесты БД
 
-Обычный pnpm test пропускает тесты, которым нужна MySQL. Для полной проверки поднимите отдельную пустую MySQL 8 с БД backend_test и задайте только BACKEND_TEST_DATABASE_URL:
+Без BACKEND_TEST_DATABASE_URL pnpm test пропускает SQL-сценарии. Внешний
+`tests/regression/s3-connection.test.ts` при наличии S3-ключей выполняет настоящую
+публичную запись и не удаляет объект. Для обычного локального прогона рабочие
+S3-переменные должны отсутствовать; интеграционные окружения задаются явно.
+ Для полной проверки поднимите отдельную пустую MySQL 8 с БД backend_test и задайте только BACKEND_TEST_DATABASE_URL:
 
 ```sh
 BACKEND_TEST_DATABASE_URL='mysql://root:local-test-only@127.0.0.1:33317/backend_test' pnpm test:db:wait

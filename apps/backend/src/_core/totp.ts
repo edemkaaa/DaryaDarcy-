@@ -3,6 +3,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 const BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
+/** Удаляет пробелы/padding и переводит совместимый base32-секрет в байты для HMAC. */
 function decodeBase32(input: string): Buffer {
   const cleaned = input.replace(/=+$/g, "").replace(/\s/g, "").toUpperCase();
   let bits = 0;
@@ -21,6 +22,7 @@ function decodeBase32(input: string): Buffer {
   return Buffer.from(bytes);
 }
 
+/** Вычисляет код заданного счётчика через HMAC-SHA1 и динамическое усечение до нужного числа цифр. */
 function hotp(secret: Buffer, counter: number, digits = 6): string {
   const buf = Buffer.alloc(8);
   buf.writeBigUInt64BE(BigInt(counter));
@@ -34,6 +36,7 @@ function hotp(secret: Buffer, counter: number, digits = 6): string {
   return String(code % 10 ** digits).padStart(digits, "0");
 }
 
+/** Проверяет шестизначный код в соседних 30-секундных окнах, сравнивая равные по длине буферы timingSafeEqual. */
 export function verifyTotp(secret: string, token: string, window = 1): boolean {
   const normalized = token.replace(/\s/g, "");
   if (!/^\d{6}$/.test(normalized)) return false;
@@ -50,6 +53,7 @@ export function verifyTotp(secret: string, token: string, window = 1): boolean {
   return false;
 }
 
+/** Считает дополнительную TOTP-проверку настроенной только при непустом ADMIN_TOTP_SECRET. */
 export function adminTotpEnabled(): boolean {
   return Boolean((process.env.ADMIN_TOTP_SECRET || "").trim());
 }

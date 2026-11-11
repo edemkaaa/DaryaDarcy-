@@ -7,6 +7,7 @@ export { getCachedPhotoRatio, rememberPhotoRatio } from "./photo-ratio-cache";
 export const FALLBACK_PHOTO_RATIO = 4 / 5;
 
 // Learn from the displayed image, never a separate eager network probe.
+/** Учимся на onLoad уже показанного фото: локальные измерения привязаны к набору URL, а общий ограниченный кеш помогает повторному открытию. */
 export function usePhotoAspectRatios(
   photos: string[],
   fallback = FALLBACK_PHOTO_RATIO,
@@ -22,6 +23,7 @@ export function usePhotoAspectRatios(
       getCachedPhotoRatio(uri) ??
       fallback,
   );
+  /** Создаём обработчик конкретного URI; при смене набора не смешиваем измерения предыдущей галереи с новой. */
   const onLoad =
     (uri: string): NonNullable<ImageProps["onLoad"]> =>
     (event) => {
@@ -41,6 +43,7 @@ export function usePhotoAspectRatios(
     };
   return { ratios, onLoad };
 }
+/** Дополняем пользовательскую ссылку схемой HTTPS, сохраняя явно указанные HTTP(S), mailto и tel. */
 export function normalizeLinkUrl(raw: string): string {
   const trimmed = raw.trim();
   if (!trimmed) return "";

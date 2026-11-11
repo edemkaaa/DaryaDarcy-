@@ -4,6 +4,7 @@ type Selection = {
   start: number;
   end: number;
 };
+/** Считаем номер данного вхождения выделенного текста, учитывая также перекрывающиеся совпадения. */
 export function selectionOccurrence(
   text: string,
   start: number,
@@ -21,6 +22,7 @@ export function selectionOccurrence(
   }
   return occurrence;
 }
+/** Находим тот же номер вхождения якоря в текущем тексте; отсутствие совпадения возвращаем явно как null. */
 export function rangeForOccurrence(
   text: string,
   anchor: string,
@@ -40,6 +42,7 @@ export function rangeForOccurrence(
   }
   return null;
 }
+/** Сравниваем полуоткрытые диапазоны: соприкасающиеся края не считаются пересечением. */
 export function rangesOverlap(a: Selection, b: Selection): boolean {
   return a.start < b.end && b.start < a.end;
 }

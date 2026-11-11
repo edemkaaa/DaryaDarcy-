@@ -7,6 +7,7 @@ import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { publicConfigurationOptions } from "./public-configuration";
 import { parseManagerOrderSettings } from "./settings";
 
+/** Для нового заказа используем только успешное актуальное чтение получателя; старые данные при ошибке намеренно не возвращаем. */
 export function useManagerOrderSettings(enabled = true) {
   const active = useScreenActive();
   const query = useQuery({
@@ -19,6 +20,7 @@ export function useManagerOrderSettings(enabled = true) {
   const { refetch } = query;
   useEffect(() => {
     if (!enabled || !active) return;
+    /** На focus/pageshow видимого активного экрана перечитываем настройки без отмены текущего запроса. */
     const refresh = () => {
       if (document.visibilityState === "visible")
         void refetch({ cancelRefetch: false });

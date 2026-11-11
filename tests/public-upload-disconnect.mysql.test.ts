@@ -22,6 +22,7 @@ import { createBackendApplication } from "../apps/backend/src/_core/application"
 import { getDb } from "../apps/backend/src/db";
 import { sdk } from "../apps/backend/src/_core/sdk";
 
+/** Проверяет отмену внешней работы загрузки после настоящего client disconnect на локальном S3-совместимом listener. */
 describe.skipIf(!testDatabaseUrl)(
   "public upload HTTP disconnect on disposable SQL and loopback S3",
   () => {
@@ -33,6 +34,7 @@ describe.skipIf(!testDatabaseUrl)(
       body: string;
     let accept: () => void, closed: boolean;
     let pending: ClientRequest | undefined;
+    /** Создаёт своего администратора, маленький PNG и loopback storage, который принимает тело, но удерживает ответ. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -76,10 +78,12 @@ describe.skipIf(!testDatabaseUrl)(
         sessionVersion: 0,
       });
     });
+    /** Разрывает оставшийся клиентский запрос и сокеты только локальной storage-фикстуры. */
     afterEach(() => {
       pending?.destroy();
       storage.closeAllConnections();
     });
+    /** Закрывает API и storage, удаляет своего пользователя и закрывает соединения. */
     afterAll(async () => {
       await app?.close();
       storage?.closeAllConnections();
@@ -93,6 +97,7 @@ describe.skipIf(!testDatabaseUrl)(
       await (db as unknown as { $client: Pool })?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** После приёма S3-тела разрывает HTTP-клиента; storage socket должен закрыться, а прежний avatarUrl сохраниться. */
     it.each(["profile.uploadAvatar", "admin.uploadPhoto"])(
       "stops %s storage work after the actual client disconnects",
       async (name) => {

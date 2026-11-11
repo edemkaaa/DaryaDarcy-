@@ -3,6 +3,7 @@ import { layoutApi, gotoWithSession } from "./layout-fixtures";
 import { PRODUCT_DETAILS } from "../src/domain/product/catalog";
 
 test.use({ hasTouch: true });
+/** Готовим launch-config только для handoff в почтовый клиент; managerEmail можно менять независимо от карточки товара. */
 const configuration = (managerEmail = "daryadarcyapp@yandex.ru") => ({
   revision: 7,
   season: "winter",
@@ -10,13 +11,16 @@ const configuration = (managerEmail = "daryadarcyapp@yandex.ru") => ({
   managerEmail,
   orderMethod: "email-client",
 });
+/** Заказ здесь является mailto-ссылкой, а не подтверждением отправки письма. */
 const orderLink = (page: Page) =>
   page.getByRole("link", { name: "Заказать через менеджера →" });
+/** Отбираем ошибку проверки контакта менеджера, блокирующую неподтверждённого получателя. */
 const orderError = (page: Page) =>
   page.getByRole("alert").filter({
     hasText: "Не удалось загрузить контакт менеджера",
   });
 
+/** Перехватываем mailto-click до запуска внешней почты и записываем URL; тест не отправляет реальные письма или платежи. */
 async function fixtures(page: Page, member = false) {
   await layoutApi(page, member);
   await page.addInitScript(() => {
@@ -51,6 +55,7 @@ const digitalProducts = [
   { id: "digital-2", title: "Винтажные книги и открытки" },
 ];
 
+/** Два цифровых товара используют получателя из config; проверяем guest/member, загрузку, ошибки, offline, смену адреса и доступность handoff. */
 for (const product of digitalProducts) {
   test.describe(product.id, () => {
     const path = `/shop/${product.id}`;
@@ -126,6 +131,7 @@ for (const product of digitalProducts) {
       await expect(orderLink(page)).toBeVisible();
     });
 
+    /** Отсутствующий, недопустимый, временно недоступный или неподдерживаемый config не разрешает отправку на fallback-адрес. */
     for (const failure of [
       "unavailable",
       "missing",
@@ -210,6 +216,7 @@ for (const product of digitalProducts) {
       );
     });
 
+    /** При offline старый получатель скрыт до свежей проверки; восстановление сети подставляет обновлённый адрес. */
     test("a paused refresh hides a cached recipient until connectivity returns", async ({
       page,
       context,
@@ -241,6 +248,7 @@ for (const product of digitalProducts) {
       );
     });
 
+    /** Возвращение из отменённого почтового клиента обновляет контакт и не объявляет заказ отправленным. */
     test("returning from a cancelled letter keeps the card available and refreshes the contact", async ({
       page,
     }) => {
@@ -306,6 +314,7 @@ for (const product of digitalProducts) {
   });
 }
 
+/** Физические книги сохраняют внешние маркетплейсы и не читают контакт менеджера. */
 for (const path of ["/shop/book-1", "/shop/book-2", "/shop/book-3"]) {
   test(`books preserve their external purchase links on ${path}`, async ({
     page,
@@ -330,6 +339,7 @@ for (const path of ["/shop/book-1", "/shop/book-2", "/shop/book-3"]) {
     await page.evaluate(() => {
       const browser = window as typeof window & { openedUrls: string[] };
       browser.openedUrls = [];
+      /** Наблюдаем внешние адреса без открытия настоящих магазинов и без покупки. */
       window.open = (url) => {
         browser.openedUrls.push(String(url));
         return null;

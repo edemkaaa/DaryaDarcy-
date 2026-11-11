@@ -5,6 +5,7 @@ const pdfUrl = "https://disk.yandex.ru/i/nDfsd5ptLO1xRA";
 const winterKeys = ["holly", "sock", "star", "apple"];
 type Actor = "guest" | "unpaid" | "member" | "admin";
 
+/** Отдельно задаём гостя, неоплатившего, участницу и администратора; приватные зимние файлы и бесплатный PDF не используют общий флаг доступа. */
 async function fixture(page: Page, actor: Actor, failed = false) {
   const allowed = actor === "member" || actor === "admin";
   await layoutApi(page, allowed);
@@ -62,6 +63,7 @@ async function fixture(page: Page, actor: Actor, failed = false) {
   return { reads, allowed };
 }
 
+/** Считываем перехваченные browser-open назначения, не открывая настоящий внешний PDF. */
 async function openedMaterials(page: Page) {
   return page.evaluate(
     () =>
@@ -69,6 +71,7 @@ async function openedMaterials(page: Page) {
   );
 }
 
+/** На каждой роли обложка и действие бесплатного материала должны открыть исходную ссылку без запроса закрытого файла. */
 for (const actor of ["guest", "unpaid", "member", "admin"] as const) {
   test(`${actor}: library cover and download open the free PDF without a private read`, async ({
     page,
@@ -126,6 +129,7 @@ for (const actor of ["guest", "unpaid", "member", "admin"] as const) {
   });
 }
 
+/** Даже отказ приватного API у участницы или администратора не отключает согласованный бесплатный PDF. */
 for (const actor of ["member", "admin"] as const)
   test(`${actor}: private API failure does not disable the free PDF or expose winter files`, async ({
     page,

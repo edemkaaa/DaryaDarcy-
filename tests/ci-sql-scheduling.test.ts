@@ -1,3 +1,4 @@
+/** Самотест Vitest-планировщика создаёт только temp-файлы и доказывает сериализацию SQL suites без MySQL. */
 import { afterAll, beforeAll, expect, it } from "vitest";
 import {
   mkdtemp,
@@ -15,6 +16,7 @@ import { promisify } from "node:util";
 const execute = promisify(execFile);
 const root = process.cwd();
 let directory: string;
+/** Собственная temp-конфигурация импортирует настоящий root Vitest config/setup. */
 beforeAll(async () => {
   directory = await mkdtemp(join(tmpdir(), "daryadarcy-sql-scheduling-"));
   await mkdir(join(directory, "tests"));
@@ -28,10 +30,12 @@ beforeAll(async () => {
   `,
   );
 });
+/** Удаляем только созданную fixture-папку. */
 afterAll(async () => {
   await rm(directory, { recursive: true, force: true });
 });
 
+/** Два unit-worker ждут друг друга, пять SQL-классифицированных файлов используют эксклюзивный file-lock; дочерний отчёт должен дать семь успехов без перекрытия SQL. */
 it("serializes all shared-MySQL files once, while independent unit files still run together", async () => {
   const resource = join(directory, "sql-exclusive.lock");
   const sql = `

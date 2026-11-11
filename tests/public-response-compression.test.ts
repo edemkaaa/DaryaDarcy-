@@ -1,3 +1,4 @@
+/** HTTP compression проверяется реальными локальными wire-байтами и явными исключениями для приватных/изменяющих ответов. */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import express from "express";
 import { createServer, request, type Server } from "node:http";
@@ -11,6 +12,7 @@ const payload = {
 };
 const bytes = Buffer.from(JSON.stringify(payload));
 let server: Server, port: number;
+/** Синтетический Express handler варьирует status/cache/cookie/body после настоящей security middleware. */
 beforeAll(async () => {
   const app = express();
   registerHttpSecurity(app);
@@ -36,9 +38,11 @@ beforeAll(async () => {
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   port = (server.address() as AddressInfo).port;
 });
+/** Закрываем свой HTTP server. */
 afterAll(async () => {
   await new Promise<void>((resolve) => server.close(() => resolve()));
 });
+/** Node http сохраняет исходный gzip/br body для независимого декодирования и byte-сравнения. */
 function read(
   path: string,
   headers: Record<string, string | undefined> = {},
@@ -74,7 +78,9 @@ function read(
       .end();
   });
 }
+/** Сжатие allowlist не означает public cache и не распространяется на все API. */
 describe("public JSON response compression", () => {
+  /** Разрешённый открытый JSON сжимается, но gunzip возвращает точные исходные UTF-8 bytes. */
   it.each([
     "feed.listPaginated",
     "feed.getById",
@@ -91,6 +97,7 @@ describe("public JSON response compression", () => {
     expect(gunzipSync(response.body)).toEqual(bytes);
     expect(response.headers["cache-control"] ?? "").not.toContain("public");
   });
+  /** Brotli выбирается по Accept-Encoding, сохраняя payload. */
   it("negotiates Brotli without changing the JSON", async () => {
     const response = await read("/api/trpc/videos.catalog", {
       "Accept-Encoding": "br, gzip",
@@ -98,6 +105,7 @@ describe("public JSON response compression", () => {
     expect(response.headers["content-encoding"]).toBe("br");
     expect(brotliDecompressSync(response.body)).toEqual(bytes);
   });
+  /** Наличие Cookie/Authorization/Range/If-Range исключает public compression даже при пустой cookie. */
   it.each([
     { Cookie: "app_session=fixture" },
     { Cookie: "" },
@@ -112,6 +120,7 @@ describe("public JSON response compression", () => {
       expect(response.body).toEqual(bytes);
     },
   );
+  /** Admin/club/private/media и смешанный batch не попадают под allowlist. */
   it.each([
     "/api/trpc/admin.postsPage",
     "/api/trpc/club.listByCategory",
@@ -125,6 +134,7 @@ describe("public JSON response compression", () => {
     expect(response.headers["content-encoding"]).toBeUndefined();
     expect(response.body).toEqual(bytes);
   });
+  /** Ошибки,206/207,SSE,малый body, private/no-transform и Set-Cookie остаются несжатыми. */
   it.each([
     "?status=500",
     "?status=206",
@@ -142,6 +152,7 @@ describe("public JSON response compression", () => {
       expect(response.headers["content-encoding"]).toBeUndefined();
     },
   );
+  /** Accept-Encoding:identity получает исходные bytes. */
   it("retains identity for unsupported content negotiation", async () => {
     const response = await read("/api/trpc/feed.listPaginated", {
       "Accept-Encoding": "identity",
@@ -149,6 +160,7 @@ describe("public JSON response compression", () => {
     expect(response.headers["content-encoding"]).toBeUndefined();
     expect(response.body).toEqual(bytes);
   });
+  /** POST не считается публичным чтением и сохраняет no-store. */
   it("does not compress mutation responses", async () => {
     const response = await read("/api/trpc/feed.listPaginated", {}, "POST");
     expect(response.headers["content-encoding"]).toBeUndefined();

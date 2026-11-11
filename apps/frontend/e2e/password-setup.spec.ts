@@ -2,14 +2,18 @@ import { test, expect, type Page } from "@playwright/test";
 
 const token = "A".repeat(43);
 const secret = "synthetic-new-password";
+/** Текстовый textbox появляется только при раскрытом пароле; скрытый input имеет другой доступный locator. */
 const field = (page: Page) =>
   page.getByRole("textbox", { name: "Новый пароль", exact: true });
 // Password inputs have no implicit textbox role until revealed.
+/** Label адресует password-input независимо от переключения видимости. */
 const passwordField = (page: Page) =>
   page.getByLabel("Новый пароль", { exact: true });
+/** Выбираем единственное подтверждение нового пароля из изолированной формы. */
 const save = (page: Page) =>
   page.getByRole("button", { name: "Сохранить пароль", exact: true });
 
+/** Разрешаем только same-origin assets и password-complete; проверяем POST без cookie/referrer и отсутствие token/password в URL, сохраняя прочие storage-ключи. */
 async function fixture(
   page: Page,
   reply?: (attempt: number) => {
@@ -74,6 +78,7 @@ async function fixture(
   return { writes, unexpected, urls, errors };
 }
 
+/** Проверяем изолированную форму, eye-control, selection и исчезновение fragment до записи, затем удаление формы после подтверждения. */
 for (const width of [320, 390, 1280]) {
   test(`isolated form uses the shared eye control and sends secrets only in POST at ${width}px`, async ({
     page,
@@ -164,6 +169,7 @@ for (const width of [320, 390, 1280]) {
   });
 }
 
+/** Отсутствующий, короткий или дублирующийся proof не разрешает форму и удаляется из видимого URL. */
 for (const fragment of [
   "",
   "#token=invalid",
@@ -184,6 +190,7 @@ for (const fragment of [
   });
 }
 
+/** Контролируемый 400 трактуется как непригодная ссылка без выдачи сессии и без внутренних деталей в UI. */
 test("a real expired-link response clears the form without granting a session", async ({
   page,
 }) => {
@@ -204,6 +211,7 @@ test("a real expired-link response clears the form without granting a session", 
   expect(state.unexpected).toEqual([]);
 });
 
+/** Неизвестный результат не разрешает автоматический второй write: вместо формы остаётся предложение проверить вход. */
 for (const status of [0, 503]) {
   test(`an unknown result ${status} offers login without an automatic second write`, async ({
     page,
@@ -221,6 +229,7 @@ for (const status of [0, 503]) {
   });
 }
 
+/** Rate-limit сохраняет ввод, но разрешает только ручной повтор после Retry-After. */
 test("429 preserves input but requires a manual retry after Retry-After", async ({
   page,
 }) => {
@@ -245,6 +254,7 @@ test("429 preserves input but requires a manual retry after Retry-After", async 
   expect(state.writes).toHaveLength(2);
 });
 
+/** Удерживаем save на трёх ширинах: pending сохраняет геометрию и защищает от повторного native-submit. */
 for (const width of [320, 390, 1280]) {
   test(`a pending save keeps button geometry and cannot be duplicated at ${width}px`, async ({
     page,
@@ -317,6 +327,7 @@ for (const width of [320, 390, 1280]) {
   });
 }
 
+/** Pagehide очищает proof и пароль в памяти; bfcache-подобный pageshow не восстанавливает форму. */
 test("leaving the document clears its in-memory proof and password before a cached return", async ({
   page,
 }) => {

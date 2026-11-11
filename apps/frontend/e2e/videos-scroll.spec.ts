@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
 
+/** Профили мобильных браузеров и desktop проверяют настоящую прокрутку до последней карточки, закреплённую шапку Видео и сохранение позиции при возврате. */
 for (const device of [
   { name: "iPhone", viewport: { width: 375, height: 812 }, isMobile: true },
   { name: "Android", viewport: { width: 412, height: 915 }, isMobile: true },

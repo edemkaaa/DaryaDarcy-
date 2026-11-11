@@ -9,6 +9,7 @@ import { postDateOrder } from "./post-order";
 type Database = MySql2Database | null;
 
 /** Пост и медиа читаем из одного снимка; окончательное решение о доступе остаётся у сервиса. */
+/** Читаем пост по числовому или публичному ID и его медиа в одном снимке без самостоятельной фильтрации доступа; commentCount эта проекция не выбирает. */
 export async function getPostById(
   db: Database,
   id: number | string,
@@ -53,6 +54,7 @@ export async function getPostById(
 }
 
 /** Находим последнюю публикацию по серверному порядку выдачи. */
+/** Читаем краткую последнюю опубликованную запись выбранного назначения по дате; отсутствие подключения возвращает undefined для необязательного уведомления. */
 export async function getLatestPublishedPost(
   db: Database,
   target: "feed" | "club",

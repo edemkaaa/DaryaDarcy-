@@ -28,10 +28,12 @@ const media = {
   mimeType: "audio/mpeg",
   type: "audio" as const,
 };
+/** Создаёт прямой router caller с контролируемым actor для проверки service/router границ без SQL. */
 const caller = () =>
   app
     .get(TrpcService)
     .router.createCaller({ user: actor, req: {}, res: {} } as TrpcContext);
+/** Поднимает локальный API с doubles identity/persistence и синтетическим PNG, сохраняя настоящую image-конверсию. */
 beforeAll(async () => {
   vi.stubEnv("DATABASE_URL", "");
   app = await createBackendApplication();
@@ -50,6 +52,7 @@ beforeAll(async () => {
       .toBuffer()
   ).toString("base64");
 });
+/** Возвращает admin actor и capture внешнего storagePut перед сценарием. */
 beforeEach(() => {
   actor = admin;
   storage.put.mockReset().mockResolvedValue({
@@ -57,11 +60,13 @@ beforeEach(() => {
     url: "https://synthetic.invalid/public",
   });
 });
+/** Закрывает приложение и возвращает все подмены и окружение. */
 afterAll(async () => {
   await app?.close();
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
 });
+/** Проверяет запрет публичного legacy comment-photo для неоплаченного пользователя без объекта. */
 it("unpaid member cannot create a public comment photo through the legacy router", async () => {
   actor = member;
   await expect(
@@ -69,12 +74,14 @@ it("unpaid member cannot create a public comment photo through the legacy router
   ).rejects.toMatchObject({ code: "NOT_FOUND" });
   expect(storage.put).not.toHaveBeenCalled();
 });
+/** Проверяет отказ legacy admin media даже для валидных байтов до storagePut. */
 it("legacy admin media refuses even valid bytes without a public object", async () => {
   await expect(caller().admin.uploadMedia(media)).rejects.toMatchObject({
     code: "NOT_FOUND",
   });
   expect(storage.put).not.toHaveBeenCalled();
 });
+/** Проверяет отсутствие fallback retired-маршрутов при любых приватных флагах и batch-порядке до разбора большого malformed body. */
 it.each(["false", "true"])(
   "retired routes cannot fall back when private flags=%s",
   async (enabled) => {
@@ -96,6 +103,7 @@ it.each(["false", "true"])(
     expect(storage.put).not.toHaveBeenCalled();
   },
 );
+/** Проверяет ранний 404 retired raw-video до identity lookup, обработки body и storage. */
 it("retired raw video returns 404 before allocating or inspecting the body", async () => {
   const identity = vi.mocked(app.get(SessionService).optionalUser);
   identity.mockClear();
@@ -108,6 +116,7 @@ it("retired raw video returns 404 before allocating or inspecting the body", asy
   expect(identity).not.toHaveBeenCalled();
   expect(storage.put).not.toHaveBeenCalled();
 });
+/** Проверяет retired-границу прямых service-методов, которую нельзя обойти минуя HTTP. */
 it("legacy service methods cannot bypass retired HTTP boundaries", async () => {
   const service = app.get(ContentUploadService);
   await expect(service.uploadMedia(media)).rejects.toMatchObject({
@@ -119,6 +128,7 @@ it("legacy service methods cannot bypass retired HTTP boundaries", async () => {
   expect(storage.put).not.toHaveBeenCalled();
 });
 
+/** Проверяет обязательный явный publicCover и отказ неоднозначного либо приватного purpose. */
 it.each([undefined, "postPhoto", "commentPhoto"])(
   "admin photo refuses ambiguous or private purpose %s",
   async (purpose) => {
@@ -132,6 +142,7 @@ it.each([undefined, "postPhoto", "commentPhoto"])(
     expect(storage.put).not.toHaveBeenCalled();
   },
 );
+/** Проверяет настоящую image-нормализацию publicCover и отдельный публичный covers namespace вместо клиентского filename. */
 it("explicit publicCover retains photo hardening and uses a public cover namespace", async () => {
   const payload = {
     base64: photo,
@@ -151,8 +162,10 @@ it("explicit publicCover retains photo hardening and uses a public cover namespa
     height: 3,
   });
 });
+/** Проверяет purpose на native HTTP и доступную явную публичную обложку при выключенных private-флагах. */
 it("native HTTP validates purpose and still admits an explicit cover with private flags off", async () => {
   vi.stubEnv("PRIVATE_CONTENT_FILES_ENABLED", "false");
+  /** Отправляет настоящий HTTP uploadPhoto с выбранным purpose в локальный API. */
   const post = (payload: unknown) =>
     fetch(base + "/api/trpc/admin.uploadPhoto", {
       method: "POST",
@@ -172,6 +185,7 @@ it("native HTTP validates purpose and still admits an explicit cover with privat
   });
   expect(storage.put).toHaveBeenCalledTimes(1);
 });
+/** Проверяет запрет обычному пользователю присвоить административное назначение publicCover. */
 it("ordinary member cannot claim administrator's public-cover purpose", async () => {
   actor = member;
   const payload = {
@@ -184,6 +198,7 @@ it("ordinary member cannot claim administrator's public-cover purpose", async ()
   });
   expect(storage.put).not.toHaveBeenCalled();
 });
+/** Проверяет сохранение публичной загрузки аватара только в URL текущего actor с актуальной profileRevision. */
 it("public avatar uploads stay available and persist only the actor's URL", async () => {
   actor = member;
   const database = vi.spyOn(db, "getDb").mockResolvedValue(drizzle.mock());

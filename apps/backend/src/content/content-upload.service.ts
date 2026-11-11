@@ -11,6 +11,7 @@ import type { User } from "../../../../packages/database/src/schema";
 /** The adapter authorizes; storage and SQL helpers retain their ownership. */
 @Injectable()
 export class ContentUploadService {
+  /** Сохраняет старый вызов как явный отказ legacy-загрузки, не создавая новый публичный видеообъект. */
   async uploadRawVideo(
     _buffer: Buffer,
     _filename: string,
@@ -23,6 +24,7 @@ export class ContentUploadService {
    * Retains a link without fetching/inspecting/copying its object. Keep optional
    * fileSize in the existing wire type; retaining a URL does not report its size.
    */
+  /** Сохраняет только ссылку собственного storage без fetch/копирования/проверки размера; внешние share/provider адреса отклоняет для исключения SSRF. */
   async importVideoFromUrl(
     url: string,
   ): Promise<{ url: string; fileSize?: number }> {
@@ -39,6 +41,7 @@ export class ContentUploadService {
     });
   }
 
+  /** Разрешает лишь явную publicCover, перед PUT повторно проверяет текущие session/openId/admin/deletion после декодирования фото. */
   uploadPhoto(
     base64: string,
     purpose: "publicCover",
@@ -70,6 +73,7 @@ export class ContentUploadService {
     });
   }
 
+  /** Отклоняет старую неоднозначную публичную media-загрузку; приватные вложения используют отдельные receipt-контракты. */
   async uploadMedia(_input: MediaUploadInput): Promise<{
     url: string;
     mediaId: number | undefined;

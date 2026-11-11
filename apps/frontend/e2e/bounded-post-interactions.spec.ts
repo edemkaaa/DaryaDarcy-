@@ -3,6 +3,7 @@ import { editorApi, failure, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
 test.setTimeout(60_000);
+/** Делаем посты одного формата с различимым ID, чтобы точно сравнивать наборы персональных запросов. */
 const post = (id: number) => ({
   id,
   text: `BOUNDED_POST_${id}`,
@@ -18,16 +19,21 @@ const post = (id: number) => ({
   createdAt: "2026-10-04T10:00:00Z",
   publishedAt: "2026-10-04T10:00:00Z",
 });
+/** Выбираем текущую вертикальную область пагинации. */
 const list = (page: Page) =>
   page.locator("main .ui-scroll:not(.ui-scroll-horizontal):visible").first();
+/** Находим смонтированную карточку по её тексту внутри collection-item. */
 const row = (page: Page, id: number) =>
   page
     .locator(".ui-collection-item")
     .filter({ has: page.getByText(`BOUNDED_POST_${id}`, { exact: true }) });
+/** Выбираем единственную кнопку сохранения detail-страницы. */
 const save = (page: Page) =>
   page.getByRole("button", { name: "Сохранить пост", exact: true });
+/** Отделяем явную сверку персональных отметок от повторной отправки toggle. */
 const retry = (page: Page) =>
   page.getByRole("button", { name: "Обновить отметки", exact: true });
+/** Удерживаем ответ чтения для проверки позднего результата и гарантированного освобождения gate. */
 const deferred = () => {
   let release!: () => void;
   const promise = new Promise<void>((resolve) => {
@@ -36,6 +42,7 @@ const deferred = () => {
   return { promise, release };
 };
 
+/** Моделируем account-scoped отметки, bounded-read и toggle отдельно; фиксируем каждый набор ID и legacy-read, чтобы обнаружить лишнее чтение истории аккаунта. */
 async function fixture(page: Page, count = 2) {
   const state = {
     owner: 101,
@@ -160,6 +167,7 @@ test("unsaving a retained second-page card removes it even when the refreshed he
   await page
     .getByRole("button", { name: "Загрузить ещё сохранённые", exact: true })
     .click();
+  /** Адресуем сохранённую карточку второй страницы по accessible-name без предположения о её DOM-индексе. */
   const card = (id: number) =>
     page.getByRole("button", {
       name: `Открыть публикацию: BOUNDED_POST_${id}`,
@@ -184,6 +192,7 @@ test("unsaving a retained second-page card removes it even when the refreshed he
   expect(state.saved.has(22)).toBe(false);
 });
 
+/** В ленте и клубе страницы читают отметки группами; подтверждённые toggle обновляют точечное состояние, не перезагружая все страницы. */
 for (const screen of ["feed", "club"]) {
   test(`${screen}: loaded groups stay bounded; confirmed reactions do not reload groups or pages`, async ({
     page,
@@ -246,6 +255,7 @@ for (const screen of ["feed", "club"]) {
   });
 }
 
+/** Ошибка одного bounded-набора блокирует только его карточки, а явная сверка восстанавливает этот набор без повторных записей. */
 test("one failed group does not block ready cards, and an explicit retry recovers it", async ({
   page,
 }) => {
@@ -290,6 +300,7 @@ test("one failed group does not block ready cards, and an explicit retry recover
   expect(state.writes).toEqual([1]);
 });
 
+/** Свежие отметки переиспользуются между retained-list и detail; подтверждённое сохранение доходит обратно без нового read. */
 test("detail reuses fresh marks and confirmed changes reach the retained list without another read", async ({
   page,
 }) => {
@@ -330,10 +341,12 @@ test("a cold detail reads only its post", async ({ page }) => {
   expect(state.reads.map((read) => read.ids)).toEqual([[2]]);
 });
 
+/** Пересекающиеся страницы ленты и клуба разделяют account-scoped отметки и дочитывают только невиданные ID. */
 test("feed and club reuse overlapping marks and request only previously unseen posts", async ({
   page,
 }) => {
   const state = await fixture(page, 24);
+  /** Получаем кнопку первой карточки в текущей retained-панели после перехода между разделами. */
   const first = () =>
     row(page, 1).getByRole("button", { name: "Сохранить пост", exact: true });
   await gotoWithSession(page, "/feed");
@@ -384,6 +397,7 @@ test("opening a detail after freshness expires reads its current mark without re
   expect(state.reads.map((read) => read.ids)).toEqual([[1, 2], [1]]);
 });
 
+/** Возврат к видимости или восстановление сети инициирует одну bounded-сверку даже для свежего локального snapshot. */
 for (const event of ["visibilitychange", "online"]) {
   test(`${event}: fresh cached marks are rechecked in a batch`, async ({
     page,
@@ -409,6 +423,7 @@ for (const event of ["visibilitychange", "online"]) {
   });
 }
 
+/** Успех чтения другого поста не разрешает неопределённый toggle за пределами проверенного набора. */
 test("recovering another post cannot unlock an uncertain save outside the read set", async ({
   page,
 }) => {
@@ -443,6 +458,7 @@ test("recovering another post cannot unlock an uncertain save outside the read s
   expect(state.writes).toEqual([1]);
 });
 
+/** Гость, пустой список и отсутствующий detail не должны запрашивать персональные отметки. */
 for (const mode of ["guest", "empty", "missing"] as const) {
   test(`${mode}: no interaction request is sent`, async ({ page }) => {
     const state = await fixture(page, mode === "empty" ? 0 : 2);
@@ -468,6 +484,7 @@ for (const mode of ["guest", "empty", "missing"] as const) {
   });
 }
 
+/** Чужие ID в ответе и отсутствующий bounded-API не включают запись и не откатываются к полной истории аккаунта. */
 for (const mode of ["foreign ID", "404"] as const) {
   test(`${mode}: invalid or missing bounded API never enables toggles or falls back to account history`, async ({
     page,
@@ -483,6 +500,7 @@ for (const mode of ["foreign ID", "404"] as const) {
   });
 }
 
+/** Снимок предыдущего владельца удерживается до смены сессии; поздний ответ не должен восстановить чужие отметки. */
 test("a late read for a previous account cannot restore its marks", async ({
   page,
 }) => {

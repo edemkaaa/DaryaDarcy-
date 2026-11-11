@@ -17,6 +17,7 @@ import {
   processCancellations,
   requestClubCancellation,
 } from "../apps/backend/src/billing/cancellation";
+/** Сквозной локальный контур webhook, SQL, письма и отмены с настоящим HTTP, но синтетическим провайдером и без внешнего SMTP. */
 describe.skipIf(!testDatabaseUrl)(
   "local HTTP → MySQL → mail/provider boundaries",
   () => {
@@ -26,6 +27,7 @@ describe.skipIf(!testDatabaseUrl)(
       base: string;
     let providerBody = "provider error",
       lastParameters: Record<string, string> = {};
+    /** Создаём собственный заказ и staff, запускаем loopback-провайдер отмены и Nest с синтетическими ключами и публичным адресом теста. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -59,6 +61,7 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query("DELETE FROM admin_audit_log WHERE actorUserId=792");
       const app = express();
       app.use(express.urlencoded({ extended: false }));
+// Этот loopback endpoint лишь имитирует ответы провайдера; никаких запросов в настоящий Prodamus тест не выполняет.
       app.post("/rest/setActivity/", (req, res) => {
         lastParameters = req.body;
         res.send(providerBody);
@@ -75,6 +78,7 @@ describe.skipIf(!testDatabaseUrl)(
       base = `http://127.0.0.1:${(application.getHttpServer().address() as AddressInfo).port}`;
       vi.stubEnv("PUBLIC_APP_URL", base);
     });
+    /** Закрываем приложение/провайдер, удаляем свои платежные и почтовые записи и освобождаем SQL-пул. */
     afterAll(async () => {
       await application?.close();
       await new Promise<void>((resolve) => provider?.close(() => resolve()));
@@ -100,6 +104,7 @@ describe.skipIf(!testDatabaseUrl)(
       customer_email: "http@example.test",
       subscription: { id: "123", profile_id: "999" },
     };
+    /** Отправляем настоящий JSON POST с необязательной подписью в локальный API. */
     const post = (path: string, data: unknown, sign?: string) =>
       fetch(`${base}${path}`, {
         method: "POST",
@@ -109,6 +114,7 @@ describe.skipIf(!testDatabaseUrl)(
         },
         body: JSON.stringify(data),
       });
+    /** Восемь подписанных уведомлений одного заказа фиксируют одну receipt и одну outbox-запись. */
     it("signed concurrent callbacks persist one charge and one access email", async () => {
       const responses = await Promise.all(
         Array.from({ length: 8 }, () =>
@@ -129,6 +135,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(outbox[0].n).toBe(1);
     });
+    /** Доставляем outbox в локальный callback, извлекаем proof из fragment и проверяем одноразовую смену без set-cookie и безопасный редирект старой страницы. */
     it("access email completes a one-time password without creating a session", async () => {
       let message = "";
       // Workers can defer locked rows; emulate the next scheduler tick until mail arrives.
@@ -168,6 +175,7 @@ describe.skipIf(!testDatabaseUrl)(
         ).status,
       ).toBe(400);
     });
+    /** Настоящий и неизвестный email получают одинаковый публичный 202 без подтверждения существования аккаунта. */
     it("unknown and real password requests have identical public responses", async () => {
       const known = await post("/api/auth/password/request", {
         email: "http@example.test",
@@ -179,6 +187,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(unknown.status).toBe(202);
       expect(await known.json()).toEqual(await unknown.json());
     });
+    /** Staff-повтор ставит письмо и аудит с no-store, а после блокировки та же сессия отклоняется. */
     it("queues a staff resend through the native password service and audits its author", async () => {
       const token = await sdk.createSessionToken("password-http-staff", {
         sessionVersion: 0,
@@ -209,6 +218,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       expect(blocked.status).toBe(403);
     });
+    /** HTTP200 локального провайдера с текстом ошибки не подтверждает отмену; после явного success worker ставит cancelledAt и запрос имеет корректную подпись. */
     it("HTTP 200 with an error body is not a successful cancellation", async () => {
       const database = (await getDb())!;
       providerBody = "subscription not found";
@@ -240,6 +250,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(rows[0].cancelledAt).not.toBeNull();
     });
+    /** Даже подписанная отмена чужого profileId отклоняется, точный сохранённый профиль подтверждается. */
     it("signed cancellation requires the stored profile, not only its email", async () => {
       const bad = {
         ...body,

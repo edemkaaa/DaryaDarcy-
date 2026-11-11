@@ -3,6 +3,7 @@ import { build } from "esbuild";
 import { chromium, type Browser, type Page } from "@playwright/test";
 const native = process.env.DARYADARCY_LOCAL_BROWSER === "1" ? it : it.skip;
 let browser: Browser, bundle: string;
+/** При явном browser opt-in собирает настоящий ArticleCreationJournal в IIFE и запускает отдельный Chromium. */
 beforeAll(async () => {
   if (process.env.DARYADARCY_LOCAL_BROWSER !== "1") return;
   const root = new URL("../", import.meta.url).pathname;
@@ -23,9 +24,11 @@ beforeAll(async () => {
   ).outputFiles[0].text;
   browser = await chromium.launch();
 });
+/** Закрывает только собственный browser после проверок журнала. */
 afterAll(async () => {
   await browser?.close();
 });
+/** Открывает синтетическую same-origin страницу и подключает настоящий собранный модуль журнала без API. */
 async function open(page: Page) {
   await page.route("**/*", (route) =>
     route.fulfill({
@@ -36,6 +39,7 @@ async function open(page: Page) {
   await page.goto("http://127.0.0.1:19191/");
   await page.addScriptTag({ content: bundle });
 }
+/** Проверяет сохранение реальных File-байтов, MIME, имени, lastModified и устойчивого ключа в настоящем IndexedDB через перезагрузку до загрузки файла. */
 native(
   "real IndexedDB persists article File bytes and stable key across reload before any upload",
   async () => {
@@ -107,6 +111,7 @@ native(
     }
   },
 );
+/** Проверяет checkpoint CAS между двумя экземплярами журнала и запрет возврата write-фазы к upload с новым payload после неопределённого edit. */
 native(
   "checkpoint CAS rejects another tab and write phase is frozen instead of replaying an unknown edit",
   async () => {
@@ -190,6 +195,7 @@ native(
     }
   },
 );
+/** Проверяет отказ checkpoint и отсутствие чтения прежней операции после смены владельца аккаунта. */
 native(
   "another account cannot load or checkpoint the original article operation",
   async () => {

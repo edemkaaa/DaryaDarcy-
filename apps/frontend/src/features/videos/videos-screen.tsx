@@ -30,6 +30,7 @@ import { apiUrl } from "@/shared/config/api";
 import { isVkCatalogEnabled } from "./catalog-api";
 import { VideoCatalogScreen } from "./catalog-screen";
 type Video = ApiOutputs["videos"]["list"][number];
+/** Старый список продолжает читать прежний контракт до включения каталога VK; локальный refresh не меняет playback-права. */
 function VideosScreenInner() {
   const active = useScreenActive();
   const viewport = useViewport();
@@ -46,6 +47,7 @@ function VideosScreenInner() {
     staleTime: 30_000,
     ...contentRefreshOptions(active),
   });
+  /** Отдельно показываем pull-to-refresh пока перечитывается список, не пересоздавая шапку и карточки заранее. */
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await refetch();
@@ -57,12 +59,14 @@ function VideosScreenInner() {
     onRetry: () => refetch({ cancelRefetch: false }),
   });
   const handleVideoPress = useCallback(
+    /** Открываем стабильный внутренний маршрут детали, не передавая URL плеера через навигацию. */
     (video: Video) => {
       router.push(`/video/${video.id}`);
     },
     [router],
   );
   const renderVideoCard = useCallback(
+    /** Сохранённая не-YouTube обложка имеет приоритет; прежние YouTube-превью направляем через серверный thumbnail-путь. */
     ({ item }: { item: Video }) => {
       const stored = item.thumbnailUrl?.trim() ?? "";
       const thumbnailUrl =
@@ -179,6 +183,7 @@ function VideosScreenInner() {
     </ScreenContainer>
   );
 }
+/** Выбираем старый или новый протокол каталога единственным build-флагом. */
 export default function VideosScreen() {
   if (isVkCatalogEnabled()) return <VideoCatalogScreen />;
   return (

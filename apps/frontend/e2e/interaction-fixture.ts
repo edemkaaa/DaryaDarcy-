@@ -1,4 +1,5 @@
 /** Adapt old synthetic account marks to a bounded response; no production fallback. */
+/** Сужаем старые синтетические liked/saved-массивы до запрошенных postIds; некорректный ответ сохраняем для проверки ошибок клиента. */
 export function interactionFixture(
   reply: unknown,
   input: Record<string, unknown>,

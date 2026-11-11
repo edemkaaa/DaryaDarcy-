@@ -1,3 +1,4 @@
+// Архив Expo. Показывает календарную дату русскими названиями месяцев.
 import { useState, useEffect } from "react";
 import {
   Text,
@@ -37,6 +38,8 @@ const BROWN_LIGHT = "#7A6B5E";
 const GREEN_ACCENT = "#8B7355" // Brown accent (was green);
 
 function formatDate(date: Date | string): string {
+  // Показывает календарную дату русскими названиями месяцев.
+
   const d = new Date(date);
   const months = [
     "января", "февраля", "марта", "апреля", "мая", "июня",
@@ -46,6 +49,8 @@ function formatDate(date: Date | string): string {
 }
 
 function PostDetailScreenInner() {
+  // Читает один пост и взаимодействия аккаунта, разделяет видео/фото и невидео-вложения.
+
   const router = useRouter();
   const { user } = useAuth();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -59,6 +64,8 @@ function PostDetailScreenInner() {
   const likeMut = trpc.feed.toggleLike.useMutation();
   const saveMut = trpc.feed.toggleSave.useMutation({
     onSuccess: () => {
+      // После сохранения инвалидирует список закладок и серверные interaction id.
+
       void utils.feed.savedPosts.invalidate();
       void utils.feed.userInteractions.invalidate();
     },
@@ -66,6 +73,8 @@ function PostDetailScreenInner() {
   const interactions = trpc.feed.userInteractions.useQuery(undefined, { enabled: Boolean(user) && postId > 0 });
 
   useEffect(() => {
+    // При ответе interactions восстанавливает liked/saved и базовое значение лайка с сервера.
+
     if (!interactions.data || !postId) return;
     const liked = interactions.data.likedIds.includes(postId);
     const saved = interactions.data.savedIds.includes(postId);
@@ -81,6 +90,8 @@ function PostDetailScreenInner() {
   useClubContentProtection(Boolean(post && (post.target === "club" || post.target === "both")));
 
   const handleLike = () => {
+    // Оптимистично переключает локальный like и отправляет старую toggle-мутацию без восстановления потерянного ответа.
+
     if (!user) {
       router.push("/login?next=/feed" as any);
       return;
@@ -93,6 +104,8 @@ function PostDetailScreenInner() {
   };
 
   const handleSave = () => {
+    // Требует вход и оптимистично переключает закладку перед серверным toggle.
+
     if (!user) {
       router.push("/login?next=/feed" as any);
       return;
@@ -105,6 +118,8 @@ function PostDetailScreenInner() {
   };
 
   const onPhotoScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    // Переводит горизонтальное смещение старой галереи в индекс по ширине экрана.
+
     const index = Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH);
     setCurrentPhotoIndex(index);
   };
@@ -264,6 +279,8 @@ function PostDetailScreenInner() {
 }
 
 export default function PostDetailScreen() {
+  // Ограничивает render-сбой одного поста локальным экраном ошибки.
+
   return (
     <ScreenErrorBoundary message="Не удалось открыть пост">
       <PostDetailScreenInner />
@@ -271,6 +288,7 @@ export default function PostDetailScreen() {
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   header: {
     flexDirection: "row",

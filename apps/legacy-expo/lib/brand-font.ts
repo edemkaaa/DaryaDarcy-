@@ -1,3 +1,4 @@
+// Архив Expo. Единые имена брендовых гарнитур и читаемого italic для архивных экранов.
 /** Licensed Woolen webfont — DARYADARCY wordmark only. */
 export const WOOLEN_FONT = "Woolen-Regular";
 

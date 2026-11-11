@@ -1,3 +1,4 @@
+// Архив Expo. Читает статью серверным API и разделяет locked/полный ответ; локальный protection не заменяет проверку выдачи.
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -24,6 +25,8 @@ const BROWN_MUTED = "#8B7355";
 const CREAM = "#FDF8F0";
 
 export default function LibraryArticleScreen() {
+  // Читает статью серверным API и разделяет locked/полный ответ; локальный protection не заменяет проверку выдачи.
+
   const router = useRouter();
   const { isSubscribed } = useClub();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -35,10 +38,10 @@ export default function LibraryArticleScreen() {
   useClubContentProtection(Boolean(data && !data.locked));
   const [viewer, setViewer] = useState<{ photos: string[]; index: number } | null>(null);
 
-  const blocks = useMemo(() => (data?.sections || []) as ArticleBlock[], [data]);
+  const blocks = useMemo(() => /* Приводит полученные sections к старому контракту блоков для общего renderer. */ (data?.sections || []) as ArticleBlock[], [data]);
   const photoUrls = useMemo(
     () =>
-      blocks.flatMap((block) => {
+      /* Собирает изображения и карусели в единую последовательность полноэкранного просмотра. */ blocks.flatMap((block) => {
         if ((block.type === "photo" || block.type === "png") && block.url) return [block.url];
         if (block.type === "carousel" && block.urls?.length) return block.urls;
         return [];
@@ -111,6 +114,7 @@ export default function LibraryArticleScreen() {
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: CREAM },
   scroll: { paddingBottom: 72 },

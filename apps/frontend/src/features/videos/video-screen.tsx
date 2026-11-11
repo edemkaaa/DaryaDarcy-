@@ -24,6 +24,7 @@ import { PAPER_TEXTURE_URI } from "./video-screen.content";
 import { isVkCatalogEnabled } from "./catalog-api";
 import { VideoDetailView } from "./video-detail-view";
 import { CatalogVideoDetail } from "./catalog-video-detail";
+/** Согласуем detail с выбранным каталогом сборки, сохраняя legacy путь до завершения rollout. */
 export default function VideoDetailScreen({ id }: { id: string }) {
   return isVkCatalogEnabled() ? (
     <CatalogVideoDetail id={id} />
@@ -31,6 +32,7 @@ export default function VideoDetailScreen({ id }: { id: string }) {
     <LegacyVideoDetail id={id} />
   );
 }
+/** Читаем старую деталь активного экрана; временный фоновой сбой оставляет подтверждённое видео, отказ доступа скрывает его. */
 function LegacyVideoDetail({ id }: { id: string }) {
   const active = useScreenActive();
   const videoId = parseContentId(id);

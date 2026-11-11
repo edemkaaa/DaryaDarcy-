@@ -1,5 +1,5 @@
 "use client";
-/** Текстовый компонент выбирает подходящий DOM-элемент и переносит стили, учитывая вложенный текст и ограничение строк. */
+/** Текстовый компонент использует span и переносит стили, учитывая вложенный текст и ограничение строк. */
 import {
   createContext,
   useContext,
@@ -14,6 +14,7 @@ type TypographyProps = Omit<HTMLAttributes<HTMLSpanElement>, "style"> & {
   selectable?: boolean;
 };
 export const Typography = forwardRef<HTMLSpanElement, TypographyProps>(
+  /** Отображаем текст через span: контекст делает вложенный текст строчным, а lines включает одно- или многострочное усечение. */
   function Typography(
     { style, className = "", lines, selectable, children, ...props },
     ref,

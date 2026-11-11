@@ -1,6 +1,8 @@
+/** Read-only policy проверяет resolved stack и общий бюджет реплик, не считывая реальную инфраструктуру. */
 import { expect, it } from "vitest";
 import { inspectMultiApiDeployment } from "../tooling/scripts/multi-api-policy";
 
+/** Создаём synthetic2API+TEST+web/MySQL/edge с одинаковыми закрытыми ключами, private values не выводятся. */
 function fixture() {
   const environment = {
     API_REPLICA_COUNT: "2",
@@ -32,6 +34,7 @@ function fixture() {
   };
 }
 const capacity = { hostMemoryMiB: 16384, mysqlMaxConnections: 50 };
+/** Считаем каждый process/pool/memory ceiling плюс резерв; отчёт не содержит credentials. */
 it("accounts for every API replica, the TEST ingress, and an operator connection reserve", () => {
   const result = inspectMultiApiDeployment(fixture(), capacity);
   expect(result).toMatchObject({
@@ -46,12 +49,14 @@ it("accounts for every API replica, the TEST ingress, and an operator connection
     /private-db-secret|private-session-secret|mysql:\/\//,
   );
 });
+/** Старый host budget не принимается после удвоения API. */
 it("refuses the former 8GiB budget after scaling the API", () => {
   expect(
     inspectMultiApiDeployment(fixture(), { ...capacity, hostMemoryMiB: 8192 })
       .issues,
   ).toContain("host-memory-budget-exceeded");
 });
+/** Дополнительный TEST pool входит в max_connections budget. */
 it("refuses the old 30-connection limit when TEST ingress also shares MySQL", () => {
   expect(
     inspectMultiApiDeployment(fixture(), {
@@ -60,6 +65,7 @@ it("refuses the old 30-connection limit when TEST ingress also shares MySQL", ()
     }).issues,
   ).toContain("mysql-connection-budget-exceeded");
 });
+/** Каждый ingress обязан использовать общую coordination. */
 it("does not let the optional TEST ingress silently keep local quotas", () => {
   const config = fixture();
   config.services["prodamus-test"].environment.API_COORDINATION_MODE = "local";
@@ -67,6 +73,7 @@ it("does not let the optional TEST ingress silently keep local quotas", () => {
     "shared-coordination-required",
   );
 });
+/** Разные DB/JWT/encryption settings между процессами блокируют конфигурацию без echo значений. */
 it.each(["DATABASE_URL", "JWT_SECRET", "AUTH_LINK_ENCRYPTION_KEY"] as const)(
   "refuses inconsistent %s without exposing either value",
   (key) => {
@@ -77,6 +84,7 @@ it.each(["DATABASE_URL", "JWT_SECRET", "AUTH_LINK_ENCRYPTION_KEY"] as const)(
     expect(JSON.stringify(result)).not.toContain("private-mismatch");
   },
 );
+/** Отсутствующие лимиты, прямой public API port и короткий drain недопустимы. */
 it("refuses incomplete memory ceilings, public API ports and too-short stop grace", () => {
   const config = fixture();
   config.services.api.mem_limit = "0";
@@ -90,6 +98,7 @@ it("refuses incomplete memory ceilings, public API ports and too-short stop grac
     ]),
   );
 });
+/** No/ограниченный restart не обеспечивает восстановление после fatal lock loss. */
 it.each([undefined, "no", "on-failure:2"])(
   "requires persistent API restart, got %s",
   (restart) => {
@@ -103,6 +112,7 @@ it.each([undefined, "no", "on-failure:2"])(
     ).toContain("api-automatic-restart-required");
   },
 );
+/** Deploy restart_policy:none не может переопределить обязательный persistent restart. */
 it("refuses an overriding deploy restart policy", () => {
   const config = fixture();
   const api = {
@@ -119,6 +129,7 @@ it("refuses an overriding deploy restart policy", () => {
     ).issues,
   ).toContain("api-automatic-restart-required");
 });
+/** Host/service network_mode запрещён даже без ports, чтобы не расширить network boundary. */
 it.each(["host", "service:edge"])(
   "refuses API network namespace overrides without published ports: %s",
   (network_mode) => {
@@ -132,6 +143,7 @@ it.each(["host", "service:edge"])(
     ).toContain("api-network-mode-override");
   },
 );
+/** Policy и executable одинаково нормализуют whitespace/control перед проверкой длины JWT key. */
 it("rejects short JWT secrets after the same normalization as API startup", () => {
   const config = fixture();
   const jwt = ` ${"a".repeat(15)}\r${"a".repeat(16)} `;
@@ -141,6 +153,7 @@ it("rejects short JWT secrets after the same normalization as API startup", () =
     "invalid-api-jwt-secret",
   );
 });
+/** Encryption key должен быть canonical Base64 ровно32bytes; ошибка не раскрывает значение. */
 it.each([
   "synthetic-invalid-key",
   Buffer.alloc(32, 1).toString("base64").trimEnd().slice(0, -1),
@@ -155,6 +168,7 @@ it.each([
     expect(JSON.stringify(result)).not.toContain(key);
   },
 );
+/** Без явной tested burst queue профиль не получает ok. */
 it("requires the tested 40-waiter profile for the public API", () => {
   const config = fixture();
   config.services.api.environment.API_DB_BURST_QUEUE_ENABLED = "false";
@@ -162,6 +176,7 @@ it("requires the tested 40-waiter profile for the public API", () => {
     "api-burst-queue-required",
   );
 });
+/** Нулевая/дробная/бесконечная host capacity не является допустимым измерением. */
 it.each([0, -1, 1.5, Infinity])("refuses invalid capacity %s", (value) => {
   expect(
     inspectMultiApiDeployment(fixture(), { ...capacity, hostMemoryMiB: value })

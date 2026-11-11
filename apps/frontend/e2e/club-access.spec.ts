@@ -3,6 +3,7 @@ import { gotoWithSession, layoutApi } from "./layout-fixtures";
 import { ok, failure } from "./editor-fixtures";
 
 const expiration = "2040-11-01T10:00:00Z";
+/** Независимо моделируем роль, оплаченный срок, owner-исключение и серверное право, чтобы UI не выводил одно из другого. */
 async function fixture(
   page: Page,
   { role = "moderator", paid = false, owner = false, access = true } = {},
@@ -58,6 +59,7 @@ async function fixture(
   return state;
 }
 
+/** Служебный доступ модератора открывает контент, но не показывает оплату, продление или отмену отсутствующей подписки. */
 for (const width of [320, 390, 1440]) {
   test(`unpaid moderator enters the club without paid subscription controls at ${width}px`, async ({
     page,
@@ -91,6 +93,7 @@ for (const width of [320, 390, 1440]) {
   });
 }
 
+/** Оплаченный пользователь и модератор одинаково получают реальный срок и управление подпиской. */
 for (const role of ["user", "moderator"]) {
   test(`paid ${role} sees the real period and cancellation`, async ({
     page,
@@ -108,6 +111,7 @@ for (const role of ["user", "moderator"]) {
   });
 }
 
+/** Название роли не должно обходить подтверждённый сервером отказ клубного доступа. */
 test("a moderator role does not override a server refusal of club access", async ({
   page,
 }) => {
@@ -121,6 +125,7 @@ test("a moderator role does not override a server refusal of club access", async
   ).toBeVisible();
 });
 
+/** Владелица сохраняет отдельное исключение доступа без ложного оплаченного периода и отмены. */
 test("owner keeps the existing access exception without a paid period", async ({
   page,
 }) => {
@@ -139,6 +144,7 @@ test("owner keeps the existing access exception without a paid period", async ({
   ).toHaveCount(0);
 });
 
+/** Свежий 403 закрывает прежде показанный клубный интерфейс; ранее подтверждённый service-access не считается вечным. */
 test("a fresh permission refusal closes previously confirmed service access", async ({
   page,
 }) => {

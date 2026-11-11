@@ -1,3 +1,4 @@
+/** Проверяем порядок CLI миграций на собственных исполняемых probes и временном Git-подобном дереве: SQL не применяется, соединение лишь наблюдается локальным TCP sentinel. */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   copyFile,
@@ -17,6 +18,7 @@ import { createServer } from "node:net";
 const root = fileURLToPath(new URL("../", import.meta.url));
 let scratch: string;
 
+/** Запускает дочерний CLI в собственном scratch с deadline, раздельно собирая exit status и безопасный stdout/stderr. */
 function execute(command: string, args: string[], env: NodeJS.ProcessEnv) {
   return new Promise<{ status: number | null; stdout: string; stderr: string }>(
     (resolve, reject) => {
@@ -39,6 +41,7 @@ function execute(command: string, args: string[], env: NodeJS.ProcessEnv) {
   );
 }
 
+/** По умолчанию обнуляет обе DB-переменные; каждая проверка явно выбирает собственную синтетическую цель. */
 function environment(extra: NodeJS.ProcessEnv = {}) {
   return {
     ...process.env,
@@ -48,14 +51,18 @@ function environment(extra: NodeJS.ProcessEnv = {}) {
   };
 }
 
+/** Каждому сценарию выделяется новый временный корень, не рабочая папка миграций. */
 beforeEach(async () => {
   scratch = await mkdtemp(join(tmpdir(), "darcy-migration-command-"));
 });
+/** Удаляем только созданный scratch вместе с probes и синтетической SQL-историей. */
 afterEach(async () => {
   await rm(scratch, { recursive: true, force: true });
 });
 
+/** Проверяем порядок команд, а не результат применения схемы. */
 describe("migration update command", () => {
+  /** Подставляет записывающие trace executable вместо pnpm/drizzle-kit и исполняет точную db:push строку из манифеста. */
   async function run(gateCode: number, applyCode = 0) {
     const manifest = JSON.parse(
       await readFile(join(root, "package.json"), "utf8"),
@@ -87,11 +94,13 @@ process.exit(${name === "pnpm" ? gateCode : applyCode});
     return { ...result, trace: await readFile(log, "utf8") };
   }
 
+  /** Ненулевой preflight обрывает shell chain до drizzle-kit; генерации SQL в команде нет. */
   it("never generates or applies SQL when preflight refuses", async () => {
     const result = await run(1);
     expect(result.status).toBe(1);
     expect(result.trace).toBe("pnpm db:preflight --require-database\n");
   });
+  /** Успешный gate предшествует ровно одному migrate и обязательно требует явную DB-цель. */
   it("applies reviewed SQL only after the database-required gate", async () => {
     const result = await run(0);
     expect(result.status).toBe(0);
@@ -99,12 +108,15 @@ process.exit(${name === "pnpm" ? gateCode : applyCode});
       "pnpm db:preflight --require-database\ndrizzle-kit migrate\n",
     );
   });
+  /** Exit code мигратора доходит до вызывающего процесса без ложного зелёного результата. */
   it("propagates an application failure rather than reporting success", async () => {
     expect((await run(0, 23)).status).toBe(23);
   });
 });
 
+/** Проверяем настоящий scanner в отдельном файловом окружении и исключаем неявный доступ к application credentials. */
 describe("actual read-only preflight CLI", () => {
+  /** Копирует настоящий read-only preflight и минимальный journal/DDL, не предоставляя настоящую БД или секреты. */
   async function fixture(orphan = false) {
     const scripts = join(scratch, "tooling/scripts");
     const folder = join(scratch, "packages/database/drizzle");
@@ -149,6 +161,7 @@ describe("actual read-only preflight CLI", () => {
       );
   }
 
+  /** Обычная проверка файлов не использует DATABASE_URL и не выдаёт releaseApproval. */
   it("keeps ordinary file-only preflight independent of application credentials", async () => {
     const run = await fixture();
     const result = await run([], {
@@ -163,6 +176,7 @@ describe("actual read-only preflight CLI", () => {
     });
     expect(result.stdout + result.stderr).not.toContain("application-secret");
   });
+  /** Проверка runtime индекса требует отдельного inspection-подключения, не заимствует скрыто application URL. */
   it("requires an explicit inspection connection for the Feed index gate", async () => {
     const run = await fixture();
     const result = await run(["--require-feed-index"], {
@@ -176,6 +190,7 @@ describe("actual read-only preflight CLI", () => {
     });
     expect(result.stdout + result.stderr).not.toContain("application-secret");
   });
+  /** Пустой DATABASE_URL блокирует apply-gate, даже если рядом существует .env со строкой подключения. */
   it.each(["", "   "])(
     "requires an explicit application connection for the apply gate (%j)",
     async (uri) => {
@@ -191,6 +206,7 @@ describe("actual read-only preflight CLI", () => {
       );
     },
   );
+  /** Mismatch двух назначений отклоняется без печати хоста и паролей. */
   it("refuses different inspection and application databases without exposing their URLs", async () => {
     const run = await fixture();
     const result = await run(["--require-database"], {
@@ -207,6 +223,7 @@ describe("actual read-only preflight CLI", () => {
       /write-secret|read-secret|invalid\.test/,
     );
   });
+  /** TCP sentinel доказывает порядок: orphan SQL блокирует подключение, а допустимая история действительно достигает handshake и честно падает при его отказе. */
   it.each([
     {
       label: "ordinary diagnostics refuse an orphan before connecting",
@@ -264,6 +281,7 @@ describe("actual read-only preflight CLI", () => {
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }
   });
+  /** Опечатка, повтор и неподдерживаемый force не должны молча ослабить preflight. */
   it.each([
     ["--require-databse"],
     ["--require-database", "--require-database"],

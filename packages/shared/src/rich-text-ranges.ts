@@ -2,6 +2,7 @@
 import type { RichTextBlock } from "./rich-text-types";
 
 /** Преобразуем блочную разметку в диапазоны для интерактивного редактирования. */
+/** Разворачиваем блоки в UTF-16 диапазоны bold/italic/link с одним символом переноса между блоками, сохраняя общий offset plainText. */
 export function richTextToRanges(richText: RichTextBlock[] | null | undefined) {
   const boldRanges: [number, number][] = [];
   const italicRanges: [number, number][] = [];
@@ -27,6 +28,7 @@ export function richTextToRanges(richText: RichTextBlock[] | null | undefined) {
 }
 
 /** Восстанавливаем структурированную разметку из диапазонов форматирования. */
+/** Разбиваем строки по всем границам форматирования и собираем сегменты с пересекающими их marks; при полном отсутствии диапазонов возвращаем undefined. */
 export function rangesToRichText(
   rawText: string,
   boldRanges: [number, number][],

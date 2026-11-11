@@ -3670,738 +3670,738 @@
 
 ## [apps/legacy-expo/__tests__/ios-web-press.test.ts](../../../apps/legacy-expo/__tests__/ios-web-press.test.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Фикстура принудительно выбирает Apple-web ветку fallback обработчика.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `describe: iOS press fallback` | 7 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: forwards the event and deduplicates press/click` | 8 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: iOS press fallback` | 8 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: forwards the event and deduplicates press/click` | 9 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/__tests__/regression.test.ts](../../../apps/legacy-expo/__tests__/regression.test.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Читает исторические пути исходников через repository/frontend fallback; архивный layout путей не является текущим web-пакетом.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `root` | 11 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `frontendRoot` | 12 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `read` | 14 | Функция. Подробности и ограничения — в исходнике. |
-| `describe: Feed stability` | 22 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: lazy-mounts PhotoViewer only when open` | 25 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: invalidates paginated cache on refresh and delete` | 30 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: normalizes API posts before render` | 37 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: uses ScrollView carousel instead of nested FlatList for 10+ photos` | 43 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: uses photo grid for 2-4 images, carousel only above nine` | 49 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: pages photo viewer with horizontal ScrollView` | 56 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `describe: Video poster selection` | 64 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: uses matching _thumb as cover and keeps gallery photos separate` | 65 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `describe: Home — Secret Garden` | 79 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: shows poster before play` | 82 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: does not import expo-video at module top level on web` | 88 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `describe: Rich text selection` | 94 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: debounces native selection UI and stores pending link snapshot` | 99 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: remounts rich text editor for each new draft post` | 106 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: applies links only from the pending selection snapshot` | 112 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: submits rich text using the same snapshot as preview` | 119 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: keeps prior links when adding the next one` | 126 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `describe: Emoji rendering` | 135 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: splits emoji from serif body text` | 136 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `describe: Club tag board` | 144 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: positions tag grid slightly below linen center` | 147 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `describe: Shop price tags` | 159 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: hangs price tags on nameplate side edges with inward tilt` | 162 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `describe: Videos rose-hip decor` | 175 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: uses compact rose branches fully inside the header` | 178 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: shows readable Russian header copy` | 189 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `describe: Library loshadka cover` | 199 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: crops cover with cover/top fit` | 202 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `describe: Quiz copy (Darya edits)` | 208 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: Q1/Q2 without leading «Ты»` | 211 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: Q8 bridge wording` | 218 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: Q9 fairycore evening in future tense` | 223 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `describe: Rich text renderer safety` | 230 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: handles missing richText children` | 233 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `describe: Boot lock — native parity` | 238 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: shows boot animation on native and web without blocking taps` | 239 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: uses GestureHandlerRootView on web for stable profile taps` | 246 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: keeps Sep 2 shop routes inside tabs without extra web touch layers` | 254 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: uses minimal web touch unblock without DOM tab patching` | 263 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: does not mount AppBootGate on web root layout` | 273 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: plays paper video on native via expo-video` | 278 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `describe: Club access — server gates` | 286 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: requires club membership for club.list and comments` | 287 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: filters saved club posts for non-members` | 295 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `describe: Shop email delivery` | 301 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: skips duplicate delivery emails for the same order` | 302 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `describe: Push — EAS wiring` | 310 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: reads projectId from app config extra.eas` | 311 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `describe: Articles — photo captions` | 318 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: keeps caption in createArticle/updateArticle API schema` | 319 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: renders captions in published article view` | 325 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `describe: Rich text — format toolbar (web)` | 332 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: uses iOS-aware format toolbar props for Ж/К/🔗 buttons` | 333 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: shows link dialog in Modal, not absolute overlay` | 339 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: unmounts post editor when closed so overlays cannot leak` | 345 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `describe: Built web-dist smoke (after build:web)` | 353 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: includes feed chunk and garden poster URL in bundle` | 354 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `root` | 12 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `frontendRoot` | 13 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `read` | 15 | Функция. Подробности и ограничения — в исходнике. |
+| `describe: Feed stability` | 25 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: lazy-mounts PhotoViewer only when open` | 28 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: invalidates paginated cache on refresh and delete` | 35 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: normalizes API posts before render` | 44 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: uses ScrollView carousel instead of nested FlatList for 10+ photos` | 52 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: uses photo grid for 2-4 images, carousel only above nine` | 60 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: pages photo viewer with horizontal ScrollView` | 69 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: Video poster selection` | 79 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: uses matching _thumb as cover and keeps gallery photos separate` | 80 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: Home — Secret Garden` | 96 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: shows poster before play` | 99 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: does not import expo-video at module top level on web` | 107 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: Rich text selection` | 115 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: debounces native selection UI and stores pending link snapshot` | 120 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: remounts rich text editor for each new draft post` | 129 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: applies links only from the pending selection snapshot` | 137 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: submits rich text using the same snapshot as preview` | 146 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: keeps prior links when adding the next one` | 155 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: Emoji rendering` | 166 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: splits emoji from serif body text` | 167 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: Club tag board` | 177 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: positions tag grid slightly below linen center` | 180 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: Shop price tags` | 194 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: hangs price tags on nameplate side edges with inward tilt` | 197 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: Videos rose-hip decor` | 212 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: uses compact rose branches fully inside the header` | 215 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: shows readable Russian header copy` | 228 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: Library loshadka cover` | 240 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: crops cover with cover/top fit` | 243 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: Quiz copy (Darya edits)` | 251 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: Q1/Q2 without leading «Ты»` | 254 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: Q8 bridge wording` | 263 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: Q9 fairycore evening in future tense` | 270 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: Rich text renderer safety` | 279 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: handles missing richText children` | 282 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: Boot lock — native parity` | 289 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: shows boot animation on native and web without blocking taps` | 290 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: uses GestureHandlerRootView on web for stable profile taps` | 299 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: keeps Sep 2 shop routes inside tabs without extra web touch layers` | 309 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: uses minimal web touch unblock without DOM tab patching` | 320 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: does not mount AppBootGate on web root layout` | 332 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: plays paper video on native via expo-video` | 339 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: Club access — server gates` | 349 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: requires club membership for club.list and comments` | 350 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: filters saved club posts for non-members` | 360 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: Shop email delivery` | 368 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: skips duplicate delivery emails for the same order` | 369 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: Push — EAS wiring` | 379 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: reads projectId from app config extra.eas` | 380 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: Articles — photo captions` | 389 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: keeps caption in createArticle/updateArticle API schema` | 390 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: renders captions in published article view` | 398 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: Rich text — format toolbar (web)` | 407 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: uses iOS-aware format toolbar props for Ж/К/🔗 buttons` | 408 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: shows link dialog in Modal, not absolute overlay` | 416 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: unmounts post editor when closed so overlays cannot leak` | 424 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: Built web-dist smoke (after build:web)` | 434 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: includes feed chunk and garden poster URL in bundle` | 435 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/__tests__/screens.test.ts](../../../apps/legacy-expo/__tests__/screens.test.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Архивные source-text проверки экранов, SQL-модели и старых маршрутов; исторические пути сохранены, текущую приёмку web они не заменяют.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `REPOSITORY_ROOT` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `APP_DIR` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `describe: App Structure` | 9 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have all required screen files` | 10 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have custom brand colors in theme.config.js` | 28 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have app branding configured in app.config.ts` | 38 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have icon mappings for all tab icons` | 46 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `describe: Home Screen (index.tsx)` | 58 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have hero section` | 61 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have about section` | 66 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have section banners` | 71 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have 'новое' badge for sections with fresh content` | 80 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have secret garden section` | 87 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have season indicator` | 91 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have crossfade slideshow hero with seasonal switching` | 95 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have animated entrance` | 109 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have parallax scroll effect` | 115 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have parallax styles for hero, welcome, about, book, stamps, and explore` | 123 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have enlarged cottage illustration` | 132 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have scroll-driven medallion glint effect with oval-clipped gradient` | 137 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `describe: Feed Screen (feed.tsx)` | 148 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have two view modes` | 151 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have view mode toggle` | 157 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have tag-based filters` | 163 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have seasonal banner` | 169 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have mock posts data` | 174 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have Telegram-style photo grid` | 179 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have expand/collapse text` | 184 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have like and save actions` | 189 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have grid rendering` | 196 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `describe: Tab Layout (_layout.tsx)` | 202 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have 5 visible tabs (Home hidden from tab bar)` | 205 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have Home icon in header (top-left)` | 213 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should hide profile from tab bar` | 217 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have profile accessible from header` | 221 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `describe: Shop Screen (shop.tsx)` | 227 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have real book data with Wildberries links` | 230 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `describe: Playfair Display Font` | 240 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have font files in assets/fonts` | 241 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should load fonts in root layout` | 252 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should use Playfair Display or EBGaramond in screen headings` | 259 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `describe: Real Photos (no Unsplash placeholders)` | 281 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `describe: Feed Section` | 307 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have seasonal banner component` | 311 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have tag chips with all required tags` | 316 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have list and grid view modes` | 324 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have Telegram-style photo layout component` | 331 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have expand/collapse text functionality` | 335 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have like and save buttons` | 341 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should use tRPC to fetch posts from database` | 348 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have pull-to-refresh` | 353 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `describe: Admin Panel` | 359 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have admin screen file` | 360 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have admin screen with CRUD operations` | 365 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have post form with text, photos, and tags` | 375 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: feed screen should import React hooks` | 385 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should be accessible from profile screen` | 391 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `describe: Database Schema` | 399 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have posts table` | 403 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have tags table` | 410 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have likes table` | 416 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have saved_posts table` | 422 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `describe: Feed API Routes` | 427 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have feed router with list and tags endpoints` | 433 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have protected like/save endpoints` | 439 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have admin router with CRUD endpoints` | 444 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `describe: Feed Search` | 452 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have search bar with TextInput` | 456 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have debounced search (300ms)` | 462 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should pass search param to API query` | 468 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have clear search button` | 472 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have search placeholder text in Russian` | 477 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `describe: Feed Search - Server Side` | 482 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should accept search parameter in listPaginated endpoint` | 488 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have search filtering in db helper` | 492 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `describe: Push Notifications` | 498 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have push_tokens table in schema` | 509 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have push token registration in db helpers` | 515 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have marketing push consent endpoints` | 521 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should send marketing notifications when post is published` | 527 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should have notifications router with registerToken endpoint` | 538 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should initialize notifications in root layout (native only)` | 543 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should handle notification tap to navigate to post` | 551 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: should request notification permissions` | 558 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `REPOSITORY_ROOT` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `APP_DIR` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `describe: App Structure` | 10 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have all required screen files` | 11 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have custom brand colors in theme.config.js` | 31 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have app branding configured in app.config.ts` | 43 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have icon mappings for all tab icons` | 53 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: Home Screen (index.tsx)` | 67 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have hero section` | 70 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have about section` | 77 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have section banners` | 84 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have 'новое' badge for sections with fresh content` | 95 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have secret garden section` | 104 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have season indicator` | 110 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have crossfade slideshow hero with seasonal switching` | 116 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have animated entrance` | 132 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have parallax scroll effect` | 140 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have parallax styles for hero, welcome, about, book, stamps, and explore` | 150 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have enlarged cottage illustration` | 161 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have scroll-driven medallion glint effect with oval-clipped gradient` | 168 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: Feed Screen (feed.tsx)` | 181 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have two view modes` | 184 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have view mode toggle` | 192 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have tag-based filters` | 200 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have seasonal banner` | 208 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have mock posts data` | 215 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have Telegram-style photo grid` | 222 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have expand/collapse text` | 229 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have like and save actions` | 236 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have grid rendering` | 245 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: Tab Layout (_layout.tsx)` | 253 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have 5 visible tabs (Home hidden from tab bar)` | 256 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have Home icon in header (top-left)` | 266 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should hide profile from tab bar` | 272 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have profile accessible from header` | 278 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: Shop Screen (shop.tsx)` | 286 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have real book data with Wildberries links` | 289 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: Playfair Display Font` | 301 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have font files in assets/fonts` | 302 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should load fonts in root layout` | 315 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should use Playfair Display or EBGaramond in screen headings` | 324 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: Real Photos (no Unsplash placeholders)` | 348 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: Feed Section` | 378 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have seasonal banner component` | 382 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have tag chips with all required tags` | 389 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have list and grid view modes` | 399 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have Telegram-style photo layout component` | 408 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have expand/collapse text functionality` | 414 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have like and save buttons` | 422 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should use tRPC to fetch posts from database` | 431 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have pull-to-refresh` | 438 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: Admin Panel` | 446 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have admin screen file` | 447 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have admin screen with CRUD operations` | 454 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have post form with text, photos, and tags` | 466 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: feed screen should import React hooks` | 478 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should be accessible from profile screen` | 486 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: Database Schema` | 496 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have posts table` | 500 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have tags table` | 509 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have likes table` | 517 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have saved_posts table` | 525 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: Feed API Routes` | 532 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have feed router with list and tags endpoints` | 538 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have protected like/save endpoints` | 546 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have admin router with CRUD endpoints` | 553 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: Feed Search` | 563 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have search bar with TextInput` | 567 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have debounced search (300ms)` | 575 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should pass search param to API query` | 583 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have clear search button` | 589 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have search placeholder text in Russian` | 596 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: Feed Search - Server Side` | 603 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should accept search parameter in listPaginated endpoint` | 609 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have search filtering in db helper` | 615 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `describe: Push Notifications` | 623 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have push_tokens table in schema` | 634 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have push token registration in db helpers` | 642 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have marketing push consent endpoints` | 650 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should send marketing notifications when post is published` | 658 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should have notifications router with registerToken endpoint` | 671 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should initialize notifications in root layout (native only)` | 678 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should handle notification tap to navigate to post` | 688 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: should request notification permissions` | 697 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/__tests__/toolchain-dependencies.test.ts](../../../apps/legacy-expo/__tests__/toolchain-dependencies.test.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Собирает ограниченный TAR полностью в памяти без записи и извлечения файлов.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `requireConcurrent` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `quote` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `requireExpo` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `requireCli` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `tar` | 10 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `archive` | 20 | Функция. Подробности и ограничения — в исходнике. |
-| `parse` | 25 | Функция. Подробности и ограничения — в исходнике. |
-| `it: rejects line terminators in shell operator objects rather than producing another command` | 12 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: preserves ordinary quoted development-command arguments` | 15 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: retains ordinary Expo archive parsing without extracting files` | 40 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: stops a bounded local compressed fixture at the configured expansion ratio` | 45 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `requireConcurrent` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `quote` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `requireExpo` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `requireCli` | 10 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `tar` | 11 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `archive` | 25 | Функция. Подробности и ограничения — в исходнике. |
+| `parse` | 32 | Функция. Подробности и ограничения — в исходнике. |
+| `it: rejects line terminators in shell operator objects rather than producing another command` | 13 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: preserves ordinary quoted development-command arguments` | 18 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: retains ordinary Expo archive parsing without extracting files` | 49 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: stops a bounded local compressed fixture at the configured expansion ratio` | 56 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/__tests__/web-public-assets.test.ts](../../../apps/legacy-expo/__tests__/web-public-assets.test.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Запускает упаковщик только внутри созданной временной fixture.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `repository` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `publicDirectories` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `originalHtml` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `fixture` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `packageFixture` | 21 | Функция. Подробности и ограничения — в исходнике. |
-| `publicSource` | 28 | Функция. Подробности и ограничения — в исходнике. |
-| `describe: web public resource packaging` | 60 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: ships manifest, unchanged privacy page and mobile icon alongside HTML references` | 61 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `it: fails before modifying build output if required %s is absent` | 78 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `repository` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `publicDirectories` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `originalHtml` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `fixture` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `packageFixture` | 22 | Функция. Подробности и ограничения — в исходнике. |
+| `publicSource` | 31 | Функция. Подробности и ограничения — в исходнике. |
+| `describe: web public resource packaging` | 65 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: ships manifest, unchanged privacy page and mobile icon alongside HTML references` | 66 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: fails before modifying build output if required %s is absent` | 85 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/_disabled/moodboard-routes/_layout.tsx](../../../apps/legacy-expo/_disabled/moodboard-routes/_layout.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Архивный выключенный layout объединяет маршруты доски без общего header.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `MoodboardLayout` | 3 | Функция. Подробности и ограничения — в исходнике. |
+| `MoodboardLayout` | 4 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/_disabled/moodboard-routes/\[season\]/index.tsx](../../../apps/legacy-expo/_disabled/moodboard-routes/%5Bseason%5D/index.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Выключенный маршрут совместимости переносит boardId на основной экран доски.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `MoodboardSeasonRedirect` | 5 | Legacy route → главный экран мудборда. |
+| `MoodboardSeasonRedirect` | 6 | Legacy route → главный экран мудборда. |
 
 ## [apps/legacy-expo/_disabled/moodboard-routes/\[season\]/pick.tsx](../../../apps/legacy-expo/_disabled/moodboard-routes/%5Bseason%5D/pick.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Создаёт локальный элемент фото с базовым размещением в очередном слоте.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `newItem` | 34 | Функция. Подробности и ограничения — в исходнике. |
-| `MoodboardPickScreen` | 38 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 136 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `newItem` | 35 | Функция. Подробности и ограничения — в исходнике. |
+| `MoodboardPickScreen` | 41 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 148 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/_disabled/moodboard-routes/index.tsx](../../../apps/legacy-expo/_disabled/moodboard-routes/index.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Архивный главный экран локальных досок показывает последнюю осеннюю доску и доступные папки.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `{ width: SCREEN_W }` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BOARD_W` | 31 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `DEFAULT_SEASON` | 32 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `MoodboardHomeScreen` | 34 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 119 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `{ width: SCREEN_W }` | 31 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BOARD_W` | 32 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `DEFAULT_SEASON` | 33 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `MoodboardHomeScreen` | 35 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 129 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/app.config.ts](../../../apps/legacy-expo/app.config.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Параметры старой Expo-сборки: нормализованный bundle id, deep links, native разрешения и плагины.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `rawBundleId` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `bundleId` | 10 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `timestamp` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `schemeFromBundleId` | 27 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `env` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `config` | 41 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `rawBundleId` | 10 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `bundleId` | 11 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `timestamp` | 27 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `schemeFromBundleId` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `env` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `config` | 42 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/app/_layout.tsx](../../../apps/legacy-expo/app/_layout.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Ограничивает web-колонку 480 px и берёт высоту viewport с SSR fallback.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `DEFAULT_WEB_INSETS` | 31 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `getWebFrame` | 33 | Функция. Подробности и ограничения — в исходнике. |
-| `unstable_settings` | 45 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `RootLayout` | 51 | Функция. Подробности и ограничения — в исходнике. |
+| `DEFAULT_WEB_INSETS` | 32 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `getWebFrame` | 34 | Функция. Подробности и ограничения — в исходнике. |
+| `unstable_settings` | 48 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `RootLayout` | 54 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/app/(tabs)/_layout.tsx](../../../apps/legacy-expo/app/(tabs)/_layout.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Открывает домашнюю вкладку через навигационный header.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `HomeHeaderButton` | 11 | Функция. Подробности и ограничения — в исходнике. |
-| `ProfileHeaderButton` | 29 | Функция. Подробности и ограничения — в исходнике. |
-| `TabLayout` | 47 | Функция. Подробности и ограничения — в исходнике. |
+| `HomeHeaderButton` | 12 | Функция. Подробности и ограничения — в исходнике. |
+| `ProfileHeaderButton` | 32 | Функция. Подробности и ограничения — в исходнике. |
+| `TabLayout` | 52 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/app/(tabs)/club.tsx](../../../apps/legacy-expo/app/(tabs)/club.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `PAPER_TEXTURE_URI` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CLUB_BANNER_URL` | 31 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN` | 34 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_MUTED` | 35 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CREAM` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `OLIVE` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `{ width: SCREEN_WIDTH }` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `LETTER_CAROUSEL_IMAGES` | 41 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `EXCLUSIVE_CAROUSEL_IMAGES` | 47 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `GIVEAWAY_CAROUSEL_IMAGES` | 55 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `COMMUNITY_CAROUSEL_IMAGES` | 60 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `PODBORKI_CAROUSEL_IMAGES` | 66 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `REVIEWS_CAROUSEL_IMAGES` | 74 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `REVIEWS_SLIDES` | 83 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Benefit` | 93 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `BENEFITS` | 99 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ClubPost` | 127 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `CLUB_POSTS` | 135 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `TYPE_ICONS` | 166 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `TYPE_LABELS` | 173 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ClubScreen` | 182 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 593 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/app/(tabs)/feed.tsx](../../../apps/legacy-expo/app/(tabs)/feed.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `ViewMode` | 43 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `TagSlug` | 45 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `Tag` | 47 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `FeedPost` | 52 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `{ width: SCREEN_WIDTH }` | 68 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `GRID_GAP` | 69 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `GRID_COLUMNS` | 70 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `GRID_ITEM_SIZE` | 71 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `GRID_ITEM_HEIGHT` | 72 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `MAX_TEXT_LINES` | 73 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CREAM_BG` | 75 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_DARK` | 76 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_LIGHT` | 77 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `GREEN_ACCENT` | 78 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `DEFAULT_TAGS` | 81 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `FEED_BANNER_URI` | 86 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `getCurrentSeason` | 90 | Функция. Подробности и ограничения — в исходнике. |
-| `MOCK_POSTS` | 122 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `formatDate` | 185 | Функция. Подробности и ограничения — в исходнике. |
-| `normalizeFeedPost` | 192 | Функция. Подробности и ограничения — в исходнике. |
-| `PostCard` | 223 | Функция. Подробности и ограничения — в исходнике. |
-| `GridItem` | 365 | Функция. Подробности и ограничения — в исходнике. |
-| `FeedScreen` | 411 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 837 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/app/(tabs)/index.tsx](../../../apps/legacy-expo/app/(tabs)/index.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `{ width: SCREEN_WIDTH }` | 49 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CROSSFADE_DURATION` | 50 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `SLIDE_INTERVAL` | 51 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `SeasonData` | 54 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `getCurrentSeason` | 61 | Функция. Подробности и ограничения — в исходнике. |
-| `season` | 112 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `SECTION_CONTENT_COUNTS` | 116 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `SECTION_LAST_UPDATED` | 126 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `SECTION_BANNERS` | 136 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `isSectionNew` | 195 | Функция. Подробности и ограничения — в исходнике. |
-| `CREAM` | 204 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CREAM_BG` | 205 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_DARK` | 206 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_MID` | 207 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_LIGHT` | 208 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ACCENT_GREEN` | 209 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ZoomCard` | 212 | Функция. Подробности и ограничения — в исходнике. |
-| `HomeScreen` | 260 | Функция. Подробности и ограничения — в исходнике. |
-| `HERO_ASPECT` | 906 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `HERO_HEIGHT` | 907 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `styles` | 909 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `navigateToRoute` | 241 | Вложенная функция. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/app/(tabs)/interactive.tsx](../../../apps/legacy-expo/app/(tabs)/interactive.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `PAPER_TEXTURE_URI` | 11 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN` | 12 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_MUTED` | 13 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CREAM` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `quizCover` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ivyLeft` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ivyRight` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `keyDecor` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `InteractiveScreen` | 21 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 99 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/app/(tabs)/library.tsx](../../../apps/legacy-expo/app/(tabs)/library.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `PAPER_TEXTURE_URI` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `DEFAULT_COVER_ASPECT` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BANNER_URL` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `GUIDE_BANNER_URL` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `STILIZACII_COVER_URL` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `STILIZACII_YANDEX_URL` | 31 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `RECIPES_COVER_URL` | 32 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `RECIPES_YANDEX_URL` | 33 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `PETERBURG_COVER_URL` | 34 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `PETERBURG_YANDEX_URL` | 35 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `PATTERNS_COVER_URL` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `LOSHADKA_COVER_URL` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `LOSHADKA_YANDEX_URL` | 38 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ABOUT_ME_COVER_URL` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN` | 42 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_MUTED` | 43 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `OLIVE_BG` | 44 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `MaterialItem` | 46 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `MATERIALS` | 57 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `screenWidth` | 123 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `GRID_GAP` | 124 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `HORIZONTAL_PADDING` | 125 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `COLUMN_WIDTH` | 126 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CARD_META_HEIGHT` | 127 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `splitMasonryColumns` | 129 | Функция. Подробности и ограничения — в исходнике. |
-| `LibraryScreen` | 151 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 347 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/app/(tabs)/profile.tsx](../../../apps/legacy-expo/app/(tabs)/profile.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `PAPER_TEXTURE_URI` | 34 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN` | 35 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_MUTED` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CREAM` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `OLIVE` | 38 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `PROFILE_NAME_KEY` | 40 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `PROFILE_GENDER_KEY` | 41 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `PROFILE_AVATAR_KEY` | 42 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `SavedTab` | 46 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `formatRuDate` | 48 | Функция. Подробности и ограничения — в исходнике. |
-| `SUPPORT_EMAIL` | 52 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `openSupportMail` | 54 | Функция. Подробности и ограничения — в исходнике. |
-| `uriToBase64` | 58 | Функция. Подробности и ограничения — в исходнике. |
-| `CropperImage` | 72 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `ProfileScreen` | 80 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 752 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/app/(tabs)/shop/_layout.tsx](../../../apps/legacy-expo/app/(tabs)/shop/_layout.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `ShopTabLayout` | 3 | Функция. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/app/(tabs)/shop/\[id\].tsx](../../../apps/legacy-expo/app/(tabs)/shop/%5Bid%5D.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `PAPER_TEXTURE_URI` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_MUTED` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_LIGHT` | 31 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CREAM` | 32 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Product` | 36 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `PRODUCTS` | 53 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `{ width: SCREEN_WIDTH }` | 256 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CAROUSEL_ITEM_WIDTH` | 257 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CAROUSEL_ITEM_HEIGHT` | 258 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `SHOP_MISSING_FILES` | 260 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `isPublicShopAsset` | 279 | Функция. Подробности и ограничения — в исходнике. |
-| `ProductDetailScreen` | 287 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 646 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/app/(tabs)/shop/index.tsx](../../../apps/legacy-expo/app/(tabs)/shop/index.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `PAPER_TEXTURE_URI` | 35 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `SHOP_BROWN` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Product` | 41 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `PRODUCTS` | 52 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ASSETS` | 132 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `{ width: SCREEN_WIDTH }` | 149 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `SHELF_SIDE` | 152 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BOOK_GAP` | 153 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BOOK_WIDTH` | 154 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BOOK_HEIGHT` | 155 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `DIGITAL_SIDE` | 156 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `HOUSE_WIDTH` | 159 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `HOUSE_HEIGHT` | 160 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `LABEL_WIDTH` | 163 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `LABEL_HEIGHT` | 164 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ShelfLabel` | 168 | Функция. Подробности и ограничения — в исходнике. |
-| `ShelfItem` | 217 | Функция. Подробности и ограничения — в исходнике. |
-| `ShopScreenInner` | 271 | Функция. Подробности и ограничения — в исходнике. |
-| `ShopScreen` | 985 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 995 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/app/(tabs)/videos.tsx](../../../apps/legacy-expo/app/(tabs)/videos.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `PAPER_TEXTURE_URI` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_MUTED` | 31 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CREAM` | 32 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CARD_H_PADDING` | 33 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `{ width: SCREEN_WIDTH }` | 34 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CARD_WIDTH` | 35 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `THUMBNAIL_HEIGHT` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ROSE_W` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ROSE_H` | 38 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ROSE_TOP` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ROSE_INSET` | 40 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `HEADER_MIN_HEIGHT` | 41 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Video` | 43 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `VideosBannerHeader` | 58 | Функция. Подробности и ограничения — в исходнике. |
-| `VideosScreenInner` | 82 | Функция. Подробности и ограничения — в исходнике. |
-| `VideosScreen` | 181 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 189 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/app/admin/index.tsx](../../../apps/legacy-expo/app/admin/index.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `CREAM_BG` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_DARK` | 40 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_LIGHT` | 41 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `GREEN_ACCENT` | 42 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ALL_TAGS` | 44 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `PostFormData` | 46 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `EMPTY_FORM` | 59 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `AdminScreen` | 72 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 1237 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/app/dev/theme-lab.tsx](../../../apps/legacy-expo/app/dev/theme-lab.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `PaletteName` | 11 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `paletteNames` | 13 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ColorSwatch` | 15 | Функция. Подробности и ограничения — в исходнике. |
-| `ThemeLabScreen` | 27 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 225 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/app/legal/\[slug\].tsx](../../../apps/legacy-expo/app/legal/%5Bslug%5D.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `LegalDocumentRoute` | 7 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/app/legal/index.tsx](../../../apps/legacy-expo/app/legal/index.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `BROWN` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_MUTED` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `LegalHubScreen` | 10 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/app/library/_layout.tsx](../../../apps/legacy-expo/app/library/_layout.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `LibraryLayout` | 3 | Функция. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/app/library/about-me.tsx](../../../apps/legacy-expo/app/library/about-me.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `{ width }` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_MUTED` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CREAM` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `PAPER_TEXTURE_URI` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CAROUSEL_IMAGES` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `PART_PHOTOS` | 52 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `PART_TITLES` | 67 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `PART_SUBTITLES` | 82 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `PART_TEXTS` | 97 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `AboutMeScreen` | 132 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 321 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/app/library/aesthetics-guide.tsx](../../../apps/legacy-expo/app/library/aesthetics-guide.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Архивный landing подписки переключается на ClubSubscribed по серверному контексту; старый paid query здесь не является доказательством платежа.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
 | `PAPER_TEXTURE_URI` | 31 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `{ width }` | 32 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CLUB_BANNER_URL` | 32 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `BROWN` | 35 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `BROWN_MUTED` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_LIGHT` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CREAM` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `OLIVE` | 38 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `{ width: SCREEN_WIDTH }` | 40 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `LETTER_CAROUSEL_IMAGES` | 42 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `EXCLUSIVE_CAROUSEL_IMAGES` | 48 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `GIVEAWAY_CAROUSEL_IMAGES` | 56 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `COMMUNITY_CAROUSEL_IMAGES` | 61 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `PODBORKI_CAROUSEL_IMAGES` | 67 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `REVIEWS_CAROUSEL_IMAGES` | 75 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `REVIEWS_SLIDES` | 84 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Benefit` | 94 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `BENEFITS` | 100 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ClubPost` | 128 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `CLUB_POSTS` | 136 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `TYPE_ICONS` | 167 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `TYPE_LABELS` | 174 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ClubScreen` | 183 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 605 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/app/(tabs)/feed.tsx](../../../apps/legacy-expo/app/(tabs)/feed.tsx)
+
+Архив Expo. Выбирает календарный сезон по месяцу; изображение баннера у архивной Ленты общее.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `ViewMode` | 44 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `TagSlug` | 46 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `Tag` | 48 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `FeedPost` | 53 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `{ width: SCREEN_WIDTH }` | 69 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `GRID_GAP` | 70 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `GRID_COLUMNS` | 71 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `GRID_ITEM_SIZE` | 72 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `GRID_ITEM_HEIGHT` | 73 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `MAX_TEXT_LINES` | 74 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CREAM_BG` | 76 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_DARK` | 77 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_LIGHT` | 78 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `GREEN_ACCENT` | 79 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `DEFAULT_TAGS` | 82 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `FEED_BANNER_URI` | 87 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `getCurrentSeason` | 91 | Функция. Подробности и ограничения — в исходнике. |
+| `MOCK_POSTS` | 125 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `formatDate` | 188 | Функция. Подробности и ограничения — в исходнике. |
+| `normalizeFeedPost` | 197 | Функция. Подробности и ограничения — в исходнике. |
+| `PostCard` | 230 | Функция. Подробности и ограничения — в исходнике. |
+| `GridItem` | 378 | Функция. Подробности и ограничения — в исходнике. |
+| `FeedScreen` | 428 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 893 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/app/(tabs)/index.tsx](../../../apps/legacy-expo/app/(tabs)/index.tsx)
+
+Архив Expo. Выбирает календарное название сезона; исторически все четыре ветки содержат один набор hero URI.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `{ width: SCREEN_WIDTH }` | 50 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CROSSFADE_DURATION` | 51 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `SLIDE_INTERVAL` | 52 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `SeasonData` | 55 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `getCurrentSeason` | 62 | Функция. Подробности и ограничения — в исходнике. |
+| `season` | 115 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `SECTION_CONTENT_COUNTS` | 119 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `SECTION_LAST_UPDATED` | 129 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `SECTION_BANNERS` | 139 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `isSectionNew` | 198 | Функция. Подробности и ограничения — в исходнике. |
+| `CREAM` | 209 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CREAM_BG` | 210 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_DARK` | 211 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_MID` | 212 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_LIGHT` | 213 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ACCENT_GREEN` | 214 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ZoomCard` | 217 | Функция. Подробности и ограничения — в исходнике. |
+| `HomeScreen` | 271 | Функция. Подробности и ограничения — в исходнике. |
+| `HERO_ASPECT` | 937 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `HERO_HEIGHT` | 938 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `styles` | 941 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `navigateToRoute` | 250 | Вложенная функция. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/app/(tabs)/interactive.tsx](../../../apps/legacy-expo/app/(tabs)/interactive.tsx)
+
+Архив Expo. Показывает публичный вход в тест; карточка своим zIndex закрывает нижние хвосты декоративного плюща.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `PAPER_TEXTURE_URI` | 12 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN` | 13 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_MUTED` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CREAM` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `quizCover` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ivyLeft` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ivyRight` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `keyDecor` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `InteractiveScreen` | 22 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 103 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/app/(tabs)/library.tsx](../../../apps/legacy-expo/app/(tabs)/library.tsx)
+
+Архив Expo. Распределяет материалы по более короткой колонке, учитывая высоту картинки, подписи и зазор.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `PAPER_TEXTURE_URI` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `DEFAULT_COVER_ASPECT` | 27 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BANNER_URL` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `GUIDE_BANNER_URL` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `STILIZACII_COVER_URL` | 31 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `STILIZACII_YANDEX_URL` | 32 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `RECIPES_COVER_URL` | 33 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `RECIPES_YANDEX_URL` | 34 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `PETERBURG_COVER_URL` | 35 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `PETERBURG_YANDEX_URL` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `PATTERNS_COVER_URL` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `LOSHADKA_COVER_URL` | 38 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `LOSHADKA_YANDEX_URL` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ABOUT_ME_COVER_URL` | 40 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN` | 43 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_MUTED` | 44 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `OLIVE_BG` | 45 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `MaterialItem` | 47 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `MATERIALS` | 58 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `screenWidth` | 124 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `GRID_GAP` | 125 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `HORIZONTAL_PADDING` | 126 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `COLUMN_WIDTH` | 127 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CARD_META_HEIGHT` | 128 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `splitMasonryColumns` | 130 | Функция. Подробности и ограничения — в исходнике. |
+| `LibraryScreen` | 154 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 365 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/app/(tabs)/profile.tsx](../../../apps/legacy-expo/app/(tabs)/profile.tsx)
+
+Архив Expo. Выводит дату подписки в локальном русском календарном формате.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `PAPER_TEXTURE_URI` | 35 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_MUTED` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `CREAM` | 38 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `AESTHETIC_ORDER` | 41 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `HOUSE_IMAGES` | 52 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `MOODBOARDS` | 63 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `OUTFITS` | 116 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `INTERIORS` | 169 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `getClubContent` | 221 | Функция. Подробности и ограничения — в исходнике. |
-| `getTableHeaders` | 233 | Функция. Подробности и ограничения — в исходнике. |
-| `AestheticsGuideScreen` | 245 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 671 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `OLIVE` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `PROFILE_NAME_KEY` | 41 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `PROFILE_GENDER_KEY` | 42 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `PROFILE_AVATAR_KEY` | 43 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `SavedTab` | 47 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `formatRuDate` | 49 | Функция. Подробности и ограничения — в исходнике. |
+| `SUPPORT_EMAIL` | 55 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `openSupportMail` | 57 | Функция. Подробности и ограничения — в исходнике. |
+| `uriToBase64` | 63 | Функция. Подробности и ограничения — в исходнике. |
+| `CropperImage` | 79 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `ProfileScreen` | 87 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 779 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
-## [apps/legacy-expo/app/library/article/\[id\].tsx](../../../apps/legacy-expo/app/library/article/%5Bid%5D.tsx)
+## [apps/legacy-expo/app/(tabs)/shop/_layout.tsx](../../../apps/legacy-expo/app/(tabs)/shop/_layout.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `PAPER` | 21 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_MUTED` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CREAM` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `LibraryArticleScreen` | 26 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 114 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/app/library/patterns.tsx](../../../apps/legacy-expo/app/library/patterns.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Даёт товарам Магазина собственный stack без общего native header.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `PAPER_TEXTURE_URI` | 33 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT }` | 34 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_MUTED` | 38 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_LIGHT` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CREAM` | 40 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `OLIVE_BG` | 41 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `PATTERNS_HERO_URL` | 44 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `PatternItem` | 47 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `CHRISTMAS_PATTERNS` | 54 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `LOSHADKA_COVER_URL` | 85 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `LOSHADKA_YANDEX_URL` | 87 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `PatternsScreen` | 89 | Функция. Подробности и ограничения — в исходнике. |
-| `FullScreenViewerProps` | 350 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `FullScreenViewer` | 359 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 522 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `viewerStyles` | 716 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ShopTabLayout` | 4 | Функция. Подробности и ограничения — в исходнике. |
 
-## [apps/legacy-expo/app/login.tsx](../../../apps/legacy-expo/app/login.tsx)
+## [apps/legacy-expo/app/(tabs)/shop/\[id\].tsx](../../../apps/legacy-expo/app/(tabs)/shop/%5Bid%5D.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Исключает известные отсутствующие shop-файлы по имени; это историческая таблица доступности, не проверка доступа.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `PAPER_TEXTURE_URI` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN` | 27 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_MUTED` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CREAM` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `OLIVE` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `safeNextPath` | 32 | Функция. Подробности и ограничения — в исходнике. |
-| `LoginScreen` | 45 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 314 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `PAPER_TEXTURE_URI` | 27 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_MUTED` | 31 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_LIGHT` | 32 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CREAM` | 33 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Product` | 37 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `PRODUCTS` | 54 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `{ width: SCREEN_WIDTH }` | 257 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CAROUSEL_ITEM_WIDTH` | 258 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CAROUSEL_ITEM_HEIGHT` | 259 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `SHOP_MISSING_FILES` | 261 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `isPublicShopAsset` | 280 | Функция. Подробности и ограничения — в исходнике. |
+| `ProductDetailScreen` | 290 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 660 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
-## [apps/legacy-expo/app/oauth/callback.tsx](../../../apps/legacy-expo/app/oauth/callback.tsx)
+## [apps/legacy-expo/app/(tabs)/shop/index.tsx](../../../apps/legacy-expo/app/(tabs)/shop/index.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Совмещает короткое название с прозрачной рамкой, сохраняя геометрию торца полки.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `OAuthCallback` | 5 | Manus OAuth is retired. Old callback links go to email login. |
+| `PAPER_TEXTURE_URI` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `SHOP_BROWN` | 38 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Product` | 42 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `PRODUCTS` | 53 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ASSETS` | 133 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `{ width: SCREEN_WIDTH }` | 150 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `SHELF_SIDE` | 153 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BOOK_GAP` | 154 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BOOK_WIDTH` | 155 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BOOK_HEIGHT` | 156 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `DIGITAL_SIDE` | 157 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `HOUSE_WIDTH` | 160 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `HOUSE_HEIGHT` | 161 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `LABEL_WIDTH` | 164 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `LABEL_HEIGHT` | 165 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ShelfLabel` | 169 | Функция. Подробности и ограничения — в исходнике. |
+| `ShelfItem` | 220 | Функция. Подробности и ограничения — в исходнике. |
+| `ShopScreenInner` | 280 | Функция. Подробности и ограничения — в исходнике. |
+| `ShopScreen` | 1007 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 1020 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
-## [apps/legacy-expo/app/post/\[id\].tsx](../../../apps/legacy-expo/app/post/%5Bid%5D.tsx)
+## [apps/legacy-expo/app/(tabs)/videos.tsx](../../../apps/legacy-expo/app/(tabs)/videos.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Размещает заголовок и шиповник в отдельном header списка со стабильной минимальной высотой.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `PAPER_TEXTURE_URI` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN` | 31 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_MUTED` | 32 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CREAM` | 33 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CARD_H_PADDING` | 34 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `{ width: SCREEN_WIDTH }` | 35 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CARD_WIDTH` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `THUMBNAIL_HEIGHT` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ROSE_W` | 38 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ROSE_H` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ROSE_TOP` | 40 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ROSE_INSET` | 41 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `HEADER_MIN_HEIGHT` | 42 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Video` | 44 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `VideosBannerHeader` | 59 | Функция. Подробности и ограничения — в исходнике. |
+| `VideosScreenInner` | 85 | Функция. Подробности и ограничения — в исходнике. |
+| `VideosScreen` | 192 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 203 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/app/admin/index.tsx](../../../apps/legacy-expo/app/admin/index.tsx)
+
+Архив Expo. Архивная монолитная админка читает полный список постов и содержит старые CRUD/uploadPhoto без operation keys и ревизий; текущий web admin вынесен в отдельные файлы.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `CREAM_BG` | 40 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_DARK` | 41 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_LIGHT` | 42 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `GREEN_ACCENT` | 43 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ALL_TAGS` | 45 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `PostFormData` | 47 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `EMPTY_FORM` | 60 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `AdminScreen` | 73 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 1287 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/app/dev/theme-lab.tsx](../../../apps/legacy-expo/app/dev/theme-lab.tsx)
+
+Архив Expo. Показывает имя и фактическое значение одного цветового токена.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `PaletteName` | 12 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `paletteNames` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ColorSwatch` | 16 | Функция. Подробности и ограничения — в исходнике. |
+| `ThemeLabScreen` | 30 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 233 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/app/legal/\[slug\].tsx](../../../apps/legacy-expo/app/legal/%5Bslug%5D.tsx)
+
+Архив Expo. Выбирает документ из общей таблицы по slug и показывает явное отсутствие неизвестного документа.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `LegalDocumentRoute` | 8 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/app/legal/index.tsx](../../../apps/legacy-expo/app/legal/index.tsx)
+
+Архив Expo. Показывает общие юридические ссылки проекта с внутренней навигацией.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `BROWN` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_MUTED` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `LegalHubScreen` | 11 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 43 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/app/library/_layout.tsx](../../../apps/legacy-expo/app/library/_layout.tsx)
+
+Архив Expo. Собирает дочерние материалы Библиотеки в stack без дублирующего header.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `LibraryLayout` | 4 | Функция. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/app/library/about-me.tsx](../../../apps/legacy-expo/app/library/about-me.tsx)
+
+Архив Expo. Показывает публичную биографию с оглавлением, каруселью и полноэкранным viewer; авторский текст хранится статически.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `{ width }` | 21 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_MUTED` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CREAM` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `PAPER_TEXTURE_URI` | 27 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CAROUSEL_IMAGES` | 31 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `PART_PHOTOS` | 53 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `PART_TITLES` | 68 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `PART_SUBTITLES` | 83 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `PART_TEXTS` | 98 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `AboutMeScreen` | 133 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 335 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/app/library/aesthetics-guide.tsx](../../../apps/legacy-expo/app/library/aesthetics-guide.tsx)
+
+Архив Expo. Выбирает встроенный справочник семи эстетик; архивный bundle содержит тексты независимо от UI-gate.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
 | `PAPER_TEXTURE_URI` | 32 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `{ width: SCREEN_WIDTH }` | 33 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CREAM_BG` | 34 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_DARK` | 35 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_LIGHT` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `GREEN_ACCENT` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `formatDate` | 39 | Функция. Подробности и ограничения — в исходнике. |
-| `PostDetailScreenInner` | 48 | Функция. Подробности и ограничения — в исходнике. |
-| `PostDetailScreen` | 266 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 274 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `{ width }` | 33 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_MUTED` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_LIGHT` | 38 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CREAM` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `AESTHETIC_ORDER` | 42 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `HOUSE_IMAGES` | 53 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `MOODBOARDS` | 64 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `OUTFITS` | 117 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `INTERIORS` | 170 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `getClubContent` | 222 | Функция. Подробности и ограничения — в исходнике. |
+| `getTableHeaders` | 236 | Функция. Подробности и ограничения — в исходнике. |
+| `AestheticsGuideScreen` | 250 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 687 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/app/library/article/\[id\].tsx](../../../apps/legacy-expo/app/library/article/%5Bid%5D.tsx)
+
+Архив Expo. Читает статью серверным API и разделяет locked/полный ответ; локальный protection не заменяет проверку выдачи.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `PAPER` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_MUTED` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CREAM` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `LibraryArticleScreen` | 27 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 118 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/app/library/patterns.tsx](../../../apps/legacy-expo/app/library/patterns.tsx)
+
+Архив Expo. Архивный экран четырёх выкроек использует публичные URI и UI-gate; действующий защищённый API Библиотеки реализован в новом frontend.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `PAPER_TEXTURE_URI` | 34 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT }` | 35 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN` | 38 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_MUTED` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_LIGHT` | 40 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CREAM` | 41 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `OLIVE_BG` | 42 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `PATTERNS_HERO_URL` | 45 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `PatternItem` | 48 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `CHRISTMAS_PATTERNS` | 55 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `LOSHADKA_COVER_URL` | 86 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `LOSHADKA_YANDEX_URL` | 88 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `PatternsScreen` | 90 | Функция. Подробности и ограничения — в исходнике. |
+| `FullScreenViewerProps` | 367 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `FullScreenViewer` | 376 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 544 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `viewerStyles` | 738 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/app/login.tsx](../../../apps/legacy-expo/app/login.tsx)
+
+Архив Expo. Принимает только внутренний относительный путь без protocol-relative URL и явной схемы.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `PAPER_TEXTURE_URI` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_MUTED` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CREAM` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `OLIVE` | 31 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `safeNextPath` | 33 | Функция. Подробности и ограничения — в исходнике. |
+| `LoginScreen` | 48 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 324 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/app/oauth/callback.tsx](../../../apps/legacy-expo/app/oauth/callback.tsx)
+
+Архив Expo. Оставляет совместимый вход по старым OAuth-ссылкам, перенаправляя на email login.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `OAuthCallback` | 6 | Manus OAuth is retired. Old callback links go to email login. |
+
+## [apps/legacy-expo/app/post/\[id\].tsx](../../../apps/legacy-expo/app/post/%5Bid%5D.tsx)
+
+Архив Expo. Показывает календарную дату русскими названиями месяцев.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `PAPER_TEXTURE_URI` | 33 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `{ width: SCREEN_WIDTH }` | 34 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CREAM_BG` | 35 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_DARK` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_LIGHT` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `GREEN_ACCENT` | 38 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `formatDate` | 40 | Функция. Подробности и ограничения — в исходнике. |
+| `PostDetailScreenInner` | 51 | Функция. Подробности и ограничения — в исходнике. |
+| `PostDetailScreen` | 281 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 292 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/app/privacy.tsx](../../../apps/legacy-expo/app/privacy.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Отображает историческую статическую политику и ссылки на общие документы; юридический текст этим проходом не актуализируется.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `BROWN` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_MUTED` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `SECTIONS` | 10 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `PrivacyScreen` | 80 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 106 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_MUTED` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `SECTIONS` | 11 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `PrivacyScreen` | 81 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 110 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/app/quiz/_layout.tsx](../../../apps/legacy-expo/app/quiz/_layout.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Ограничивает тест одним stack-экраном с fade-переходом.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `QuizLayout` | 3 | Функция. Подробности и ограничения — в исходнике. |
+| `QuizLayout` | 4 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/app/quiz/index.tsx](../../../apps/legacy-expo/app/quiz/index.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Держит один reducer для welcome, вопросов и результата в пределах теста.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `QuizScreen` | 11 | Функция. Подробности и ограничения — в исходнике. |
+| `QuizScreen` | 12 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/app/video/\[id\].tsx](../../../apps/legacy-expo/app/video/%5Bid%5D.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Архивный экран предпочитает прямой videoUrl и иначе старый YouTube adapter; новый VK-каталог живёт в активном frontend.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `PAPER_TEXTURE_URI` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `{ width: SCREEN_WIDTH }` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `VIDEO_HEIGHT` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `VideoView` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `useVideoPlayer` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `VideoDetailScreen` | 38 | Функция. Подробности и ограничения — в исходнике. |
-| `VideoPlayerNative` | 130 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 148 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `PAPER_TEXTURE_URI` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `{ width: SCREEN_WIDTH }` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `VIDEO_HEIGHT` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `VideoView` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `useVideoPlayer` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `VideoDetailScreen` | 39 | Функция. Подробности и ограничения — в исходнике. |
+| `VideoPlayerNative` | 135 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 156 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/assets/fonts/EBGaramond-Bold.ttf](../../../apps/legacy-expo/assets/fonts/EBGaramond-Bold.ttf)
 
@@ -5829,989 +5829,989 @@
 
 ## [apps/legacy-expo/babel.config.js](../../../apps/legacy-expo/babel.config.js)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Трансформация старого Expo runtime с NativeWind JSX и worklets-плагином для UI-анимаций.
 
 ## [apps/legacy-expo/components/admin/admin-fab.tsx](../../../apps/legacy-expo/components/admin/admin-fab.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Показывает UI создания только owner; настоящая проверка роли остаётся в серверных процедурах.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `ACCENT` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CREAM_BG` | 10 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Target` | 12 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `AdminFABProps` | 14 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `AdminFAB` | 22 | Floating Action Button for admin post creation. Shows only for the app owner. Tap to create a post; settings opens the admin panel. |
-| `styles` | 73 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ACCENT` | 10 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CREAM_BG` | 11 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Target` | 13 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `AdminFABProps` | 15 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `AdminFAB` | 23 | Floating Action Button for admin post creation. Shows only for the app owner. Tap to create a post; settings opens the admin panel. |
+| `styles` | 81 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/components/admin/articles-admin.tsx](../../../apps/legacy-expo/components/admin/articles-admin.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `BROWN` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_LIGHT` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CREAM` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ACCENT` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Access` | 27 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `ADD_BLOCKS` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BLOCK_LABELS` | 38 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ArticlesAdmin` | 47 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 456 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/admin/calendar-tracker.tsx](../../../apps/legacy-expo/components/admin/calendar-tracker.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `CREAM_BG` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_DARK` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_LIGHT` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ACCENT` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `OLIVE` | 21 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `WEEKDAYS` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `MONTHS_RU` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ScheduledPost` | 29 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `CalendarTrackerProps` | 40 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `CalendarTracker` | 45 | Функция. Подробности и ограничения — в исходнике. |
-| `MonthGrid` | 198 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 293 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/admin/create-post-modal.tsx](../../../apps/legacy-expo/components/admin/create-post-modal.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `MediaAttachment` | 31 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `CREAM_BG` | 40 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_DARK` | 41 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_LIGHT` | 42 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ACCENT` | 43 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `OLIVE` | 44 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `PostTarget` | 46 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `PostStatus` | 47 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `CreatePostModalProps` | 49 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `CreatePostModal` | 68 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 703 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/admin/photo-editor.tsx](../../../apps/legacy-expo/components/admin/photo-editor.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `GAP` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `LONG_PRESS_MS` | 10 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `TileRect` | 12 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `WEB_NO_CALLOUT` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `webBlockImageMenu` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `PhotoEditorProps` | 39 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `PhotoEditor` | 47 | Функция. Подробности и ограничения — в исходнике. |
-| `PhotoControls` | 313 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 363 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/admin/rich-text-field.tsx](../../../apps/legacy-expo/components/admin/rich-text-field.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `BROWN_DARK` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_LIGHT` | 21 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ACCENT` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CREAM_BG` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `RichTextFieldHandle` | 25 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `RichTextFieldProps` | 30 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `shellStyle` | 39 | Функция. Подробности и ограничения — в исходнике. |
-| `inputStyle` | 50 | Функция. Подробности и ограничения — в исходнике. |
-| `RichTextField` | 62 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `styles` | 212 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/admin/schedule-datetime.tsx](../../../apps/legacy-expo/components/admin/schedule-datetime.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `BROWN` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ACCENT` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `pad` | 10 | Функция. Подробности и ограничения — в исходнике. |
-| `toDatetimeLocalValue` | 14 | Функция. Подробности и ограничения — в исходнике. |
-| `atHour` | 18 | Функция. Подробности и ограничения — в исходнике. |
-| `ScheduleDatetimeProps` | 24 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `ScheduleDatetime` | 31 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 110 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/admin/stats-dashboard.tsx](../../../apps/legacy-expo/components/admin/stats-dashboard.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `CREAM_BG` | 13 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_DARK` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_LIGHT` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ACCENT` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `StatsDashboard` | 18 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 168 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/app-boot-gate.tsx](../../../apps/legacy-expo/components/app-boot-gate.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `Props` | 7 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `WEB_BOOT_MS` | 14 | Full 2s key turn, then fade — no loop. |
-| `MAX_BOOT_MS` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BOOT_FADE_MS` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BOOT_CREAM` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BOOT_PAPER_TEXTURE_URI` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `bootVideoPaperMp4Module` | 21 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `bootVideoPaperWebmModule` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `bootVideoWebmModule` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `bootVideoMp4Module` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `bootLockImage` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `LOCK_WIDTH` | 27 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `LOCK_SCREEN_FRACTION` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `PAPER_VIDEO_WIDTH` | 30 | Paper video frame — ~2× lock box so the lock reads at LOCK_WIDTH without cropping. |
-| `PAPER_SCREEN_FRACTION` | 31 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `LOCK_ASPECT` | 32 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BootPhase` | 34 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `BootAnimMode` | 35 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `AssetModule` | 37 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `resolveAssetUri` | 39 | Функция. Подробности и ограничения — в исходнике. |
-| `bootVideoPaperMp4Uri` | 56 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `bootVideoPaperWebmUri` | 57 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `bootVideoWebmUri` | 58 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `bootVideoMp4Uri` | 59 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `initialAnimMode` | 61 | Функция. Подробности и ограничения — в исходнике. |
-| `BootLockImage` | 67 | Функция. Подробности и ограничения — в исходнике. |
-| `BootLockPoster` | 79 | Функция. Подробности и ограничения — в исходнике. |
-| `BootScreen` | 98 | Функция. Подробности и ограничения — в исходнике. |
-| `AppBootGate` | 224 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 284 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/article-content.tsx](../../../apps/legacy-expo/components/article-content.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `BROWN` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_MUTED` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `{ width: SCREEN_WIDTH }` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CAROUSEL_ITEM_WIDTH` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CAROUSEL_ITEM_HEIGHT` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ArticleContent` | 20 | Функция. Подробности и ограничения — в исходнике. |
-| `ArticleBlockView` | 53 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 161 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/boot-lock-canvas.tsx](../../../apps/legacy-expo/components/boot-lock-canvas.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `Props` | 4 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `VideoView` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `useVideoPlayer` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `PLAY_TIMEOUT_MS` | 27 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `NativeBootLockPaperVideo` | 29 | Функция. Подробности и ограничения — в исходнике. |
-| `BootLockPaperVideo` | 103 | Функция. Подробности и ограничения — в исходнике. |
-| `BootLockCanvas` | 135 | Native chroma canvas is not available — static lock poster as fallback. |
-
-## [apps/legacy-expo/components/boot-lock-canvas.web.tsx](../../../apps/legacy-expo/components/boot-lock-canvas.web.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `Props` | 5 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `KEY_MAX` | 15 | Only remove near-pure black background; keep dark lock/key metal. |
-| `KEY_SOFT` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `SOURCE_WIDTH` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `SOURCE_HEIGHT` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `PLAY_TIMEOUT_MS` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `READY_MIN_TIME` | 21 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `HIDDEN_VIDEO_STYLE` | 24 | Safari/iOS won't advance frames when video is display:none — keep it painted but invisible. |
-| `keyOutFrame` | 34 | Функция. Подробности и ограничения — в исходнике. |
-| `renderScale` | 52 | Функция. Подробности и ограничения — в исходнике. |
-| `paintFrame` | 63 | Функция. Подробности и ограничения — в исходнике. |
-| `useBootVideoPlayback` | 82 | Функция. Подробности и ограничения — в исходнике. |
-| `scheduleFrame` | 160 | Функция. Подробности и ограничения — в исходнике. |
-| `BootLockCanvasDraw` | 185 | Функция. Подробности и ограничения — в исходнике. |
-| `BootLockPaperVideo` | 296 | Paper + lock baked into video — full-screen cover, no chroma key or visible frame. |
-| `BootLockCanvas` | 375 | Lock animation — canvas chroma key; iOS uses BootLockPaperVideo instead. |
-
-## [apps/legacy-expo/components/club/avatar-cropper.tsx](../../../apps/legacy-expo/components/club/avatar-cropper.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `BROWN` | 21 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CREAM` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `OLIVE` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `{ width: SCREEN_WIDTH }` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CIRCLE_SIZE` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `AvatarCropperProps` | 30 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `AvatarCropper` | 40 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 211 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/club/club-comments.tsx](../../../apps/legacy-expo/components/club/club-comments.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `BROWN` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_MUTED` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `OLIVE` | 27 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ClubCommentsProps` | 29 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `MenuAction` | 36 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `authorInitial` | 38 | Функция. Подробности и ограничения — в исходнике. |
-| `CommentAvatar` | 43 | Функция. Подробности и ограничения — в исходнике. |
-| `linkify` | 54 | Функция. Подробности и ограничения — в исходнике. |
-| `confirmDelete` | 73 | Функция. Подробности и ограничения — в исходнике. |
-| `CommentMenu` | 84 | Функция. Подробности и ограничения — в исходнике. |
-| `ClubComments` | 132 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 466 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/club/club-subscribed.tsx](../../../apps/legacy-expo/components/club/club-subscribed.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `PAPER_TEXTURE_URI` | 56 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `SEASONAL_TARTANS` | 59 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `SEASONAL_BANNERS` | 65 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `getClubSeason` | 70 | Функция. Подробности и ограничения — в исходнике. |
-| `BROWN` | 83 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_MUTED` | 84 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CREAM` | 85 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `OLIVE` | 86 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `SAGE` | 87 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `{ width: SCREEN_WIDTH }` | 89 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ClubTab` | 93 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `ClubTabItem` | 95 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `CLUB_TABS` | 101 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `STICKER_LIKE` | 109 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `STICKER_SAVE` | 110 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `MAILBOX_URI` | 113 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ClubPost` | 117 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `MOCK_POSTS` | 133 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ClubPostCard` | 237 | Функция. Подробности и ограничения — в исходнике. |
-| `PROFILE_COMPLETED_KEY` | 423 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ClubSubscribed` | 425 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 843 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/club/pen-pals.tsx](../../../apps/legacy-expo/components/club/pen-pals.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `BROWN` | 21 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_MUTED` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CREAM` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `OLIVE` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `SAGE` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Screen` | 27 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `MatchCard` | 28 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `PenPalsProps` | 43 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `PenPals` | 47 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 412 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/club/profile-setup.tsx](../../../apps/legacy-expo/components/club/profile-setup.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Архивный редактор статей совмещает полный список, форму блоков и preview; использует старые uploadPhoto и мутации без ревизий.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
 | `BROWN` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_MUTED` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_LIGHT` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `CREAM` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `OLIVE` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `{ width: SCREEN_WIDTH }` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Gender` | 32 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `ProfileSetupProps` | 34 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `CropperImage` | 38 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `ProfileSetup` | 46 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 224 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ACCENT` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Access` | 28 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `ADD_BLOCKS` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BLOCK_LABELS` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ArticlesAdmin` | 48 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 484 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
-## [apps/legacy-expo/components/club/tag-board-drawer.tsx](../../../apps/legacy-expo/components/club/tag-board-drawer.tsx)
+## [apps/legacy-expo/components/admin/calendar-tracker.tsx](../../../apps/legacy-expo/components/admin/calendar-tracker.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT }` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `DRAWER_WIDTH` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `PEEK_STRIP_WIDTH` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `DRAWER_TOP_OFFSET` | 32 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BOARD_WIDTH_RATIO` | 34 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BOARD_WIDTH` | 35 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BOARD_LEFT` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN` | 38 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_MUTED` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CREAM` | 40 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `TAG_BOARD_URI` | 43 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `TOPIC_TAG_ROWS` | 46 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BOARD_IMG_ASPECT` | 55 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BOARD_HEIGHT` | 56 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `LINEN_TOP_RATIO` | 59 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `LINEN_BOTTOM_RATIO` | 60 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `LINEN_SIDE_RATIO` | 61 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BOARD_LINEN_TOP` | 63 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BOARD_LINEN_SIDE` | 64 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BOARD_LINEN_HEIGHT` | 65 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `TAG_GRID_TOP_PADDING` | 69 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `TagBoardDrawerProps` | 73 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `TagBoardDrawer` | 78 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 277 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/contact-email-footer.tsx](../../../apps/legacy-expo/components/contact-email-footer.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Архивный календарь группирует полный admin.posts на клиенте и показывает два соседних месяца.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `Props` | 4 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `ContactEmailFooter` | 9 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CREAM_BG` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_DARK` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_LIGHT` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ACCENT` | 21 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `OLIVE` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `WEEKDAYS` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `MONTHS_RU` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ScheduledPost` | 30 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `CalendarTrackerProps` | 41 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `CalendarTracker` | 46 | Функция. Подробности и ограничения — в исходнике. |
+| `MonthGrid` | 213 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 311 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
-## [apps/legacy-expo/components/contact-email-line.tsx](../../../apps/legacy-expo/components/contact-email-line.tsx)
+## [apps/legacy-expo/components/admin/create-post-modal.tsx](../../../apps/legacy-expo/components/admin/create-post-modal.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `Props` | 4 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `ContactEmailLine` | 10 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/external-link.tsx](../../../apps/legacy-expo/components/external-link.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `Props` | 5 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `ExternalLink` | 7 | Функция. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/garden-confetti.tsx](../../../apps/legacy-expo/components/garden-confetti.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Архивная форма поста держит ввод и загруженные URL локально; использует старые uploadPhoto/toggle API без ревизий и ключа операции.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `PETAL_COLORS` | 11 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Petal` | 13 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `PETALS` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ConfettiPetal` | 37 | Функция. Подробности и ограничения — в исходнике. |
-| `GardenConfetti` | 80 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 91 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `MediaAttachment` | 32 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `CREAM_BG` | 41 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_DARK` | 42 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_LIGHT` | 43 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ACCENT` | 44 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `OLIVE` | 45 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `PostTarget` | 47 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `PostStatus` | 48 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `CreatePostModalProps` | 50 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `CreatePostModal` | 69 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 743 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
-## [apps/legacy-expo/components/garden-tour-video.tsx](../../../apps/legacy-expo/components/garden-tour-video.tsx)
+## [apps/legacy-expo/components/admin/photo-editor.tsx](../../../apps/legacy-expo/components/admin/photo-editor.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `GARDEN_VIDEO_URL` | 12 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `GARDEN_POSTER_URL` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `VideoView` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `useVideoPlayer` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `GardenPoster` | 29 | Функция. Подробности и ограничения — в исходнике. |
-| `GardenTourVideo` | 51 | Функция. Подробности и ограничения — в исходнике. |
-| `NativeGardenPlayer` | 86 | Функция. Подробности и ограничения — в исходнике. |
-| `SectionProps` | 108 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `GardenTourSection` | 113 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 162 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/haptic-tab.tsx](../../../apps/legacy-expo/components/haptic-tab.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Подавляет системное меню только на поверхности перетаскиваемого фото.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `HapticTab` | 8 | Функция. Подробности и ограничения — в исходнике. |
+| `GAP` | 10 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `LONG_PRESS_MS` | 11 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `TileRect` | 13 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `WEB_NO_CALLOUT` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `webBlockImageMenu` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `PhotoEditorProps` | 44 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `PhotoEditor` | 52 | Функция. Подробности и ограничения — в исходнике. |
+| `PhotoControls` | 340 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 393 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
-## [apps/legacy-expo/components/hello-wave.tsx](../../../apps/legacy-expo/components/hello-wave.tsx)
+## [apps/legacy-expo/components/admin/rich-text-field.tsx](../../../apps/legacy-expo/components/admin/rich-text-field.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `HelloWave` | 3 | Функция. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/home-promo-carousel.tsx](../../../apps/legacy-expo/components/home-promo-carousel.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `PAPER_TEXTURE_URI` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `{ width: SCREEN_WIDTH }` | 31 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CARD_WIDTH` | 33 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CARD_HEIGHT` | 35 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `INTERVAL_MS` | 39 | Pause on each slide before the next crossfade. |
-| `FADE_MS` | 43 | Full crossfade duration (out + in). |
-| `HomePromoCarousel` | 47 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 171 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/install-guide.tsx](../../../apps/legacy-expo/components/install-guide.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Выделяет рамку и минимальную высоту внешней оболочки из пользовательского textAreaStyle.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `SEEN_KEY` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_MUTED` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CREAM` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `isStandaloneWeb` | 19 | Функция. Подробности и ограничения — в исходнике. |
-| `isIosWeb` | 25 | Функция. Подробности и ограничения — в исходнике. |
-| `Step` | 30 | Функция. Подробности и ограничения — в исходнике. |
-| `InstallGuide` | 47 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 107 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_DARK` | 21 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_LIGHT` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ACCENT` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CREAM_BG` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `RichTextFieldHandle` | 26 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `RichTextFieldProps` | 31 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `shellStyle` | 40 | Функция. Подробности и ограничения — в исходнике. |
+| `inputStyle` | 53 | Функция. Подробности и ограничения — в исходнике. |
+| `RichTextField` | 67 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `styles` | 220 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
-## [apps/legacy-expo/components/legal-document-screen.tsx](../../../apps/legacy-expo/components/legal-document-screen.tsx)
+## [apps/legacy-expo/components/admin/schedule-datetime.tsx](../../../apps/legacy-expo/components/admin/schedule-datetime.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Дополняет числовую часть даты до двух символов.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
 | `BROWN` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_MUTED` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Props` | 11 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `LegalDocumentScreen` | 15 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 51 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ACCENT` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `pad` | 11 | Функция. Подробности и ограничения — в исходнике. |
+| `toDatetimeLocalValue` | 17 | Функция. Подробности и ограничения — в исходнике. |
+| `atHour` | 23 | Функция. Подробности и ограничения — в исходнике. |
+| `ScheduleDatetimeProps` | 31 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `ScheduleDatetime` | 38 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 124 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
-## [apps/legacy-expo/components/legal-documents-footer.tsx](../../../apps/legacy-expo/components/legal-documents-footer.tsx)
+## [apps/legacy-expo/components/admin/stats-dashboard.tsx](../../../apps/legacy-expo/components/admin/stats-dashboard.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `FOLDER_IMAGE` | 5 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `FOLDER_ASPECT` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `FOLDER_WIDTH` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Props` | 9 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `LegalDocumentsFooter` | 14 | Footer links on the legal-documents folder graphic. |
-| `styles` | 43 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/media/audio-player.tsx](../../../apps/legacy-expo/components/media/audio-player.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Показывает серверные агрегаты и вычисляет только сравнительную динамику месяца в UI.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `BROWN_DARK` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_LIGHT` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CREAM_BG` | 10 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ACCENT` | 11 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `AudioPlayerProps` | 13 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `generateWaveform` | 20 | Функция. Подробности и ограничения — в исходнике. |
-| `AudioPlayerCard` | 33 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 134 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CREAM_BG` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_DARK` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_LIGHT` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ACCENT` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `StatsDashboard` | 19 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 174 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
-## [apps/legacy-expo/components/media/document-attachment.tsx](../../../apps/legacy-expo/components/media/document-attachment.tsx)
+## [apps/legacy-expo/components/app-boot-gate.tsx](../../../apps/legacy-expo/components/app-boot-gate.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `BROWN_DARK` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_LIGHT` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CREAM_BG` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `DocumentAttachmentProps` | 10 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `getDocIcon` | 17 | Функция. Подробности и ограничения — в исходнике. |
-| `formatFileSize` | 26 | Функция. Подробности и ограничения — в исходнике. |
-| `DocumentAttachmentCard` | 33 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 61 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/media/index.ts](../../../apps/legacy-expo/components/media/index.ts)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-## [apps/legacy-expo/components/media/natural-photo-stack.tsx](../../../apps/legacy-expo/components/media/natural-photo-stack.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `GAP` | 13 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `VideoGridSlot` | 15 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `Cell` | 20 | Функция. Подробности и ограничения — в исходнике. |
-| `Row` | 44 | Функция. Подробности и ограничения — в исходнике. |
-| `PhotoGrid` | 48 | Функция. Подробности и ограничения — в исходнике. |
-| `VideoPhotoGrid` | 90 | Функция. Подробности и ограничения — в исходнике. |
-| `SinglePhoto` | 141 | Функция. Подробности и ограничения — в исходнике. |
-| `NaturalPhotoStack` | 166 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 282 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/media/post-media-section.tsx](../../../apps/legacy-expo/components/media/post-media-section.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `PostMediaItem` | 7 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `PostMediaSectionProps` | 17 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `PostMediaSection` | 23 | Функция. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/media/post-photo-carousel.tsx](../../../apps/legacy-expo/components/media/post-photo-carousel.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `PostPhotoCarousel` | 14 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 92 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/media/video-grid-cell.tsx](../../../apps/legacy-expo/components/media/video-grid-cell.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `VideoView` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `useVideoPlayer` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `VideoGridCellProps` | 19 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `VideoGridCell` | 26 | Функция. Подробности и ограничения — в исходнике. |
-| `NativePlayingCell` | 99 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 134 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/media/video-preview.tsx](../../../apps/legacy-expo/components/media/video-preview.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT }` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `FRAME_WIDTH` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `LANDSCAPE_HEIGHT` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `REEL_HEIGHT` | 10 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `VideoView` | 12 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `useVideoPlayer` | 13 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `VideoPreviewProps` | 24 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `VideoPreviewCard` | 32 | Функция. Подробности и ограничения — в исходнике. |
-| `NativeClubVideo` | 117 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 231 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/moodboard/board-item.tsx](../../../apps/legacy-expo/components/moodboard/board-item.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Нормализует string/native module/default-экспорт ресурса в URI без внешней загрузки.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
 | `Props` | 8 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `clamp` | 15 | Функция. Подробности и ограничения — в исходнике. |
-| `isCutoutItem` | 20 | Функция. Подробности и ограничения — в исходнике. |
-| `BoardItem` | 26 | Пока только перетаскивание; масштаб на доске отключён до отдельного UX. |
-| `styles` | 82 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `WEB_BOOT_MS` | 15 | Full 2s key turn, then fade — no loop. |
+| `MAX_BOOT_MS` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BOOT_FADE_MS` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BOOT_CREAM` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BOOT_PAPER_TEXTURE_URI` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `bootVideoPaperMp4Module` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `bootVideoPaperWebmModule` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `bootVideoWebmModule` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `bootVideoMp4Module` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `bootLockImage` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `LOCK_WIDTH` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `LOCK_SCREEN_FRACTION` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `PAPER_VIDEO_WIDTH` | 31 | Paper video frame — ~2× lock box so the lock reads at LOCK_WIDTH without cropping. |
+| `PAPER_SCREEN_FRACTION` | 32 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `LOCK_ASPECT` | 33 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BootPhase` | 35 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `BootAnimMode` | 36 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `AssetModule` | 38 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `resolveAssetUri` | 40 | Функция. Подробности и ограничения — в исходнике. |
+| `bootVideoPaperMp4Uri` | 59 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `bootVideoPaperWebmUri` | 60 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `bootVideoWebmUri` | 61 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `bootVideoMp4Uri` | 62 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `initialAnimMode` | 64 | Функция. Подробности и ограничения — в исходнике. |
+| `BootLockImage` | 72 | Функция. Подробности и ограничения — в исходнике. |
+| `BootLockPoster` | 86 | Функция. Подробности и ограничения — в исходнике. |
+| `BootScreen` | 107 | Функция. Подробности и ограничения — в исходнике. |
+| `AppBootGate` | 239 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 308 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
-## [apps/legacy-expo/components/moodboard/moodboard-board-canvas.tsx](../../../apps/legacy-expo/components/moodboard/moodboard-board-canvas.tsx)
+## [apps/legacy-expo/components/article-content.tsx](../../../apps/legacy-expo/components/article-content.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `Props` | 8 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `MoodboardBoardCanvas` | 15 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 40 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/moodboard/moodboard-editor.tsx](../../../apps/legacy-expo/components/moodboard/moodboard-editor.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `{ width: SCREEN_W }` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BOARD_W` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Props` | 22 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `MoodboardEditor` | 27 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 104 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/moodboard/moodboard-picker-grid.tsx](../../../apps/legacy-expo/components/moodboard/moodboard-picker-grid.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `{ width: SCREEN_W }` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `MOODBOARD_GRID_GAP` | 17 | Same rhythm as library masonry cards |
-| `MOODBOARD_TILE_RADIUS` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `H_PADDING` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `COL_W` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `isCutoutImage` | 22 | Функция. Подробности и ограничения — в исходнике. |
-| `Props` | 27 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `MoodboardPickerGrid` | 34 | Функция. Подробности и ограничения — в исходнике. |
-| `MoodboardPickerFooter` | 98 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 125 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/moodboard/moodboard-ribbon.tsx](../../../apps/legacy-expo/components/moodboard/moodboard-ribbon.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Показывает обложку, заголовок и упорядоченные блоки статьи через один renderer.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `confirmRemove` | 24 | Функция. Подробности и ограничения — в исходнике. |
-| `Props` | 35 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `DraggableThumb` | 41 | Функция. Подробности и ограничения — в исходнике. |
-| `MoodboardRibbon` | 96 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 160 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/moodboard/season-folder-row.tsx](../../../apps/legacy-expo/components/moodboard/season-folder-row.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `SEASONS` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Props` | 9 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `SeasonFolderRow` | 15 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 38 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/moodboard/season-folder.tsx](../../../apps/legacy-expo/components/moodboard/season-folder.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `Props` | 4 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `SeasonFolder` | 10 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/parallax-scroll-view.tsx](../../../apps/legacy-expo/components/parallax-scroll-view.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `HEADER_HEIGHT` | 13 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Props` | 15 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `ParallaxScrollView` | 24 | A scroll view with parallax header effect. Note: Animated components require style objects for dynamic animations. |
-
-## [apps/legacy-expo/components/photo-viewer.tsx](../../../apps/legacy-expo/components/photo-viewer.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `PhotoViewerProps` | 25 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `PhotoViewer` | 32 | Функция. Подробности и ограничения — в исходнике. |
-| `PhotoViewerInner` | 44 | Функция. Подробности и ограничения — в исходнике. |
-| `viewerStyles` | 192 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/post-management.tsx](../../../apps/legacy-expo/components/post-management.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `CREAM_BG` | 21 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_DARK` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_LIGHT` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `GREEN_ACCENT` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ALL_TAGS` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `PostData` | 29 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `MenuAction` | 41 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `PostMenuButton` | 44 | Функция. Подробности и ограничения — в исходнике. |
-| `ActionSheet` | 56 | Функция. Подробности и ограничения — в исходнике. |
-| `TagSelectionModal` | 109 | Функция. Подробности и ограничения — в исходнике. |
-| `usePostManagement` | 202 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 339 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/query-retry-state.tsx](../../../apps/legacy-expo/components/query-retry-state.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `Props` | 3 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `OLIVE` | 13 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_MUTED` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `QueryRetryState` | 16 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 51 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/quiz/quiz-question.tsx](../../../apps/legacy-expo/components/quiz/quiz-question.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `PAPER_TEXTURE_URI` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `{ width, height }` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `GRID_PADDING` | 27 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `GRID_GAP` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CARD_WIDTH_2` | 31 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CARD_WIDTH_3` | 32 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CAROUSEL_WIDTH` | 35 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CAROUSEL_HEIGHT` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `WARM_MILKY` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_TEXT` | 40 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `RichAnswerText` | 43 | Функция. Подробности и ограничения — в исходнике. |
-| `SWIPE_QUESTION_IDS` | 84 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `QuizQuestion` | 86 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 404 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/quiz/quiz-result.tsx](../../../apps/legacy-expo/components/quiz/quiz-result.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `PAPER_TEXTURE_URI` | 33 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `{ width }` | 34 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_MUTED` | 38 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_LIGHT` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CREAM` | 40 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `HOUSE_IMAGES` | 42 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `COTTAGECORE_MOODBOARDS` | 53 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `COTTAGECORE_OUTFITS` | 65 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `COTTAGECORE_INTERIORS` | 80 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `DARKACADEMIA_OUTFITS` | 88 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `DARKACADEMIA_MOODBOARDS` | 104 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `DARKACADEMIA_INTERIORS` | 115 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `GOBLINCORE_OUTFITS` | 127 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `GOBLINCORE_MOODBOARDS` | 145 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `GOBLINCORE_INTERIORS` | 155 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CASTLECORE_OUTFITS` | 168 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CASTLECORE_MOODBOARDS` | 183 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CASTLECORE_INTERIORS` | 195 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `WITCHCORE_OUTFITS` | 212 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `WITCHCORE_MOODBOARDS` | 232 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `WITCHCORE_INTERIORS` | 244 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `FAIRYCORE_OUTFITS` | 256 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `FAIRYCORE_MOODBOARDS` | 271 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `FAIRYCORE_INTERIORS` | 282 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `LIGHTACADEMIA_OUTFITS` | 296 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `LIGHTACADEMIA_MOODBOARDS` | 315 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `LIGHTACADEMIA_INTERIORS` | 329 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `getClubContent` | 344 | Функция. Подробности и ограничения — в исходнике. |
-| `QuizResultScreen` | 355 | Функция. Подробности и ограничения — в исходнике. |
-| `ClubContentSection` | 652 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 1000 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/quiz/quiz-welcome.tsx](../../../apps/legacy-expo/components/quiz/quiz-welcome.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `PAPER_TEXTURE_URI` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_MUTED` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `{ width }` | 21 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `QuizWelcome` | 23 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 109 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/rich-text-renderer.tsx](../../../apps/legacy-expo/components/rich-text-renderer.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `RichTextRendererProps` | 11 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `RichTextRenderer` | 29 | Renders rich text content with bold, italic, and inline links. Falls back to plain text display when richText is not available. |
-| `baseFontMetrics` | 119 | Функция. Подробности и ограничения — в исходнике. |
-| `boldInlineStyle` | 127 | Функция. Подробности и ограничения — в исходнике. |
-| `italicInlineStyle` | 137 | Функция. Подробности и ограничения — в исходнике. |
-| `renderInlines` | 146 | Функция. Подробности и ограничения — в исходнике. |
-| `renderPlainText` | 190 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 206 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/screen-container.tsx](../../../apps/legacy-expo/components/screen-container.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `paperTextureUri` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ScreenContainerProps` | 8 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `ScreenContainer` | 39 | A container component that properly handles SafeArea and background colors. The outer View extends to full screen (including status bar area) with the background color, while the inner SafeAreaView ensures content is within safe bounds. Includes a subtle paper texture background for a rustic, warm feel. |
-
-## [apps/legacy-expo/components/screen-error-boundary.tsx](../../../apps/legacy-expo/components/screen-error-boundary.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `Props` | 4 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `State` | 10 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `ScreenErrorBoundary` | 15 | Catches render errors so Safari/WebKit does not reload the page in a crash loop. |
-| `ScreenErrorBoundary.getDerivedStateFromError` | 18 | Метод. Подробности и ограничения — в исходнике. |
-| `ScreenErrorBoundary.componentDidCatch` | 22 | Метод. Подробности и ограничения — в исходнике. |
-| `ScreenErrorBoundary.render` | 33 | Метод. Подробности и ограничения — в исходнике. |
-| `styles` | 49 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/scroll-to-top-button.tsx](../../../apps/legacy-expo/components/scroll-to-top-button.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `ACCENT` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CREAM_BG` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ScrollToTopButtonProps` | 9 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `ScrollToTopButton` | 16 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/sms-code-form.tsx](../../../apps/legacy-expo/components/sms-code-form.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `BROWN` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `BROWN_MUTED` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CREAM` | 21 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `OLIVE` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Props` | 24 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `SmsCodeForm` | 29 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 233 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/tab-focus-gate.tsx](../../../apps/legacy-expo/components/tab-focus-gate.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `Props` | 4 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `TabFocusGate` | 10 | Passthrough wrapper — tab visibility is handled via CSS on aria-hidden layers. |
-
-## [apps/legacy-expo/components/tab-header.tsx](../../../apps/legacy-expo/components/tab-header.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `TabHeaderProps` | 17 | Compact custom header with home (left) and profile (right) icons. Used on all tab screens since native headers are disabled. Props: - transparent: if true, renders absolutely positioned with white icons (for overlay on banners)   If false, renders as a static element with brown icons and a subtle cream background.   Default is true. - musicUrl: when set, shows a small music toggle next to the profile icon. |
-| `TabHeader` | 22 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 54 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/tab-music-toggle.tsx](../../../apps/legacy-expo/components/tab-music-toggle.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `TabMusicToggleProps` | 7 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `TabMusicToggle` | 13 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 62 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/themed-view.tsx](../../../apps/legacy-expo/components/themed-view.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `ThemedViewProps` | 5 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `ThemedView` | 13 | A View component with automatic theme-aware background. Uses NativeWind for styling - pass className for additional styles. |
-
-## [apps/legacy-expo/components/ui/collapsible.tsx](../../../apps/legacy-expo/components/ui/collapsible.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `Collapsible` | 7 | Функция. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/ui/icon-symbol.ios.tsx](../../../apps/legacy-expo/components/ui/icon-symbol.ios.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `IconSymbol` | 4 | Функция. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/ui/icon-symbol.tsx](../../../apps/legacy-expo/components/ui/icon-symbol.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `IconMapping` | 8 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `IconSymbolName` | 9 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `MAPPING` | 11 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `IconSymbol` | 26 | Функция. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/video-player-card.tsx](../../../apps/legacy-expo/components/video-player-card.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `{ width: SCREEN_WIDTH }` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `VideoView` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `useVideoPlayer` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `VideoPlayerCardProps` | 20 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `VideoPlayerCard` | 26 | Функция. Подробности и ограничения — в исходнике. |
-| `NativeVideoPlayer` | 85 | Функция. Подробности и ограничения — в исходнике. |
-| `cardStyles` | 117 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/web-post-alerts.tsx](../../../apps/legacy-expo/components/web-post-alerts.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `FEED_SEEN_KEY` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CLUB_SEEN_KEY` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `canNotify` | 9 | Функция. Подробности и ограничения — в исходнике. |
-| `showNote` | 17 | Функция. Подробности и ограничения — в исходнике. |
-| `WebPostAlerts` | 26 | Функция. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/components/youtube-embed.tsx](../../../apps/legacy-expo/components/youtube-embed.tsx)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+| `BROWN` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_MUTED` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `{ width: SCREEN_WIDTH }` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CAROUSEL_ITEM_WIDTH` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CAROUSEL_ITEM_HEIGHT` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ArticleContent` | 21 | Функция. Подробности и ограничения — в исходнике. |
+| `ArticleBlockView` | 56 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 167 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/boot-lock-canvas.tsx](../../../apps/legacy-expo/components/boot-lock-canvas.tsx)
+
+Архив Expo. Проигрывает тихую native заставку и сообщает о готовности либо пятисекундном сбое один раз.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
 | `Props` | 5 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `YouTubeEmbed` | 9 | Функция. Подробности и ограничения — в исходнике. |
-| `styles` | 45 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `VideoView` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `useVideoPlayer` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `PLAY_TIMEOUT_MS` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `NativeBootLockPaperVideo` | 30 | Функция. Подробности и ограничения — в исходнике. |
+| `BootLockPaperVideo` | 110 | Функция. Подробности и ограничения — в исходнике. |
+| `BootLockCanvas` | 146 | Native chroma canvas is not available — static lock poster as fallback. |
+
+## [apps/legacy-expo/components/boot-lock-canvas.web.tsx](../../../apps/legacy-expo/components/boot-lock-canvas.web.tsx)
+
+Архив Expo. Удаляет только почти чёрный фон кадра, оставляя тёмный металл и мягкую alpha-границу.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `Props` | 6 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `KEY_MAX` | 16 | Only remove near-pure black background; keep dark lock/key metal. |
+| `KEY_SOFT` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `SOURCE_WIDTH` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `SOURCE_HEIGHT` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `PLAY_TIMEOUT_MS` | 21 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `READY_MIN_TIME` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `HIDDEN_VIDEO_STYLE` | 26 | Safari/iOS won't advance frames when video is display:none — keep it painted but invisible. |
+| `keyOutFrame` | 36 | Функция. Подробности и ограничения — в исходнике. |
+| `renderScale` | 56 | Функция. Подробности и ограничения — в исходнике. |
+| `paintFrame` | 69 | Функция. Подробности и ограничения — в исходнике. |
+| `useBootVideoPlayback` | 90 | Функция. Подробности и ограничения — в исходнике. |
+| `scheduleFrame` | 180 | Функция. Подробности и ограничения — в исходнике. |
+| `BootLockCanvasDraw` | 211 | Функция. Подробности и ограничения — в исходнике. |
+| `BootLockPaperVideo` | 332 | Paper + lock baked into video — full-screen cover, no chroma key or visible frame. |
+| `BootLockCanvas` | 413 | Lock animation — canvas chroma key; iOS uses BootLockPaperVideo instead. |
+
+## [apps/legacy-expo/components/club/avatar-cropper.tsx](../../../apps/legacy-expo/components/club/avatar-cropper.tsx)
+
+Архив Expo. Архивный кроппер хранит pan/zoom на UI-потоке и показывает круглую маску; итог остаётся квадратным файлом.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `BROWN` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CREAM` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `OLIVE` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `{ width: SCREEN_WIDTH }` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CIRCLE_SIZE` | 27 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `AvatarCropperProps` | 31 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `AvatarCropper` | 41 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 218 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/club/club-comments.tsx](../../../apps/legacy-expo/components/club/club-comments.tsx)
+
+Архив Expo. Берёт первую букву имени для fallback-аватара комментария.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `BROWN` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_MUTED` | 27 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `OLIVE` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ClubCommentsProps` | 30 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `MenuAction` | 37 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `authorInitial` | 39 | Функция. Подробности и ограничения — в исходнике. |
+| `CommentAvatar` | 46 | Функция. Подробности и ограничения — в исходнике. |
+| `linkify` | 59 | Функция. Подробности и ограничения — в исходнике. |
+| `confirmDelete` | 80 | Функция. Подробности и ограничения — в исходнике. |
+| `CommentMenu` | 93 | Функция. Подробности и ограничения — в исходнике. |
+| `ClubComments` | 143 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 500 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/club/club-subscribed.tsx](../../../apps/legacy-expo/components/club/club-subscribed.tsx)
+
+Архив Expo. Архивный двухсезонный календарь выбирает winter с 20 ноября по 19 марта, остальные даты autumn; текущая серверная сезонность отдельно.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `PAPER_TEXTURE_URI` | 57 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `SEASONAL_TARTANS` | 60 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `SEASONAL_BANNERS` | 66 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `getClubSeason` | 71 | Функция. Подробности и ограничения — в исходнике. |
+| `BROWN` | 86 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_MUTED` | 87 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CREAM` | 88 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `OLIVE` | 89 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `SAGE` | 90 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `{ width: SCREEN_WIDTH }` | 92 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ClubTab` | 96 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `ClubTabItem` | 98 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `CLUB_TABS` | 104 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `STICKER_LIKE` | 112 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `STICKER_SAVE` | 113 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `MAILBOX_URI` | 116 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ClubPost` | 120 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `MOCK_POSTS` | 136 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ClubPostCard` | 240 | Функция. Подробности и ограничения — в исходнике. |
+| `PROFILE_COMPLETED_KEY` | 434 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ClubSubscribed` | 436 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 879 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/club/pen-pals.tsx](../../../apps/legacy-expo/components/club/pen-pals.tsx)
+
+Архив Expo. Архивная форма анкет/совпадений делегирует адресную приватность серверу и показывает адрес только после mutualConfirmed.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `BROWN` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_MUTED` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CREAM` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `OLIVE` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `SAGE` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Screen` | 28 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `MatchCard` | 29 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `PenPalsProps` | 44 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `PenPals` | 48 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 440 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/club/profile-setup.tsx](../../../apps/legacy-expo/components/club/profile-setup.tsx)
+
+Архив Expo. Собирает имя/пол/локальный аватар и передаёт сохранение владельцу через onComplete.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `BROWN` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_MUTED` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CREAM` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `OLIVE` | 27 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `{ width: SCREEN_WIDTH }` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Gender` | 33 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `ProfileSetupProps` | 35 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `CropperImage` | 39 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `ProfileSetup` | 47 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 236 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/club/tag-board-drawer.tsx](../../../apps/legacy-expo/components/club/tag-board-drawer.tsx)
+
+Архив Expo. Показывает выдвижную доску тегов в рассчитанной льняной области исходного изображения.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT }` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `DRAWER_WIDTH` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `PEEK_STRIP_WIDTH` | 31 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `DRAWER_TOP_OFFSET` | 33 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BOARD_WIDTH_RATIO` | 35 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BOARD_WIDTH` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BOARD_LEFT` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_MUTED` | 40 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CREAM` | 41 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `TAG_BOARD_URI` | 44 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `TOPIC_TAG_ROWS` | 47 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BOARD_IMG_ASPECT` | 56 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BOARD_HEIGHT` | 57 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `LINEN_TOP_RATIO` | 60 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `LINEN_BOTTOM_RATIO` | 61 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `LINEN_SIDE_RATIO` | 62 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BOARD_LINEN_TOP` | 64 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BOARD_LINEN_SIDE` | 65 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BOARD_LINEN_HEIGHT` | 66 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `TAG_GRID_TOP_PADDING` | 70 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `TagBoardDrawerProps` | 74 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `TagBoardDrawer` | 79 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 293 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/contact-email-footer.tsx](../../../apps/legacy-expo/components/contact-email-footer.tsx)
+
+Архив Expo. Показывает общий контакт проекта и открывает mailto; отправку письма компонент не подтверждает.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `Props` | 5 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `ContactEmailFooter` | 10 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 27 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/contact-email-line.tsx](../../../apps/legacy-expo/components/contact-email-line.tsx)
+
+Архив Expo. Встраивает единый адрес поддержки в короткую строку с системным mailto.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `Props` | 5 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `ContactEmailLine` | 11 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/external-link.tsx](../../../apps/legacy-expo/components/external-link.tsx)
+
+Архив Expo. На web использует новую вкладку, на native отменяет router и открывает встроенный browser.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `Props` | 6 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `ExternalLink` | 8 | Функция. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/garden-confetti.tsx](../../../apps/legacy-expo/components/garden-confetti.tsx)
+
+Архив Expo. Анимирует один заранее рассчитанный лепесток на UI-потоке без перехвата жестов.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `PETAL_COLORS` | 12 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Petal` | 14 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `PETALS` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ConfettiPetal` | 38 | Функция. Подробности и ограничения — в исходнике. |
+| `GardenConfetti` | 85 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 99 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/garden-tour-video.tsx](../../../apps/legacy-expo/components/garden-tour-video.tsx)
+
+Архив Expo. Показывает кешируемую обложку и запускает видео только по жесту пользователя.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `GARDEN_VIDEO_URL` | 13 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `GARDEN_POSTER_URL` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `VideoView` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `useVideoPlayer` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `GardenPoster` | 30 | Функция. Подробности и ограничения — в исходнике. |
+| `GardenTourVideo` | 54 | Функция. Подробности и ограничения — в исходнике. |
+| `NativeGardenPlayer` | 91 | Функция. Подробности и ограничения — в исходнике. |
+| `SectionProps` | 117 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `GardenTourSection` | 122 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 180 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/haptic-tab.tsx](../../../apps/legacy-expo/components/haptic-tab.tsx)
+
+Архив Expo. Добавляет iOS haptic и web fallback нажатия, сохраняя обработчики навигационной кнопки.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `HapticTab` | 9 | Функция. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/hello-wave.tsx](../../../apps/legacy-expo/components/hello-wave.tsx)
+
+Архив Expo. Запускает ограниченную четырьмя повторами декларативную анимацию приветствия.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `HelloWave` | 4 | Функция. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/home-promo-carousel.tsx](../../../apps/legacy-expo/components/home-promo-carousel.tsx)
+
+Архив Expo. Циклически меняет промо-слайды и открывает внутренний route текущей карточки.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `PAPER_TEXTURE_URI` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `{ width: SCREEN_WIDTH }` | 32 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CARD_WIDTH` | 34 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CARD_HEIGHT` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `INTERVAL_MS` | 40 | Pause on each slide before the next crossfade. |
+| `FADE_MS` | 44 | Full crossfade duration (out + in). |
+| `HomePromoCarousel` | 48 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 177 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/install-guide.tsx](../../../apps/legacy-expo/components/install-guide.tsx)
+
+Архив Expo. Распознаёт установленный web-режим по iOS navigator и display-mode.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `SEEN_KEY` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_MUTED` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CREAM` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `isStandaloneWeb` | 20 | Функция. Подробности и ограничения — в исходнике. |
+| `isIosWeb` | 28 | Функция. Подробности и ограничения — в исходнике. |
+| `Step` | 35 | Функция. Подробности и ограничения — в исходнике. |
+| `InstallGuide` | 54 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 121 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/legal-document-screen.tsx](../../../apps/legacy-expo/components/legal-document-screen.tsx)
+
+Архив Expo. Отображает переданный юридический документ и необязательное изображение, не редактируя опубликованный текст.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `BROWN` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_MUTED` | 10 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Props` | 12 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `LegalDocumentScreen` | 16 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 55 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/legal-documents-footer.tsx](../../../apps/legacy-expo/components/legal-documents-footer.tsx)
+
+Архив Expo. Накладывает две внутренние ссылки на локальную графику папки с фиксированными пропорциями.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `FOLDER_IMAGE` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `FOLDER_ASPECT` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `FOLDER_WIDTH` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Props` | 10 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `LegalDocumentsFooter` | 15 | Footer links on the legal-documents folder graphic. |
+| `styles` | 47 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/media/audio-player.tsx](../../../apps/legacy-expo/components/media/audio-player.tsx)
+
+Архив Expo. Строит повторяемую декоративную волну по URL; это не анализ аудиосигнала.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `BROWN_DARK` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_LIGHT` | 10 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CREAM_BG` | 11 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ACCENT` | 12 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `AudioPlayerProps` | 14 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `generateWaveform` | 21 | Функция. Подробности и ограничения — в исходнике. |
+| `AudioPlayerCard` | 36 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 146 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/media/document-attachment.tsx](../../../apps/legacy-expo/components/media/document-attachment.tsx)
+
+Архив Expo. Выбирает декоративный значок по MIME без проверки содержимого файла.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `BROWN_DARK` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_LIGHT` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CREAM_BG` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `DocumentAttachmentProps` | 11 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `getDocIcon` | 18 | Функция. Подробности и ограничения — в исходнике. |
+| `formatFileSize` | 29 | Функция. Подробности и ограничения — в исходнике. |
+| `DocumentAttachmentCard` | 38 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 71 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/media/index.ts](../../../apps/legacy-expo/components/media/index.ts)
+
+Архив Expo. Совместимый вход экспорта трёх карточек вложений: audio, video и document.
+
+## [apps/legacy-expo/components/media/natural-photo-stack.tsx](../../../apps/legacy-expo/components/media/natural-photo-stack.tsx)
+
+Архив Expo. Рисует обрезанную ячейку с memory-disk кешем и стабильным recyclingKey URI.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `GAP` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `VideoGridSlot` | 16 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `Cell` | 21 | Функция. Подробности и ограничения — в исходнике. |
+| `Row` | 47 | Функция. Подробности и ограничения — в исходнике. |
+| `PhotoGrid` | 53 | Функция. Подробности и ограничения — в исходнике. |
+| `VideoPhotoGrid` | 97 | Функция. Подробности и ограничения — в исходнике. |
+| `SinglePhoto` | 150 | Функция. Подробности и ограничения — в исходнике. |
+| `NaturalPhotoStack` | 177 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 296 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/media/post-media-section.tsx](../../../apps/legacy-expo/components/media/post-media-section.tsx)
+
+Архив Expo. Выбирает видео/аудио/документ по discriminator вложения и пропускает неизвестные типы.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `PostMediaItem` | 8 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `PostMediaSectionProps` | 18 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `PostMediaSection` | 24 | Функция. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/media/post-photo-carousel.tsx](../../../apps/legacy-expo/components/media/post-photo-carousel.tsx)
+
+Архив Expo. Измеряет доступную ширину, листает фотографии страницами и показывает текущий индекс.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `PostPhotoCarousel` | 15 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 98 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/media/video-grid-cell.tsx](../../../apps/legacy-expo/components/media/video-grid-cell.tsx)
+
+Архив Expo. Переключает poster на web/native плеер и выбирает contain для портретного превью.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `VideoView` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `useVideoPlayer` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `VideoGridCellProps` | 20 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `VideoGridCell` | 27 | Функция. Подробности и ограничения — в исходнике. |
+| `NativePlayingCell` | 104 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 144 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/media/video-preview.tsx](../../../apps/legacy-expo/components/media/video-preview.tsx)
+
+Архив Expo. Выбирает высоту по ориентации poster/reels и платформенный player без изменения источника.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT }` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `FRAME_WIDTH` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `LANDSCAPE_HEIGHT` | 10 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `REEL_HEIGHT` | 11 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `VideoView` | 13 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `useVideoPlayer` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `VideoPreviewProps` | 25 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `VideoPreviewCard` | 33 | Функция. Подробности и ограничения — в исходнике. |
+| `NativeClubVideo` | 124 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 245 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/moodboard/board-item.tsx](../../../apps/legacy-expo/components/moodboard/board-item.tsx)
+
+Архив Expo. Ограничивает drag-координату на UI-потоке Reanimated; директива worklet остаётся первой инструкцией.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `Props` | 9 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `clamp` | 16 | Функция. Подробности и ограничения — в исходнике. |
+| `isCutoutItem` | 23 | Функция. Подробности и ограничения — в исходнике. |
+| `BoardItem` | 31 | Пока только перетаскивание; масштаб на доске отключён до отдельного UX. |
+| `styles` | 92 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/moodboard/moodboard-board-canvas.tsx](../../../apps/legacy-expo/components/moodboard/moodboard-board-canvas.tsx)
+
+Архив Expo. Масштабирует alpha-рамку и ограничивает drag-элементы внутренней областью доски.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `Props` | 9 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `MoodboardBoardCanvas` | 16 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 44 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/moodboard/moodboard-editor.tsx](../../../apps/legacy-expo/components/moodboard/moodboard-editor.tsx)
+
+Архив Expo. Редактирует локальную доску и экспортирует результат отдельно от отложенного автосохранения.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `{ width: SCREEN_W }` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BOARD_W` | 21 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Props` | 23 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `MoodboardEditor` | 28 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 114 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/moodboard/moodboard-picker-grid.tsx](../../../apps/legacy-expo/components/moodboard/moodboard-picker-grid.tsx)
+
+Архив Expo. Определяет прозрачные наклейки по метке либо PNG URI.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `{ width: SCREEN_W }` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `MOODBOARD_GRID_GAP` | 18 | Same rhythm as library masonry cards |
+| `MOODBOARD_TILE_RADIUS` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `H_PADDING` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `COL_W` | 21 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `isCutoutImage` | 23 | Функция. Подробности и ограничения — в исходнике. |
+| `Props` | 30 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `MoodboardPickerGrid` | 37 | Функция. Подробности и ограничения — в исходнике. |
+| `MoodboardPickerFooter` | 107 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 137 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/moodboard/moodboard-ribbon.tsx](../../../apps/legacy-expo/components/moodboard/moodboard-ribbon.tsx)
+
+Архив Expo. Спрашивает подтверждение удаления элемента платформенным диалогом, не удаляя исходный файл.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `confirmRemove` | 25 | Функция. Подробности и ограничения — в исходнике. |
+| `Props` | 38 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `DraggableThumb` | 44 | Функция. Подробности и ограничения — в исходнике. |
+| `MoodboardRibbon` | 101 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 174 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/moodboard/season-folder-row.tsx](../../../apps/legacy-expo/components/moodboard/season-folder-row.tsx)
+
+Архив Expo. Показывает четыре сезонные папки с текущей и недоступными состояниями; решение перехода остаётся родителю.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `SEASONS` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Props` | 10 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `SeasonFolderRow` | 16 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 42 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/moodboard/season-folder.tsx](../../../apps/legacy-expo/components/moodboard/season-folder.tsx)
+
+Архив Expo. Сохраняет пропорции прозрачной папки и приглушает ещё не включённый сезон.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `Props` | 5 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `SeasonFolder` | 11 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 27 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/parallax-scroll-view.tsx](../../../apps/legacy-expo/components/parallax-scroll-view.tsx)
+
+Архив Expo. Связывает высоту header с SafeArea и UI-потоковым scrollOffset для translate/scale параллакса.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `HEADER_HEIGHT` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Props` | 16 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `ParallaxScrollView` | 25 | A scroll view with parallax header effect. Note: Animated components require style objects for dynamic animations. |
+
+## [apps/legacy-expo/components/photo-viewer.tsx](../../../apps/legacy-expo/components/photo-viewer.tsx)
+
+Архив Expo. Монтирует viewer только с непустыми фото и сбрасывает внутреннюю сцену по ключу набора.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `PhotoViewerProps` | 26 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `PhotoViewer` | 33 | Функция. Подробности и ограничения — в исходнике. |
+| `PhotoViewerInner` | 47 | Функция. Подробности и ограничения — в исходнике. |
+| `viewerStyles` | 205 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/post-management.tsx](../../../apps/legacy-expo/components/post-management.tsx)
+
+Архив Expo. Открывает внешнее меню действий одного поста без собственной мутации.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `CREAM_BG` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_DARK` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_LIGHT` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `GREEN_ACCENT` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ALL_TAGS` | 27 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `PostData` | 30 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `MenuAction` | 42 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `PostMenuButton` | 45 | Функция. Подробности и ограничения — в исходнике. |
+| `ActionSheet` | 59 | Функция. Подробности и ограничения — в исходнике. |
+| `TagSelectionModal` | 114 | Функция. Подробности и ограничения — в исходнике. |
+| `usePostManagement` | 215 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 373 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/query-retry-state.tsx](../../../apps/legacy-expo/components/query-retry-state.tsx)
+
+Архив Expo. Показывает блокирующий loading/error только без данных, сохраняя уже загруженный контент при фоновом сбое.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `Props` | 4 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `OLIVE` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_MUTED` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `QueryRetryState` | 17 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 55 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/quiz/quiz-question.tsx](../../../apps/legacy-expo/components/quiz/quiz-question.tsx)
+
+Архив Expo. Разбирает ограниченные bold/italic маркеры ответа в текстовые сегменты, не выполняя HTML.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `PAPER_TEXTURE_URI` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `{ width, height }` | 27 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `GRID_PADDING` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `GRID_GAP` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CARD_WIDTH_2` | 32 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CARD_WIDTH_3` | 33 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CAROUSEL_WIDTH` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CAROUSEL_HEIGHT` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `WARM_MILKY` | 40 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_TEXT` | 41 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `RichAnswerText` | 44 | Функция. Подробности и ограничения — в исходнике. |
+| `SWIPE_QUESTION_IDS` | 87 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `QuizQuestion` | 89 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 418 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/quiz/quiz-result.tsx](../../../apps/legacy-expo/components/quiz/quiz-result.tsx)
+
+Архив Expo. Выбирает встроенный текстовый справочник эстетики; исторический клиент содержит весь текст в bundle, это не закрытая серверная выдача.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `PAPER_TEXTURE_URI` | 34 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `{ width }` | 35 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN` | 38 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_MUTED` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_LIGHT` | 40 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CREAM` | 41 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `HOUSE_IMAGES` | 44 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `COTTAGECORE_MOODBOARDS` | 55 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `COTTAGECORE_OUTFITS` | 67 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `COTTAGECORE_INTERIORS` | 82 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `DARKACADEMIA_OUTFITS` | 90 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `DARKACADEMIA_MOODBOARDS` | 106 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `DARKACADEMIA_INTERIORS` | 117 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `GOBLINCORE_OUTFITS` | 129 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `GOBLINCORE_MOODBOARDS` | 147 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `GOBLINCORE_INTERIORS` | 157 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CASTLECORE_OUTFITS` | 170 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CASTLECORE_MOODBOARDS` | 185 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CASTLECORE_INTERIORS` | 197 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `WITCHCORE_OUTFITS` | 214 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `WITCHCORE_MOODBOARDS` | 234 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `WITCHCORE_INTERIORS` | 246 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `FAIRYCORE_OUTFITS` | 258 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `FAIRYCORE_MOODBOARDS` | 273 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `FAIRYCORE_INTERIORS` | 284 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `LIGHTACADEMIA_OUTFITS` | 298 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `LIGHTACADEMIA_MOODBOARDS` | 317 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `LIGHTACADEMIA_INTERIORS` | 331 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `getClubContent` | 346 | Функция. Подробности и ограничения — в исходнике. |
+| `QuizResultScreen` | 359 | Функция. Подробности и ограничения — в исходнике. |
+| `ClubContentSection` | 672 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 1023 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/quiz/quiz-welcome.tsx](../../../apps/legacy-expo/components/quiz/quiz-welcome.tsx)
+
+Архив Expo. Показывает публичное введение в тест, локальный коллаж и старт reducer без запроса к API.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `PAPER_TEXTURE_URI` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_MUTED` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `{ width }` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `QuizWelcome` | 24 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 115 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/rich-text-renderer.tsx](../../../apps/legacy-expo/components/rich-text-renderer.tsx)
+
+Архив Expo. Очищает серверный richText и plain fallback, сохраняя корректный numberOfLines для объединённого preview.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `RichTextRendererProps` | 12 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `RichTextRenderer` | 30 | Renders rich text content with bold, italic, and inline links. Falls back to plain text display when richText is not available. |
+| `baseFontMetrics` | 122 | Функция. Подробности и ограничения — в исходнике. |
+| `boldInlineStyle` | 132 | Функция. Подробности и ограничения — в исходнике. |
+| `italicInlineStyle` | 144 | Функция. Подробности и ограничения — в исходнике. |
+| `renderInlines` | 155 | Функция. Подробности и ограничения — в исходнике. |
+| `renderPlainText` | 201 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 220 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/screen-container.tsx](../../../apps/legacy-expo/components/screen-container.tsx)
+
+Архив Expo. Отделяет фоновый полноэкранный слой от SafeArea; нижний inset обычно задаёт tab bar.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `paperTextureUri` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ScreenContainerProps` | 9 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `ScreenContainer` | 40 | A container component that properly handles SafeArea and background colors. The outer View extends to full screen (including status bar area) with the background color, while the inner SafeAreaView ensures content is within safe bounds. Includes a subtle paper texture background for a rustic, warm feel. |
+
+## [apps/legacy-expo/components/screen-error-boundary.tsx](../../../apps/legacy-expo/components/screen-error-boundary.tsx)
+
+Архив Expo. Переводит render-сбой потомка в локальное fallback-состояние экрана.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `Props` | 5 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `State` | 11 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `ScreenErrorBoundary` | 16 | Catches render errors so Safari/WebKit does not reload the page in a crash loop. |
+| `ScreenErrorBoundary.getDerivedStateFromError` | 19 | Метод. Подробности и ограничения — в исходнике. |
+| `ScreenErrorBoundary.componentDidCatch` | 25 | Метод. Подробности и ограничения — в исходнике. |
+| `ScreenErrorBoundary.render` | 40 | Метод. Подробности и ограничения — в исходнике. |
+| `styles` | 59 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/scroll-to-top-button.tsx](../../../apps/legacy-expo/components/scroll-to-top-button.tsx)
+
+Архив Expo. Показывает плавающий переход наверх с коротким fade и native haptic, не управляя самим scroll.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `ACCENT` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CREAM_BG` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ScrollToTopButtonProps` | 10 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `ScrollToTopButton` | 17 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 41 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/sms-code-form.tsx](../../../apps/legacy-expo/components/sms-code-form.tsx)
+
+Архив Expo. Архивная опциональная SMS-форма разделяет получение кода и подтверждение login/bind; доступность задаётся внешним capability.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `BROWN` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BROWN_MUTED` | 21 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CREAM` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `OLIVE` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Props` | 25 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `SmsCodeForm` | 30 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 245 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/tab-focus-gate.tsx](../../../apps/legacy-expo/components/tab-focus-gate.tsx)
+
+Архив Expo. Совместимая flex-обёртка; видимость старых web tabs регулируется aria-hidden CSS снаружи.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `Props` | 5 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `TabFocusGate` | 11 | Passthrough wrapper — tab visibility is handled via CSS on aria-hidden layers. |
+
+## [apps/legacy-expo/components/tab-header.tsx](../../../apps/legacy-expo/components/tab-header.tsx)
+
+Архив Expo. Размещает home/profile и необязательную музыку поверх баннера либо в обычном потоке с SafeArea.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `TabHeaderProps` | 18 | Compact custom header with home (left) and profile (right) icons. Used on all tab screens since native headers are disabled. Props: - transparent: if true, renders absolutely positioned with white icons (for overlay on banners)   If false, renders as a static element with brown icons and a subtle cream background.   Default is true. - musicUrl: when set, shows a small music toggle next to the profile icon. |
+| `TabHeader` | 23 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 58 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/tab-music-toggle.tsx](../../../apps/legacy-expo/components/tab-music-toggle.tsx)
+
+Архив Expo. Управляет фоновым loop-плеером по жесту пользователя с заданной тихой громкостью.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `TabMusicToggleProps` | 8 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `TabMusicToggle` | 14 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 70 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/themed-view.tsx](../../../apps/legacy-expo/components/themed-view.tsx)
+
+Архив Expo. Добавляет фон текущей NativeWind темы и объединяет внешние классы без изменения View props.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `ThemedViewProps` | 6 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `ThemedView` | 14 | A View component with automatic theme-aware background. Uses NativeWind for styling - pass className for additional styles. |
+
+## [apps/legacy-expo/components/ui/collapsible.tsx](../../../apps/legacy-expo/components/ui/collapsible.tsx)
+
+Архив Expo. Локально раскрывает содержимое и синхронно поворачивает стрелку темы.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `Collapsible` | 8 | Функция. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/ui/icon-symbol.ios.tsx](../../../apps/legacy-expo/components/ui/icon-symbol.ios.tsx)
+
+Архив Expo. На iOS передаёт имя, вес и оттенок настоящему SF Symbol с фиксированным квадратом.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `IconSymbol` | 5 | Функция. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/ui/icon-symbol.tsx](../../../apps/legacy-expo/components/ui/icon-symbol.tsx)
+
+Архив Expo. На Android/web переводит согласованные SF-имена в MaterialIcons через статическую таблицу.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `IconMapping` | 9 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `IconSymbolName` | 10 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `MAPPING` | 12 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `IconSymbol` | 27 | Функция. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/video-player-card.tsx](../../../apps/legacy-expo/components/video-player-card.tsx)
+
+Архив Expo. Показывает poster до native запуска либо HTML video на web с рамкой от заданного aspectRatio.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `{ width: SCREEN_WIDTH }` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `VideoView` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `useVideoPlayer` | 10 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `VideoPlayerCardProps` | 21 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `VideoPlayerCard` | 27 | Функция. Подробности и ограничения — в исходнике. |
+| `NativeVideoPlayer` | 88 | Функция. Подробности и ограничения — в исходнике. |
+| `cardStyles` | 124 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/web-post-alerts.tsx](../../../apps/legacy-expo/components/web-post-alerts.tsx)
+
+Архив Expo. Проверяет browser Notification API и уже выданное разрешение.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `FEED_SEEN_KEY` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CLUB_SEEN_KEY` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `canNotify` | 10 | Функция. Подробности и ограничения — в исходнике. |
+| `showNote` | 20 | Функция. Подробности и ограничения — в исходнике. |
+| `WebPostAlerts` | 31 | Функция. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/components/youtube-embed.tsx](../../../apps/legacy-expo/components/youtube-embed.tsx)
+
+Архив Expo. Архивный YouTube adapter использует собственный /api/yt: web relative URL, native HTML с историческим доменом.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `Props` | 6 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `YouTubeEmbed` | 10 | Функция. Подробности и ограничения — в исходнике. |
+| `styles` | 49 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/constants/const.ts](../../../apps/legacy-expo/constants/const.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Совместимые исторические имена cookie, таймаута и сообщений ошибок; это не runtime-конфигурация нынешнего API.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `COOKIE_NAME` | 1 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ONE_YEAR_MS` | 2 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `AXIOS_TIMEOUT_MS` | 3 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `UNAUTHED_ERR_MSG` | 4 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `NOT_ADMIN_ERR_MSG` | 5 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `COOKIE_NAME` | 2 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ONE_YEAR_MS` | 3 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `AXIOS_TIMEOUT_MS` | 4 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `UNAUTHED_ERR_MSG` | 5 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `NOT_ADMIN_ERR_MSG` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/constants/oauth.ts](../../../apps/legacy-expo/constants/oauth.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Предпочитает EXPO_PUBLIC URL, исключает чужой localhost в web и поддерживает исторический 8081→3000 preview-хост.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `env` | 3 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `OWNER_OPEN_ID` | 10 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `OWNER_EMAIL` | 11 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `OWNER_NAME` | 12 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `API_BASE_URL` | 13 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `getApiBaseUrl` | 20 | Get the API base URL, deriving from current hostname if not set. Metro runs on 8081, API server runs on 3000. URL pattern: https://PORT-sandboxid.region.domain |
-| `SESSION_TOKEN_KEY` | 51 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `USER_INFO_KEY` | 52 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `isOwnerUser` | 54 | Функция. Подробности и ограничения — в исходнике. |
-| `getLoginPath` | 61 | Login lives in the app now (email + password), not Manus OAuth. |
+| `env` | 4 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `OWNER_OPEN_ID` | 11 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `OWNER_EMAIL` | 12 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `OWNER_NAME` | 13 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `API_BASE_URL` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `getApiBaseUrl` | 21 | Get the API base URL, deriving from current hostname if not set. Metro runs on 8081, API server runs on 3000. URL pattern: https://PORT-sandboxid.region.domain |
+| `SESSION_TOKEN_KEY` | 54 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `USER_INFO_KEY` | 55 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `isOwnerUser` | 57 | Функция. Подробности и ограничения — в исходнике. |
+| `getLoginPath` | 66 | Login lives in the app now (email + password), not Manus OAuth. |
 
 ## [apps/legacy-expo/constants/theme.ts](../../../apps/legacy-expo/constants/theme.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Публичный re-export темы: потребители не зависят от внутреннего расположения палитры.
 
 ## [apps/legacy-expo/eas.json](../../../apps/legacy-expo/eas.json)
 
@@ -6819,200 +6819,200 @@
 
 ## [apps/legacy-expo/eslint.config.js](../../../apps/legacy-expo/eslint.config.js)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архивный модуль eslint.config.js; объявления и смысловые границы перечислены ниже.
 
 ## [apps/legacy-expo/global.css](../../../apps/legacy-expo/global.css)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Порядок базовых слоёв сохранён: директивы требуют прежнего Tailwind pipeline, а не самостоятельной загрузки CSS.
 
 ## [apps/legacy-expo/hooks/use-auth.tsx](../../../apps/legacy-expo/hooks/use-auth.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Преобразует старый REST-профиль в локальную модель с датой; это отображение полей, не подтверждение роли на клиенте.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `UseAuthOptions` | 16 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `AuthContextValue` | 20 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `AuthContext` | 31 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `mapApiUser` | 33 | Функция. Подробности и ограничения — в исходнике. |
-| `AuthProvider` | 48 | Функция. Подробности и ограничения — в исходнике. |
-| `useAuth` | 135 | Функция. Подробности и ограничения — в исходнике. |
+| `UseAuthOptions` | 17 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `AuthContextValue` | 21 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `AuthContext` | 32 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `mapApiUser` | 34 | Функция. Подробности и ограничения — в исходнике. |
+| `AuthProvider` | 51 | Функция. Подробности и ограничения — в исходнике. |
+| `useAuth` | 148 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/hooks/use-club-protection.ts](../../../apps/legacy-expo/hooks/use-club-protection.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Включает доступные платформе ограничения жестов/скриншотов; это не серверная защита файлов.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `useClubContentProtection` | 8 | Club posts: block copy/selection on web and screen recording on native. Screenshots in a mobile browser cannot be fully blocked; this covers what the platform allows. |
+| `useClubContentProtection` | 9 | Club posts: block copy/selection on web and screen recording on native. Screenshots in a mobile browser cannot be fully blocked; this covers what the platform allows. |
 
 ## [apps/legacy-expo/hooks/use-color-scheme.ts](../../../apps/legacy-expo/hooks/use-color-scheme.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Читает выбранную схему из контекста темы старого приложения.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `useColorScheme` | 3 | Функция. Подробности и ограничения — в исходнике. |
+| `useColorScheme` | 4 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/hooks/use-color-scheme.web.ts](../../../apps/legacy-expo/hooks/use-color-scheme.web.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. До клиентской гидратации возвращает light, затем использует системную схему браузера.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `useColorScheme` | 7 | To support static rendering, this value needs to be re-calculated on the client side for web |
+| `useColorScheme` | 8 | To support static rendering, this value needs to be re-calculated on the client side for web |
 
 ## [apps/legacy-expo/hooks/use-colors.ts](../../../apps/legacy-expo/hooks/use-colors.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Выбирает палитру по явному override либо текущей схеме с light fallback.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `useColors` | 8 | Returns the current theme's color palette. Usage: const colors = useColors(); then colors.text, colors.background, etc. |
+| `useColors` | 9 | Returns the current theme's color palette. Usage: const colors = useColors(); then colors.text, colors.background, etc. |
 
 ## [apps/legacy-expo/lib/_core/api.ts](../../../apps/legacy-expo/lib/_core/api.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Запрашивает письмо восстановления через REST; клиент не создаёт токен сам.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `requestPasswordInstructions` | 5 | Функция. Подробности и ограничения — в исходнике. |
-| `getAppCapabilities` | 13 | Функция. Подробности и ограничения — в исходнике. |
-| `apiCall` | 24 | Функция. Подробности и ограничения — в исходнике. |
-| `logout` | 101 | Функция. Подробности и ограничения — в исходнике. |
-| `AuthUser` | 107 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `loginWithEmail` | 120 | Функция. Подробности и ограничения — в исходнике. |
-| `registerWithEmail` | 138 | Функция. Подробности и ограничения — в исходнике. |
-| `sendSmsCode` | 149 | Функция. Подробности и ограничения — в исходнике. |
-| `verifySmsCode` | 158 | Функция. Подробности и ограничения — в исходнике. |
-| `getMe` | 178 | Функция. Подробности и ограничения — в исходнике. |
-| `establishSession` | 200 | Функция. Подробности и ограничения — в исходнике. |
+| `requestPasswordInstructions` | 6 | Функция. Подробности и ограничения — в исходнике. |
+| `getAppCapabilities` | 16 | Функция. Подробности и ограничения — в исходнике. |
+| `apiCall` | 29 | Функция. Подробности и ограничения — в исходнике. |
+| `logout` | 108 | Функция. Подробности и ограничения — в исходнике. |
+| `AuthUser` | 116 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `loginWithEmail` | 129 | Функция. Подробности и ограничения — в исходнике. |
+| `registerWithEmail` | 149 | Функция. Подробности и ограничения — в исходнике. |
+| `sendSmsCode` | 162 | Функция. Подробности и ограничения — в исходнике. |
+| `verifySmsCode` | 173 | Функция. Подробности и ограничения — в исходнике. |
+| `getMe` | 195 | Функция. Подробности и ограничения — в исходнике. |
+| `establishSession` | 219 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/_core/auth.ts](../../../apps/legacy-expo/lib/_core/auth.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Удаляет прежние web-токен/профиль из localStorage, чтобы браузер использовал HttpOnly-cookie.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `User` | 5 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `webUser` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `discardLegacyWebStorage` | 20 | Функция. Подробности и ограничения — в исходнике. |
-| `getSessionToken` | 31 | Функция. Подробности и ограничения — в исходнике. |
-| `setSessionToken` | 43 | Функция. Подробности и ограничения — в исходнике. |
-| `removeSessionToken` | 55 | Функция. Подробности и ограничения — в исходнике. |
-| `getUserInfo` | 65 | Функция. Подробности и ограничения — в исходнике. |
-| `setUserInfo` | 78 | Функция. Подробности и ограничения — в исходнике. |
-| `clearUserInfo` | 91 | Функция. Подробности и ограничения — в исходнике. |
+| `User` | 6 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `webUser` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `discardLegacyWebStorage` | 21 | Функция. Подробности и ограничения — в исходнике. |
+| `getSessionToken` | 34 | Функция. Подробности и ограничения — в исходнике. |
+| `setSessionToken` | 48 | Функция. Подробности и ограничения — в исходнике. |
+| `removeSessionToken` | 62 | Функция. Подробности и ограничения — в исходнике. |
+| `getUserInfo` | 74 | Функция. Подробности и ограничения — в исходнике. |
+| `setUserInfo` | 89 | Функция. Подробности и ограничения — в исходнике. |
+| `clearUserInfo` | 104 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/_core/manus-runtime.ts](../../../apps/legacy-expo/lib/_core/manus-runtime.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Пишет только диагностический текст с меткой времени при DEBUG; секреты через этот helper передавать нельзя.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `DEBUG` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `log` | 16 | Функция. Подробности и ограничения — в исходнике. |
-| `MessageType` | 22 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `SafeAreaInsets` | 23 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `SafeAreaCallback` | 24 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `SpacePreviewerMessage` | 26 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `isInIframe` | 36 | Функция. Подробности и ограничения — в исходнике. |
-| `isWeb` | 45 | Функция. Подробности и ограничения — в исходнике. |
-| `sendToParent` | 49 | Функция. Подробности и ограничения — в исходнике. |
-| `initialized` | 61 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `safeAreaCallback` | 62 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `isValidInsets` | 64 | Функция. Подробности и ограничения — в исходнике. |
-| `handleMessage` | 73 | Функция. Подробности и ограничения — в исходнике. |
-| `subscribeSafeAreaInsets` | 94 | Subscribe to safe area updates from the parent container. |
-| `initManusRuntime` | 106 | Initialize Manus Runtime - just notifies parent that app is ready |
-| `isRunningInPreviewIframe` | 119 | Check if running inside preview iframe |
+| `DEBUG` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `log` | 17 | Функция. Подробности и ограничения — в исходнике. |
+| `MessageType` | 25 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `SafeAreaInsets` | 26 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `SafeAreaCallback` | 27 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `SpacePreviewerMessage` | 29 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `isInIframe` | 39 | Функция. Подробности и ограничения — в исходнике. |
+| `isWeb` | 50 | Функция. Подробности и ограничения — в исходнике. |
+| `sendToParent` | 56 | Функция. Подробности и ограничения — в исходнике. |
+| `initialized` | 70 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `safeAreaCallback` | 71 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `isValidInsets` | 73 | Функция. Подробности и ограничения — в исходнике. |
+| `handleMessage` | 84 | Функция. Подробности и ограничения — в исходнике. |
+| `subscribeSafeAreaInsets` | 107 | Subscribe to safe area updates from the parent container. |
+| `initManusRuntime` | 121 | Initialize Manus Runtime - just notifies parent that app is ready |
+| `isRunningInPreviewIframe` | 136 | Check if running inside preview iframe |
 
 ## [apps/legacy-expo/lib/_core/nativewind-pressable.ts](../../../apps/legacy-expo/lib/_core/nativewind-pressable.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Глобальное сопоставление NativeWind для Pressable: стили передаются явно через style вместо className.
 
 ## [apps/legacy-expo/lib/_core/theme.ts](../../../apps/legacy-expo/lib/_core/theme.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Разворачивает светлые/тёмные оттенки конфигурации в две полные палитры.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `ColorScheme` | 5 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `ThemeColors` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ThemeColorTokens` | 9 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `ThemeColorName` | 10 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `SchemePalette` | 11 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `SchemePaletteItem` | 12 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `buildSchemePalette` | 14 | Функция. Подробности и ограничения — в исходнике. |
-| `SchemeColors` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `RuntimePalette` | 31 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `buildRuntimePalette` | 41 | Функция. Подробности и ограничения — в исходнике. |
-| `Colors` | 55 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ThemeColorPalette` | 60 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `Fonts` | 62 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ColorScheme` | 6 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `ThemeColors` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ThemeColorTokens` | 10 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `ThemeColorName` | 11 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `SchemePalette` | 12 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `SchemePaletteItem` | 13 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `buildSchemePalette` | 15 | Функция. Подробности и ограничения — в исходнике. |
+| `SchemeColors` | 32 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `RuntimePalette` | 34 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `buildRuntimePalette` | 44 | Функция. Подробности и ограничения — в исходнике. |
+| `Colors` | 60 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ThemeColorPalette` | 65 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `Fonts` | 67 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/admin-photo-upload.ts](../../../apps/legacy-expo/lib/admin-photo-upload.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Создаёт временный file-input и возвращает выбранные файлы, удаляя элемент при change/cancel.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `pickWebFiles` | 3 | Функция. Подробности и ограничения — в исходнике. |
-| `blobToBase64` | 26 | Функция. Подробности и ограничения — в исходнике. |
-| `fileName` | 39 | Функция. Подробности и ограничения — в исходнике. |
-| `isHeicLike` | 43 | Функция. Подробности и ограничения — в исходнике. |
-| `isLikelyImage` | 48 | Функция. Подробности и ограничения — в исходнике. |
-| `loadDrawableFromBlob` | 54 | Функция. Подробности и ограничения — в исходнике. |
-| `compressImageBlob` | 91 | Функция. Подробности и ограничения — в исходнике. |
-| `uriToBase64` | 116 | Функция. Подробности и ограничения — в исходнике. |
-| `fileToUpload` | 127 | Функция. Подробности и ограничения — в исходнике. |
+| `pickWebFiles` | 4 | Функция. Подробности и ограничения — в исходнике. |
+| `blobToBase64` | 31 | Функция. Подробности и ограничения — в исходнике. |
+| `fileName` | 46 | Функция. Подробности и ограничения — в исходнике. |
+| `isHeicLike` | 52 | Функция. Подробности и ограничения — в исходнике. |
+| `isLikelyImage` | 59 | Функция. Подробности и ограничения — в исходнике. |
+| `loadDrawableFromBlob` | 67 | Функция. Подробности и ограничения — в исходнике. |
+| `compressImageBlob` | 106 | Функция. Подробности и ограничения — в исходнике. |
+| `uriToBase64` | 133 | Функция. Подробности и ограничения — в исходнике. |
+| `fileToUpload` | 146 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/admin-video-upload.ts](../../../apps/legacy-expo/lib/admin-video-upload.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Получает Blob web-источника либо целиком декодирует native Base64; не является потоковой загрузкой.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `MAX_VIDEO_BYTES` | 5 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `UPLOAD_TIMEOUT_MS` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `uriToBlob` | 8 | Функция. Подробности и ограничения — в исходнике. |
-| `uploadAdminVideoBlob` | 28 | Функция. Подробности и ограничения — в исходнике. |
-| `uploadAdminVideoFromUri` | 81 | Функция. Подробности и ограничения — в исходнике. |
+| `MAX_VIDEO_BYTES` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `UPLOAD_TIMEOUT_MS` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `uriToBlob` | 9 | Функция. Подробности и ограничения — в исходнике. |
+| `uploadAdminVideoBlob` | 31 | Функция. Подробности и ограничения — в исходнике. |
+| `uploadAdminVideoFromUri` | 86 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/brand-font.ts](../../../apps/legacy-expo/lib/brand-font.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Единые имена брендовых гарнитур и читаемого italic для архивных экранов.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `WOOLEN_FONT` | 2 | Licensed Woolen webfont — DARYADARCY wordmark only. |
-| `GOGOL_FONT` | 5 | Shop title and author display name. |
-| `READABLE_ITALIC_FONT` | 8 | Post/button italic — EB Garamond italic cut (not browser synthetic slant). |
-| `READABLE_ITALIC_STYLE` | 11 | Use with READABLE_ITALIC_FONT; font file is already italic — avoid double-slant on web. |
+| `WOOLEN_FONT` | 3 | Licensed Woolen webfont — DARYADARCY wordmark only. |
+| `GOGOL_FONT` | 6 | Shop title and author display name. |
+| `READABLE_ITALIC_FONT` | 9 | Post/button italic — EB Garamond italic cut (not browser synthetic slant). |
+| `READABLE_ITALIC_STYLE` | 12 | Use with READABLE_ITALIC_FONT; font file is already italic — avoid double-slant on web. |
 
 ## [apps/legacy-expo/lib/club-context.tsx](../../../apps/legacy-expo/lib/club-context.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Запасной setter контекста ничего не меняет без Provider.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `ClubContextType` | 6 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `ClubContext` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ClubProvider` | 26 | Функция. Подробности и ограничения — в исходнике. |
-| `useClub` | 65 | Функция. Подробности и ограничения — в исходнике. |
+| `ClubContextType` | 7 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `ClubContext` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ClubProvider` | 31 | Функция. Подробности и ограничения — в исходнике. |
+| `useClub` | 78 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/comment-count-label.ts](../../../apps/legacy-expo/lib/comment-count-label.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Применяет русские формы существительного с исключением 11–14 и целым модулем счётчика.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `commentCountLabel` | 2 | Russian plural for «N комментарий/комментария/комментариев». |
-| `COMMENT_CHAR_LIMIT` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `commentCountLabel` | 3 | Russian plural for «N комментарий/комментария/комментариев». |
+| `COMMENT_CHAR_LIMIT` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/content/castlecore-result.ts](../../../apps/legacy-expo/lib/content/castlecore-result.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Castlecore — Full Result Screen Content Contains all sections for the Castlecore aesthetic result: Part 1 (Free): Сказка, Архетип, Ролевые модели, Глубина Part 2 (Club): Стиль, Пространство, Ритуалы, Блог, Вдохновение
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
@@ -7020,7 +7020,7 @@
 
 ## [apps/legacy-expo/lib/content/cottagecore-result.ts](../../../apps/legacy-expo/lib/content/cottagecore-result.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Cottagecore — Full Result Screen Content Contains all sections for the Cottagecore aesthetic result: Part 1 (Free): Сказка, Архетип, Ролевые модели, Глубина Part 2 (Club): Стиль, Пространство, Ритуалы, Блог, Вдохновение
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
@@ -7034,7 +7034,7 @@
 
 ## [apps/legacy-expo/lib/content/darkacademia-result.ts](../../../apps/legacy-expo/lib/content/darkacademia-result.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Dark Academia — Full Result Screen Content Contains all sections for the Dark Academia aesthetic result: Part 1 (Free): Сказка, Архетип, Ролевые модели, Глубина Part 2 (Club): Стиль, Пространство, Ритуалы, Блог, Вдохновение
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
@@ -7042,7 +7042,7 @@
 
 ## [apps/legacy-expo/lib/content/fairycore-result.ts](../../../apps/legacy-expo/lib/content/fairycore-result.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Fairycore — Full Result Screen Content Contains all sections for the Fairycore aesthetic result: Part 1 (Free): Сказка, Архетип, Ролевые модели, Глубина Part 2 (Club): Стиль, Пространство, Ритуалы, Блог, Вдохновение
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
@@ -7050,7 +7050,7 @@
 
 ## [apps/legacy-expo/lib/content/goblincore-result.ts](../../../apps/legacy-expo/lib/content/goblincore-result.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Goblincore — Full Result Screen Content Contains all sections for the Goblincore aesthetic result: Part 1 (Free): Сказка, Архетип, Ролевые модели, Глубина Part 2 (Club): Стиль, Пространство, Ритуалы, Блог, Вдохновение
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
@@ -7058,7 +7058,7 @@
 
 ## [apps/legacy-expo/lib/content/lightacademia-result.ts](../../../apps/legacy-expo/lib/content/lightacademia-result.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Light Academia — Full Result Screen Content Contains all sections for the Light Academia aesthetic result: Part 1 (Free): Сказка, Архетип, Ролевые модели, Глубина Part 2 (Club): Стиль, Пространство, Ритуалы, Блог, Вдохновение
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
@@ -7066,7 +7066,7 @@
 
 ## [apps/legacy-expo/lib/content/witchcore-result.ts](../../../apps/legacy-expo/lib/content/witchcore-result.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Witchcore — Full Result Screen Content Contains all sections for the Witchcore aesthetic result: Part 1 (Free): Сказка, Архетип, Ролевые модели, Глубина Part 2 (Club): Стиль, Пространство, Ритуалы, Блог, Вдохновение
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
@@ -7074,53 +7074,53 @@
 
 ## [apps/legacy-expo/lib/device.ts](../../../apps/legacy-expo/lib/device.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Распознаёт iPhone/iPad Safari, включая iPadOS с MacIntel и touchpoints.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `isAppleMobileWeb` | 4 | iPhone/iPad Safari and iOS PWA (Platform.OS is still "web"). |
-| `isMobileWeb` | 13 | Функция. Подробности и ограничения — в исходнике. |
+| `isAppleMobileWeb` | 5 | iPhone/iPad Safari and iOS PWA (Platform.OS is still "web"). |
+| `isMobileWeb` | 16 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/emoji-text.ts](../../../apps/legacy-expo/lib/emoji-text.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Выделяет emoji-сегменты для системного шрифта, сохраняя порядок и обычный текст между ними.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `EMOJI_SEGMENT_RE` | 2 | Split plain text so emoji render with system fonts (EBGaramond has no emoji glyphs). |
-| `TextEmojiSegment` | 5 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `splitForEmojiRendering` | 7 | Функция. Подробности и ограничения — в исходнике. |
+| `EMOJI_SEGMENT_RE` | 3 | Split plain text so emoji render with system fonts (EBGaramond has no emoji glyphs). |
+| `TextEmojiSegment` | 6 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `splitForEmojiRendering` | 8 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/home-promo-slides.ts](../../../apps/legacy-expo/lib/home-promo-slides.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Статический порядок промо-слайдов, локальные изображения и внутренние маршруты главной.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `HOME_PROMO_SLIDES` | 4 | Home promo carousel: Club → Quiz → Feed. PNG alpha on paper (see HomePromoCarousel). |
-| `HomePromoSlide` | 25 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `HOME_PROMO_ASPECT` | 28 | 1024×577 source art |
+| `HOME_PROMO_SLIDES` | 5 | Home promo carousel: Club → Quiz → Feed. PNG alpha on paper (see HomePromoCarousel). |
+| `HomePromoSlide` | 26 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `HOME_PROMO_ASPECT` | 29 | 1024×577 source art |
 
 ## [apps/legacy-expo/lib/inspiration-titles.ts](../../../apps/legacy-expo/lib/inspiration-titles.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Удаляет последнюю описательную часть после известного разделителя, оставляя название.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `DESCRIPTION_SEPARATORS` | 1 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `stripInspirationDescription` | 7 | Keeps only the title/name from inspiration list entries that include a trailing description after an em/en dash (e.g. films, books). |
-| `formatInspirationList` | 28 | Функция. Подробности и ограничения — в исходнике. |
+| `DESCRIPTION_SEPARATORS` | 2 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `stripInspirationDescription` | 8 | Keeps only the title/name from inspiration list entries that include a trailing description after an em/en dash (e.g. films, books). |
+| `formatInspirationList` | 31 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/ios-web-press.ts](../../../apps/legacy-expo/lib/ios-web-press.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Объединяет повторные click/press в пределах 400 мс; это локальная защита жеста, не идемпотентность записи.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `PressFn` | 4 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `dedupePress` | 6 | Функция. Подробности и ограничения — в исходнике. |
-| `pressableProps` | 17 | iOS Safari/PWA often ignores RN Web 'onPress' — add click fallback. |
-| `formatToolbarProps` | 29 | Rich-text toolbar: keep textarea selection when tapping Ж/К/🔗 on touch devices. |
+| `PressFn` | 5 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `dedupePress` | 7 | Функция. Подробности и ограничения — в исходнике. |
+| `pressableProps` | 20 | iOS Safari/PWA often ignores RN Web 'onPress' — add click fallback. |
+| `formatToolbarProps` | 34 | Rich-text toolbar: keep textarea selection when tapping Ж/К/🔗 on touch devices. |
 
 ## [apps/legacy-expo/lib/moodboard/autumn-catalog.generated.json](../../../apps/legacy-expo/lib/moodboard/autumn-catalog.generated.json)
 
@@ -7128,452 +7128,452 @@
 
 ## [apps/legacy-expo/lib/moodboard/autumn-catalog.ts](../../../apps/legacy-expo/lib/moodboard/autumn-catalog.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Возвращает первые 51 готовых изображения только осеннего каталога, остальные сезоны пусты.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `AUTUMN_CATALOG` | 5 | First 51 images — unique set from the «осень» folder on Yandex Disk. |
-| `catalogForSeason` | 9 | Функция. Подробности и ограничения — в исходнике. |
+| `AUTUMN_CATALOG` | 6 | First 51 images — unique set from the «осень» folder on Yandex Disk. |
+| `catalogForSeason` | 10 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/moodboard/board-geometry.ts](../../../apps/legacy-expo/lib/moodboard/board-geometry.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Вычисляет квадратную рамку и рабочую область из долевых отступов исходного изображения.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `BOARD_FRAME_ASPECT` | 2 | Measured from «доска» Yandex XXXL preview → PNG 1280×1280. |
-| `BOARD_CANVAS_INSETS` | 4 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `boardLayout` | 11 | Функция. Подробности и ограничения — в исходнике. |
-| `defaultItemPlacement` | 30 | Default placement for a new photo on the linen canvas (reference width 448). |
+| `BOARD_FRAME_ASPECT` | 3 | Measured from «доска» Yandex XXXL preview → PNG 1280×1280. |
+| `BOARD_CANVAS_INSETS` | 5 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `boardLayout` | 12 | Функция. Подробности и ограничения — в исходнике. |
+| `defaultItemPlacement` | 33 | Default placement for a new photo on the linen canvas (reference width 448). |
 
 ## [apps/legacy-expo/lib/moodboard/constants.ts](../../../apps/legacy-expo/lib/moodboard/constants.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Палитра, лимит бесплатных локальных досок и доступность сезонных каталогов.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `MOODBOARD_FREE_LIMIT` | 3 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `MOODBOARD_BROWN` | 5 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `MOODBOARD_BROWN_DARK` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `MOODBOARD_CREAM` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `MOODBOARD_RIBBON` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `PAPER_TEXTURE_URI` | 10 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `SEASON_META` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `MOODBOARD_FREE_LIMIT` | 4 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `MOODBOARD_BROWN` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `MOODBOARD_BROWN_DARK` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `MOODBOARD_CREAM` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `MOODBOARD_RIBBON` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `PAPER_TEXTURE_URI` | 11 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `SEASON_META` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/moodboard/export.ts](../../../apps/legacy-expo/lib/moodboard/export.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Исторический native fallback сохраняет первое фото, а не коллаж; запрашивает галерею и использует один временный путь.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `saveAndShareMoodboard` | 6 | Функция. Подробности и ограничения — в исходнике. |
+| `saveAndShareMoodboard` | 7 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/moodboard/export.web.ts](../../../apps/legacy-expo/lib/moodboard/export.web.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Декодирует CORS-совместимую картинку для последующего Canvas-экспорта.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `EXPORT_W` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `EXPORT_H` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `loadImage` | 11 | Функция. Подробности и ограничения — в исходнике. |
-| `boardFrameSrc` | 21 | Функция. Подробности и ограничения — в исходнике. |
-| `exportMoodboardImage` | 27 | Функция. Подробности и ограничения — в исходнике. |
-| `saveAndShareMoodboard` | 66 | Функция. Подробности и ограничения — в исходнике. |
+| `EXPORT_W` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `EXPORT_H` | 10 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `loadImage` | 12 | Функция. Подробности и ограничения — в исходнике. |
+| `boardFrameSrc` | 24 | Функция. Подробности и ограничения — в исходнике. |
+| `exportMoodboardImage` | 32 | Функция. Подробности и ограничения — в исходнике. |
+| `saveAndShareMoodboard` | 73 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/moodboard/folder-assets.ts](../../../apps/legacy-expo/lib/moodboard/folder-assets.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Статические локальные alpha-ресурсы четырёх папок и рамки доски.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `MOODBOARD_FOLDER_SOURCES` | 5 | Local PNG with alpha — без чёрного фона и без CDN-кэша. |
-| `MOODBOARD_BOARD_FRAME_SOURCE` | 12 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `MOODBOARD_FOLDER_SOURCES` | 6 | Local PNG with alpha — без чёрного фона и без CDN-кэша. |
+| `MOODBOARD_BOARD_FRAME_SOURCE` | 13 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/moodboard/ribbon-layout.ts](../../../apps/legacy-expo/lib/moodboard/ribbon-layout.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Связанные размеры ленты порядка и её миниатюр, чтобы drag-шаг совпадал с отрисовкой.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `MOODBOARD_RIBBON_HEIGHT` | 2 | Высота коричневой ленты «Порядок». |
-| `MOODBOARD_RIBBON_PADDING_V` | 3 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `MOODBOARD_RIBBON_GAP` | 4 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `MOODBOARD_RIBBON_THUMB` | 7 | Миниатюры масштабируются вместе с лентой. |
+| `MOODBOARD_RIBBON_HEIGHT` | 3 | Высота коричневой ленты «Порядок». |
+| `MOODBOARD_RIBBON_PADDING_V` | 4 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `MOODBOARD_RIBBON_GAP` | 5 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `MOODBOARD_RIBBON_THUMB` | 8 | Миниатюры масштабируются вместе с лентой. |
 
 ## [apps/legacy-expo/lib/moodboard/storage.ts](../../../apps/legacy-expo/lib/moodboard/storage.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Создаёт локальную метку доски, не криптографический идентификатор доступа.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `STORAGE_KEY` | 5 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `newId` | 7 | Функция. Подробности и ограничения — в исходнике. |
-| `readAll` | 11 | Функция. Подробности и ограничения — в исходнике. |
-| `writeAll` | 22 | Функция. Подробности и ограничения — в исходнике. |
-| `listMoodboards` | 26 | Функция. Подробности и ограничения — в исходнике. |
-| `getMoodboard` | 31 | Функция. Подробности и ограничения — в исходнике. |
-| `saveMoodboard` | 36 | Функция. Подробности и ограничения — в исходнике. |
-| `deleteMoodboard` | 45 | Функция. Подробности и ограничения — в исходнике. |
-| `canCreateMoodboard` | 50 | Функция. Подробности и ограничения — в исходнике. |
-| `createMoodboard` | 56 | Функция. Подробности и ограничения — в исходнике. |
-| `findLatestBoardForSeason` | 73 | Функция. Подробности и ограничения — в исходнике. |
+| `STORAGE_KEY` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `newId` | 8 | Функция. Подробности и ограничения — в исходнике. |
+| `readAll` | 14 | Функция. Подробности и ограничения — в исходнике. |
+| `writeAll` | 27 | Функция. Подробности и ограничения — в исходнике. |
+| `listMoodboards` | 33 | Функция. Подробности и ограничения — в исходнике. |
+| `getMoodboard` | 40 | Функция. Подробности и ограничения — в исходнике. |
+| `saveMoodboard` | 47 | Функция. Подробности и ограничения — в исходнике. |
+| `deleteMoodboard` | 58 | Функция. Подробности и ограничения — в исходнике. |
+| `canCreateMoodboard` | 65 | Функция. Подробности и ограничения — в исходнике. |
+| `createMoodboard` | 73 | Функция. Подробности и ограничения — в исходнике. |
+| `findLatestBoardForSeason` | 92 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/moodboard/types.ts](../../../apps/legacy-expo/lib/moodboard/types.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Формат локальной доски: координаты в рабочей области, порядок слоёв и метка прозрачной наклейки.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `MoodboardSeason` | 1 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `MoodboardItem` | 3 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `MoodboardDoc` | 14 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `MoodboardCatalogImage` | 22 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `MoodboardSeason` | 2 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `MoodboardItem` | 4 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `MoodboardDoc` | 15 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `MoodboardCatalogImage` | 23 | Контракт типов. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/notifications.ts](../../../apps/legacy-expo/lib/notifications.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Показывает native уведомление на переднем плане со звуком, не меняя badge.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `requestNotificationPermissions` | 18 | Request notification permissions (must be called before scheduling). Returns true if permissions are granted. |
-| `schedulePostReminder` | 44 | Schedule a local notification reminder for a scheduled post. The notification fires at the scheduled time to remind the admin to publish. |
-| `cancelPostReminder` | 77 | Cancel a previously scheduled notification by its identifier. |
-| `cancelAllPostReminders` | 85 | Cancel all scheduled notifications (useful for cleanup). |
-| `getScheduledReminders` | 93 | Get all currently scheduled notifications. |
+| `requestNotificationPermissions` | 19 | Request notification permissions (must be called before scheduling). Returns true if permissions are granted. |
+| `schedulePostReminder` | 47 | Schedule a local notification reminder for a scheduled post. The notification fires at the scheduled time to remind the admin to publish. |
+| `cancelPostReminder` | 82 | Cancel a previously scheduled notification by its identifier. |
+| `cancelAllPostReminders` | 92 | Cancel all scheduled notifications (useful for cleanup). |
+| `getScheduledReminders` | 102 | Get all currently scheduled notifications. |
 
 ## [apps/legacy-expo/lib/notifications.web.ts](../../../apps/legacy-expo/lib/notifications.web.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Web-заглушка явно сообщает, что локальные native уведомления здесь недоступны.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `requestNotificationPermissions` | 1 | Функция. Подробности и ограничения — в исходнике. |
-| `schedulePostReminder` | 5 | Функция. Подробности и ограничения — в исходнике. |
-| `cancelPostReminder` | 13 | Функция. Подробности и ограничения — в исходнике. |
-| `cancelAllPostReminders` | 15 | Функция. Подробности и ограничения — в исходнике. |
-| `getScheduledReminders` | 17 | Функция. Подробности и ограничения — в исходнике. |
+| `requestNotificationPermissions` | 2 | Функция. Подробности и ограничения — в исходнике. |
+| `schedulePostReminder` | 8 | Функция. Подробности и ограничения — в исходнике. |
+| `cancelPostReminder` | 18 | Функция. Подробности и ограничения — в исходнике. |
+| `cancelAllPostReminders` | 22 | Функция. Подробности и ограничения — в исходнике. |
+| `getScheduledReminders` | 26 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/photo-aspect-ratios.ts](../../../apps/legacy-expo/lib/photo-aspect-ratios.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Читает соотношение сторон из общего кеша процесса по точному URI.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `FALLBACK_PHOTO_RATIO` | 4 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ratioCache` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `getCachedPhotoRatio` | 8 | Функция. Подробности и ограничения — в исходнике. |
-| `rememberPhotoRatio` | 12 | Функция. Подробности и ограничения — в исходнике. |
-| `probePhotoRatio` | 19 | Функция. Подробности и ограничения — в исходнике. |
-| `usePhotoAspectRatios` | 39 | Функция. Подробности и ограничения — в исходнике. |
-| `useMediaAspectRatio` | 68 | Функция. Подробности и ограничения — в исходнике. |
-| `normalizeLinkUrl` | 98 | Функция. Подробности и ограничения — в исходнике. |
+| `FALLBACK_PHOTO_RATIO` | 5 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ratioCache` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `getCachedPhotoRatio` | 9 | Функция. Подробности и ограничения — в исходнике. |
+| `rememberPhotoRatio` | 15 | Функция. Подробности и ограничения — в исходнике. |
+| `probePhotoRatio` | 24 | Функция. Подробности и ограничения — в исходнике. |
+| `usePhotoAspectRatios` | 46 | Функция. Подробности и ограничения — в исходнике. |
+| `useMediaAspectRatio` | 79 | Функция. Подробности и ограничения — в исходнике. |
+| `normalizeLinkUrl` | 113 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/photo-urls.ts](../../../apps/legacy-expo/lib/photo-urls.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Отбрасывает нестроковые и небезопасные схемы/учётные данные, сохраняя порядок HTTP(S) картинок.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `sanitizePhotoUrls` | 2 | Ignore malformed API photo values without changing valid URL order. |
+| `sanitizePhotoUrls` | 3 | Ignore malformed API photo values without changing valid URL order. |
 
 ## [apps/legacy-expo/lib/post-date.ts](../../../apps/legacy-expo/lib/post-date.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Предпочитает дату публикации и безопасно отклоняет невалидную дату создания.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `postDisplayDate` | 1 | Функция. Подробности и ограничения — в исходнике. |
+| `postDisplayDate` | 2 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/post-media-photos.ts](../../../apps/legacy-expo/lib/post-media-photos.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Извлекает декодированное имя из пути без query; ожидает корректные escape-последовательности.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `mediaBasename` | 1 | Функция. Подробности и ограничения — в исходнике. |
-| `isThumbUrl` | 5 | Функция. Подробности и ограничения — в исходнике. |
-| `thumbForVideo` | 10 | Функция. Подробности и ограничения — в исходнике. |
-| `splitVideoPhotos` | 22 | Функция. Подробности и ограничения — в исходнике. |
+| `mediaBasename` | 2 | Функция. Подробности и ограничения — в исходнике. |
+| `isThumbUrl` | 8 | Функция. Подробности и ограничения — в исходнике. |
+| `thumbForVideo` | 15 | Функция. Подробности и ограничения — в исходнике. |
+| `splitVideoPhotos` | 29 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/post-tags.ts](../../../apps/legacy-expo/lib/post-tags.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Показывает русское название известного slug, неизвестный оставляет как есть.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `PostTag` | 1 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `CLUB_RUBRIC_TAGS` | 8 | Four club section tabs — shown first, with a stronger chip. |
-| `SEASON_TAGS` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `TOPIC_TAGS` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `FEED_TAGS` | 46 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CLUB_TAGS` | 47 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ALL_POST_TAGS` | 48 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `LABEL_BY_SLUG` | 50 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `postTagLabel` | 52 | Функция. Подробности и ограничения — в исходнике. |
-| `postHasTag` | 57 | Функция. Подробности и ограничения — в исходнике. |
-| `tagsForTarget` | 66 | Функция. Подробности и ограничения — в исходнике. |
+| `PostTag` | 2 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `CLUB_RUBRIC_TAGS` | 9 | Four club section tabs — shown first, with a stronger chip. |
+| `SEASON_TAGS` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `TOPIC_TAGS` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `FEED_TAGS` | 47 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CLUB_TAGS` | 48 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ALL_POST_TAGS` | 49 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `LABEL_BY_SLUG` | 51 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `postTagLabel` | 53 | Функция. Подробности и ограничения — в исходнике. |
+| `postHasTag` | 60 | Функция. Подробности и ограничения — в исходнике. |
+| `tagsForTarget` | 71 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/quiz-data.ts](../../../apps/legacy-expo/lib/quiz-data.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Создаёт независимую нулевую таблицу для семи эстетик.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `AestheticKey` | 11 | Quiz Data Layer — "Тест: Какая твоя сказка?" 10 questions, 7 answer options each (one per aesthetic). Visual questions show images without text descriptions. Layout: 3 top + 4 bottom grid. |
-| `QuestionType` | 20 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `ScoreEntry` | 22 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `Answer` | 27 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `Question` | 35 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `AestheticResult` | 48 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `QuizResult` | 65 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `IMAGES` | 74 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `QUESTIONS` | 134 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `AESTHETIC_RESULTS` | 644 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `createEmptyScores` | 809 | Функция. Подробности и ограничения — в исходнике. |
-| `calculateResult` | 821 | Функция. Подробности и ограничения — в исходнике. |
-| `AESTHETIC_NAMES` | 864 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `AestheticKey` | 12 | Quiz Data Layer — "Тест: Какая твоя сказка?" 10 questions, 7 answer options each (one per aesthetic). Visual questions show images without text descriptions. Layout: 3 top + 4 bottom grid. |
+| `QuestionType` | 21 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `ScoreEntry` | 23 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `Answer` | 28 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `Question` | 36 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `AestheticResult` | 49 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `QuizResult` | 66 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `IMAGES` | 75 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `QUESTIONS` | 135 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `AESTHETIC_RESULTS` | 645 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `createEmptyScores` | 810 | Функция. Подробности и ограничения — в исходнике. |
+| `calculateResult` | 824 | Функция. Подробности и ограничения — в исходнике. |
+| `AESTHETIC_NAMES` | 869 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/quiz-state.ts](../../../apps/legacy-expo/lib/quiz-state.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Переключает локальные этапы теста и вычисляет результат только при завершении вопросов.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `QuizPhase` | 10 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `QuizState` | 12 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `initialState` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `QuizAction` | 28 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `quizReducer` | 36 | Функция. Подробности и ограничения — в исходнике. |
-| `QuizContextValue` | 68 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `QuizContext` | 73 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `useQuiz` | 75 | Функция. Подробности и ограничения — в исходнике. |
+| `QuizPhase` | 11 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `QuizState` | 13 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `initialState` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `QuizAction` | 29 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `quizReducer` | 37 | Функция. Подробности и ограничения — в исходнике. |
+| `QuizContextValue` | 71 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `QuizContext` | 76 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `useQuiz` | 78 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/register-push.ts](../../../apps/legacy-expo/lib/register-push.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Запрашивает разрешение только на настоящем native устройстве и отправляет Expo-токен; сбой push необязателен для входа.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `registerPushToken` | 9 | Функция. Подробности и ограничения — в исходнике. |
-| `registerNativePush` | 51 | Функция. Подробности и ограничения — в исходнике. |
+| `registerPushToken` | 10 | Функция. Подробности и ограничения — в исходнике. |
+| `registerNativePush` | 54 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/register-push.web.ts](../../../apps/legacy-expo/lib/register-push.web.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Платформенная web-заглушка не запрашивает Expo push-токен.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `registerPushToken` | 3 | Функция. Подробности и ограничения — в исходнике. |
-| `registerNativePush` | 7 | Функция. Подробности и ограничения — в исходнике. |
+| `registerPushToken` | 4 | Функция. Подробности и ограничения — в исходнике. |
+| `registerNativePush` | 10 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/resolve-post-video.ts](../../../apps/legacy-expo/lib/resolve-post-video.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Определяет прямое видео по поддерживаемому расширению пути без query.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `VIDEO_URL_RE` | 3 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `PostMediaLike` | 5 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `ResolvedPostVideo` | 11 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `isVideoMediaUrl` | 19 | Функция. Подробности и ограничения — в исходнике. |
-| `resolvePostVideo` | 24 | Resolve video + gallery photos from post_media and/or legacy video URLs in photos[]. |
+| `VIDEO_URL_RE` | 4 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `PostMediaLike` | 6 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `ResolvedPostVideo` | 12 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `isVideoMediaUrl` | 20 | Функция. Подробности и ограничения — в исходнике. |
+| `resolvePostVideo` | 27 | Resolve video + gallery photos from post_media and/or legacy video URLs in photos[]. |
 
 ## [apps/legacy-expo/lib/rich-text-anchors.ts](../../../apps/legacy-expo/lib/rich-text-anchors.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Считает номер вхождения выделенного текста до его позиции для повторяющихся фрагментов.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `Selection` | 1 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `selectionOccurrence` | 3 | Функция. Подробности и ограничения — в исходнике. |
-| `rangeForOccurrence` | 17 | Функция. Подробности и ограничения — в исходнике. |
-| `rangesOverlap` | 33 | Функция. Подробности и ограничения — в исходнике. |
+| `Selection` | 2 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `selectionOccurrence` | 4 | Функция. Подробности и ограничения — в исходнике. |
+| `rangeForOccurrence` | 20 | Функция. Подробности и ограничения — в исходнике. |
+| `rangesOverlap` | 38 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/selection.ts](../../../apps/legacy-expo/lib/selection.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Упорядочивает границы и отклоняет пустое либо выходящее за текст выделение.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `RICH_TEXT_INPUT_ID` | 3 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Selection` | 5 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `normalizeSelection` | 7 | Функция. Подробности и ограничения — в исходнике. |
-| `normalizeFormatRange` | 15 | Trim spaces/tabs at edges; keep newlines so multi-line selections stay intact. |
-| `SelectionAnchor` | 25 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `anchorSelection` | 27 | Функция. Подробности и ограничения — в исходнике. |
-| `resolveFormatRange` | 37 | Match selection by stored text if indices drifted (emoji, edits, mobile selection quirks). |
-| `findRichTextInput` | 72 | Функция. Подробности и ограничения — в исходнике. |
-| `readLiveSelection` | 81 | Функция. Подробности и ограничения — в исходнике. |
-| `restoreDomSelection` | 91 | Функция. Подробности и ограничения — в исходнике. |
+| `RICH_TEXT_INPUT_ID` | 4 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Selection` | 6 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `normalizeSelection` | 8 | Функция. Подробности и ограничения — в исходнике. |
+| `normalizeFormatRange` | 18 | Trim spaces/tabs at edges; keep newlines so multi-line selections stay intact. |
+| `SelectionAnchor` | 30 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `anchorSelection` | 32 | Функция. Подробности и ограничения — в исходнике. |
+| `resolveFormatRange` | 44 | Match selection by stored text if indices drifted (emoji, edits, mobile selection quirks). |
+| `findRichTextInput` | 81 | Функция. Подробности и ограничения — в исходнике. |
+| `readLiveSelection` | 92 | Функция. Подробности и ограничения — в исходнике. |
+| `restoreDomSelection` | 104 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/splash-boot.ts](../../../apps/legacy-expo/lib/splash-boot.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Удержание native splash до готовности корневого layout; web использует отдельную платформенную реализацию.
 
 ## [apps/legacy-expo/lib/splash-boot.web.ts](../../../apps/legacy-expo/lib/splash-boot.web.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Web-совместимость: native splash в браузере не удерживается.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `SplashScreen` | 1 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `SplashScreen` | 2 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/sync-club-profile.ts](../../../apps/legacy-expo/lib/sync-club-profile.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Отличает HTTP(S) аватар от локального URI устройства.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `CLUB_PROFILE_NAME_KEY` | 4 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CLUB_PROFILE_GENDER_KEY` | 5 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CLUB_PROFILE_AVATAR_KEY` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Gender` | 8 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `ClubProfileServerApi` | 10 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `isRemoteUrl` | 15 | Функция. Подробности и ограничения — в исходнике. |
-| `syncClubProfileToServer` | 20 | Push locally saved club profile (name, gender, avatar) to the server user record. |
+| `CLUB_PROFILE_NAME_KEY` | 5 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CLUB_PROFILE_GENDER_KEY` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CLUB_PROFILE_AVATAR_KEY` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Gender` | 9 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `ClubProfileServerApi` | 11 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `isRemoteUrl` | 16 | Функция. Подробности и ограничения — в исходнике. |
+| `syncClubProfileToServer` | 23 | Push locally saved club profile (name, gender, avatar) to the server user record. |
 
 ## [apps/legacy-expo/lib/tab-assets.ts](../../../apps/legacy-expo/lib/tab-assets.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Публичные декоративные ресурсы вкладок и фоновая музыка, не приватные клубные вложения.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `CLUB_MUSIC_URL` | 2 | Licensed ambient music for Club Darcy tab (Darcy's Autumn). |
-| `VIDEO_FILM_DECOR_URL` | 6 | Video tab banner decorations (from design reference) |
-| `VIDEO_ROSE_DECOR_URL` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `CLUB_MUSIC_URL` | 3 | Licensed ambient music for Club Darcy tab (Darcy's Autumn). |
+| `VIDEO_FILM_DECOR_URL` | 7 | Video tab banner decorations (from design reference) |
+| `VIDEO_ROSE_DECOR_URL` | 10 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/telegram-albums.mjs](../../../apps/legacy-expo/lib/telegram-albums.mjs)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Склеивает строку или Telegram entities и убирает краевые пробелы.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `plainText` | 6 | Telegram albums export as several messages with the same date_unixtime: one carries text, siblings are photo-only. |
-| `isPhotoOnlyMessage` | 12 | Функция. Подробности и ограничения — в исходнике. |
-| `hasAlbumText` | 17 | Функция. Подробности и ограничения — в исходнике. |
-| `buildAlbumGroups` | 22 | Group messages sharing the same unix timestamp (TG album burst). |
-| `collectAlbumMessages` | 54 | Функция. Подробности и ограничения — в исходнике. |
+| `plainText` | 7 | Telegram albums export as several messages with the same date_unixtime: one carries text, siblings are photo-only. |
+| `isPhotoOnlyMessage` | 15 | Функция. Подробности и ограничения — в исходнике. |
+| `hasAlbumText` | 22 | Функция. Подробности и ограничения — в исходнике. |
+| `buildAlbumGroups` | 29 | Group messages sharing the same unix timestamp (TG album burst). |
+| `collectAlbumMessages` | 63 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/telegram-post-tags.mjs](../../../apps/legacy-expo/lib/telegram-post-tags.mjs)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Нормализует исторический русский хештег в известный внутренний slug.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `HASHTAG_TO_SLUG` | 6 | Parse Telegram export entities into post text, richText, and tag slugs. Footer tags in TG are doubled: #гардероб👒 — we keep chips, drop hashtag+emoji from body. |
-| `RUBRIC_SLUGS` | 47 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `hashtagToSlug` | 49 | Функция. Подробности и ограничения — в исходнике. |
-| `resolveRubricTags` | 55 | Tags mapped from section hashtags anywhere in the message. |
-| `isTaggedClubMessage` | 68 | True when message should be imported with --filter=tagged. |
-| `footerTagBoundary` | 83 | Footer at end of TG posts: repeating (#tag + sticker emoji + space). Returns index where footer starts (entities before this index are body). |
-| `entitiesToPlain` | 119 | Функция. Подробности и ограничения — в исходнике. |
-| `entitiesToRichText` | 127 | Функция. Подробности и ограничения — в исходнике. |
-| `cleanPlainText` | 190 | Функция. Подробности и ограничения — в исходнике. |
-| `mergeTags` | 201 | Функция. Подробности и ограничения — в исходнике. |
-| `buildTelegramPostContent` | 217 | Функция. Подробности и ограничения — в исходнике. |
+| `HASHTAG_TO_SLUG` | 7 | Parse Telegram export entities into post text, richText, and tag slugs. Footer tags in TG are doubled: #гардероб👒 — we keep chips, drop hashtag+emoji from body. |
+| `RUBRIC_SLUGS` | 48 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `hashtagToSlug` | 50 | Функция. Подробности и ограничения — в исходнике. |
+| `resolveRubricTags` | 58 | Tags mapped from section hashtags anywhere in the message. |
+| `isTaggedClubMessage` | 73 | True when message should be imported with --filter=tagged. |
+| `footerTagBoundary` | 90 | Footer at end of TG posts: repeating (#tag + sticker emoji + space). Returns index where footer starts (entities before this index are body). |
+| `entitiesToPlain` | 128 | Функция. Подробности и ограничения — в исходнике. |
+| `entitiesToRichText` | 138 | Функция. Подробности и ограничения — в исходнике. |
+| `cleanPlainText` | 205 | Функция. Подробности и ограничения — в исходнике. |
+| `mergeTags` | 218 | Функция. Подробности и ограничения — в исходнике. |
+| `buildTelegramPostContent` | 236 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/theme-provider.tsx](../../../apps/legacy-expo/lib/theme-provider.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Согласует RN Appearance, NativeWind и DOM-переменные старой темы.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `ThemeContextValue` | 7 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `ThemeContext` | 12 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ThemeProvider` | 14 | Функция. Подробности и ограничения — в исходнике. |
-| `useThemeContext` | 71 | Функция. Подробности и ограничения — в исходнике. |
+| `ThemeContextValue` | 8 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `ThemeContext` | 13 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ThemeProvider` | 15 | Функция. Подробности и ограничения — в исходнике. |
+| `useThemeContext` | 80 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/trpc.ts](../../../apps/legacy-expo/lib/trpc.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Настраивает старый batch-клиент с superjson, cookie и native Bearer; 15-секундный race не отменяет сам fetch.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `trpc` | 15 | tRPC React client for type-safe API calls. IMPORTANT (tRPC v11): The 'transformer' must be inside 'httpBatchLink', NOT at the root createClient level. This ensures client and server use the same serialization format (superjson). |
-| `createTRPCClient` | 21 | Creates the tRPC client with proper configuration. Call this once in your app's root layout. |
+| `trpc` | 16 | tRPC React client for type-safe API calls. IMPORTANT (tRPC v11): The 'transformer' must be inside 'httpBatchLink', NOT at the root createClient level. This ensures client and server use the same serialization format (superjson). |
+| `createTRPCClient` | 22 | Creates the tRPC client with proper configuration. Call this once in your app's root layout. |
 
 ## [apps/legacy-expo/lib/use-rich-text-formatting.ts](../../../apps/legacy-expo/lib/use-rich-text-formatting.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Считает сегменты ссылок в richText для выбора более полного снимка перед отправкой.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `countLinks` | 15 | Функция. Подробности и ограничения — в исходнике. |
-| `runAfterSelectionReady` | 23 | Функция. Подробности и ограничения — в исходнике. |
-| `Selection` | 40 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `useRichTextFormatting` | 42 | Функция. Подробности и ограничения — в исходнике. |
+| `countLinks` | 16 | Функция. Подробности и ограничения — в исходнике. |
+| `runAfterSelectionReady` | 26 | Функция. Подробности и ограничения — в исходнике. |
+| `Selection` | 45 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `useRichTextFormatting` | 47 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/utils.ts](../../../apps/legacy-expo/lib/utils.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Сначала разворачивает условные className, затем разрешает конфликты Tailwind классов.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `cn` | 13 | Combines class names using clsx and tailwind-merge. This ensures Tailwind classes are properly merged without conflicts. Usage: '''tsx cn("px-4 py-2", isActive && "bg-primary", className) ''' |
+| `cn` | 14 | Combines class names using clsx and tailwind-merge. This ensures Tailwind classes are properly merged without conflicts. Usage: '''tsx cn("px-4 py-2", isActive && "bg-primary", className) ''' |
 
 ## [apps/legacy-expo/lib/video-poster.web.ts](../../../apps/legacy-expo/lib/video-poster.web.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Извлекает JPEG-кадр из web Blob после seek; возвращает null при ошибке и освобождает object URL.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `extractVideoPosterBlob` | 2 | Extract a JPEG poster frame from a video blob (web admin upload). |
+| `extractVideoPosterBlob` | 3 | Extract a JPEG poster frame from a video blob (web admin upload). |
 
 ## [apps/legacy-expo/lib/video-title.ts](../../../apps/legacy-expo/lib/video-title.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Применяет русские overrides старого YouTube-каталога, не изменяя сохранённый заголовок.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `TITLE_OVERRIDES_BY_ID` | 1 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `TITLE_OVERRIDES` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `displayVideoTitle` | 15 | Prefer Russian display titles; DB may still hold English YouTube defaults. |
+| `TITLE_OVERRIDES_BY_ID` | 2 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `TITLE_OVERRIDES` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `displayVideoTitle` | 16 | Prefer Russian display titles; DB may still hold English YouTube defaults. |
 
 ## [apps/legacy-expo/lib/web-tab-scene-fix.ts](../../../apps/legacy-expo/lib/web-tab-scene-fix.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Оставленный совместимый no-op: прежнее исправление DOM было отключено после регрессий.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `patchTabSceneShell` | 4 | Legacy no-op — DOM tab patching removed after production regressions. |
-| `disableAriaHiddenTabScenes` | 6 | Функция. Подробности и ограничения — в исходнике. |
-| `sweepGhostTabLayersForPath` | 18 | Функция. Подробности и ограничения — в исходнике. |
-| `reconcileWebTabScenes` | 20 | Функция. Подробности и ограничения — в исходнике. |
+| `patchTabSceneShell` | 5 | Legacy no-op — DOM tab patching removed after production regressions. |
+| `disableAriaHiddenTabScenes` | 9 | Функция. Подробности и ограничения — в исходнике. |
+| `sweepGhostTabLayersForPath` | 23 | Функция. Подробности и ограничения — в исходнике. |
+| `reconcileWebTabScenes` | 27 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/web-touch-unblock.ts](../../../apps/legacy-expo/lib/web-touch-unblock.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Снимает старый boot-layer, разрешает жесты root и блокирует скрытые сцены web.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `runWebTouchUnblock` | 5 | Light touch fix: only disable pointer events on aria-hidden layers. |
-| `installWebTouchUnblock` | 19 | Функция. Подробности и ограничения — в исходнике. |
+| `runWebTouchUnblock` | 6 | Light touch fix: only disable pointer events on aria-hidden layers. |
+| `installWebTouchUnblock` | 22 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/lib/web-viewport.ts](../../../apps/legacy-expo/lib/web-viewport.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Ограничивает логическую ширину window 480 px, сохраняя прочие размеры RN.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `WEB_APP_MAX_WIDTH` | 4 | Phone-width column on desktop/tablet so the Expo UI does not stretch. |
-| `Dim` | 6 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `clampWindow` | 8 | Функция. Подробности и ограничения — в исходнике. |
-| `patchWebDimensions` | 15 | Функция. Подробности и ограничения — в исходнике. |
+| `WEB_APP_MAX_WIDTH` | 5 | Phone-width column on desktop/tablet so the Expo UI does not stretch. |
+| `Dim` | 7 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `clampWindow` | 9 | Функция. Подробности и ограничения — в исходнике. |
+| `patchWebDimensions` | 18 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/metro.config.js](../../../apps/legacy-expo/metro.config.js)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Пакетирование WebM и NativeWind; release-minifier убирает console/debugger без изменения исходников.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `{ getDefaultConfig }` | 1 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `{ withNativeWind }` | 2 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `config` | 4 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `{ getDefaultConfig }` | 2 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `{ withNativeWind }` | 3 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `config` | 5 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/nativewind-env.d.ts](../../../apps/legacy-expo/nativewind-env.d.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+/ <reference types="nativewind/types" />
 
 ## [apps/legacy-expo/package.json](../../../apps/legacy-expo/package.json)
 
@@ -7593,30 +7593,30 @@
 
 ## [apps/legacy-expo/tailwind.config.js](../../../apps/legacy-expo/tailwind.config.js)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. Пути сканирования старых экранов, цветовые CSS-переменные и light/dark варианты NativeWind.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `{ themeColors }` | 1 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `plugin` | 2 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `tailwindColors` | 4 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `{ themeColors }` | 2 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `plugin` | 3 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `tailwindColors` | 5 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/theme.config.d.ts](../../../apps/legacy-expo/theme.config.d.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `themeColors` | 1 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `themeConfig` | 13 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [apps/legacy-expo/theme.config.js](../../../apps/legacy-expo/theme.config.js)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архив Expo. TypeScript-описание JS-токенов темы без отдельного runtime состояния.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
 | `themeColors` | 2 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `themeConfig` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/legacy-expo/theme.config.js](../../../apps/legacy-expo/theme.config.js)
+
+Архив Expo. Исходные light/dark значения токенов, общие для Tailwind и runtime-палитры.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `themeColors` | 3 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [apps/legacy-expo/tsconfig.json](../../../apps/legacy-expo/tsconfig.json)
 
@@ -7732,247 +7732,247 @@
 
 ## [apps/legacy-web/src/App.tsx](../../../apps/legacy-web/src/App.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архивный Vite-клиент: связывает прежние маршруты с ленивыми экранами; основной клиент находится в apps/frontend.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `TrpcGate` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Feed` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Post` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Videos` | 10 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Video` | 11 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Club` | 12 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Interactive` | 13 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Library` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `About` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Shop` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Product` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Profile` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Login` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Quiz` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Fallback` | 22 | Функция. Подробности и ограничения — в исходнике. |
-| `withTrpc` | 31 | Функция. Подробности и ограничения — в исходнике. |
-| `App` | 35 | Функция. Подробности и ограничения — в исходнике. |
+| `TrpcGate` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Feed` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Post` | 10 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Videos` | 11 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Video` | 12 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Club` | 13 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Interactive` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Library` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `About` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Shop` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Product` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Profile` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Login` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Quiz` | 21 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Fallback` | 24 | Показывает статическую заставку во время загрузки ленивого модуля; сетевые ошибки эта граница не обрабатывает. |
+| `withTrpc` | 34 | Подключает провайдер запросов только к экранам, которым нужен API. |
+| `App` | 39 | Собирает прежнюю оболочку, сессию и BrowserRouter; неизвестный маршрут возвращает на главную. |
 
 ## [apps/legacy-web/src/auth.tsx](../../../apps/legacy-web/src/auth.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архивная браузерная сессия Vite. Не переносить её упрощённую политику ошибок в действующий клиент.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `AuthUser` | 3 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `AuthContextValue` | 11 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `AuthContext` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `readError` | 22 | Функция. Подробности и ограничения — в исходнике. |
-| `AuthProvider` | 32 | Функция. Подробности и ограничения — в исходнике. |
-| `useAuth` | 91 | Функция. Подробности и ограничения — в исходнике. |
+| `AuthUser` | 4 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `AuthContextValue` | 12 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `AuthContext` | 21 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `readError` | 24 | Читает ответ один раз и извлекает прежнее публичное сообщение, сохраняя текстовый fallback. |
+| `AuthProvider` | 35 | Хранит старую модель пользователя и предоставляет действия входа. Этот архивный код не содержит современных журналов неопределённых операций. |
+| `useAuth` | 100 | Не допускает использования старого контекста вне его провайдера. |
 
 ## [apps/legacy-web/src/data.ts](../../../apps/legacy-web/src/data.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архивные тексты, товары и адреса Vite-клиента; старые цены и прямые ссылки не являются настройками текущего приложения.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `BANNERS` | 1 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `DEFAULT_TAGS` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CLUB_BANNER` | 60 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `CLUB_BENEFITS` | 63 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Product` | 71 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `PRODUCTS` | 83 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `LIBRARY` | 152 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ABOUT_PHOTOS` | 208 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `BANNERS` | 3 | Навигационные открытки прежней главной; порядок определяет отдельно выделенную Ленту. |
+| `DEFAULT_TAGS` | 42 | Резервные отображаемые рубрики, если сервер не вернул собственный список. |
+| `CLUB_BANNER` | 64 | Единственный встроенный баннер старого клиента; сезонные настройки API здесь не используются. |
+| `CLUB_BENEFITS` | 68 | Прежние рекламные преимущества подписки без расчёта прав или оплаты. |
+| `Product` | 77 | Контракт встроенной карточки: внешние торговые ссылки и отдельные строки описания. |
+| `PRODUCTS` | 90 | Старый каталог с внешними маркетплейсами и прежними тестовыми ссылками оплаты; не источник боевых цен. |
+| `LIBRARY` | 160 | Прежние публичные ссылки Библиотеки; флаг club не добавляет серверной защиты. |
+| `ABOUT_PHOTOS` | 217 | Фиксированная галерея страницы автора. |
 
 ## [apps/legacy-web/src/img.tsx](../../../apps/legacy-web/src/img.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архивная обёртка картинок Vite и прежняя маршрутизация публичного S3 через /media.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `S3_PREFIX` | 1 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `mediaUrl` | 3 | Функция. Подробности и ограничения — в исходнике. |
-| `ImgProps` | 12 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `Img` | 16 | Функция. Подробности и ограничения — в исходнике. |
+| `S3_PREFIX` | 2 | Архивная обёртка картинок Vite и прежняя маршрутизация публичного S3 через /media. |
+| `mediaUrl` | 5 | Меняет только известный S3-префикс; локальные, data/blob и другие адреса возвращает без дополнительной проверки. |
+| `ImgProps` | 14 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `Img` | 19 | Задаёт прежние lazy/async defaults и позволяет приоритетным картинкам загружаться сразу. |
 
 ## [apps/legacy-web/src/lib.ts](../../../apps/legacy-web/src/lib.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Принимает массив, JSON-строку массива или старый одиночный HTTP-адрес; полноценной политики безопасных URL здесь нет.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `asPhotos` | 1 | Функция. Подробности и ограничения — в исходнике. |
-| `asTags` | 14 | Функция. Подробности и ограничения — в исходнике. |
-| `MONTHS` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `formatDate` | 41 | Функция. Подробности и ограничения — в исходнике. |
-| `previewText` | 48 | Функция. Подробности и ограничения — в исходнике. |
+| `asPhotos` | 3 | Архивные преобразования старых API-полей в данные карточек Vite. |
+| `asTags` | 17 | Совмещает прежние массивы и JSON-представление тегов; повреждённые данные превращает в пустой список. |
+| `MONTHS` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `formatDate` | 45 | Форматирует корректную дату в локальном часовом поясе браузера, скрывая пустые и неверные значения. |
+| `previewText` | 53 | Сжимает пробелы для краткой карточки и добавляет многоточие после обрезки по длине строки. |
 
 ## [apps/legacy-web/src/main.tsx](../../../apps/legacy-web/src/main.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архивная точка запуска Vite: монтирует App в существующий root и подключает общие стили.
 
 ## [apps/legacy-web/src/pages/About.tsx](../../../apps/legacy-web/src/pages/About.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архивная страница автора с фиксированными текстами и галереей.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `About` | 4 | Функция. Подробности и ограничения — в исходнике. |
+| `About` | 6 | Показывает прежнюю биографию и список фотографий без запроса к API. |
 
 ## [apps/legacy-web/src/pages/Club.tsx](../../../apps/legacy-web/src/pages/Club.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архивный промоэкран Клуба; это не действующая оплата или страница участницы.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `Club` | 5 | Функция. Подробности и ограничения — в исходнике. |
+| `Club` | 7 | Показывает старые преимущества и тестовую цену; ветка вошедшего пользователя содержит только пояснение, платёж не создаётся. |
 
 ## [apps/legacy-web/src/pages/Feed.tsx](../../../apps/legacy-web/src/pages/Feed.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архивная Лента Vite с постраничным чтением и выбором тега.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `Feed` | 7 | Функция. Подробности и ограничения — в исходнике. |
+| `Feed` | 9 | Склеивает страницы в порядке API и загружает следующие по кнопке; права и опубликованность определяет сервер. |
 
 ## [apps/legacy-web/src/pages/Home.tsx](../../../apps/legacy-web/src/pages/Home.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архивная статическая главная Vite: автор, книги и навигационные открытки.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `STAMP` | 4 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `COTTAGE` | 5 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Home` | 7 | Функция. Подробности и ограничения — в исходнике. |
+| `STAMP` | 5 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `COTTAGE` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Home` | 9 | Собирает фиксированные визуальные секции и разделяет первую открытку Ленты от остальных баннеров. |
 
 ## [apps/legacy-web/src/pages/Interactive.tsx](../../../apps/legacy-web/src/pages/Interactive.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архивный экран Интерактива с переходом к старому тесту и неактивным анонсом мудборда.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `Interactive` | 3 | Функция. Подробности и ограничения — в исходнике. |
+| `Interactive` | 5 | Показывает статические плитки; надпись «скоро» не означает реализацию редактора. |
 
 ## [apps/legacy-web/src/pages/Library.tsx](../../../apps/legacy-web/src/pages/Library.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архивный статический каталог Библиотеки. Прямые ссылки здесь не являются текущим контрактом защищённой выдачи.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `Library` | 4 | Функция. Подробности и ограничения — в исходнике. |
+| `Library` | 6 | Выбирает внешнюю ссылку или внутренний маршрут по данным старого каталога; пометка club имеет только визуальный смысл. |
 
 ## [apps/legacy-web/src/pages/Login.tsx](../../../apps/legacy-web/src/pages/Login.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архивная форма входа и регистрации Vite с прежним ожиданием немедленного профиля в ответе.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `Login` | 9 | Функция. Подробности и ограничения — в исходнике. |
+| `Login` | 11 | Разделяет режимы формы, хранит ввод и выводит прежние ошибки; после успеха возвращает только в профиль. |
 
 ## [apps/legacy-web/src/pages/Post.tsx](../../../apps/legacy-web/src/pages/Post.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архивная карточка поста по числовому ID. Современные UUID-маршруты и журналы редакторов здесь отсутствуют.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `Post` | 5 | Функция. Подробности и ограничения — в исходнике. |
+| `Post` | 7 | Не отправляет запрос для неположительного ID; после чтения выводит старые фото, обычный текст и теги. |
 
 ## [apps/legacy-web/src/pages/Product.tsx](../../../apps/legacy-web/src/pages/Product.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архивная карточка товара из встроенного каталога.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `Product` | 4 | Функция. Подробности и ограничения — в исходнике. |
+| `Product` | 6 | Ищет товар по строковому ID и показывает внешние ссылки; подтверждение заказа менеджером этот экран не выполняет. |
 
 ## [apps/legacy-web/src/pages/Profile.tsx](../../../apps/legacy-web/src/pages/Profile.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архивный профиль Vite с прежним контекстом сессии.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `Profile` | 4 | Функция. Подробности и ограничения — в исходнике. |
+| `Profile` | 6 | До завершения первого чтения показывает загрузку, затем перенаправляет гостя или отображает профиль и выход. |
 
 ## [apps/legacy-web/src/pages/Quiz.tsx](../../../apps/legacy-web/src/pages/Quiz.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архивная заглушка теста Vite. Полная действующая логика теста находится в основном frontend.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `Quiz` | 3 | Функция. Подробности и ограничения — в исходнике. |
+| `Quiz` | 5 | Показывает статическое описание без вопросов, подсчёта результата и сохранения ответов. |
 
 ## [apps/legacy-web/src/pages/Shop.tsx](../../../apps/legacy-web/src/pages/Shop.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архивный список Магазина из встроенных данных.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `Shop` | 4 | Функция. Подробности и ограничения — в исходнике. |
+| `Shop` | 6 | Строит карточки и ссылки товаров; цены берутся из каталога, запросов заказа здесь нет. |
 
 ## [apps/legacy-web/src/pages/Video.tsx](../../../apps/legacy-web/src/pages/Video.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архивный просмотр YouTube по числовому ID. Не описывает действующий VK-плеер.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `Video` | 4 | Функция. Подробности и ограничения — в исходнике. |
+| `Video` | 6 | Читает прежнюю запись и строит YouTube iframe и внешнюю ссылку по youtubeId. |
 
 ## [apps/legacy-web/src/pages/Videos.tsx](../../../apps/legacy-web/src/pages/Videos.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архивный непагинированный YouTube-каталог Vite.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `Videos` | 5 | Функция. Подробности и ограничения — в исходнике. |
+| `Videos` | 7 | Читает старый videos.list, выбирает прежний адрес обложки и строит числовые маршруты. |
 
 ## [apps/legacy-web/src/Shell.tsx](../../../apps/legacy-web/src/Shell.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архивная оболочка Vite: общая шапка, вложенный маршрут и нижние вкладки.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `TABS` | 4 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `IconNews` | 13 | Функция. Подробности и ограничения — в исходнике. |
-| `IconPlay` | 20 | Функция. Подробности и ограничения — в исходнике. |
-| `IconStar` | 27 | Функция. Подробности и ограничения — в исходнике. |
-| `IconSpark` | 34 | Функция. Подробности и ограничения — в исходнике. |
-| `IconBook` | 41 | Функция. Подробности и ограничения — в исходнике. |
-| `IconBag` | 48 | Функция. Подробности и ограничения — в исходнике. |
-| `IconHome` | 55 | Функция. Подробности и ограничения — в исходнике. |
-| `IconPerson` | 62 | Функция. Подробности и ограничения — в исходнике. |
-| `Shell` | 71 | Функция. Подробности и ограничения — в исходнике. |
+| `TABS` | 5 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `IconNews` | 15 | Декоративная SVG-иконка Ленты; название раздела остаётся текстом ссылки. |
+| `IconPlay` | 23 | Декоративная SVG-иконка каталога Видео с цветом текущего состояния вкладки. |
+| `IconStar` | 31 | Декоративная SVG-иконка Клуба; права доступа она не определяет. |
+| `IconSpark` | 39 | Декоративная SVG-иконка Интерактива. |
+| `IconBook` | 47 | Декоративная SVG-иконка Библиотеки. |
+| `IconBag` | 55 | Декоративная SVG-иконка Магазина. |
+| `IconHome` | 63 | Рисует значок главной; доступное название задаётся кнопкой снаружи. |
+| `IconPerson` | 71 | Рисует значок аккаунта; переход на профиль или вход выбирает оболочка. |
+| `Shell` | 81 | На главной использует светлую шапку поверх изображения; остальные экраны получают обычную шапку. Навигация аккаунта зависит от старого AuthProvider. |
 
 ## [apps/legacy-web/src/styles.css](../../../apps/legacy-web/src/styles.css)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архивные стили Vite: шрифты, общая оболочка, карточки и композиция прежней главной. Действующий Next-клиент использует собственные SCSS-модули.
 
 ## [apps/legacy-web/src/trpc.ts](../../../apps/legacy-web/src/trpc.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архивный типизированный tRPC-клиент Vite с cookie и SuperJSON.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `trpc` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `makeTrpcClient` | 8 | Функция. Подробности и ограничения — в исходнике. |
+| `trpc` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `makeTrpcClient` | 10 | Использует относительный /api/trpc и передаёт cookie каждого запроса; серверный роутер импортируется только как тип. |
 
 ## [apps/legacy-web/src/TrpcGate.tsx](../../../apps/legacy-web/src/TrpcGate.tsx)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архивные провайдеры tRPC и React Query для прежнего Vite-клиента.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `TrpcGate` | 5 | Функция. Подробности и ограничения — в исходнике. |
+| `TrpcGate` | 7 | Создаёт клиенты один раз на mount и сохраняет прежнюю политику кеша 30 секунд; изоляция кеша по аккаунтам нового клиента здесь не реализована. |
 
 ## [apps/legacy-web/src/videoCover.ts](../../../apps/legacy-web/src/videoCover.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Архивная подстановка обложек YouTube через прежний медиапрокси; современный каталог VK использует другой путь.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `YOUTUBE_THUMB_HOST` | 1 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `videoCoverUrl` | 4 | Cover URL that works in Russia (YouTube CDN is often blocked). |
+| `YOUTUBE_THUMB_HOST` | 2 | Архивная подстановка обложек YouTube через прежний медиапрокси; современный каталог VK использует другой путь. |
+| `videoCoverUrl` | 6 | Сохраняет внешнюю готовую обложку и заменяет YouTube CDN относительным прокси. Успешность выдачи и доступность сети этим преобразованием не гарантируются. |
 
 ## [apps/legacy-web/src/vite-env.d.ts](../../../apps/legacy-web/src/vite-env.d.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+/ <reference types="vite/client" />
 
 ## [apps/legacy-web/tsconfig.json](../../../apps/legacy-web/tsconfig.json)
 
@@ -7980,250 +7980,250 @@
 
 ## [apps/legacy-web/vite.config.ts](../../../apps/legacy-web/vite.config.ts)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Конфигурация архивной сборки Vite. Результат web-dist отделён от действующей Next-сборки.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `dir` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `dir` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/legacy/_download-shop-photos.py](../../../tooling/legacy/_download-shop-photos.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Скачивает прежние фото Магазина в локальную временную папку по ссылкам старого Expo-экрана; в S3 не пишет.
 
 ## [tooling/legacy/_download-yadocs.mjs](../../../tooling/legacy/_download-yadocs.mjs)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Диагностирует временные ссылки Яндекс-документа только с доступом из закрытого окружения; байты и сетевые ответы не подтверждают перенос материала.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `token` | 1 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `resourceUrl` | 3 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `candidates` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `token` | 3 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `resourceUrl` | 4 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `candidates` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/legacy/_fetch-moodboard-assets.mjs](../../../tooling/legacy/_fetch-moodboard-assets.mjs)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Исторический импорт иллюстраций мудборда меняет локальные файлы и S3; прежние frontend-пути требуют проверки.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `root` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `outDir` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `env` | 12 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `UI_DISK` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `AUTUMN_DISK` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `listPublic` | 26 | Функция. Подробности и ограничения — в исходнике. |
+| `walkPublic` | 38 | Функция. Подробности и ограничения — в исходнике. |
+| `downloadFile` | 53 | Функция. Подробности и ограничения — в исходнике. |
+| `safeName` | 63 | Функция. Подробности и ограничения — в исходнике. |
+| `toWebp` | 77 | Функция. Подробности и ограничения — в исходнике. |
+| `main` | 83 | Функция. Подробности и ограничения — в исходнике. |
+
+## [tooling/legacy/_fix-board-frame-alpha.mjs](../../../tooling/legacy/_fix-board-frame-alpha.mjs)
+
+Подготавливает новую локальную PNG-рамку, удаляя связанный с краями тёмный фон эвристикой flood fill.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `root` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `out` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `isBackground` | 10 | Функция. Подробности и ограничения — в исходнике. |
+| `floodBackground` | 19 | Функция. Подробности и ограничения — в исходнике. |
+| `input` | 58 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `{ data, info }` | 59 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `t` | 66 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [tooling/legacy/_fix-moodboard-alpha-v2.mjs](../../../tooling/legacy/_fix-moodboard-alpha-v2.mjs)
+
+Историческая обработка alpha вырезает тёмные пиксели во всём изображении; исходную геометрию и детали нужно сверять визуально.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
 | `root` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `outDir` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `env` | 11 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `UI_DISK` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `AUTUMN_DISK` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `listPublic` | 25 | Функция. Подробности и ограничения — в исходнике. |
-| `walkPublic` | 35 | Функция. Подробности и ограничения — в исходнике. |
-| `downloadFile` | 48 | Функция. Подробности и ограничения — в исходнике. |
-| `safeName` | 56 | Функция. Подробности и ограничения — в исходнике. |
-| `toWebp` | 68 | Функция. Подробности и ограничения — в исходнике. |
-| `main` | 72 | Функция. Подробности и ограничения — в исходнике. |
-
-## [tooling/legacy/_fix-board-frame-alpha.mjs](../../../tooling/legacy/_fix-board-frame-alpha.mjs)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `root` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `out` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `isBackground` | 9 | Функция. Подробности и ограничения — в исходнике. |
-| `floodBackground` | 16 | Функция. Подробности и ограничения — в исходнике. |
-| `input` | 51 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `{ data, info }` | 52 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `t` | 59 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [tooling/legacy/_fix-moodboard-alpha-v2.mjs](../../../tooling/legacy/_fix-moodboard-alpha-v2.mjs)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `root` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `outDir` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `knockOutBackground` | 9 | Функция. Подробности и ограничения — в исходнике. |
-| `toTransparentPng` | 26 | Функция. Подробности и ограничения — в исходнике. |
+| `knockOutBackground` | 10 | Функция. Подробности и ограничения — в исходнике. |
+| `toTransparentPng` | 29 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/legacy/_fix-moodboard-folder-alpha.mjs](../../../tooling/legacy/_fix-moodboard-folder-alpha.mjs)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Меняет alpha сезонных папок и публикует WebP по фиксированным S3-ключам; это запись, не read-only проверка.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `root` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `env` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `files` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `knockOutDark` | 27 | Функция. Подробности и ограничения — в исходнике. |
+| `client` | 42 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [tooling/legacy/_process-rose-hip.py](../../../tooling/legacy/_process-rose-hip.py)
+
+Скачивает историческую временную PSD-ссылку, обрезает/правит alpha и публикует PNG в S3; права на исходник и назначение проверяются отдельно.
+
+## [tooling/legacy/_restore-shop-photos.mjs](../../../tooling/legacy/_restore-shop-photos.mjs)
+
+Пробует восстановить отсутствующие публичные фото по прежнему Manus CDN; ошибки HEAD не доказывают отсутствие объекта.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
 | `root` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `env` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `files` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `knockOutDark` | 26 | Функция. Подробности и ограничения — в исходнике. |
-| `client` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-
-## [tooling/legacy/_process-rose-hip.py](../../../tooling/legacy/_process-rose-hip.py)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-## [tooling/legacy/_restore-shop-photos.mjs](../../../tooling/legacy/_restore-shop-photos.mjs)
-
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
-
-| Блок | Строка | Назначение |
-| --- | --- | --- |
-| `root` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `env` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `src` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `keys` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `client` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `base` | 31 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `mime` | 32 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `exists` | 40 | Функция. Подробности и ограничения — в исходнике. |
-| `fetchRetry` | 52 | Функция. Подробности и ограничения — в исходнике. |
-| `ok` | 71 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `skip` | 72 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `fail` | 73 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `src` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `keys` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `client` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `base` | 32 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `mime` | 33 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `exists` | 41 | Функция. Подробности и ограничения — в исходнике. |
+| `fetchRetry` | 55 | Функция. Подробности и ограничения — в исходнике. |
+| `ok` | 76 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `skip` | 77 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `fail` | 78 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/legacy/_s3-backup-test-delete.mjs](../../../tooling/legacy/_s3-backup-test-delete.mjs)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Опасная историческая проба пытается удалить первый реальный объект backup-бакета. Не использовать для проверки политики без отдельного синтетического объекта.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `env` | 4 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `client` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `list` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `key` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `env` | 5 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `client` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `list` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `key` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/legacy/_s3-bucket-size.mjs](../../../tooling/legacy/_s3-bucket-size.mjs)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Постранично считает объекты и байты S3 только чтением; результат не подтверждает восстановимость резервной копии.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `root` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `envPath` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `env` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `client` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `token` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `total` | 27 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `count` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `prefixes` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `gb` | 48 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `root` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `envPath` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `env` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `client` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `token` | 27 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `total` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `count` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `prefixes` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `gb` | 49 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/legacy/_test-admin-posts.mjs](../../../tooling/legacy/_test-admin-posts.mjs)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Создаёт опубликованные тестовые посты напрямую в выбранной БД и удаляет их в finally; принадлежность одноразовой БД не проверяется.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `MARKER` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `conn` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `[sampleRows]` | 11 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `samplePhotos` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `photos` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `richText` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `payloads` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ids` | 51 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `MARKER` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `conn` | 10 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `[sampleRows]` | 12 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `samplePhotos` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `photos` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `richText` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `payloads` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ids` | 53 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/legacy/_upload-club-video-assets.mjs](../../../tooling/legacy/_upload-club-video-assets.mjs)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Исторически скачивает фиксированные ресурсы оформления и музыку, публикуя их public-read; это не приватная загрузка поста.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `root` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `env` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `client` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `tmpDir` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `download` | 28 | Функция. Подробности и ограничения — в исходнике. |
-| `filmUrl` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `rosePreviewUrl` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `musicUrl` | 42 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `musicUrlFixed` | 46 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `files` | 49 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `root` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `env` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `client` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `tmpDir` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `download` | 29 | Функция. Подробности и ограничения — в исходнике. |
+| `filmUrl` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `rosePreviewUrl` | 42 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `musicUrl` | 45 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `musicUrlFixed` | 49 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `files` | 52 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/legacy/_upload-garden-poster.mjs](../../../tooling/legacy/_upload-garden-poster.mjs)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Заменяет фиксированный постер сада в S3: расширение ключа jpg исторически не совпадает с ContentType PNG.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `root` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `env` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `client` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `file` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `body` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `root` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `env` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `client` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `file` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `body` | 27 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/legacy/_upload-loshadka-cover.mjs](../../../tooling/legacy/_upload-loshadka-cover.mjs)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Публикует конкретную обложку «Лошадки» с серверного /tmp по фиксированному публичному ключу.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `env` | 4 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `client` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `file` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Body` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `Key` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `env` | 5 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `client` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `file` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Body` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `Key` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/legacy/_upload-rose-hip.mjs](../../../tooling/legacy/_upload-rose-hip.mjs)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Заменяет публичную PNG-иллюстрацию шиповника подготовленным локальным файлом.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `root` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `env` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `client` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `file` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `body` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `root` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `env` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `client` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `file` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `body` | 27 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/legacy/_upload-shop-photos.mjs](../../../tooling/legacy/_upload-shop-photos.mjs)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Публикует локальную папку фото Магазина; любой сбой HEAD трактуется как отсутствие, поэтому запуск может заменить существующий ключ.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `root` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `env` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `dir` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `files` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `client` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `mime` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `ok` | 28 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `skip` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `fail` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `root` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `env` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `dir` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `files` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `client` | 21 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `mime` | 27 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `ok` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `skip` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `fail` | 31 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/legacy/add-password-hash.mjs](../../../tooling/legacy/add-password-hash.mjs)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Старое ручное добавление passwordHash не ведёт миграционную историю и не заменяет нынешний preflight.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `root` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `env` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `sql` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `conn` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `[rows]` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `root` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `env` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `sql` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `conn` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `[rows]` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/legacy/diag-tidb.mjs](../../../tooling/legacy/diag-tidb.mjs)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Сравнивает два способа подключения к прежней БД; диагностические ошибки не следует публиковать целиком.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `main` | 6 | Функция. Подробности и ограничения — в исходнике. |
+| `main` | 7 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/legacy/find-loshadka.mjs](../../../tooling/legacy/find-loshadka.mjs)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Читает список и один конкретный объект S3, сохраняя локальную копию; импорт PutObject не означает выполненную запись.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `root` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `env` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `client` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `keys` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `token` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `pngKey` | 43 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `obj` | 44 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `buf` | 45 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `out` | 46 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `root` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `env` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `client` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `keys` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `token` | 27 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `pngKey` | 44 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `obj` | 45 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `buf` | 46 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `out` | 47 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/legacy/loshadka-alt.png](../../../tooling/legacy/loshadka-alt.png)
 
@@ -8243,156 +8243,156 @@
 
 ## [tooling/legacy/migrate-all.mjs](../../../tooling/legacy/migrate-all.mjs)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Старый ручной мигратор использует несовпадающие journal/drizzle-пути и пропускает duplicate ошибки; не запускать вместо актуального миграционного журнала.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `root` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `journal` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `url` | 11 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `conn` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `tables` | 43 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `root` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `journal` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `url` | 12 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `conn` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `tables` | 45 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/legacy/migrate-articles.mjs](../../../tooling/legacy/migrate-articles.mjs)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Применяет один старый SQL-файл статей по историческому drizzle-пути, без проверки текущей миграционной истории.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `root` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `env` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `sql` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `conn` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `root` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `env` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `sql` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `conn` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/legacy/migrate-club-payments.mjs](../../../tooling/legacy/migrate-club-payments.mjs)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Применяет старую схему club_payments напрямую к выбранной БД; текущие данные и историю заранее не сверяет.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `root` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `env` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `sql` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `conn` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `root` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `env` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `sql` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `conn` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/legacy/migrate-comment-likes.mjs](../../../tooling/legacy/migrate-comment-likes.mjs)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Применяет старый SQL лайков комментариев напрямую, не являясь текущим миграционным runner.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `root` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `env` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `sql` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `conn` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `root` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `env` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `sql` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `conn` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/legacy/migrate-comments.mjs](../../../tooling/legacy/migrate-comments.mjs)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Создаёт прежнюю схему комментариев из SQL-файла без актуального preflight.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `root` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `env` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `sql` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `conn` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `root` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `env` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `sql` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `conn` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/legacy/migrate-payments.mjs](../../../tooling/legacy/migrate-payments.mjs)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Старый DDL платежей добавляет поля отмены и shop_purchases; не проверяет совместимость с текущим выпуском.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `root` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `env` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `conn` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `run` | 16 | Функция. Подробности и ограничения — в исходнике. |
+| `root` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `env` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `conn` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `run` | 18 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/legacy/migrate-pen-pals.mjs](../../../tooling/legacy/migrate-pen-pals.mjs)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Применяет прежние SQL-части Pen Pals последовательно; сам запуск не включает функцию и не проверяет её объектный доступ.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `root` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `env` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `sql` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `statements` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `conn` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `root` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `env` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `sql` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `statements` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `conn` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/legacy/migrate-platform.mjs](../../../tooling/legacy/migrate-platform.mjs)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Ручной перенос старых platform-миграций 0015–0018 пропускает duplicate ошибки и отдельно проверяет наличие таблиц, не их эквивалентность.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `root` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `env` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `url` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `files` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `splitSql` | 26 | Функция. Подробности и ограничения — в исходнике. |
-| `conn` | 49 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `checks` | 73 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `[[usersCols]]` | 89 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `root` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `env` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `url` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `files` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `splitSql` | 27 | Функция. Подробности и ограничения — в исходнике. |
+| `conn` | 53 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `checks` | 77 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `[[usersCols]]` | 93 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/legacy/migrate-posts-text-utf8mb4.mjs](../../../tooling/legacy/migrate-posts-text-utf8mb4.mjs)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Переводит старые текстовые поля на utf8mb4 прямым ALTER, не через актуальную историю миграций.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `root` | 10 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `env` | 11 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `main` | 22 | Функция. Подробности и ограничения — в исходнике. |
+| `root` | 11 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `env` | 12 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `main` | 23 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/legacy/migrate-published-at.mjs](../../../tooling/legacy/migrate-published-at.mjs)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Исторически добавляет publishedAt и заполняет пропуски createdAt; это изменение данных, не только схемы.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `root` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `env` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `conn` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `run` | 16 | Функция. Подробности и ограничения — в исходнике. |
+| `root` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `env` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `conn` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `run` | 18 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/legacy/migrate-sms-auth.mjs](../../../tooling/legacy/migrate-sms-auth.mjs)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Старый DDL создаёт подтверждение SMS и уникальный phone; не использовать для нового неподтверждённого контактного номера.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `root` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `env` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `conn` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `run` | 16 | Функция. Подробности и ограничения — в исходнике. |
+| `root` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `env` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `conn` | 16 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `run` | 18 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/legacy/migrate-to-timeweb.mjs](../../../tooling/legacy/migrate-to-timeweb.mjs)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Разрушительный исторический перенос может очистить целевые таблицы и переключить env; fallback не восстанавливает весь контент и аккаунты.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `root` | 17 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `env` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `OLD_URL` | 29 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `NEW_URL` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `S3_BASE` | 36 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `TAGS` | 38 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `TABLE_ORDER` | 58 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `shortcodeToUnix` | 76 | Функция. Подробности и ограничения — в исходнике. |
-| `connect` | 89 | Функция. Подробности и ограничения — в исходнике. |
-| `applySchema` | 100 | Функция. Подробности и ограничения — в исходнике. |
-| `tableCount` | 133 | Функция. Подробности и ограничения — в исходнике. |
-| `copyTable` | 142 | Функция. Подробности и ограничения — в исходнике. |
-| `copyAllFromOld` | 175 | Функция. Подробности и ограничения — в исходнике. |
-| `seedTags` | 186 | Функция. Подробности и ограничения — в исходнике. |
-| `seedOwner` | 198 | Функция. Подробности и ограничения — в исходнике. |
-| `importFeedFromS3` | 217 | Функция. Подробности и ограничения — в исходнике. |
-| `importVideos` | 289 | Функция. Подробности и ограничения — в исходнике. |
-| `report` | 313 | Функция. Подробности и ограничения — в исходнике. |
-| `updateEnvDatabaseUrl` | 321 | Функция. Подробности и ограничения — в исходнике. |
-| `main` | 344 | Функция. Подробности и ограничения — в исходнике. |
+| `root` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `env` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `OLD_URL` | 30 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `NEW_URL` | 31 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `S3_BASE` | 37 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `TAGS` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `TABLE_ORDER` | 59 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `shortcodeToUnix` | 77 | Функция. Подробности и ограничения — в исходнике. |
+| `connect` | 92 | Функция. Подробности и ограничения — в исходнике. |
+| `applySchema` | 106 | Функция. Подробности и ограничения — в исходнике. |
+| `tableCount` | 141 | Функция. Подробности и ограничения — в исходнике. |
+| `copyTable` | 152 | Функция. Подробности и ограничения — в исходнике. |
+| `copyAllFromOld` | 187 | Функция. Подробности и ограничения — в исходнике. |
+| `seedTags` | 200 | Функция. Подробности и ограничения — в исходнике. |
+| `seedOwner` | 214 | Функция. Подробности и ограничения — в исходнике. |
+| `importFeedFromS3` | 235 | Функция. Подробности и ограничения — в исходнике. |
+| `importVideos` | 309 | Функция. Подробности и ограничения — в исходнике. |
+| `report` | 335 | Функция. Подробности и ограничения — в исходнике. |
+| `updateEnvDatabaseUrl` | 345 | Функция. Подробности и ограничения — в исходнике. |
+| `main` | 370 | Функция. Подробности и ограничения — в исходнике. |
 
 ## [tooling/legacy/README.md](../../../tooling/legacy/README.md)
 
@@ -8400,214 +8400,214 @@
 
 ## [tooling/legacy/ssh-api-logs.py](../../../tooling/legacy/ssh-api-logs.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Читает прежние PM2-логи и проверяет импорт nodemailer на удалённом VPS; вывод может содержать приватные данные.
 
 ## [tooling/legacy/ssh-audit-infra.py](../../../tooling/legacy/ssh-audit-infra.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Снимает сведения OpenSSL, ротации и размеров логов прежнего VPS; отчёт не является заключением о юридическом соответствии.
 
 ## [tooling/legacy/ssh-backfill-ig-captions.py](../../../tooling/legacy/ssh-backfill-ig-captions.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Передаёт старый backfill подписей на VPS и запускает его с LIMIT/DRY_RUN; пути и режим записи проверяются до запуска.
 
 ## [tooling/legacy/ssh-certbot.py](../../../tooling/legacy/ssh-certbot.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Исторически получает TLS-сертификат и заменяет целиком Nginx-vhost прежнего домена; это не конфигурация текущего Compose.
 
 ## [tooling/legacy/ssh-deploy-web-direct.py](../../../tooling/legacy/ssh-deploy-web-direct.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Упаковывает и заменяет старую Expo-статику через SFTP с удалением web-dist; не подходит для серверного Next runtime.
 
 ## [tooling/legacy/ssh-diag-tidb.py](../../../tooling/legacy/ssh-diag-tidb.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Загружает и запускает старую диагностику TiDB на VPS; внешнее выполнение не является локальным unit-тестом.
 
 ## [tooling/legacy/ssh-extract-web.py](../../../tooling/legacy/ssh-extract-web.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Скачивает старый архив S3 и удаляет текущую web-dist перед распаковкой; сохранность текущего Next этим не обеспечивается.
 
 ## [tooling/legacy/ssh-find-db.py](../../../tooling/legacy/ssh-find-db.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Ищет признаки прежних БД, сервисов и дампов через SSH без записи в SQL; диагностический вывод следует хранить закрыто.
 
 ## [tooling/legacy/ssh-find-ig-data.py](../../../tooling/legacy/ssh-find-ig-data.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Ищет старые JSON/Instagram-источники и необычные S3-ключи с VPS; не восстанавливает данные автоматически.
 
 ## [tooling/legacy/ssh-get-loshadka.py](../../../tooling/legacy/ssh-get-loshadka.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Скачивает конкретный исходник «Лошадки» на VPS и обратно локально, не меняя его S3-объект.
 
 ## [tooling/legacy/ssh-get-tropinka-cover.py](../../../tooling/legacy/ssh-get-tropinka-cover.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Получает обложку через VPS, обрезает прозрачные поля локальной копии и сохраняет небольшой padding.
 
 ## [tooling/legacy/ssh-host-thumbs.py](../../../tooling/legacy/ssh-host-thumbs.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Передаёт прежний host-video-thumbs на сервер и запускает публичную S3-запись и UPDATE обложек каталога.
 
 ## [tooling/legacy/ssh-inspect.py](../../../tooling/legacy/ssh-inspect.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Читает пакеты, порты и firewall прежнего сервера; факты этой пробы не доказывают текущую доступность нового хоста.
 
 ## [tooling/legacy/ssh-install-api-deps.py](../../../tooling/legacy/ssh-install-api-deps.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Заменяет manifest и ставит nodemailer непосредственно на VPS, затем перезапускает PM2; это не воспроизводимая сборка Docker-образа.
 
 ## [tooling/legacy/ssh-list-web-backups.py](../../../tooling/legacy/ssh-list-web-backups.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Перечисляет сохранённые web-dist каталоги и их маркеры; наличие статики не является резервной копией БД.
 
 ## [tooling/legacy/ssh-nginx-ssl.py](../../../tooling/legacy/ssh-nginx-ssl.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Заменяет прежний доменный Nginx-vhost и reload после проверки синтаксиса; сертификат сам не выпускает.
 
 ## [tooling/legacy/ssh-probe-api.py](../../../tooling/legacy/ssh-probe-api.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Читает прежние API, mtime bundle и PM2-логи; PM2 jlist может содержать env, вывод нельзя считать обезличенным.
 
 ## [tooling/legacy/ssh-probe-dbs.py](../../../tooling/legacy/ssh-probe-dbs.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Исторически помещает строки подключения в удалённый временный JS-файл для счётчиков таблиц; файл требует закрытого обращения и отдельной уборки.
 
 ## [tooling/legacy/ssh-probe-ig-captions.py](../../../tooling/legacy/ssh-probe-ig-captions.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Проверяет публичные способы чтения Instagram-подписи с VPS без записи в БД.
 
 ## [tooling/legacy/ssh-probe-ig-captions2.py](../../../tooling/legacy/ssh-probe-ig-captions2.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Сравнивает публичные сторонние reader-маршруты Instagram; не является текущей зависимостью пользовательского интерфейса.
 
 ## [tooling/legacy/ssh-probe-innertube.py](../../../tooling/legacy/ssh-probe-innertube.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Историческая внешняя проба Android-контекста YouTube, не путь актуального VK-плеера.
 
 ## [tooling/legacy/ssh-probe-innertube2.py](../../../tooling/legacy/ssh-probe-innertube2.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Историческая диагностика разных клиентских контекстов YouTube; не использовать как стабильный API каталога.
 
 ## [tooling/legacy/ssh-probe-invidious.py](../../../tooling/legacy/ssh-probe-invidious.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Проверяет несколько старых сторонних YouTube API; результаты зависят от их доступности и не относятся к текущему VK.
 
 ## [tooling/legacy/ssh-probe-piped.py](../../../tooling/legacy/ssh-probe-piped.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Проверяет прежние сторонние Piped endpoints с VPS; не является штатным источником приложения.
 
 ## [tooling/legacy/ssh-probe-yt.py](../../../tooling/legacy/ssh-probe-yt.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Сравнивает сетевую доступность старых YouTube-хостов с VPS без проверки полного воспроизведения.
 
 ## [tooling/legacy/ssh-probe-ytimg.py](../../../tooling/legacy/ssh-probe-ytimg.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Скачивает контрольную YouTube-обложку и сравнивает внешние hosts; сохраняет временный файл на VPS.
 
 ## [tooling/legacy/ssh-put-index.py](../../../tooling/legacy/ssh-put-index.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Заменяет только index.html и необязательный gzip старой Expo-сборки; совместимость с прочими чанками не проверяет.
 
 ## [tooling/legacy/ssh-put-nginx.py](../../../tooling/legacy/ssh-put-nginx.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Загружает старый локальный vhost в системный Nginx и сохранённую копию, затем выполняет reload.
 
 ## [tooling/legacy/ssh-put-web-static.py](../../../tooling/legacy/ssh-put-web-static.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+По частям перезаписывает прежнюю Expo-статику через SFTP; размер сверяется, но атомарного переключения и проверки хеша нет.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `connect` | 28 | Именованный блок инструмента. Побочные эффекты и условия запуска проверяются в исходнике. |
-| `ensure_dir` | 54 | Именованный блок инструмента. Побочные эффекты и условия запуска проверяются в исходнике. |
+| `connect` | 32 | Именованный блок инструмента. Побочные эффекты и условия запуска проверяются в исходнике. |
+| `ensure_dir` | 59 | Именованный блок инструмента. Побочные эффекты и условия запуска проверяются в исходнике. |
 
 ## [tooling/legacy/ssh-restart-api-clean.py](../../../tooling/legacy/ssh-restart-api-clean.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Читает признаки подключения, затем пересоздаёт старый PM2-процесс без изменения самого bundle.
 
 ## [tooling/legacy/ssh-s3-bucket-size.py](../../../tooling/legacy/ssh-s3-bucket-size.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Передаёт read-only счётчик S3 на VPS и запускает его с серверным env; сеть и SSH всё равно реально используются.
 
 ## [tooling/legacy/ssh-set-sms-env.py](../../../tooling/legacy/ssh-set-sms-env.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Перезаписывает SMS-настройки серверного env без отправки SMS; это изменение конфигурации, не проверка входа.
 
 ## [tooling/legacy/ssh-setup-local-mysql.py](../../../tooling/legacy/ssh-setup-local-mysql.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Передаёт старые SQL и устанавливает системную БД, затем меняет прежний PM2 runtime; актуальный миграционный порядок не сохраняет.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `ensure_dir` | 31 | Именованный блок инструмента. Побочные эффекты и условия запуска проверяются в исходнике. |
+| `ensure_dir` | 36 | Именованный блок инструмента. Побочные эффекты и условия запуска проверяются в исходнике. |
 
 ## [tooling/legacy/ssh-setup-pm2-logrotate.py](../../../tooling/legacy/ssh-setup-pm2-logrotate.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Устанавливает и настраивает старую PM2-ротацию логов; сам по себе не доказывает соответствие требованиям обработки данных.
 
 ## [tooling/legacy/ssh-sms-logs.py](../../../tooling/legacy/ssh-sms-logs.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Читает SMS/auth логи и маскирует лишь известный API id; прочие приватные данные могут остаться в отчёте.
 
 ## [tooling/legacy/ssh-sync-env.py](../../../tooling/legacy/ssh-sync-env.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Копирует широкий список локальных секретов и подключений в серверный env с последующим PM2-рестартом; не подходит для слепой синхронизации окружений.
 
 ## [tooling/legacy/ssh-test-ytdlp.py](../../../tooling/legacy/ssh-test-ytdlp.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Историческая проба также добавляет YT_DLP_PATH в серверный env; это не полностью read-only проверка.
 
 ## [tooling/legacy/ssh-trim-book-covers.py](../../../tooling/legacy/ssh-trim-book-covers.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Скачивает, локально обрезает и публикует конкретные книжные обложки в S3 через удалённый helper.
 
 ## [tooling/legacy/ssh-trim-tropinka-cover.py](../../../tooling/legacy/ssh-trim-tropinka-cover.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Обрезает копию конкретной обложки на VPS и публикует фиксированный публичный S3-ключ.
 
 ## [tooling/legacy/ssh-update-smtp-env.py](../../../tooling/legacy/ssh-update-smtp-env.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Перезаписывает SMTP-настройки прежнего VPS и перезапускает API; доставку письма этим не подтверждает.
 
 ## [tooling/legacy/ssh-upload-book2.py](../../../tooling/legacy/ssh-upload-book2.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Передаёт подготовленные фото второй книги и upload-helper на VPS, затем запускает запись S3.
 
 ## [tooling/legacy/ssh-upload-book3.py](../../../tooling/legacy/ssh-upload-book3.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Передаёт подготовленные фото третьей книги и upload-helper на VPS, затем запускает запись S3.
 
 ## [tooling/legacy/ssh-upload-loshadka.py](../../../tooling/legacy/ssh-upload-loshadka.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Передаёт конкретную обложку и helper на VPS и публикует её по фиксированному S3-ключу.
 
 ## [tooling/legacy/ssh-yt-and-club-price.py](../../../tooling/legacy/ssh-yt-and-club-price.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Исторически меняет цену/TEST-флаг и ставит latest yt-dlp без закреплённого digest; не текущий порядок релиза.
 
 ## [tooling/legacy/ssh-ytdlp-android.py](../../../tooling/legacy/ssh-ytdlp-android.py)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Историческая внешняя диагностика загрузчика с несколькими YouTube-контекстами; VK этот путь не использует.
 
 ## [tooling/legacy/upload-covers-quick.mjs](../../../tooling/legacy/upload-covers-quick.mjs)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Заменяет три заранее заданных публичных ключа обложек из локальных файлов; расширение jpg не гарантирует JPEG-байты.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `root` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `env` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `client` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `uploads` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `root` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `env` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `client` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `uploads` | 26 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [tooling/legacy/upload-loshadka-cover.mjs](../../../tooling/legacy/upload-loshadka-cover.mjs)
 
-Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.
+Заменяет публичную обложку «Лошадки» локальным JPEG с долгим immutable cache; исходник не удаляется.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `root` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `env` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `key` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `file` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `body` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `client` | 22 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `url` | 39 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `root` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `env` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `key` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `file` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `body` | 21 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `client` | 23 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `url` | 41 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |

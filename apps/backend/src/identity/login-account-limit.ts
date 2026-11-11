@@ -16,6 +16,7 @@ export class LoginAccountLimiter {
   private readonly buckets = new Map<string, Bucket>();
   private lastCleanup = 0;
 
+  /** Резервируем попытку по хешу нормализованной почты до проверки пароля, ограничиваем число бакетов и назначаем возрастающую паузу; отказы не продлевают ожидание. */
   begin(email: string): Admission {
     const now = Date.now();
     if (now - this.lastCleanup >= 60_000) {
@@ -56,6 +57,7 @@ export class LoginAccountLimiter {
     const admitted = bucket;
     return {
       ok: true,
+      /** Снимаем лишь бакет и номер этой успешной попытки, не обнуляя более новый перебор. */
       succeeded: () => {
         // Поздний успех старой попытки не должен обнулять квоту более новой.
         if (this.buckets.get(key) === admitted && admitted.attempts === attempt)

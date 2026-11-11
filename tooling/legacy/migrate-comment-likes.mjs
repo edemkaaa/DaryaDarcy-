@@ -1,3 +1,4 @@
+// Применяет старый SQL лайков комментариев напрямую, не являясь текущим миграционным runner.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,6 +13,7 @@ for (const line of fs.readFileSync(path.join(root, ".env"), "utf8").split(/\r?\n
 }
 
 const sql = fs.readFileSync(path.join(root, "drizzle", "0019_comment_likes.sql"), "utf8");
+// С этого места выбранная БД реально изменяется; текущая история и рабочее назначение автоматически не проверены.
 const conn = await mysql.createConnection(env.DATABASE_URL.replace(/\r/g, "").trim());
 await conn.query(sql);
 console.log("comment_likes table ready");

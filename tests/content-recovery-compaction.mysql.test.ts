@@ -12,25 +12,30 @@ import { drizzle } from "drizzle-orm/mysql2";
 import { openContentTestDatabase } from "./helpers/content-mysql";
 import { testDatabaseUrl } from "./helpers/backend-mysql";
 
+/** Проверяет ограниченную компакцию журналов: сначала постоянный маркер владельца, затем удаление подробностей. */
 describe.skipIf(!testDatabaseUrl)(
   "bounded content compaction on owned SQL",
   () => {
     let conn: Connection;
     const key = "d".repeat(64),
       freshKey = "e".repeat(64);
+    /** Вызывает настоящий compactContentRecovery с выбранным размером партии на том же тестовом соединении. */
     async function compact(limit = 10) {
       const module =
         await import("../apps/backend/src/content/recovery-compaction");
       expect(module.compactContentRecovery).toBeTypeOf("function");
       return module.compactContentRecovery(drizzle(conn), limit);
     }
+    /** Читает маркеры и подробные журналы для независимой проверки транзакционного результата. */
     async function rows(query: string, args: unknown[] = []) {
       const [result] = await conn.query<RowDataPacket[]>(query, args);
       return result;
     }
+    /** Открывает изолированную content-схему. */
     beforeAll(async () => {
       conn = await openContentTestDatabase();
     });
+    /** Включает retention и maintenance и создаёт старые журналы поста и статьи и свежий журнал поста. */
     beforeEach(async () => {
       vi.stubEnv("CONTENT_RECOVERY_RETENTION_ENABLED", "true");
       vi.stubEnv("CONTENT_RECOVERY_MAINTENANCE_ENABLED", "true");
@@ -52,6 +57,7 @@ describe.skipIf(!testDatabaseUrl)(
         [key, "f".repeat(64)],
       );
     });
+    /** Удаляет только журналы и маркеры тестового автора, закрывает соединение и возвращает флаги. */
     afterAll(async () => {
       if (conn) {
         await conn.query(
@@ -67,6 +73,7 @@ describe.skipIf(!testDatabaseUrl)(
       }
       vi.unstubAllEnvs();
     });
+    /** Старые подробности заменяются маркерами того же владельца; свежая запись сохраняется, повтор компакции пуст. */
     it("removes old recovery details only after a same-owner minimal marker is committed", async () => {
       expect(await compact()).toEqual({ post: 1, article: 1 });
       expect(
@@ -89,6 +96,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).toEqual([]);
       expect(await compact()).toEqual({ post: 0, article: 0 });
     });
+    /** Выключенный maintenance сохраняет подробные журналы без новых маркеров. */
     it("does no writes when maintenance is disabled", async () => {
       vi.stubEnv("CONTENT_RECOVERY_MAINTENANCE_ENABLED", "false");
       expect(await compact()).toEqual({ post: 0, article: 0 });
@@ -103,6 +111,7 @@ describe.skipIf(!testDatabaseUrl)(
         ),
       ).toHaveLength(2);
     });
+    /** Конфликт владельца постоянного маркера откатывает удаление подробного журнала. */
     it("rolls back detail deletion if marker ownership conflicts", async () => {
       await conn.query(
         "INSERT INTO content_recovery_markers VALUES ('post',?,97541,NOW())",
@@ -123,6 +132,7 @@ describe.skipIf(!testDatabaseUrl)(
         );
       }
     });
+    /** Размер партии выше 100 отклоняется до удаления записей. */
     it("rejects an unbounded batch rather than sweeping journals", async () => {
       await expect(compact(101)).rejects.toThrow();
       expect(

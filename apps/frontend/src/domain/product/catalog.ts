@@ -14,6 +14,7 @@ export interface ShelfProduct {
   }[];
 }
 
+/** Полка хранит краткую презентацию товара; это редакционные данные сборки, а не синхронизация заказов. */
 export const SHELF_PRODUCTS: ShelfProduct[] = [
   {
     id: "book-1",
@@ -116,6 +117,7 @@ export interface Product {
   reviewImages?: string[];
 }
 
+/** Детальная карточка содержит галереи, отзывы и исходные ссылки; тексты и цены здесь не определяют серверную оплату. */
 export const PRODUCT_DETAILS: Product[] = [
   {
     id: "book-1",
@@ -382,10 +384,12 @@ export const PRODUCT_DETAILS: Product[] = [
   },
 ];
 
+/** Объединяем полку и подробности по общему ID, чтобы списки и детали использовали одну идентичность товара. */
 export const PRODUCT_CATALOG = PRODUCT_DETAILS.map((detail) => ({
   ...detail,
   shelf: SHELF_PRODUCTS.find((item) => item.id === detail.id)!,
 }));
+/** Ищем детальную карточку по стабильному ID; отсутствие товара возвращается как undefined для проверки маршрутом. */
 export function getProduct(id: string) {
   return PRODUCT_CATALOG.find((product) => product.id === id);
 }

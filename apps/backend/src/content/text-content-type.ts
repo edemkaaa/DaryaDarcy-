@@ -14,6 +14,7 @@ const PARAMETERS = /; *([^=; ]+)=(?:"(?:[^"\\]|\\.)*"|[^; ]+)/g;
 const NON_TEXT_CONTROLS = /[\x00-\x08\x0b\x0e-\x1f\x7f-\x9f]/;
 
 /** Validates text encoding, not markup, content safety or arbitrary legacy encodings. */
+/** Для уже нормализованного MIME исключаем повторный charset и конфликт BOM, декодируем весь файл ограниченными порциями с fatal-проверкой и запрещаем нетекстовые управляющие символы; это не очистка разметки. */
 export function resolveTextContentType(
   declared: string,
   bytes: Buffer,

@@ -21,6 +21,7 @@ import type { Request } from "express";
 import { SessionService } from "../apps/backend/src/identity/session.service";
 import { ENV } from "../apps/backend/src/_core/env";
 
+/** Проверяет REST и tRPC сессии с настоящими JWT, паролями и отдельной MySQL-базой. */
 describe.skipIf(!testDatabaseUrl)(
   "native Nest sessions with real JWT/MySQL/passwords",
   () => {
@@ -30,6 +31,7 @@ describe.skipIf(!testDatabaseUrl)(
     const staffEmail = "native-session-staff@example.test";
     // RFC-style public test key, not an operator's secret.
     const totpSecret = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ";
+    /** Независимо вычисляет TOTP из публичной тестовой RFC-последовательности для проверки серверной валидации. */
     const totpAt = (counter: number) => {
       const buffer = Buffer.alloc(8);
       buffer.writeBigUInt64BE(BigInt(counter));
@@ -41,6 +43,7 @@ describe.skipIf(!testDatabaseUrl)(
         (digest.readUInt32BE(offset) & 0x7fffffff) % 1_000_000,
       ).padStart(6, "0");
     };
+    /** Создаёт два тестовых аккаунта с настоящим password hash и запускает локальный API с управляемыми origin. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       // Выход отвязывает устройства, поэтому таблица нужна и при отдельном запуске.
@@ -63,6 +66,7 @@ describe.skipIf(!testDatabaseUrl)(
       await application.listen(0, "127.0.0.1");
       base = `http://127.0.0.1:${(application.getHttpServer().address() as AddressInfo).port}`;
     });
+    /** Возвращает роли, блокировку и эпохи сессий и выключает тестовую настройку TOTP между сценариями. */
     beforeEach(async () => {
       vi.stubEnv("ADMIN_TOTP_SECRET", "");
       await conn.query(
@@ -71,6 +75,7 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query("UPDATE users SET role='user' WHERE id=8940");
       await conn.query("UPDATE users SET role='admin' WHERE id=8941");
     });
+    /** Удаляет свои аккаунты, закрывает приложение и SQL-пул и возвращает окружение. */
     afterAll(async () => {
       await application?.close();
       await conn?.query("DELETE FROM users WHERE id IN (8940,8941)");
@@ -80,6 +85,7 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** Отправляет настоящий JSON POST с выбранными заголовками авторизации и origin. */
     const post = (
       path: string,
       body: unknown,
@@ -90,10 +96,13 @@ describe.skipIf(!testDatabaseUrl)(
         headers: { "Content-Type": "application/json", ...headers },
         body: JSON.stringify(body),
       });
+    /** Подписывает JWT обычного пользователя с исходной эпохой сессии. */
     const token = () =>
       sdk.createSessionToken("native-session-member", { sessionVersion: 0 });
+    /** Подписывает JWT администратора с исходной эпохой сессии. */
     const staffToken = () =>
       sdk.createSessionToken("native-session-staff", { sessionVersion: 0 });
+    /** Извлекает и декодирует только именованную session cookie из успешного HTTP-ответа. */
     const cookieToken = (response: Response) => {
       const cookie = response.headers
         .getSetCookie()
@@ -103,6 +112,7 @@ describe.skipIf(!testDatabaseUrl)(
         cookie!.split(";")[0].slice(COOKIE_NAME.length + 1),
       );
     };
+    /** Проверяет прежний plain-формат отказа настроек и невозможность передать полномочия actor через JSON. */
     it.each(["GET", "PUT"])(
       "preserves plain settings denial and rejects identity supplied in JSON on %s",
       async (method) => {
@@ -127,6 +137,7 @@ describe.skipIf(!testDatabaseUrl)(
         }
       },
     );
+    /** Проверяет различие безопасного JSON-отказа resend без сессии и plain-отказа недостаточной роли. */
     it("keeps resend's JSON authentication denial distinct from plain role denial", async () => {
       const attempts: Record<string, string>[] = [
         {},
@@ -155,6 +166,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await denied.text()).toBe("Forbidden");
       expect(denied.headers.get("cache-control")).toBe("no-store");
     });
+    /** Проверяет право staff на resend и отдельное право только администратора на настройки запуска. */
     it("allows staff resend but does not grant launch settings to moderators", async () => {
       const bearer = await staffToken();
       for (const role of ["admin", "moderator"]) {
@@ -173,6 +185,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(settings.status).toBe(role === "admin" ? 200 : 403);
       }
     });
+    /** Проверяет отказ административных маршрутов после отзыва сессии или блокировки без cookie и изменения lastSignedIn. */
     it.each(["sessionVersion=1", "blockedAt=NOW()"])(
       "denies both administrative routes after %s without touching sign-in or issuing cookies",
       async (patch) => {
@@ -204,6 +217,7 @@ describe.skipIf(!testDatabaseUrl)(
         );
       },
     );
+    /** Проверяет отказ не-JSON административных записей до авторизации. */
     it("preserves non-JSON rejection before auth on both administrative writes", async () => {
       for (const [path, method] of [
         ["/api/admin/launch-settings", "PUT"],
@@ -218,6 +232,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(response.headers.get("cache-control")).toBe("no-store");
       }
     });
+    /** Проверяет отдельное same-origin правило resend даже для другого CORS-разрешённого домена. */
     it("retains the stricter resend origin rule even for another CORS-allowed origin", async () => {
       await conn.query(
         "UPDATE users SET lastSignedIn='2020-01-01 00:00:00' WHERE id=8941",
@@ -240,6 +255,7 @@ describe.skipIf(!testDatabaseUrl)(
         "2020-01-01T00:00:00.000Z",
       );
     });
+    /** Проверяет общий session policy на реальном JWT с актуальными ролями, блокировкой и эпохой из SQL. */
     it("exports a shared session policy that rechecks real JWTs and database roles", async () => {
       const sessions = application.get(SessionService);
       expect(sessions).toHaveProperty(
@@ -271,6 +287,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(await sessions.optionalUser(request)).toBeNull();
     });
+    /** Проверяет настоящий вход с безопасным публичным профилем и host-only HttpOnly-cookie без sessionToken в JSON. */
     it("logs in with a real password and emits a safe user and host-only cookie", async () => {
       const response = await post("/api/auth/login", {
         email: memberEmail,
@@ -294,6 +311,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(response.headers.get("set-cookie")).not.toContain("Domain=");
       expect(response.headers.get("cache-control")).toBe("no-store");
     });
+    /** Проверяет, что длинное имя остаётся в профиле, но не раздувает cookie выше браузерного предела. */
     it("keeps a long stored display name out of the login cookie", async () => {
       const name = "Ж".repeat(2048);
       await conn.query("UPDATE users SET name=? WHERE id=8940", [name]);
@@ -316,6 +334,7 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query("UPDATE users SET name=NULL WHERE id=8940");
       }
     });
+    /** Проверяет совместимость прежнего подписанного JWT с сохранённым display name. */
     it("accepts an earlier signed session containing the display name", async () => {
       const legacy = await sdk.signSession({
         openId: "native-session-member",
@@ -329,6 +348,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(response.status).toBe(200);
       expect((await response.json()).user.id).toBe(8940);
     });
+    /** Проверяет чтение JWT из host-only cookie без выдачи passwordHash. */
     it("reads a valid real JWT from the host-only cookie without exposing a hash", async () => {
       const response = await fetch(base + "/api/auth/me", {
         headers: { Cookie: `${COOKIE_NAME}=${await token()}` },
@@ -337,6 +357,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(data.user).toMatchObject({ id: 8940, role: "user" });
       expect(data.user).not.toHaveProperty("passwordHash");
     });
+    /** Проверяет перенос исходного валидного Bearer в cookie без выпуска новой идентичности. */
     it("bridges a valid Bearer JWT into the same cookie, not a newly issued identity", async () => {
       const original = await token();
       const response = await post(
@@ -353,6 +374,7 @@ describe.skipIf(!testDatabaseUrl)(
         `${COOKIE_NAME}=${original}`,
       );
     });
+    /** Проверяет запрет session bridge по одной cookie даже с доверенным origin. */
     it("does not bridge a cookie-only session, even from the trusted origin", async () => {
       const response = await post(
         "/api/auth/session",
@@ -366,6 +388,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await response.json()).toEqual({ error: "Bearer token required" });
       expect(response.headers.get("set-cookie")).toBeNull();
     });
+    /** Проверяет отказ неверного Bearer без установки cookie. */
     it("rejects an invalid Bearer JWT without setting a cookie", async () => {
       const response = await post(
         "/api/auth/session",
@@ -375,6 +398,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(response.status).toBe(401);
       expect(response.headers.get("set-cookie")).toBeNull();
     });
+    /** Проверяет отзыв всех старых устройств через REST и tRPC logout без влияния на другой аккаунт и последующий вход. */
     it.each(
       ["/api/auth/logout", "/api/trpc/auth.logout"].flatMap((path) =>
         ["cookie", "bearer"].map((transport) => ({ path, transport })),
@@ -451,6 +475,7 @@ describe.skipIf(!testDatabaseUrl)(
         ).toBe(8940);
       },
     );
+    /** Проверяет, что запоздавший повтор отзыва с прежним actor-снимком не отзывает новую сессию. */
     it("a delayed revocation with an old actor snapshot cannot revoke a later session", async () => {
       const sessions = application.get(SessionService);
       const actor = await sessions.authenticateRequest({
@@ -472,6 +497,7 @@ describe.skipIf(!testDatabaseUrl)(
         ).id,
       ).toBe(8940);
     });
+    /** Проверяет повторяемый logout отсутствующих и неверных реквизитов без отзыва посторонних сессий. */
     it.each(["/api/auth/logout", "/api/trpc/auth.logout"])(
       "%s is idempotent for absent and invalid credentials without revoking other accounts",
       async (path) => {
@@ -494,6 +520,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(rows.map((row) => row.sessionVersion)).toEqual([0, 0]);
       },
     );
+    /** Проверяет отказ logout без очистки cookie, если отзыв невозможно сохранить в SQL. */
     it.each(["/api/auth/logout", "/api/trpc/auth.logout"])(
       "%s does not report success or clear cookies when revocation cannot be stored",
       async (path) => {
@@ -524,6 +551,7 @@ describe.skipIf(!testDatabaseUrl)(
         }
       },
     );
+    /** Проверяет актуальную эпоху и блокировку ранее валидного JWT при каждом серверном чтении. */
     it("rechecks session version and blocking in MySQL for a previously valid JWT", async () => {
       const bearer = await token();
       for (const patch of [
@@ -537,6 +565,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect((await post("/api/auth/session", {}, headers)).status).toBe(401);
       }
     });
+    /** Проверяет отсутствие сессии и изменения lastSignedIn при парольном входе заблокированного аккаунта. */
     it("does not issue a session for a blocked password login", async () => {
       await conn.query(
         "UPDATE users SET blockedAt=NOW(),lastSignedIn='2020-01-01 00:00:00' WHERE id=8940",
@@ -557,6 +586,7 @@ describe.skipIf(!testDatabaseUrl)(
         "2020-01-01T00:00:00.000Z",
       );
     });
+    /** Проверяет требование настроенного staff-TOTP и отказ неверного кода без выдачи cookie. */
     it("requires staff TOTP and rejects a wrong code without creating a session", async () => {
       vi.stubEnv("ADMIN_TOTP_SECRET", totpSecret);
       const missing = await post("/api/auth/login", {
@@ -580,6 +610,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await rejected.json()).toMatchObject({ requiresTotp: true });
       expect(rejected.headers.get("set-cookie")).toBeNull();
     });
+    /** Проверяет пароль и независимо рассчитанный корректный staff-TOTP с выдачей HttpOnly-cookie. */
     it("allows a real password + independently calculated valid staff TOTP", async () => {
       vi.stubEnv("ADMIN_TOTP_SECRET", totpSecret);
       const response = await post("/api/auth/login", {
@@ -594,6 +625,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       expect(response.headers.get("set-cookie")).toContain("HttpOnly");
     });
+    /** Проверяет действующий лимит попыток входа в настоящем Nest runtime. */
     it("retains the login quota in the real Nest runtime", async () => {
       let last: Response | undefined;
       for (let attempt = 0; attempt < 21; attempt++)
@@ -607,6 +639,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       expect(last!.headers.get("set-cookie")).toBeNull();
     });
+    /** Проверяет общую account-квоту с разных IP и вариантов нормализации email и допустимый вход после cooldown. */
     it("shares account cooldown across IPs, then accepts the real password and cookie after expiry", async () => {
       const email = "native-distributed-limit@example.test";
       await conn.query(

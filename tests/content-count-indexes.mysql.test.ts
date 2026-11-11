@@ -11,10 +11,12 @@ import { getPostsForTarget } from "../apps/backend/src/content/post-catalog-repo
 const uri = process.env.COUNT_INDEX_DATABASE_URL;
 const id = process.env.COUNT_INDEX_CONTAINER_ID;
 // Removing either count index must turn this real optimizer-access test RED.
+/** Проверяет реальный план MySQL для covering count-индексов и сохранение прежних подсчётов реакций. */
 describe.skipIf(!uri || !id)(
   "content count indexes on owned native SQL",
   () => {
     let conn: Connection;
+    /** Проверяет владение нагрузочной БД и контейнером; при пустой схеме создаёт синтетические посты и дубли лайков. */
     beforeAll(async () => {
       await inspectLoad(uri!, id!);
       conn = await mysql.createConnection({ uri: uri!, timezone: "Z" });
@@ -28,9 +30,11 @@ describe.skipIf(!uri || !id)(
         ]);
       }
     });
+    /** Закрывает контрольное соединение, не удаляя нагрузочный датасет. */
     afterAll(async () => {
       await conn?.end();
     });
+    /** EXPLAIN должен выбирать ref и Using index с postId первым столбцом, а не сканировать всю таблицу. */
     it.each(["likes", "post_comments"])(
       "uses a covering lookup for %s instead of scanning the table",
       async (table) => {
@@ -56,6 +60,7 @@ describe.skipIf(!uri || !id)(
         ).toEqual(table === "likes" ? ["postId"] : ["postId", "createdAt"]);
       },
     );
+    /** Проекции feed и club сохраняют точные counts, включая исторические дубли лайков без очистки исходных строк. */
     it("preserves exact public/club counts and historical duplicate-like semantics", async () => {
       const db = drizzle(conn);
       const page = await getPostsForTarget(db, "club", { limit: 1 });

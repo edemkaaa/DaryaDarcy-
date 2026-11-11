@@ -1,3 +1,4 @@
+/** План старого переноса привязан к утверждённому dump/серверу и не является общим разрешением менять любую staging БД. */
 import { describe, expect, it } from "vitest";
 import {
   assertLegacyClubStagingIdentity,
@@ -9,6 +10,7 @@ import {
   prepareLegacyClubStagingContent,
 } from "../tooling/data/legacy-club-import";
 
+/** Собираем минимальный известный snapshot с одним просроченным и одним другим scheduled постом. */
 function source() {
   const post = {
     id: 928,
@@ -35,7 +37,9 @@ function source() {
     media: [],
   };
 }
+/** Исключение разрешено только для конкретной старой записи 928 из закреплённого source hash. */
 describe("approved staging import draft policy", () => {
+  /** Просроченный пост становится draft без scheduledAt; соседняя запись и исходный input не мутируются. */
   it("keeps only source928 as a non-scheduled draft, leaving original input and other post intact", () => {
     const input = source();
     const before = structuredClone(input);
@@ -49,6 +53,7 @@ describe("approved staging import draft policy", () => {
     expect(result.posts[1]).toEqual(prepareLegacyClubContent(input).posts[1]);
     expect(input).toEqual(before);
   });
+  /** Другой dump hash или расписание не получают историческое исключение автоматически. */
   it("refuses another source snapshot or changed overdue identity rather than silently editing it", () => {
     const changed = source();
     changed.sourceSha256 = "a".repeat(64);
@@ -63,6 +68,7 @@ describe("approved staging import draft policy", () => {
   });
 });
 
+/** Сверяются schema/server/version/table count/history и connection driver options до переноса. */
 describe("fixed staging identity guard", () => {
   const correct = {
     schema: "daryadarcy_candidate_20261019",
@@ -71,6 +77,7 @@ describe("fixed staging identity guard", () => {
     tables: 40,
     history: 42,
   };
+  /** Каждое отклонение от зафиксированной old staging identity запрещено. */
   it("accepts only the verified database identity and current schema profile", () => {
     expect(() => assertLegacyClubStagingIdentity(correct)).not.toThrow();
     for (const changed of [
@@ -84,6 +91,7 @@ describe("fixed staging identity guard", () => {
         assertLegacyClubStagingIdentity({ ...correct, ...changed }),
       ).toThrow(/staging identity/i);
   });
+  /** Разрешён только известный charset, не подмена host/schema или multi-statements. */
   it("retains the existing utf8mb4 option but refuses alternate hosts, databases and unsafe driver options", () => {
     const uri =
       "mysql://operator:local-placeholder@mysql:3306/daryadarcy_candidate_20261019";
@@ -100,6 +108,7 @@ describe("fixed staging identity guard", () => {
         /staging connection/i,
       );
   });
+  /** Структура и миграционная история фиксируются, а свежие users-данные допускаются только через отдельный backup-bound план. */
   it("pins schema/history while a final backup-bound plan preserves newer user rows", () => {
     const profile = {
       schemaHash: "schema",

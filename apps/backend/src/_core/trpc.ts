@@ -14,6 +14,7 @@ export { userHasClubAccess } from "../identity/club-access";
 
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
+  /** Убирает stack и скрывает внутренние 500/ошибки синтаксиса, сохраняя структуру tRPC-кода для клиента. */
   errorFormatter({ shape, error }) {
     const { stack: _stack, ...data } = shape.data;
     return {
@@ -43,6 +44,7 @@ export const publicProcedure = t.procedure.use(async ({ next }) => {
   return result;
 });
 
+/** Проверяет административный доступ через единую политику владельца в db-фасаде. */
 function isAdminUser(user: { role?: string | null; email?: string | null; openId?: string | null }) {
   return db.isOwnerAccount(user);
 }
@@ -71,6 +73,7 @@ const requireUser = t.middleware(async (opts) => {
 
 export const protectedProcedure = publicProcedure.use(requireUser);
 
+/** Разрешает moderator/admin и совместимый owner-путь, не принимая роль из входного payload. */
 function isModeratorUser(user: { role?: string | null; email?: string | null; openId?: string | null }) {
   if (user.role === "moderator" || user.role === "admin") return true;
   return isAdminUser(user);

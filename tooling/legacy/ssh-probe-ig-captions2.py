@@ -1,3 +1,4 @@
+# Сравнивает публичные сторонние reader-маршруты Instagram; не является текущей зависимостью пользовательского интерфейса.
 import pathlib
 import socket
 import paramiko
@@ -9,6 +10,7 @@ for line in (root / ".env").read_text(encoding="utf-8").splitlines():
         k, v = line.split("=", 1)
         env[k.strip()] = v.strip()
 
+# Подключение использует историческое автоматическое доверие неизвестному SSH host key; перед новым запуском требуется отдельная сверка хоста.
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 sock = socket.create_connection((env["DEPLOY_HOST"], 22), 45)
@@ -23,6 +25,7 @@ client.connect(
 )
 
 sc = "DZKpKPwl0-S"
+# Следующий текст — удалённая команда; её содержимое сохранено как историческое и не исполняется при чтении исходника.
 cmd = f"""
 echo '--- oembed -L ---'
 curl -sSL -o /tmp/ig.json -w 'code=%{{http_code}}\\n' --max-time 25 \

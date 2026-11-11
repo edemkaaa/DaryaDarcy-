@@ -7,6 +7,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const publicDir = path.join(root, "apps", "legacy-web", "public");
 
 function copyDir(from, to) {
+  // Требует существующий исходный каталог и копирует выбранную публичную статику в legacy-клиент, не обращаясь к S3.
+
   if (!fs.existsSync(from)) throw new Error(`Missing ${from}`);
   fs.mkdirSync(to, { recursive: true });
   fs.cpSync(from, to, { recursive: true });

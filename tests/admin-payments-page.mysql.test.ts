@@ -2,13 +2,16 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { testDatabaseUrl } from "./helpers/backend-mysql";
 import { openListPageFixture } from "./helpers/list-page-fixture";
 
+/** Проверяем keyset-историю платежей через настоящий локальный HTTP, роли и одноразовую БД. */
 describe.skipIf(!testDatabaseUrl)(
   "payment history over real HTTP/JWT/disposable MySQL",
   () => {
     let fixture: Awaited<ReturnType<typeof openListPageFixture>>;
     const base = 941000;
+    /** Читаем admin.paymentsPage заданным actor через общую HTTP-фикстуру. */
     const read = (input: object = {}, actor: number | null = 2) =>
       fixture.read("admin.paymentsPage", input, actor);
+    /** Вставляем синтетический pending-платёж с управляемой датой и возвращаем SQL ID для проверки порядка. */
     async function payment(index: number, at = "2026-01-01") {
       const [result] = await fixture.conn.query<
         import("mysql2").ResultSetHeader
@@ -18,15 +21,19 @@ describe.skipIf(!testDatabaseUrl)(
       );
       return result.insertId;
     }
+    /** Открываем выделенную fixture пользователей и loopback HTTP для истории платежей. */
     beforeAll(async () => {
       fixture = await openListPageFixture("page-payments", base);
     });
+    /** Восстанавливаем только данные выделенного диапазона перед сценарием. */
     beforeEach(async () => {
       await fixture.reset();
     });
+    /** Закрываем HTTP/SQL-фикстуру и удаляем её собственные записи. */
     afterAll(async () => {
       await fixture?.close();
     });
+    /** Наборы 0/20/51/65 с одинаковыми датами обходятся без повторов и потерь за пределами прежних 50 строк. */
     it.each([0, 20, 51, 65])(
       "reads all %i equal-time payments once without the old 50-row ceiling",
       async (count) => {
@@ -45,6 +52,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(found).toEqual(ids.reverse());
       },
     );
+    /** Удалённый якорь и более новый платёж не сдвигают продолжение страницы к уже показанным строкам. */
     it("continues after deletion of the anchor and a newer payment arriving", async () => {
       const ids = [await payment(0), await payment(1), await payment(2)];
       const first = await read({ limit: 1 });
@@ -60,6 +68,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(next.data.items.map((row) => row.id)).toEqual([ids[1], ids[0]]);
       expect(next.data.nextCursor).toBe(null);
     });
+    /** Лимит 50 и привязка курсора к администратору проверяются без изменения сумм или статусов платежей. */
     it("enforces the 50 limit and admin-scoped cursor without changing payments", async () => {
       const ids = [];
       for (let i = 0; i < 51; i++) ids.push(await payment(i));

@@ -1,3 +1,4 @@
+/** Характеризация публичного storage helper на loopback wire: это не сертификация private ACL или права на файлы. */
 import {
   afterAll,
   beforeAll,
@@ -14,12 +15,14 @@ import { storageGet, storagePut } from "../apps/backend/src/storage";
 // Characterization of the current M1 boundary, not a private-storage acceptance.
 // The real AWS SDK talks only to this owned loopback HTTP wire. No bucket/key
 // policy is simulated or certified; no production data/credentials are used.
+/** Сервер-fixture хранит exact-path bytes, но намеренно не имитирует bucket policy/ACL. */
 describe("current storage publication boundary on loopback S3 wire", () => {
   let server: Server, endpoint: string;
   // Exact-path HTTP fixture only: deliberately does not implement bucket ACLs.
   const objects = new Map<string, Buffer>();
   const requests: { method: string; path: string; acl: string | undefined }[] =
     [];
+  /** Собственный S3-like HTTP server принимает PUT/GET со synthetic credentials. */
   beforeAll(async () => {
     server = createServer((request, response) => {
       const path = new URL(request.url!, "http://loopback.invalid").pathname;
@@ -53,10 +56,12 @@ describe("current storage publication boundary on loopback S3 wire", () => {
     vi.stubEnv("BUILT_IN_FORGE_API_URL", "");
     vi.stubEnv("BUILT_IN_FORGE_API_KEY", "");
   });
+  /** Очистка in-memory объектов и списка запросов не затрагивает настоящие файлы. */
   beforeEach(() => {
     requests.length = 0;
     objects.clear();
   });
+  /** Закрываем sockets/server и снимаем env. */
   afterAll(async () => {
     server.closeAllConnections();
     await new Promise<void>((resolve, reject) =>
@@ -64,6 +69,7 @@ describe("current storage publication boundary on loopback S3 wire", () => {
     );
     vi.unstubAllEnvs();
   });
+  /** Низкоуровневый legacy helper действительно запрашивает public-read; пригодность для закрытого контента этим не подтверждается. */
   it.each([
     "feed/photos/synthetic.webp",
     "feed/documents/synthetic",
@@ -90,6 +96,7 @@ describe("current storage publication boundary on loopback S3 wire", () => {
       expect(new URL(stored.url).search).toBe("");
     },
   );
+  /** storageGet только строит прямой адрес и не авторизует скачивание. */
   it("returns an unsigned object address without an application access check or storage request", async () => {
     const stored = await storageGet("/feed/documents/synthetic");
     expect(stored).toEqual({
@@ -98,6 +105,7 @@ describe("current storage publication boundary on loopback S3 wire", () => {
     });
     expect(requests).toEqual([]);
   });
+  /** Пробелы,#,?,literal%2F и Unicode кодируются как key, не query/fragment; GET проверяется только у owned fixture. */
   it.each([
     {
       key: "feed/documents/lesson #1?.pdf",
@@ -125,6 +133,7 @@ describe("current storage publication boundary on loopback S3 wire", () => {
       expect(await response.text()).toBe("SYNTHETIC_MEDIA");
     },
   );
+  /** Лишний slash endpoint не меняет фактический uploaded key. */
   it("keeps configured trailing endpoint separators out of the object key", async () => {
     vi.stubEnv("S3_ENDPOINT", endpoint + "/");
     try {
@@ -150,6 +159,7 @@ describe("current storage publication boundary on loopback S3 wire", () => {
       vi.stubEnv("S3_ENDPOINT", endpoint);
     }
   });
+  /** Traversal, backslash, пустой key и control characters отвергаются до PUT/GET effect. */
   it.each([
     "feed/../private.pdf",
     "feed/./private.pdf",

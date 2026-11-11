@@ -2,6 +2,7 @@
 @use "../../shared/styles/layers";
 
 @layer components {
+  /* Плитка является якорем абсолютной иконки; картинка и запасная поверхность заполняют одну область. */
   .gridItem {
     position: relative;
   }
@@ -21,6 +22,7 @@
     background-color: var(--ink);
   }
 
+  /* Маркер видео лежит в углу поверх превью и не меняет размер ячейки. */
   .gridPlayIcon {
     position: absolute;
     top: 8px;

@@ -1,3 +1,4 @@
+// Архив Expo. Пакетирование WebM и NativeWind; release-minifier убирает console/debugger без изменения исходников.
 const { getDefaultConfig } = require("expo/metro-config");
 const { withNativeWind } = require("nativewind/metro");
 

@@ -1,3 +1,4 @@
+# Перезаписывает SMS-настройки серверного env без отправки SMS; это изменение конфигурации, не проверка входа.
 import io
 import pathlib
 import socket
@@ -29,6 +30,7 @@ for attempt in range(1, 4):
 if sock is None:
     raise last_error
 
+# Подключение использует историческое автоматическое доверие неизвестному SSH host key; перед новым запуском требуется отдельная сверка хоста.
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 client.connect(

@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import { access, readFile } from "node:fs/promises";
 import sharp from "sharp";
 
+// Проверяются ограничения финального образа: non-root, архитектура, отсутствие исходников фронта, env и миграций, работоспособность sharp и mysqldump.
 assert.equal(process.getuid?.(), 1000);
 assert.equal(process.arch, "x64");
 assert(!process.env.DATABASE_URL);
@@ -21,6 +22,7 @@ const pixel = await sharp({
   .png()
   .toBuffer();
 assert.equal((await sharp(pixel).metadata()).width, 1);
+// Настройки ниже синтетические и нужны только offline запуску композиции без рабочих провайдеров.
 process.env.PUBLIC_APP_URL = "https://candidate.example.test";
 process.env.JWT_SECRET =
   "local-offline-image-probe-only-not-a-real-session-key";
@@ -30,6 +32,7 @@ const app = await createBackendApplication();
 try {
   await app.listen(0, "127.0.0.1");
   const port = (app.getHttpServer().address() as { port: number }).port;
+  // Матрица подтверждает отказ закрытых маршрутов и 503 readiness без БД; запуск workers и реальная работа провайдеров здесь не проверяются.
   for (const [path, status] of [
     ["/api/auth/me", 200],
     // Launch readiness must fail closed when this offline probe has no database.

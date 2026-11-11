@@ -14,6 +14,8 @@ export function assertLoadFixture(
   id: string,
   fixture: LoadFixture,
 ): URL {
+  // Проверяет совпадение URL с точным принадлежащим тесту контейнером, без дополнительных mount и удалённой MySQL.
+
   const url = new URL(uri),
     bindings = fixture.ports?.["3306/tcp"];
   if (
@@ -45,9 +47,11 @@ export type LoadSample = {
   error: string;
 };
 export function summarizeLoad(samples: LoadSample[]) {
+  // Считает задержки, ошибки, статусы и объём фактически полученных samples; незапущенные запросы учитываются отдельно планировщиком.
+
   const times = samples.map((row) => row.ms).sort((a, b) => a - b);
   const percentile = (values: number[], p: number) =>
-    values.length
+    /* Берёт верхний порядковый элемент отсортированной выборки и явно возвращает null для отсутствующих измерений. */ values.length
       ? Math.round(values[Math.ceil(values.length * p) - 1]! * 100) / 100
       : null;
   const statuses: Record<string, number> = {};
@@ -77,6 +81,8 @@ export async function runArrivalStage(
   request: (index: number, lag: number) => Promise<void>,
   stopped = () => false,
 ) {
+  // Сохраняет предложенный темп запросов даже при замедлении API и отдельно считает отброшенные либо не начатые запросы.
+
   if (
     !(
       rps > 0 &&

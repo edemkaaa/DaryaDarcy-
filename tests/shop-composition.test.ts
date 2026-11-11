@@ -1,3 +1,4 @@
+/** Проверяем DI магазина через tRPC caller и настоящий loopback Nest HTTP: переданный ShopService используется без обхода auth, capabilities и безопасных ошибок. */
 import {
   afterAll,
   afterEach,
@@ -52,14 +53,18 @@ const buyer: User = {
   lastSignedIn: new Date(0),
 };
 
+/** Во всех сценариях исключено подключение к рабочей БД. */
 beforeEach(() => vi.stubEnv("DATABASE_URL", ""));
 
+/** Сбрасываем spies и окружение, включая временный capability bypass отдельного теста. */
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
 });
 
+/** Собирает роутер с внедрённой billing/shop композицией вместо неявного singleton. */
 function caller(actor: User | null = buyer) {
+  /** Искусственный отказ отличает вызов внедрённого ShopService от случайного обращения к старой реализации. */
   const refusal = async (user: User | null, productId: string) => {
     expect(user?.id).toBe(7);
     expect(productId).toBe("digital-1");
@@ -82,6 +87,7 @@ function caller(actor: User | null = buyer) {
   ).createCaller({ user: actor, req: {}, res: {} } as TrpcContext);
 }
 
+/** Для owned и checkout корневой роутер должен вернуть ошибку именно внедрённого сервиса. */
 it.each(["owned", "createCheckout"] as const)(
   "root composition honors the supplied shop %s service",
   async (method) => {
@@ -98,6 +104,7 @@ it.each(["owned", "createCheckout"] as const)(
   },
 );
 
+/** Выключенная функция не доходит до service/provider независимо от корректности входа. */
 it("disabled shop checkout refuses before entering the supplied service", async () => {
   await expect(
     caller().shop.createCheckout({ productId: "digital-1" }),
@@ -106,6 +113,7 @@ it("disabled shop checkout refuses before entering the supplied service", async 
     message: "Функция пока недоступна",
   });
 });
+/** Без текущего входа или при блокировке вызов магазина запрещён раньше бизнес-операции. */
 it.each([
   { name: "guest", actor: null, code: "UNAUTHORIZED" },
   {
@@ -120,15 +128,18 @@ it.each([
   ).rejects.toMatchObject({ code });
 });
 
+/** HTTP подтверждает связку Nest DI → session actor → tRPC → ShopService без настоящего платежа. */
 describe("shop service over native HTTP", () => {
   let application: INestApplication;
   let base: string;
   let shop: ShopService;
   let sessions: SessionService;
+  /** Создаёт типизированный HTTP tRPC-клиент к локальному listener, сохраняя настоящий transport formatter. */
   const client = () =>
     createTRPCProxyClient<AppRouter>({
       links: [httpLink({ url: base + "/api/trpc", transformer: superjson })],
     });
+  /** Создаём собственный Nest listener и читаем из контейнера те же app-scoped Shop/Session сервисы. */
   beforeAll(async () => {
     vi.stubEnv("DATABASE_URL", "");
     application = await createBackendApplication();
@@ -137,9 +148,12 @@ describe("shop service over native HTTP", () => {
     await application.listen(0, "127.0.0.1");
     base = `http://127.0.0.1:${(application.getHttpServer().address() as AddressInfo).port}`;
   });
+  /** HTTP-сценарии получают синтетическую текущую личность через SessionService, не настоящий session token. */
   beforeEach(() => vi.spyOn(sessions, "optionalUser").mockResolvedValue(buyer));
+  /** Закрываем только listener текущего набора. */
   afterAll(async () => application?.close());
 
+  /** Проверяется тот же экземпляр ShopService и точные user/product аргументы. */
   it("ownership HTTP uses the application-scoped shop service", async () => {
     vi.spyOn(shop, "owned").mockImplementation(async (actor, productId) => {
       expect(actor?.id).toBe(7);
@@ -150,6 +164,7 @@ describe("shop service over native HTTP", () => {
       { owned: true },
     );
   });
+  /** Тестовый capability bypass позволяет проверить проводку отключённого checkout, не включая её в окружении приложения. */
   it("dormant checkout HTTP uses the same shop service and session actor", async () => {
     vi.spyOn(capabilities, "requireCapability").mockImplementation(() => {});
     vi.spyOn(shop, "createCheckout").mockImplementation(
@@ -166,6 +181,7 @@ describe("shop service over native HTTP", () => {
       url: "https://fixture.payform.ru/?order_id=nest-shop",
     });
   });
+  /** Штатный HTTP-вызов при выключенном флаге даёт 403 раньше подменённого provider handler. */
   it("native checkout stays disabled before provider work", async () => {
     vi.spyOn(shop, "createCheckout").mockImplementation(async () => {
       throw new Error("capability bypass");
@@ -174,6 +190,7 @@ describe("shop service over native HTTP", () => {
       client().shop.createCheckout.mutate({ productId: "digital-1" }),
     ).rejects.toMatchObject({ data: { code: "FORBIDDEN", httpStatus: 403 } });
   });
+  /** Даже при разрешённой capability гость и заблокированный аккаунт не достигают сервиса. */
   it.each([
     { name: "guest", actor: null, code: "UNAUTHORIZED", httpStatus: 401 },
     {
@@ -195,6 +212,7 @@ describe("shop service over native HTTP", () => {
       ).rejects.toMatchObject({ data: { code, httpStatus } });
     },
   );
+  /** Для гостя owned=false вычисляется без обращения к БД. */
   it("guest ownership is false without accessing SQL", async () => {
     vi.spyOn(sessions, "optionalUser").mockResolvedValue(null);
     vi.spyOn(db, "userOwnsShopProduct").mockImplementation(async () => {
@@ -204,6 +222,7 @@ describe("shop service over native HTTP", () => {
       { owned: false },
     );
   });
+  /** SQL-boundary получает идентичность из сессии и тот же productId, а не произвольный userId входа. */
   it("ownership lookup preserves session user ID and product", async () => {
     vi.spyOn(db, "userOwnsShopProduct").mockImplementation(
       async (userId, productId) => {
@@ -216,6 +235,7 @@ describe("shop service over native HTTP", () => {
       { owned: true },
     );
   });
+  /** Ошибка БД остаётся безопасным 500, не превращается в owned=false и не раскрывает внутренний текст. */
   it("ownership SQL failure is not exposed as false success or a private error", async () => {
     vi.spyOn(db, "userOwnsShopProduct").mockRejectedValue(
       new Error("PRIVATE_SHOP_SQL_FAILURE"),
@@ -227,6 +247,7 @@ describe("shop service over native HTTP", () => {
       message: "Внутренняя ошибка сервера",
     });
   });
+  /** Неверный тип productId отклоняется на schema boundary до сервиса. */
   it.each(["owned", "createCheckout"] as const)(
     "native %s rejects malformed product input first",
     async (method) => {

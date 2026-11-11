@@ -70,12 +70,14 @@ const DELETED_USER_LABEL = "Удалённый аккаунт";
 const ANONYMIZED_COMMENT_TEXT = "Комментарий удалён";
 const MS_DAY = 24 * 60 * 60 * 1000;
 
+/** Совместимый служебный вход в обезличивание комментариев пользователя без удаления веток обсуждения. */
 export async function anonymizeUserComments(userId: number): Promise<number> {
   const db = await getDb();
   if (!db) return 0;
   return scrubUserComments(db, userId);
 }
 
+/** Заменяем текст комментариев нейтральной отметкой и очищаем фото в переданном SQL-контексте, сохраняя связи обсуждения. */
 async function scrubUserComments(
   db: DataWriter,
   userId: number,
@@ -87,6 +89,7 @@ async function scrubUserComments(
   return Number(result[0]?.affectedRows ?? 0);
 }
 
+/** Убираем имя, адрес и интересы анкеты и выключаем участие, сохраняя техническую запись. */
 async function scrubPenPalProfilePii(
   db: DataWriter,
   userId: number,
@@ -103,6 +106,7 @@ async function scrubPenPalProfilePii(
     .where(eq(penPalProfiles.userId, userId));
 }
 
+/** Удаляем личные push-токены, реакции, сохранения, историю подбора и собственные жалобы в общей транзакции удаления аккаунта. */
 async function purgeUserActivity(
   db: DataWriter,
   userId: number,
@@ -202,6 +206,7 @@ export async function processScheduledAccountDeletions(): Promise<number> {
   return processed;
 }
 
+/** Удаляем только просроченные незавершённые пары и давно неактивные анкеты; для истёкшего клубного доступа повторно проверяем срок под общей блокировкой пользователя перед деактивацией. */
 export async function purgeStalePenPalData(): Promise<{
   profiles: number;
   matches: number;

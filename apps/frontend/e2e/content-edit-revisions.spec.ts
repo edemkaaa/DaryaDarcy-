@@ -3,19 +3,24 @@ import { editorApi, failure, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
 test.setTimeout(45_000);
+/** Адресуем введённый текст текущего post-editor, чтобы отличить его от компактной карточки. */
 const text = (page: Page) =>
   page.getByPlaceholder("Текст поста… Enter — новый абзац");
+/** Адресуем заголовок формы статьи, сохраняемый при конфликте. */
 const title = (page: Page) => page.getByPlaceholder("Что посмотреть осенью...");
+/** Сверка читает серверную версию без повторной мутации. */
 const compare = (page: Page) =>
   page.getByRole("button", {
     name: "Сравнить с серверной версией",
     exact: true,
   });
+/** Новую base-revision принимаем только отдельным решением после сравнения; это ещё не write. */
 const accept = (page: Page) =>
   page.getByRole("button", {
     name: "Продолжить с моими изменениями после сравнения",
     exact: true,
   });
+/** Полный post-detail содержит editRevision и sortOrder, которых нельзя выводить из компактной карточки. */
 function post() {
   return {
     id: 7,
@@ -37,6 +42,7 @@ function post() {
     editRevision: "post:r1",
   };
 }
+/** Готовим исходную ревизию статьи отдельно от введённых изменений. */
 function article() {
   return {
     id: 9,
@@ -48,6 +54,7 @@ function article() {
     editRevision: "article:r1",
   };
 }
+/** Меняем серверные post/article отдельно от форм; умеем отклонить expectedRevision либо применить запись и потерять ACK, считая upload отдельно. */
 async function fixture(page: Page) {
   const state = {
     post: post(),
@@ -114,6 +121,7 @@ async function fixture(page: Page) {
   });
   return state;
 }
+/** Открываем полную admin-запись и ждём durable-draft до измерения конфликта. */
 async function fullPost(page: Page) {
   await gotoWithSession(page, "/admin");
   await page
@@ -125,6 +133,7 @@ async function fullPost(page: Page) {
     page.getByText("Черновик сохранён на этом устройстве", { exact: true }),
   ).toBeVisible();
 }
+/** Читаем исходную статью через admin-detail до локального изменения. */
 async function editArticle(page: Page) {
   await gotoWithSession(page, "/admin");
   await page.getByRole("button", { name: "Статьи", exact: true }).click();
@@ -134,6 +143,7 @@ async function editArticle(page: Page) {
     .click();
   await expect(title(page)).toHaveValue("ORIGINAL_ARTICLE");
 }
+/** Смотрим сохранённую base-revision и ввод напрямую в IndexedDB, проверяя, что UI-сверка не переписала исходный intent. */
 async function readDraft(
   page: Page,
   database: string,
@@ -166,6 +176,7 @@ async function readDraft(
   );
 }
 
+/** 409 и 412 сохраняют старую ревизию через reload; только явное принятие сравнения меняет expectedRevision следующего save. */
 for (const rejection of [409, 412]) {
   test(`full post ${rejection}: original version survives reload, comparison never writes, explicit acceptance changes only the next save`, async ({
     page,
@@ -226,6 +237,7 @@ for (const rejection of [409, 412]) {
   });
 }
 
+/** Быстрый редактор читает полный detail, а потерянный ACK подтверждает точечным чтением без повторного update. */
 test("quick editor reads a full record and preserves its revision on a lost response", async ({
   page,
 }) => {
@@ -254,6 +266,7 @@ test("quick editor reads a full record and preserves its revision on a lost resp
   expect(state.writes).toHaveLength(1);
 });
 
+/** Ограничение проверяется по UTF-8 до write; полный длинный ввод остаётся в поле и durable-draft. */
 test("post rejects overlong UTF-8 before any write and keeps the full input", async ({
   page,
 }) => {
@@ -273,6 +286,7 @@ test("post rejects overlong UTF-8 before any write and keeps the full input", as
     .toBe(value.length);
 });
 
+/** Статья сохраняет ввод и исходную ревизию на трёх размерах; manual rebase не отправляет update сам. */
 for (const viewport of [
   { width: 320, height: 568 },
   { width: 390, height: 844 },
@@ -314,6 +328,7 @@ for (const viewport of [
   });
 }
 
+/** Файл загружается однажды; конфликт и manual rebase обновляют только ожидаемую ревизию, сохраняя исходные байты и receipt. */
 test("article private file operation retains original bytes and revision through conflict and a manual rebase", async ({
   page,
 }) => {
@@ -363,6 +378,7 @@ test("article private file operation retains original bytes and revision through
   expect(state.writes[1].input.expectedRevision).toBe("article:r2");
 });
 
+/** Теги сохраняют выбранное значение и ревизию до явного принятия актуальной серверной версии. */
 test("tags keep a restored revision and selected input until manual conflict acceptance", async ({
   page,
 }) => {
@@ -393,6 +409,7 @@ test("tags keep a restored revision and selected input until manual conflict acc
   });
 });
 
+/** Потерянный ACK тегов подтверждается read, а не повторным toggle/update. */
 test("tags with a lost response are confirmed by a read without another mutation", async ({
   page,
 }) => {

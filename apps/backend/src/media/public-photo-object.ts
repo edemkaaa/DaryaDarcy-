@@ -10,6 +10,7 @@ import { privateStorageNamespace } from "./private-upload-object";
 import type { publicPhotoUploads } from "../../../../packages/database/src/schema";
 
 type Receipt = typeof publicPhotoUploads.$inferSelect;
+/** Выводим отдельный публичный public-v1 ключ аватара или обложки из технической квитанции с владельцем, без исходного имени файла. */
 function objectKey(row: Receipt) {
   if (!row.actorUserId || !/^[a-f0-9-]{36}$/.test(row.assetId))
     throw new Error("Invalid public receipt");
@@ -19,6 +20,7 @@ function objectKey(row: Receipt) {
 }
 
 /** Immutable new keys only; HEAD proves a prior PUT before retry. Never DELETE. */
+/** Создаём неизменяемую WebP-копию публичного назначения условным PUT; существующий объект принимаем только по размеру и хешам квитанции, никогда не удаляем и не перезаписываем. */
 export async function ensurePublicPhotoObject(
   row: Receipt,
   bytes: Buffer,
@@ -50,6 +52,7 @@ export async function ensurePublicPhotoObject(
     ? AbortSignal.any([callerSignal, AbortSignal.timeout(10000)])
     : AbortSignal.timeout(10000);
   const object = { Bucket: namespace.bucket, Key: objectKey(row) };
+  /** Отличаем настоящий HEAD404 от сбоя и проверяем размер, WebP MIME, выходной SHA-256 и requestId найденного объекта. */
   async function exists() {
     try {
       const head = await client.send(new HeadObjectCommand(object), {

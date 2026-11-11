@@ -12,15 +12,18 @@ const postLists = new Set([
 ]);
 const savedLists = new Set(["feed.savedPosts", "feed.savedPostsPage"]);
 
+/** Проверяем путь tRPC query, чтобы обновлять только согласованные списки публикаций. */
 function matches(key: QueryKey, paths: Set<string>) {
   return Array.isArray(key[0]) && paths.has(key[0].join("."));
 }
 
+/** Отличаем объект записи от массива и null перед обходом поддерживаемых envelopes. */
 function record(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 // Only traverse the supported list envelopes, never media, comments or cursors.
+/** Рекурсивно меняем только pages/posts/items; нетронутые ветви сохраняют ссылку, null-count удаляет нужную карточку. */
 function updatePost(
   data: unknown,
   postId: number,
@@ -50,7 +53,7 @@ function updatePost(
   return data;
 }
 
-/** Copy the server's count into existing cards without reloading their lists. */
+/** Копируем подтверждённый сервером счётчик в уже загруженные карточки без полного повторного запроса списка. */
 export function updateCachedPostLikeCount(
   client: QueryClient,
   postId: number,
@@ -65,7 +68,7 @@ export function updateCachedPostLikeCount(
   );
 }
 
-/** Keyset cursors remain valid when an unsaved card is removed from any page. */
+/** Удаляем снятый bookmark из известных страниц сохранённого, сохраняя keyset-курсоры. */
 export function removeCachedSavedPost(client: QueryClient, postId: number) {
   client.setQueriesData(
     { predicate: (query) => matches(query.queryKey, savedLists) },
@@ -76,7 +79,7 @@ export function removeCachedSavedPost(client: QueryClient, postId: number) {
   );
 }
 
-/** A successful absence response must not keep a deleted/hidden card visible. */
+/** Подтверждённое отсутствие скрывает карточку во всех поддерживаемых кешах, а не оставляет удалённый контент на экране. */
 export function removeUnavailableCachedPost(
   client: QueryClient,
   postId: number,

@@ -24,7 +24,9 @@ const legacyClubSettlement = new ClubSettlementService((input) =>
   db.settleClubPayment(input),
 );
 const legacyClubCancellation = new ClubCancellationService({
+  /** Адаптируем прежний cancellation-сервис к общему пулу без создания нового подключения при импорте. */
   getDb: () => db.getDb(),
+  /** Передаём подтверждённый профиль в общую транзакционную отметку отмены провайдера. */
   confirm: (database, profile) => confirmProviderCancellation(database, profile),
 });
 
@@ -37,48 +39,58 @@ const SHOP_PRODUCTS: Record<string, { name: string; price: string }> = {
   "digital-2": { name: "Винтажные книги и открытки", price: (process.env.SHOP_DIGITAL_2_PRICE || "50").trim() || "50" },
 };
 
+/** Разрешаем только собственные ключи фиксированного справочника цифровых товаров. */
 export function getShopProduct(productId: string) {
   return Object.hasOwn(SHOP_PRODUCTS, productId) ? SHOP_PRODUCTS[productId] : null;
 }
 
+/** Распознаём известный цифровой товар по префиксу orderId, не используя произвольную строку как товар. */
 export function parseShopProductId(orderId: string): string | null {
   if (orderId.startsWith("shop-digital-1-")) return "digital-1";
   if (orderId.startsWith("shop-digital-2-")) return "digital-2";
   return null;
 }
 
+/** Берём публичный origin из доверенной настройки ссылок, а не из заголовков webhook или браузера. */
 function publicSiteUrl(): string {
   return publicAccessUrl().origin;
 }
 
+/** Читаем совместимый адрес формы Клуба; перед LIVE-checkout отдельная проверка требует явную безопасную настройку. */
 function getPayformUrl(): string {
   return (process.env.PRODAMUS_PAYFORM_URL || "https://daryadarcy-club.payform.ru")
     .trim()
     .replace(/\/$/, "");
 }
 
+/** Читаем отдельную форму магазина для выбранного merchant, сохраняя старое значение по умолчанию вне preflight. */
 function getShopPayformUrl(): string {
   return (process.env.PRODAMUS_SHOP_PAYFORM_URL || "https://daryadarcy.payform.ru").replace(/\/$/, "");
 }
 
+/** Читаем основной серверный ключ подписи Клуба из окружения без вывода в сообщения. */
 function getSecret(): string {
   return (process.env.PRODAMUS_SECRET || "").trim();
 }
 
+/** Читаем выделенный ключ магазина, если он настроен отдельно от Клуба. */
 function getShopSecret(): string {
   return (process.env.PRODAMUS_SHOP_SECRET || "").trim();
 }
 
+/** Нормализуем явную настройку demo-подписи магазина; это не разрешение выдавать LIVE-доступ по demo-webhook. */
 function shopUsesDemoSign(): boolean {
   const raw = (process.env.PRODAMUS_SHOP_DEMO || "0").trim().toLowerCase();
   return raw === "1" || raw === "true" || raw === "on";
 }
 
+/** Читаем настроенный ID ежемесячного автопродления в кабинете провайдера. */
 function subscriptionId(): string {
   return (process.env.PRODAMUS_SUBSCRIPTION_ID || "").trim();
 }
 
 /** Checkout must fail before creating a billing recipient or pending order. */
+/** До создания получателя и заказа проверяем явный HTTPS merchant, секрет, сумму и subscription ID для месячного тарифа; ошибочная настройка не получает unsigned fallback. */
 export function assertClubCheckoutConfigured(
   plan: "monthly" | "semiannual",
 ): void {
@@ -111,19 +123,23 @@ export function assertClubCheckoutConfigured(
   }
 }
 
+/** Читаем отдельный ключ уведомлений подписки, если кабинет использует его вместо общего. */
 function getSubscriptionSecret(): string {
   return (process.env.PRODAMUS_SUBSCRIPTION_SECRET || "").trim();
 }
 
+/** Проверяем подпись против настроенных секретов; отдельная обработка дополнительно исключает demo-события из LIVE-выдачи. */
 export function verifyProdamusSign(data: unknown, signature: string): boolean {
   // Demo notifications must never create production entitlements.
   return verifyProdamusSignature(data, signature, [getSecret(), getShopSecret(), getSubscriptionSecret()]);
 }
 
+/** Ограничиваем текст инструкции провайдера до совместимого предела поля. */
 function paidContent(text: string): string {
   return text.slice(0, 4096);
 }
 
+/** Строим подписанную оплату выбранного тарифа: месяц включает subscription ID и SBP, полугодовой тариф использует разовый товар; возврат браузера лишь запускает проверку результата. */
 export function buildCheckoutUrl(input: {
   orderId: string;
   email: string;
@@ -181,6 +197,7 @@ export function buildCheckoutUrl(input: {
   return signedPayUrl(getPayformUrl(), payload);
 }
 
+/** Проверяем явную безопасную форму и ключ выбранного merchant, стоимость товара и публичный origin до записи заказа магазина. */
 function shopCheckoutConfiguration(price: string) {
   try {
     const dedicatedSecret = getShopSecret();
@@ -218,6 +235,7 @@ function shopCheckoutConfiguration(price: string) {
   }
 }
 
+/** Для известного цифрового товара собираем подписанную ссылку и инструкцию входа, добавляя email и ID только при наличии. */
 export function buildShopCheckoutUrl(input: { productId: string; orderId: string; email?: string; userId?: number }): string | null {
   const product = getShopProduct(input.productId);
   if (!product) return null;
@@ -251,6 +269,7 @@ export function buildShopCheckoutUrl(input: { productId: string; orderId: string
   return signedPayUrl(payform, payload, signKey);
 }
 
+/** Копируем подготовленные поля, добавляем HMAC-подпись настроенным ключом и кодируем query принятого протокола. */
 function signedPayUrl(payformUrl: string, payload: Record<string, unknown>, secret = getSecret()): string {
   const data = { ...payload };
   if (secret) {
@@ -259,17 +278,20 @@ function signedPayUrl(payformUrl: string, payload: Record<string, unknown>, secr
   return `${payformUrl}/?${buildQuery(data)}`;
 }
 
+/** Извлекаем подпись из совместимых заголовков, выбирая первый элемент массива вместо неявного преобразования всего набора. */
 function headerSign(req: Request): string {
   const raw = req.headers.sign || req.headers.Sign || req.headers["x-sign"];
   if (Array.isArray(raw)) return String(raw[0] || "");
   return String(raw || "");
 }
 
+/** Маршрутизируем подтверждённый заказ в атомарный settlement Клуба; старый цифровой магазин обрабатывается только при включённой capability и собственном товаре. */
 export async function fulfillPaidOrder(
   orderId: string,
   extra?: { email?: string | null; sum?: string | null; userId?: number | null; proof?: PaymentProof; recurring?: boolean },
   clubSettlement: Pick<ClubSettlementService, "settle"> = legacyClubSettlement,
 ): Promise<"club" | "shop" | null> {
+// Клубная выдача проходит через самостоятельный проверенный settlement; старый цифровой магазин ниже не является тем же атомарным контрактом.
   if (orderId.startsWith("club-") || orderId.startsWith("club6m-")) {
     const granted = await clubSettlement.settle(orderId, extra);
     return granted ? "club" : null;
@@ -305,6 +327,7 @@ export async function fulfillPaidOrder(
   return null;
 }
 
+/** Вызываем клиент отмены с текущими merchant/секретом и профилем провайдера, не заменяя подтверждение локальным флагом. */
 export async function cancelProdamusSubscription(profile:Profile): Promise<boolean> {
   return cancelProdamusProfile(profile, {
     payformUrl: getPayformUrl(),
@@ -314,6 +337,7 @@ export async function cancelProdamusSubscription(profile:Profile): Promise<boole
   }, (...args) => fetch(...args));
 }
 
+/** Обрабатываем навигационный возврат только как редирект на проверку оплаты; параметры браузера не начисляют доступ. */
 export async function handleProdamusReturn(req: Request, res: Response) {
   const body = parseProdamusPayload(req.query, req.body);
   const orderId = pickOrderId({ ...asRecord(req.query), ...body }) || pickString(asRecord(req.query), ["order"]);
@@ -330,6 +354,7 @@ export async function handleProdamusReturn(req: Request, res: Response) {
   res.redirect(302, dest);
 }
 
+/** Связываем обработчик webhook с внедрёнными settlement/cancellation сервисами конкретного Nest-приложения. */
 export function createProdamusWebhookHandler(
   clubSettlement: Pick<ClubSettlementService, "settle">,
   clubCancellation: Pick<ClubCancellationService, "confirm">,
@@ -337,10 +362,12 @@ export function createProdamusWebhookHandler(
   return (req, res) => processProdamusWebhook(req, res, clubSettlement, clubCancellation);
 }
 
+/** Сохраняем совместимый вызов webhook с прежними доменными сервисами без изменения протокола. */
 export async function handleProdamusWebhook(req: Request, res: Response) {
   return processProdamusWebhook(req, res, legacyClubSettlement, legacyClubCancellation);
 }
 
+/** Разбираем и проверяем подпись, исключаем demo, затем разделяем подтверждение отмены и платежа через доменные обработчики; внутренние причины не попадают в ответ. */
 async function processProdamusWebhook(
   req: Request,
   res: Response,
@@ -372,11 +399,14 @@ async function processProdamusWebhook(
 
     if (action === "deactivation" || action === "finish") {
       const acknowledgement = await processProdamusCancellationNotification(body, signature, {
+        /** Выбираем отдельный секрет уведомлений подписки либо основной ключ для точной повторной проверки отмены. */
         secret: () => getSubscriptionSecret() || getSecret(),
+        /** Передаём ожидаемые merchant-домен и subscription ID для проверки принадлежности уведомления отмены. */
         binding: () => ({
           domain: new URL(getPayformUrl()).hostname,
           subscriptionId: subscriptionId(),
         }),
+        /** Применяем подтверждение отмены через внедрённый доменный сервис, а не напрямую из query. */
         confirm: (profile) => clubCancellation.confirm(profile),
       });
       res.status(acknowledgement.status).send(acknowledgement.body);
@@ -385,6 +415,7 @@ async function processProdamusWebhook(
 
     const acknowledgement = await processProdamusPaymentNotification(
       body, signature, action, {
+        /** Выбираем ключ обычной или повторной оплаты и ожидаемый профиль кабинета для проверки платежного доказательства. */
         clubConfiguration: (recurring) => {
           const domain = new URL(getPayformUrl()).hostname;
           const secret = recurring
@@ -392,6 +423,7 @@ async function processProdamusWebhook(
             : getSecret();
           return { domain, secret, subscriptionId: subscriptionId() };
         },
+        /** Передаём только разобранное проверенное событие в выдачу оплаченного заказа. */
         fulfil: (orderId, details) => fulfillPaidOrder(orderId, details, clubSettlement),
       },
     );
@@ -403,6 +435,7 @@ async function processProdamusWebhook(
   }
 }
 
+/** Регистрируем совместимые возвраты и старый цифровой checkout под capability; заказ сохраняется до редиректа, а сам возврат не является оплатой. */
 export function registerProdamusRoutes(app: Express) {
   app.get("/api/prodamus/return", (req, res) => {
     void handleProdamusReturn(req, res);

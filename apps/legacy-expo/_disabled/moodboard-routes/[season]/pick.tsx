@@ -1,3 +1,4 @@
+// Архив Expo. Создаёт локальный элемент фото с базовым размещением в очередном слоте.
 import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
@@ -32,10 +33,14 @@ import type { MoodboardItem, MoodboardSeason } from "@/lib/moodboard/types";
 import { useClub } from "@/lib/club-context";
 
 function newItem(uri: string, slotIndex: number): MoodboardItem {
+  // Создаёт локальный элемент фото с базовым размещением в очередном слоте.
+
   return { id: `${Date.now()}-${slotIndex}`, uri, ...defaultItemPlacement(slotIndex) };
 }
 
 export default function MoodboardPickScreen() {
+  // Выключенный picker восстанавливает локальную доску, ограничивает бесплатное создание и добавляет выбранные фото.
+
   const { season: seasonParam, boardId: boardIdParam } = useLocalSearchParams<{
     season: string;
     boardId?: string;
@@ -50,9 +55,11 @@ export default function MoodboardPickScreen() {
   const [targetBoardId, setTargetBoardId] = useState<string | null>(boardId ?? null);
 
   const meta = SEASON_META[season];
-  const catalog = useMemo(() => catalogForSeason(season), [season]);
+  const catalog = useMemo(() => /* Мемоизирует каталог текущего сезона без сетевого запроса. */ catalogForSeason(season), [season]);
 
   useEffect(() => {
+    // Проверяет доступность сезона и выбирает существующую либо новую доску; исторический async не имеет отмены по unmount.
+
     void (async () => {
       if (!meta?.enabled) {
         router.replace("/moodboard" as any);
@@ -87,6 +94,8 @@ export default function MoodboardPickScreen() {
   }, [boardId, isSubscribed, meta?.enabled, router, season]);
 
   const toggle = (id: string) => {
+    // Переключает id выбранного фото через новый Set, сохраняя React-обновление.
+
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -96,6 +105,8 @@ export default function MoodboardPickScreen() {
   };
 
   const handleAdd = async () => {
+    // Перечитывает доску, добавляет выбранные снимки с геометрией и сохраняет локальный список до навигации.
+
     if (!targetBoardId) return;
     const board = await getMoodboard(targetBoardId);
     if (!board) return;
@@ -133,6 +144,7 @@ export default function MoodboardPickScreen() {
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: MOODBOARD_CREAM },
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },

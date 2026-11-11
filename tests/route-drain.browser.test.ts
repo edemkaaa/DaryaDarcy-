@@ -1,3 +1,4 @@
+/** Опциональный Chromium проверяет корректное завершение перехватов над настоящим loopback HTTP. */
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { chromium } from "@playwright/test";
@@ -8,6 +9,7 @@ import {
   trackRouteHandler,
 } from "./helpers/route-drain";
 
+/** Ручной promise-барьер задаёт точный порядок входа/завершения двух запросов без sleep-гонки. */
 function barrier() {
   let resolve!: () => void;
   const promise = new Promise<void>((done) => {
@@ -16,9 +18,11 @@ function barrier() {
   return { promise, resolve };
 }
 
+/** Проверяются context-route и page fallback; запуск требует явно выбранный browser executable. */
 describe.skipIf(!process.env.PLAYWRIGHT_EXECUTABLE_PATH)(
   "native proxy route drainage",
   () => {
+    /** Teardown ждёт быстрый и медленный upstream ответы, не снимая маршруты раньше fulfill и не пропуская запрос в fallback API. */
     it.each(["context", "page-fallback"])(
       "finishes both forwarded responses before removing interception (%s)",
       async (layer) => {

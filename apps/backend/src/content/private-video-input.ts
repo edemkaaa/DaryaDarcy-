@@ -18,6 +18,7 @@ export const privateVideoMetadata = z
     mimeType: z.string().min(1).max(128),
   })
   .strict();
+/** Разрешаем бинарную загрузку видео только при включённых общих приватных вложениях и отдельном флаге видео. */
 export const privateVideoUploadEnabled = () =>
   process.env.PRIVATE_POST_MEDIA_UPLOAD_ENABLED === "true" &&
   process.env.PRIVATE_POST_VIDEO_UPLOAD_ENABLED === "true";

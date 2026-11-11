@@ -4,6 +4,7 @@ import {
   type ManagerOrderSettings,
 } from "@/domain/launch/settings";
 
+/** Собираем mailto с проверенным получателем и канонической ссылкой товара на текущем origin; открытие письма ещё не подтверждает его отправку. */
 export function managerOrderEmail(
   settings: ManagerOrderSettings,
   product: { id: string; title: string },

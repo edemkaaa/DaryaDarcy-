@@ -26,6 +26,7 @@ import {
   inspectLibraryMigration,
 } from "../apps/backend/src/content/library-file-migration";
 
+/** Репетирует импорт и rollback Библиотеки с durable intent, неизменными stable URL и проверкой копий. */
 describe.skipIf(!testDatabaseUrl)(
   "library migration rehearsal on native SQL/API/loopback wire",
   () => {
@@ -35,8 +36,10 @@ describe.skipIf(!testDatabaseUrl)(
       wire: Awaited<ReturnType<typeof openPrivateUploadWire>>,
       token: string;
     const actor = { id: 98701, sessionVersion: 0 };
+    /** Считает SHA-256 synthetic-байтов для контракта импорта и проверки скачанной копии. */
     const hash = (bytes: Buffer) =>
       createHash("sha256").update(bytes).digest("hex");
+    /** Создаёт synthetic документ с содержимым, digest, display-order и ожидаемой revision. */
     const document = (
       fileKey = "main",
       text = "fixture library bytes",
@@ -53,14 +56,17 @@ describe.skipIf(!testDatabaseUrl)(
         expectedRevision,
       };
     };
+    /** Формирует новую ограниченную операцию импорта выбранного материала с уникальным idempotencyKey. */
     const input = (files = [document()], materialKey = "recipes") => ({
       materialKey,
       idempotencyKey: "library-rehearsal-" + randomUUID(),
       files,
     });
+    /** Читает actual migration-journal, bindings и files через контрольное соединение. */
     async function rows(sql: string, args: unknown[] = []) {
       return (await conn.query<RowDataPacket[]>(sql, args))[0];
     }
+    /** Удаляет fault-trigger и только файлы своих двух операторов с их bindings и журналом isolated rehearsal. */
     async function clear() {
       await conn.query("DROP TRIGGER IF EXISTS library_rehearsal_refusal");
       await conn.query(
@@ -74,6 +80,7 @@ describe.skipIf(!testDatabaseUrl)(
         "DELETE FROM club_payments WHERE orderId='library-rehearsal-paid'",
       );
     }
+    /** Создаёт одноразовый пул, loopback storage и трёх собственных операторов/reader и локальный API. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       wire = await openPrivateUploadWire({ content: true });
@@ -98,6 +105,7 @@ describe.skipIf(!testDatabaseUrl)(
       await app.listen(0, "127.0.0.1");
       base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
     });
+    /** Сбрасывает wire, свои записи и права операторов и включает library-выдачу. */
     beforeEach(async () => {
       await clear();
       wire.objects.clear();
@@ -108,6 +116,7 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query("UPDATE users SET blockedAt=NULL,sessionVersion=0,accountDeletionRequestedAt=NULL,role='moderator' WHERE id=98703");
       vi.stubEnv("PRIVATE_LIBRARY_FILES_ENABLED", "true");
     });
+    /** Закрывает API, удаляет fixture и соединения, закрывает wire и возвращает окружение. */
     afterAll(async () => {
       await app?.close();
       if (conn) {
@@ -121,8 +130,10 @@ describe.skipIf(!testDatabaseUrl)(
       await wire?.close();
       vi.unstubAllEnvs();
     });
+    /** Читает stable library route от собственного staff-reader. */
     const read = (path: string) =>
       fetch(base + path, { headers: { authorization: `Bearer ${token}` } });
+    /** Запускает importer в отдельном Node-процессе без памяти предыдущего запуска и при необходимости теряет итоговый ответ. */
     async function restartedImport(
       request: ReturnType<typeof input>,
       discardReply = false,
@@ -156,6 +167,7 @@ describe.skipIf(!testDatabaseUrl)(
         },
       );
     }
+    /** Потерянный PUT-ACK оставляет pending intent без частичных bindings; retry подтверждает существующие копии и коммитит материал один раз. */
     it("records intent before lost storage ACK and publishes the whole material once on retry", async () => {
       const request = input([document("first"), document("second")]);
       wire.dropPutAck();
@@ -190,6 +202,7 @@ describe.skipIf(!testDatabaseUrl)(
         }),
       ).rejects.toMatchObject({ code: "CONFLICT" });
     });
+    /** Сбой второй binding откатывает SQL-партию, а retry переиспользует уже подтверждённые binary-копии. */
     it("rolls back a failed binding transaction and retries without additional binary copies", async () => {
       const request = input([document("first"), document("second")]);
       await conn.query(
@@ -202,6 +215,7 @@ describe.skipIf(!testDatabaseUrl)(
       await applyLibraryMigration(actor, request);
       expect(wire.effects.filter((e) => e.startsWith("PUT "))).toHaveLength(2);
     });
+    /** Замена и rollback меняют привязку stable URL с revision fencing; rolledBack intent и более старый rollback не воскрешают материал. */
     it("keeps stable URLs through replacement and revision-guarded rollback, never reviving the rolled-back import", async () => {
       const first = input();
       await applyLibraryMigration(actor, first);
@@ -232,6 +246,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).rejects.toMatchObject({ code: "CONFLICT" });
       expect(wire.objects.size).toBe(3);
     });
+    /** Stale revision, блокировка оператора и выключенный флаг запрещают импорт до storage-write. */
     it("rejects stale revisions and disabled or revoked operators before binary writes", async () => {
       await applyLibraryMigration(actor, input());
       const effects = wire.effects.length;
@@ -248,6 +263,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).rejects.toMatchObject({ code: "NOT_FOUND" });
       expect(wire.effects.length).toBe(effects);
     });
+    /** Шесть synthetic-файлов выдерживают потерю PUT/commit ответов и перезапуск importer без изменения публичного control-объекта. */
     it("rehearses six synthetic files across process restarts and lost copy/commit replies without touching public controls", async () => {
       const patternFiles = [];
       for (const [sortOrder, fileKey] of [
@@ -360,6 +376,7 @@ describe.skipIf(!testDatabaseUrl)(
         wire.effects.some((effect) => effect.includes("public-control")),
       ).toBe(false);
     }, 40000);
+    /** Семь эстетик выдают synthetic-картинки admin и действующему участнику, повтор не копирует заново, отзыв paid закрывает прежние URL. */
     it("serves seven synthetic aesthetic photos only to admin/current members and revokes prior URLs", async () => {
       const bytes=await sharp({create:{width:4,height:4,channels:3,background:"blue"}}).webp({lossless:true}).toBuffer();
       const photo={...document("moodboards-moodboard1"),filename:"synthetic.webp",mimeType:"image/webp",bytes,sha256:hash(bytes)};
@@ -391,6 +408,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect((await read(`/api/media/library-files/${request.materialKey}/${photo.fileKey}`)).status).toBe(404);
       }
     });
+    /** Конкурентные retry могут временно получить 503 от conditional PUT, но сходятся в один committed intent и asset каждого слота. */
     it("serializes simultaneous retries into one committed operation and one asset per slot", async () => {
       const request = input([document("first"), document("second")]);
       const attempts = await Promise.allSettled(
@@ -419,6 +437,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).toEqual([{ n: 2 }]);
       expect(wire.objects.size).toBe(2);
     });
+    /** Скопированный pending-объект не читается до binding commit, а отзыв epoch запрещает восстановление операции. */
     it("keeps copied pending files unreadable and refuses recovery after operator revocation", async () => {
       const request = input();
       wire.dropPutAck();
@@ -440,6 +459,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(wire.effects.length).toBe(effects);
       expect(await rows("SELECT id FROM library_file_bindings")).toEqual([]);
     });
+    /** MyISAM binding-table запрещает импорт до durable intent или binary-copy. */
     it("refuses a nontransactional binding table before recording intent or copying bytes", async () => {
       await conn.query("ALTER TABLE library_file_bindings ENGINE=MyISAM");
       try {

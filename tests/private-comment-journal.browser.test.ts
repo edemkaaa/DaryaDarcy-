@@ -3,6 +3,7 @@ import { build } from "esbuild";
 import { chromium, type Browser, type Page } from "@playwright/test";
 const native = process.env.DARYADARCY_LOCAL_BROWSER === "1" ? it : it.skip;
 let browser: Browser, bundle: string;
+// Реальная браузерная часть запускается только по явному DARYADARCY_LOCAL_BROWSER: собирается журнал, серверные ответы полностью перехвачены.
 beforeAll(async () => {
   if (process.env.DARYADARCY_LOCAL_BROWSER !== "1") return;
   const root = new URL("../", import.meta.url).pathname;
@@ -29,6 +30,8 @@ afterAll(async () => {
 native(
   "concurrent prepares claim one slot instead of replacing another tab's comment",
   async () => {
+    // Сценарий: Две подготовки одновременно занимают один слот IndexedDB и не заменяют комментарий соседней вкладки.
+
     const context = await browser.newContext();
     try {
       const page = await context.newPage();
@@ -42,7 +45,7 @@ native(
           } = (window as any).commentJournal;
           setPersonalDataOwner(101);
           const make = (text: string) =>
-            preparePrivateComment(101, { postId: 42, text }, [
+            /* Подготавливает частную фотографию и намерение комментария с различающимися текстом и ключом. */ preparePrivateComment(101, { postId: 42, text }, [
               {
                 key: `comment-file-intent-${text}`,
                 file: new File(["bytes"], "photo.png", { type: "image/png" }),
@@ -70,6 +73,8 @@ native(
   },
 );
 async function open(page: Page) {
+  // Открывает полностью перехваченную локальную страницу и подключает настоящий браузерный журнал.
+
   await page.route("**/*", (route) =>
     route.fulfill({
       contentType: "text/html",
@@ -82,6 +87,8 @@ async function open(page: Page) {
 native(
   "comment File bytes, reply, key and original post survive a real document reload",
   async () => {
+    // Сценарий: Перезагрузка документа сохраняет исходный File, адресата ответа, пост, текст и ключ операции.
+
     const context = await browser.newContext();
     try {
       const page = await context.newPage();
@@ -149,6 +156,8 @@ native(
 native(
   "atomic revision ownership rejects a stale checkpoint and stale clear from another instance",
   async () => {
+    // Сценарий: Старая ревизия не может сохранить контрольную точку или удалить более новую запись журнала.
+
     const context = await browser.newContext();
     try {
       const page = await context.newPage();
@@ -215,6 +224,8 @@ native(
 native(
   "same-key byte substitution and backwards write transitions cannot replace an unknown comment",
   async () => {
+    // Сценарий: Подмена байтов под прежним ключом и возврат из стадии записи к загрузке запрещены.
+
     const context = await browser.newContext();
     try {
       const page = await context.newPage();
@@ -260,7 +271,7 @@ native(
             await savePrivateComment(
               record,
               {
-                upload: async (input: { filename: string }) => ({
+                upload: async (input: { filename: string }) => /* Возвращает готовую квитанцию вместо обращения к хранилищу. */ ({
                   state: "ready",
                   assetId: "3af23d8c-140f-454b-a123-123456789abc",
                   usage: "commentPhoto",
@@ -269,13 +280,17 @@ native(
                   fileSize: 80,
                   url: "/api/media/content-files/3af23d8c-140f-454b-a123-123456789abc",
                 }),
-                status: async () => ({ state: "notRecorded" }),
+                status: async () => /* Имитирует ещё не зарегистрированную операцию загрузки. */ ({ state: "notRecorded" }),
                 add: async () => {
+                  // Считает запись перед обрывом ответа, чтобы проверить неизвестный исход отправки.
+
                   sent++;
                   throw Error("lost reply");
                 },
               },
-              { assertCurrent() {}, signal: new AbortController().signal },
+              { assertCurrent() {
+                // Оставляет проверку доступа нейтральной: этот сценарий изолирует переходы журнала.
+}, signal: new AbortController().signal },
               (value: unknown) => journal.checkpoint(value),
             );
           } catch {}
@@ -304,6 +319,8 @@ native(
 native(
   "another account or another post cannot read or overwrite the original private operation",
   async () => {
+    // Сценарий: Другой аккаунт или пост не получает права читать, переписывать либо очищать исходное намерение.
+
     const context = await browser.newContext();
     try {
       const page = await context.newPage();

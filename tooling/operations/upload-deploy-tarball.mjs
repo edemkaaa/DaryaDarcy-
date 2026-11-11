@@ -24,6 +24,8 @@ const client = new S3Client({
 });
 
 async function upload(rel, contentType) {
+  // Публикует один локальный артефакт в фиксированном deploy-префиксе; содержимое архива проверяется отдельно.
+
   const file = path.join(root, rel);
   const key = `deploy/${path.basename(rel)}`;
   const body = fs.readFileSync(file);

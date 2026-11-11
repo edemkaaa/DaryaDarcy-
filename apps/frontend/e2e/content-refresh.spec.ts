@@ -2,12 +2,14 @@ import { expect, test, type Page } from "@playwright/test";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
 import { failure, ok } from "./editor-fixtures";
 
+/** Продвигаем TTL и отдельно исполняем короткий batching timer периодического query. */
 async function advance(page: Page, milliseconds = 61_000) {
   await page.clock.fastForward(milliseconds);
   // Flush the tRPC batch timer created by the periodic query.
   await page.clock.runFor(100);
 }
 
+/** Меняем app-route через доступный client-router без полной document-навигации; отсутствие router считается ошибкой fixture. */
 async function navigate(page: Page, path: string) {
   await page.evaluate((path) => {
     const next = (
@@ -21,6 +23,7 @@ async function navigate(page: Page, path: string) {
   await expect(page).toHaveURL(new RegExp(`${path}$`));
 }
 
+/** Длинный текст с версией даёт стабильные строки и различимые изменения без локальной мутации QueryClient. */
 const post = (id: number, version: string) => ({
   id,
   text: `${version}. ${"Длинная публикация для проверки прокрутки. ".repeat(10)}`,
@@ -35,6 +38,7 @@ const post = (id: number, version: string) => ({
   createdAt: "2026-10-01T12:00:00Z",
 });
 
+/** Проверяем TTL 45+16 секунд и внешние правки ленты без remount, reload и изменения scroll. */
 for (const width of [390, 1440]) {
   test(`external feed changes arrive after a minute without remounting at ${width}px`, async ({
     page,
@@ -84,6 +88,7 @@ for (const width of [390, 1440]) {
   });
 }
 
+/** Таймер действует только в видимом online-разделе; возвращение или reconnect обновляет накопившиеся stale-данные. */
 test("polls only the visible section, pauses while hidden/offline and resumes stale data", async ({
   page,
 }) => {
@@ -141,6 +146,7 @@ test("polls only the visible section, pauses while hidden/offline and resumes st
   expect(feedReads).toBe(beforeFeed);
 });
 
+/** Фоновый read клуба отражает внешнее изменение, сохраняя выбранную рубрику и останавливаясь после ухода. */
 test("club refresh preserves the selected section and sees another admin's edits", async ({
   page,
 }) => {
@@ -174,6 +180,7 @@ test("club refresh preserves the selected section and sees another admin's edits
   expect(reads).toBe(afterExit);
 });
 
+/** Удерживаем фоновой club-read при scroll0 и scroll300; видимый контент остаётся неподвижным до и после ответа. */
 for (const width of [390, 1440]) {
   test(`club background refresh keeps content still while pending and after completion at ${width}px`, async ({
     page,
@@ -209,6 +216,7 @@ for (const width of [390, 1440]) {
     const list = page.locator(
       '[data-tab-screen="/club"] [data-windowed-collection]',
     );
+    /** Сравниваем scrollTop, начало содержимого и первую строку, чтобы pending-refresh не вставлял дополнительный отступ. */
     const geometry = () =>
       list.evaluate((node) => ({
         scrollTop: node.scrollTop,
@@ -249,6 +257,7 @@ for (const width of [390, 1440]) {
   });
 }
 
+/** Article/post/legacy-video различают временный отказ и удаление: подтверждённый кеш сохраняется только до достоверного нового состояния. */
 for (const route of ["article", "post", "video"] as const) {
   test(`${route} keeps cached reading content during a failed refresh, then reflects edits and deletion`, async ({
     page,
@@ -331,6 +340,7 @@ for (const route of ["article", "post", "video"] as const) {
   });
 }
 
+/** Свежая locked-версия статьи убирает прежние публичные sections после очередного poll. */
 test("an article switched to club access hides its cached sections after polling", async ({
   page,
 }) => {

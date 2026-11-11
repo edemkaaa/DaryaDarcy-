@@ -60,21 +60,26 @@ type Proof = z.infer<typeof guestCheckoutProof>;
 type Input = z.infer<typeof guestCheckoutInput>;
 type Ledger = typeof normalCheckoutRequests.$inferSelect;
 type Tx = Parameters<Parameters<MySql2Database["transaction"]>[0]>[0];
+/** Хеширует отдельный guest namespace, recoveryToken и idempotencyKey: исходный bearer-proof не хранится ключом в явном виде. */
 const requestKey = (input: Proof) =>
   billingKey([
     "club.guestCheckout:v1",
     input.recoveryToken,
     input.idempotencyKey,
   ]);
+/** Связывает неизменяемое гостевое намерение с тарифом, нормализованной почтой и контактом. */
 const payloadHash = (input: Input) =>
   checkoutRequestHash(input.plan, input.email, input.contactPhone);
+/** Создаёт безопасный предэффектный отказ недоступности checkout без деталей merchant или БД. */
 const unavailable = () =>
   new TRPCError({
     code: "PRECONDITION_FAILED",
     message: "Оплата временно недоступна",
   });
+/** Возвращает CONFLICT при несовпадении параметров уже записанного guest-intent. */
 const conflict = () =>
   new TRPCError({ code: "CONFLICT", message: "Параметры оплаты изменились" });
+/** Fail-closed включает гостевое восстановление лишь при точном GUEST_CHECKOUT_RECOVERY_ENABLED=true. */
 function enabled() {
   if (process.env.GUEST_CHECKOUT_RECOVERY_ENABLED !== "true")
     throw unavailable();
@@ -107,6 +112,7 @@ export async function enforceGuestCheckoutLimit(
     }
   }
 }
+/** Блокирует текущего владельца, проверяет blocked/deletion и при имеющейся сессии совпадение actor/epoch. */
 async function recipient(tx: Tx, id: number, actor: User | null = null) {
   const [row] = await tx
     .select()
@@ -127,6 +133,7 @@ async function recipient(tx: Tx, id: number, actor: User | null = null) {
     throw new TRPCError({ code: "UNAUTHORIZED" });
   return row;
 }
+/** Ищет запись гостевого журнала по подготовленному requestKey без создания нового заказа. */
 async function read(tx: Tx, key: string) {
   const [row] = await tx
     .select()
@@ -134,6 +141,7 @@ async function read(tx: Tx, key: string) {
     .where(eq(normalCheckoutRequests.requestKey, key));
   return row;
 }
+/** Сверяет payload и текущий email получателя; для pending пересобирает ту же ссылку и проверяет merchant/сумму/hash, для финального возвращает прежний результат. */
 async function replay(
   tx: Tx,
   previous: Ledger,
@@ -165,6 +173,7 @@ async function replay(
   return { state: "pending" as const, orderId: previous.orderId, url };
 }
 // Сохраняем SHA-256-формат URL старого журнала, не заменяя его array-кодированием billingKey.
+/** Сохраняет совместимый SHA-256 отпечаток полной checkout-ссылки для сверки повторного результата. */
 const billingKeyForUrl = (url: string) =>
   createHash("sha256").update(url).digest("hex");
 
@@ -187,6 +196,7 @@ export async function guestNormalCheckoutStatus(
     { isolationLevel: "read committed" },
   );
 }
+/** Ограниченно проходит цепочку cause в поиске ER_DUP_ENTRY, не принимая любой SQL-сбой за гонку. */
 function duplicate(error: unknown): boolean {
   for (let i = 0; i < 4 && error && typeof error === "object"; i++) {
     if ("code" in error && error.code === "ER_DUP_ENTRY") return true;
@@ -211,6 +221,7 @@ export async function createGuestNormalCheckout(
   const database = await getDb();
   if (!database) throw new Error("Database unavailable");
   const key = requestKey(input);
+  /** В READ COMMITTED повторно читает единственный intent и восстанавливает его через тот же replay без новой оплаты. */
   const recover = () =>
     database.transaction(
       async (tx) => {

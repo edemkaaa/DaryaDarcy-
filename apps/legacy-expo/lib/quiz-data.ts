@@ -1,3 +1,4 @@
+// Архив Expo. Создаёт независимую нулевую таблицу для семи эстетик.
 /**
  * Quiz Data Layer — "Тест: Какая твоя сказка?"
  *
@@ -807,6 +808,8 @@ export const AESTHETIC_RESULTS: Record<AestheticKey, AestheticResult> = {
 // ─── Scoring Logic ───────────────────────────────────────────────────────────
 
 export function createEmptyScores(): Record<AestheticKey, number> {
+  // Создаёт независимую нулевую таблицу для семи эстетик.
+
   return {
     cottagecore: 0,
     goblincore: 0,
@@ -821,6 +824,8 @@ export function createEmptyScores(): Record<AestheticKey, number> {
 export function calculateResult(
   selectedAnswers: (string | null)[]
 ): QuizResult {
+  // Суммирует баллы известных ответов и включает смешанный результат при разнице двух лидеров не более трёх.
+
   const scores = createEmptyScores();
 
   // Accumulate scores from all answered questions

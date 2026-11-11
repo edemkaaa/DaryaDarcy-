@@ -9,11 +9,13 @@ export type PostCreationIntent = {
 };
 
 /** Fingerprint the accepted intent, not generated IDs or publication timestamps. */
+/** Канонизируем ключи JSON принятого намерения, отдельно хешируем содержимое и actor/requestKey; генерируемые ID и даты не участвуют в сравнении повтора. */
 export function postCreationIntent(
   actorUserId: number,
   key: string,
   payload: Record<string, unknown>,
 ): PostCreationIntent {
+  /** Вычисляем SHA-256 текстового представления для изолированного ключа и отпечатка запроса. */
   const hash = (value: string) =>
     createHash("sha256").update(value).digest("hex");
   try {

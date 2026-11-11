@@ -7,6 +7,7 @@ import { editorApi, ok, failure } from "../apps/frontend/e2e/editor-fixtures";
 import { gotoWithSession } from "../apps/frontend/e2e/layout-fixtures";
 const native = process.env.DARYADARCY_LOCAL_BROWSER === "1" ? it : it.skip;
 let app: Awaited<ReturnType<typeof privateFilesBrowser>>, png: Buffer;
+// Тяжёлый браузерный прогон требует явного флага и двух свободных ГиБ; создаётся свой малый PNG и отдельная копия приложения.
 beforeAll(async () => {
   if (process.env.DARYADARCY_LOCAL_BROWSER !== "1") return;
   const disk = await statfs(process.cwd());
@@ -29,6 +30,8 @@ afterAll(async () => {
 native(
   "an account switch during the canonical list read keeps confirmed recovery for the original owner",
   async () => {
+    // Сценарий: Смена владельца во время канонического чтения сохраняет восстановление подтверждённой отправки только исходному аккаунту.
+
     let owner = 101,
       writes = 0,
       reading = false,
@@ -106,9 +109,9 @@ native(
   },
   120000,
 );
-const text = (page: Page) => page.getByPlaceholder("Написать комментарий...");
+const text = (page: Page) => /* Находит текстовое поле настоящего редактора комментария по доступному плейсхолдеру. */ page.getByPlaceholder("Написать комментарий...");
 const url = "/api/media/content-files/3af23d8c-140f-454b-a123-123456789abc";
-const receipt = (input: Record<string, unknown>) => ({
+const receipt = (input: Record<string, unknown>) => /* Строит квитанцию частной фотографии комментария без загрузки в S3. */ ({
   state: "ready",
   assetId: "3af23d8c-140f-454b-a123-123456789abc",
   usage: "commentPhoto",
@@ -118,6 +121,8 @@ const receipt = (input: Record<string, unknown>) => ({
   url,
 });
 async function ownPage(answer: Parameters<typeof editorApi>[1]) {
+  // Создаёт изолированную страницу с запретом внешней сети и локальными ответами клубного API.
+
   const context = await app.context.browser()!.newContext();
   await context.route("**/*", (route) =>
     new URL(route.request().url()).origin === app.origin
@@ -162,11 +167,15 @@ async function ownPage(answer: Parameters<typeof editorApi>[1]) {
   return page;
 }
 async function open(page: Page) {
+  // Входит в локальный Клуб и открывает раздел с проверяемым редактором комментариев.
+
   await gotoWithSession(page, `${app.origin}/club`);
   await page.getByRole("button", { name: "Комьюнити", exact: true }).click();
   await ui(text(page)).toBeVisible();
 }
 async function choose(page: Page) {
+  // Выбирает синтетический PNG через настоящий браузерный выбор файла.
+
   const [chooser] = await Promise.all([
     page.waitForEvent("filechooser"),
     page.getByRole("button", { name: "Фото (0/2)", exact: true }).click(),
@@ -180,6 +189,8 @@ async function choose(page: Page) {
 native(
   "comment photo stays local; lost upload and comment replies recover after reload with one frozen key",
   async () => {
+    // Сценарий: Частное фото остаётся локальным до отправки; потерянные квитанции восстанавливаются после reload с прежним ключом.
+
     const uploads: Record<string, unknown>[] = [],
       writes: Record<string, unknown>[] = [],
       statuses: Record<string, unknown>[] = [];
@@ -265,6 +276,8 @@ for (const stage of ["upload", "status"] as const)
   native(
     `comment account switch during ${stage} ignores late receipt and keeps the original owner's operation`,
     async () => {
+      // Сценарий: Смена аккаунта во время загрузки либо статуса игнорирует позднюю квитанцию и отзывает blob-превью.
+
       let owner = 101,
         release!: () => void,
         started!: () => void;
@@ -373,6 +386,8 @@ for (const stage of ["upload", "status"] as const)
 native(
   "removing a selected comment photo revokes its blob and never uploads it",
   async () => {
+    // Сценарий: Удаление выбранного фото отзывает blob и отправляет только текст без загрузки файла.
+
     let uploads = 0;
     const writes: Record<string, unknown>[] = [];
     const page = await ownPage((name, input) => {

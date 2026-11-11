@@ -1,3 +1,4 @@
+/** Моделируем localStorage и Web Locks для журнала TEST-checkout: ключ сохраняется до возврата, неопределённая заявка не заменяется новым намерением. */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
   getClubCheckoutIntent,
@@ -14,6 +15,7 @@ let storage: {
   setItem: (key: string, value: string) => void;
 };
 
+/** Создаём отдельное хранилище и поддерживаемый secure browser; stub lock сразу допускает текущий callback. */
 beforeEach(() => {
   values = new Map();
   storage = {
@@ -33,16 +35,19 @@ beforeEach(() => {
     },
   });
 });
+/** Снимаем браузерные globals и fake timers после каждого сценария. */
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
+/** Reader возврата не создаёт заявку, ключ или запись, если доказательств прежнего checkout нет. */
 it("a return without saved evidence cannot reserve or write a purchase", () => {
   expect(readSavedClubCheckoutIntent()).toBeNull();
   expect(values.size).toBe(0);
 });
 
+/** Чтение существующей квитанции не требует email, генерации UUID или Web Locks и не меняет запись. */
 it("reads only the saved key after reload without needing the buyer's email, locks or key generation", async () => {
   const intent = await getClubCheckoutIntent(selection);
   const before = values.get(storageKey);
@@ -54,6 +59,7 @@ it("reads only the saved key after reload without needing the buyer's email, loc
   expect(values.get(storageKey)).toBe(before);
 });
 
+/** Повреждённые доказательства дают ошибку чтения, но не удаляются и не заменяются новым ключом. */
 it.each(["", "null", "{", "x".repeat(1025)])(
   "read-only return preserves malformed evidence (%#)",
   (prior) => {
@@ -63,6 +69,7 @@ it.each(["", "null", "{", "x".repeat(1025)])(
   },
 );
 
+/** Строгий формат не принимает приписанное succeeded; storage exception превращается в безопасное сообщение без внутреннего текста. */
 it("read-only return refuses extra fields without exposing browser details", () => {
   const prior = JSON.stringify({
     version: 1,
@@ -80,6 +87,7 @@ it("read-only return refuses extra fields without exposing browser details", () 
   expect(() => readSavedClubCheckoutIntent()).not.toThrow("SECRET");
 });
 
+/** SSR и insecure context отклоняются до обращения к сохранению. */
 it.each(["server", "insecure"])(
   "read-only return refuses an unavailable browser (%s)",
   (mode) => {
@@ -97,6 +105,7 @@ it.each(["server", "insecure"])(
   },
 );
 
+/** В durable record попадают только версия, UUID и hash выбора; нормализованный email остаётся во входе, не в журнале. */
 it("persists before returning a UUID and canonical input, never the email or payment URL", async () => {
   const intent = await getClubCheckoutIntent({ email: " Buyer@Example.Test " });
   expect(intent.idempotencyKey).toMatch(uuid);
@@ -114,6 +123,7 @@ it("persists before returning a UUID and canonical input, never the email or pay
   expect(values.size).toBe(1);
 });
 
+/** Нормализация и прошедшее время не превращают незавершённую покупку в новую операцию. */
 it("reuses the persisted identity across independent calls, normalization and arbitrary elapsed time", async () => {
   const first = await getClubCheckoutIntent(selection);
   vi.useFakeTimers();
@@ -125,6 +135,7 @@ it("reuses the persisted identity across independent calls, normalization and ar
   expect(second).toEqual(first);
 });
 
+/** Ошибка контрольного чтения не стирает уже записанный ключ; после восстановления storage повтор использует его. */
 it("preserves a written key when readback throws, allowing a safe later retry", async () => {
   const normalRead = storage.getItem;
   let reads = 0;
@@ -142,6 +153,7 @@ it("preserves a written key when readback throws, allowing a safe later retry", 
   );
 });
 
+/** Полугодовой план участвует в отпечатке и сохраняется без подмены месячным. */
 it("reserves the requested semiannual purchase rather than silently using monthly", async () => {
   const intent = await getClubCheckoutIntent({
     ...selection,
@@ -153,6 +165,7 @@ it("reserves the requested semiannual purchase rather than silently using monthl
   ).toEqual(intent);
 });
 
+/** Другой email или план конфликтует с незавершённым intent, не перезаписывая доказательства. */
 it.each([
   { email: "other@example.test" },
   { ...selection, plan: "semiannual" as const },
@@ -168,6 +181,7 @@ it.each([
   },
 );
 
+/** Пустой, повреждённый или слишком длинный email отклоняется до storage mutation. */
 it.each(["", "no-address", "x@", `${"x".repeat(250)}@example.test`])(
   "rejects invalid email before reserving an intent: %s",
   async (email) => {
@@ -178,6 +192,7 @@ it.each(["", "no-address", "x@", `${"x".repeat(250)}@example.test`])(
   },
 );
 
+/** Неверная версия, UUID/hash, лишние поля и большой JSON блокируют создание; исходная строка остаётся для разбора. */
 it.each([
   "",
   "{",
@@ -217,6 +232,7 @@ it.each([
   },
 );
 
+/** Ошибка доступа, записи или readback не допускает эфемерный ключ, который потеряется после запроса. */
 it.each(["read", "write", "readback", "storage-access"])(
   "fails closed on %s failure; never falls back to an in-memory UUID",
   async (mode) => {
@@ -238,6 +254,7 @@ it.each(["read", "write", "readback", "storage-access"])(
   },
 );
 
+/** Без secure context, locks и криптографических primitives durable intent не выдаётся. */
 it.each(["insecure", "server", "locks", "crypto", "hash", "uuid"])(
   "refuses missing browser support (%s) before saving or returning a key",
   async (mode) => {
@@ -258,6 +275,7 @@ it.each(["insecure", "server", "locks", "crypto", "hash", "uuid"])(
   },
 );
 
+/** Deadline отменяет ожидание Web Lock; по таймауту нельзя создавать ключ без межвкладочной координации. */
 it("limits waiting for another tab's lock and does not issue an unlocked intent", async () => {
   vi.useFakeTimers();
   vi.stubGlobal("navigator", {

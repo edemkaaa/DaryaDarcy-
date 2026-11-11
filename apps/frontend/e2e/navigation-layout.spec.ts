@@ -8,12 +8,14 @@ const scrollSelector = "main .ui-scroll:not(.ui-scroll-horizontal):visible";
 test.setTimeout(90_000);
 test.use({ viewport: { width: 390, height: 400 } });
 
+/** Выбираем общую или клубную панель, поскольку у подтверждённого клуба нет второй строки общего меню. */
 function bottomNavigation(page: Page, insideClub = false) {
   return insideClub
     ? page.getByRole("navigation", { name: "Разделы клуба", exact: true })
     : page.locator(tabsSelector);
 }
 
+/** Проверяем единственную шапку и нижнее меню, их высоту и прозрачность относительно текущего маршрута. */
 async function checkChrome(page: Page, insideClub = false) {
   const header = page.locator(headerSelector);
   const tabs = bottomNavigation(page, insideClub);
@@ -45,6 +47,7 @@ async function checkChrome(page: Page, insideClub = false) {
   return { top, bottom };
 }
 
+/** На основных разделах проверяем fixed и скрываемую шапку, прокрутку до конца и неизменность нижнего меню для гостя и участницы. */
 for (const subscribed of [false, true]) {
   test(`main screens preserve fixed headers and hide overlay headers while keeping bottom navigation (${subscribed ? "member" : "guest"})`, async ({
     page,
@@ -125,6 +128,7 @@ for (const subscribed of [false, true]) {
   });
 }
 
+/** Наложенная на исходный баннер шапка не добавляет строку высоты: пустой центр пропускает pointer, управляющие ссылки остаются кликабельны. */
 for (const [width, height] of [
   [390, 844],
   [1440, 844],
@@ -175,6 +179,7 @@ for (const [width, height] of [
   });
 }
 
+/** Даже отказ API не должен убрать безопасный выход из детали, входа, теста, документов или 404. */
 test("details, login, quiz, documents and missing pages all have an exit even when the API fails", async ({
   page,
 }) => {
@@ -214,6 +219,7 @@ test("details, login, quiz, documents and missing pages all have an exit even wh
   await checkChrome(page);
 });
 
+/** Прямая ссылка без app-history возвращается в подходящий родительский раздел, а не во внешнюю историю браузера. */
 for (const [path, parent] of [
   ["/post/invalid", "/feed"],
   ["/video/invalid", "/videos"],
@@ -237,6 +243,7 @@ for (const [path, parent] of [
   });
 }
 
+/** Проверяем индекс app-history через reload, Back и Forward, заканчивая fallback у исходной записи. */
 test("back preserves actual app history across reload and forward, with a fallback at the initial entry", async ({
   page,
 }) => {
@@ -249,6 +256,7 @@ test("back preserves actual app history across reload and forward, with a fallba
   await gotoWithSession(page, "/videos"); // Reload the current entry, preserving its history state.
   // Restored scroll positions can hide the auto-hiding header. Reveal it with
   // the same scroll gesture a user needs before pressing its Back button.
+  /** Сначала возвращаем скрываемую шапку в видимость настоящим положением scroll, затем нажимаем её Back. */
   const back = async () => {
     const button = page
       .locator(headerSelector)
@@ -287,6 +295,7 @@ test("back preserves actual app history across reload and forward, with a fallba
   await expect(page).toHaveURL(/\/$/);
 });
 
+/** Ожидание и ошибка сессии сохраняют общую навигацию и возможность уйти на главную. */
 test("session loading and failure keep home, back and the sections available", async ({
   page,
 }) => {
@@ -315,6 +324,7 @@ test("session loading and failure keep home, back and the sections available", a
   }
 });
 
+/** История чужой страницы не считается внутренним шагом приложения. */
 test("an external previous page is not used as the app's back destination", async ({
   page,
 }) => {
@@ -331,6 +341,7 @@ test("an external previous page is not used as the app's back destination", asyn
   await expect(page).toHaveURL(/\/feed$/);
 });
 
+/** Прямое открытие формы входа имеет безопасный возврат на главную. */
 test("the login screen's header back has a safe direct-entry fallback", async ({
   page,
 }) => {
@@ -342,6 +353,7 @@ test("the login screen's header back has a safe direct-entry fallback", async ({
   await expect(page).toHaveURL(/\/$/);
 });
 
+/** DOM-узлы шапки и меню сохраняются между деталями и разделами, а active-section соответствует текущему маршруту. */
 test("the same navigation remains mounted between sections and details, with the correct active section", async ({
   page,
 }) => {

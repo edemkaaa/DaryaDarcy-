@@ -1,6 +1,7 @@
 #!/bin/sh
 # Собирает системную диагностику на машине запуска. Выполнять только на согласованном сервере; вывод окружения и конфигурации может быть приватным.
 echo CONNECTED
+# Сведения об ОС и ресурсах читаются на машине запуска; команды ничего не устанавливают.
 uname -a
 echo '--- os ---'
 cat /etc/os-release | head -6
@@ -16,6 +17,7 @@ command -v pm2; pm2 -v 2>/dev/null
 command -v docker; docker -v 2>/dev/null
 command -v git; git --version 2>/dev/null
 echo '--- ports ---'
+# Порты, каталоги и firewall показываются для диагностики; этот вывод не следует публиковать целиком.
 ss -tlnp 2>/dev/null || netstat -tlnp
 echo '--- dirs ---'
 ls -la /var/www /root /opt /home 2>/dev/null

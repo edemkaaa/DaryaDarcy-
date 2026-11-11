@@ -13,7 +13,7 @@ import {
 const storageKey = "daryadarcy:club-checkout:yookassa-test:v1";
 const selection = { email: " NEW@EXAMPLE.TEST ", plan: "semiannual" as const };
 const reply = (json: unknown) =>
-  new Response(JSON.stringify({ result: { data: { json } } }));
+  /* Оборачивает синтетический результат в настоящую одиночную tRPC-оболочку. */ new Response(JSON.stringify({ result: { data: { json } } }));
 let values: Map<string, string>;
 let storage: {
   getItem: (key: string) => string | null;
@@ -23,11 +23,14 @@ let previousIdempotencyKey: string;
 let prior: string;
 let held: boolean;
 
+// Исходное намерение создаётся заново перед каждым случаем; флаг held позволяет доказать, что серверная сверка выполняется внутри Web Lock.
 beforeEach(async () => {
   values = new Map();
   storage = {
-    getItem: (name) => values.get(name) ?? null,
+    getItem: (name) => /* Читает тестовое хранилище намерений. */ values.get(name) ?? null,
     setItem: (name, value) => {
+      // Сохраняет намерение в памяти, позволяя отдельно инъецировать отказ записи.
+
       values.set(name, value);
     },
   };
@@ -40,6 +43,8 @@ beforeEach(async () => {
         _options: unknown,
         callback: () => unknown,
       ) => {
+        // Имитирует эксклюзивную блокировку и отмечает её владение на время проверки.
+
         held = true;
         try {
           return await callback();
@@ -62,14 +67,14 @@ afterEach(() => {
 });
 
 const reserve = (signal?: AbortSignal) =>
-  reserveNextClubCheckoutIntent(
+  /* Резервирует следующую покупку относительно заранее сохранённого ключа. */ reserveNextClubCheckoutIntent(
     createTRPCClient(),
     { previousIdempotencyKey, selection },
     signal,
   );
 
 const purchaseNext = (signal?: AbortSignal) =>
-  createNextClubTestCheckout(
+  /* Запускает полный путь следующей TEST-покупки с той же ожидаемой предыдущей операцией. */ createNextClubTestCheckout(
     createTRPCClient(),
     { previousIdempotencyKey, selection },
     signal,
@@ -78,6 +83,8 @@ const purchaseNext = (signal?: AbortSignal) =>
 it.each(["succeeded", "canceled"])(
   "reserves a distinct durable selection only after fresh %s proof inside the exclusive lock",
   async (state) => {
+    // Сценарий: Новый ключ и выбор сохраняются только после свежего терминального доказательства внутри блокировки.
+
     const fetcher = vi.fn(
       async (_url: RequestInfo | URL, _options?: RequestInit) => {
         expect(held).toBe(true);
@@ -111,6 +118,8 @@ it.each(["succeeded", "canceled"])(
 it.each(["pending", "unknown"])(
   "cannot replace a %s intent or trust elapsed time",
   async (state) => {
+    // Сценарий: Pending/unknown и прошедшее время не разрешают заменить намерение.
+
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => reply({ state })),
@@ -125,6 +134,8 @@ it.each(["pending", "unknown"])(
 it.each([{}, { state: "paid" }, { state: "succeeded", email: "SECRET" }])(
   "cannot replace evidence using malformed server proof (%#)",
   async (result) => {
+    // Сценарий: Повреждённое доказательство от сервера не разрешает новую покупку.
+
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => reply(result)),
@@ -137,6 +148,8 @@ it.each([{}, { state: "paid" }, { state: "succeeded", email: "SECRET" }])(
 it.each([403, 412, 429, 503])(
   "preserves evidence and HTTP status on %s refusal",
   async (status) => {
+    // Сценарий: HTTP-отказ сохраняет первоначальное намерение и свой статус.
+
     vi.stubGlobal(
       "fetch",
       vi.fn(
@@ -165,6 +178,8 @@ it.each([403, 412, 429, 503])(
 it.each(["invalid", "8d427a00-4a92-4508-874c-b265d7e92d1c"])(
   "refuses stale/invalid expected keys before HTTP (%s)",
   async (expected) => {
+    // Сценарий: Неверный или устаревший ожидаемый ключ отклоняется до HTTP.
+
     const fetcher = vi.fn();
     vi.stubGlobal("fetch", fetcher);
     await expect(
@@ -181,6 +196,8 @@ it.each(["invalid", "8d427a00-4a92-4508-874c-b265d7e92d1c"])(
 it.each(["absent", "corrupt"])(
   "%s evidence cannot create a next purchase",
   async (mode) => {
+    // Сценарий: Отсутствующая или повреждённая запись не создаёт следующую покупку.
+
     if (mode === "absent") values.clear();
     else values.set(storageKey, "corrupt");
     const fetcher = vi.fn();
@@ -198,6 +215,8 @@ it.each(["absent", "corrupt"])(
 it.each(["removed", "replaced", "fingerprint"])(
   "does not overwrite %s evidence changed while checking the old payment",
   async (change) => {
+    // Сценарий: Изменение записи во время проверки старой оплаты не перезаписывается поздним результатом.
+
     let modified: string | undefined;
     vi.stubGlobal(
       "fetch",
@@ -222,6 +241,8 @@ it.each(["removed", "replaced", "fingerprint"])(
 it.each(["caller", "session"])(
   "%s abort during server proof preserves the old intent",
   async (source) => {
+    // Сценарий: Отмена вызывающим кодом либо сменой сессии сохраняет прежний ключ.
+
     const fetcher = vi.fn(() => new Promise<Response>(() => {}));
     vi.stubGlobal("fetch", fetcher);
     const controller = new AbortController();
@@ -235,6 +256,8 @@ it.each(["caller", "session"])(
 );
 
 it("session change during hashing cannot reserve or check under the next identity", async () => {
+  // Сценарий: Смена сессии во время хеширования прекращает резервирование до HTTP.
+
   const fetcher = vi.fn();
   vi.stubGlobal("fetch", fetcher);
   const pending = reserve().catch((error: unknown) => error);
@@ -245,6 +268,8 @@ it("session change during hashing cannot reserve or check under the next identit
 });
 
 it("a random UUID collision cannot replay the terminal payment as a new purchase", async () => {
+  // Сценарий: Коллизия UUID не позволяет переиграть старую завершённую оплату как новую.
+
   vi.stubGlobal(
     "fetch",
     vi.fn(async () => reply({ state: "canceled" })),
@@ -257,6 +282,8 @@ it("a random UUID collision cannot replay the terminal payment as a new purchase
 });
 
 it("lock acquisition expires after five seconds without checking or replacing evidence", async () => {
+  // Сценарий: Ожидание блокировки ограничено пятью секундами и очищает таймер.
+
   vi.useFakeTimers();
   const fetcher = vi.fn();
   vi.stubGlobal("fetch", fetcher);
@@ -264,6 +291,8 @@ it("lock acquisition expires after five seconds without checking or replacing ev
   vi.stubGlobal("navigator", {
     locks: {
       request: (_name: string, options: { signal: AbortSignal }) => {
+        // Держит Web Lock недоступным до отмены ожидания, чтобы проверить пятсекундный предел.
+
         waiting = options.signal;
         return new Promise((_resolve, reject) => {
           options.signal.addEventListener("abort", () =>
@@ -283,6 +312,8 @@ it("lock acquisition expires after five seconds without checking or replacing ev
 });
 
 it("a denied write cannot erase the prior intent", async () => {
+  // Сценарий: Запрещённая запись не стирает предыдущее намерение.
+
   vi.stubGlobal(
     "fetch",
     vi.fn(async () => reply({ state: "canceled" })),
@@ -295,6 +326,8 @@ it("a denied write cannot erase the prior intent", async () => {
 });
 
 it("failed readback never rolls back or dispatches the new durable intent", async () => {
+  // Сценарий: Сбой контрольного чтения не откатывает новый durable-ключ и не отправляет покупку.
+
   const fetcher = vi.fn(async () => reply({ state: "canceled" }));
   vi.stubGlobal("fetch", fetcher);
   const get = storage.getItem;
@@ -315,6 +348,8 @@ it("failed readback never rolls back or dispatches the new durable intent", asyn
 it.each(["succeeded", "canceled"])(
   "explicit next purchase dispatches only its newly durable key after fresh %s proof",
   async (state) => {
+    // Сценарий: Явная следующая покупка использует новый durable-ключ только после проверки предыдущего.
+
     const output = {
       url: "https://yoomoney.ru/checkout/payments/test",
       user: null,
@@ -350,6 +385,8 @@ it.each(["succeeded", "canceled"])(
 it.each(["pending", "unknown"])(
   "next purchase never dispatches on %s proof",
   async (state) => {
+    // Сценарий: Нетерминальный результат не запускает новый checkout.
+
     const fetcher = vi.fn(async () => reply({ state }));
     vi.stubGlobal("fetch", fetcher);
     await expect(purchaseNext()).rejects.toMatchObject({
@@ -363,6 +400,8 @@ it.each(["pending", "unknown"])(
 it.each(["session", "caller", "storage"])(
   "a %s change after reservation prevents next checkout dispatch",
   async (change) => {
+    // Сценарий: Смена сессии, сигнала или хранилища после резервирования не разрешает отправку.
+
     const fetcher = vi.fn(async (_url: RequestInfo | URL) =>
       reply({ state: "canceled" }),
     );
@@ -386,6 +425,8 @@ it.each(["session", "caller", "storage"])(
 );
 
 it("next checkout timeout does not retry or roll back and ordinary explicit retry uses the saved new key", async () => {
+  // Сценарий: Таймаут не повторяет и не откатывает покупку; явный повтор использует уже сохранённый новый ключ.
+
   vi.useFakeTimers();
   const output = {
     url: "https://yoomoney.ru/checkout/payments/test",

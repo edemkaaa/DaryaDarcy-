@@ -2,6 +2,7 @@
 import json
 import urllib.request
 
+# Читает публичный каталог прежнего домена и скачивает обложку первого ролика; запросов записи нет.
 url = "https://daryadarcy.com/api/trpc/videos.list"
 req = urllib.request.Request(url, headers={"Accept": "application/json"})
 with urllib.request.urlopen(req, timeout=20) as r:

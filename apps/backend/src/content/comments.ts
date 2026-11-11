@@ -67,6 +67,7 @@ export async function viewerLikedCommentIds(
 }
 
 /** Совместимый список обсуждения использует текущие связи автора и комментария. */
+/** Совместимый capped список дополняет имя/аватар автора и batched likes текущего viewer; доступ к parent-посту проверяет сервис. */
 export async function listPostCommentsV2(
   postId: number,
   viewerUserId?: number | null,
@@ -127,6 +128,7 @@ export async function addPostCommentV2(data: CommentWriteInput): Promise<number>
   return (await addPostCommentWithResult(data)).id;
 }
 /** Сохраняем комментарий с журналом создания и различаем новую запись и повтор. */
+/** В одной транзакции повторно проверяет actor/post/open-comments, захватывает recovery-intent, валидирует parent того же поста и фиксирует comment/private refs/result. */
 export async function addPostCommentWithResult(data: CommentWriteInput): Promise<{ id: number; created: boolean }> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -188,6 +190,7 @@ export async function addPostCommentWithResult(data: CommentWriteInput): Promise
 type CommentTransaction = Parameters<
   Parameters<NonNullable<Awaited<ReturnType<typeof getDb>>>["transaction"]>[0]
 >[0];
+/** Читает текущий комментарий под UPDATE-блокировкой, возвращая NOT_FOUND при отсутствии. */
 async function lockComment(tx: CommentTransaction, id: number) {
   const [comment] = await tx
     .select()
@@ -203,6 +206,7 @@ async function lockComment(tx: CommentTransaction, id: number) {
 }
 
 /** Match post deletion's post-before-comment lock order. */
+/** Сначала блокирует актуального actor и readable post, затем comment: порядок согласован с cascade удаления поста. */
 async function lockReadableComment(tx: CommentTransaction, actor: ContentWriteActor, id: number) {
   const current = await lockCurrentContentActor(tx, actor);
   const [reference] = await tx.select({ postId: postComments.postId }).from(postComments).where(eq(postComments.id, id)).limit(1);
@@ -211,6 +215,7 @@ async function lockReadableComment(tx: CommentTransaction, actor: ContentWriteAc
   return { current, comment: await lockComment(tx, id) };
 }
 
+/** Для HTTP actor повторно проверяет readable parent и роль staff, затем удаляет только свою либо разрешённую служебной ролью запись в одной транзакции. */
 export async function deletePostCommentV2(
   id: number,
   actor: ContentWriteActor | number,
@@ -226,6 +231,7 @@ export async function deletePostCommentV2(
 }
 
 /** Reuse the locked cascade when a caller must commit additional effects atomically. */
+/** Под comment lock проверяет автора либо доверенный asStaff, превращает replies в roots и удаляет likes/reports/comment без отдельного коммита. */
 export async function deletePostCommentInTransaction(
   tx: CommentTransaction,
   id: number,
@@ -313,6 +319,7 @@ export async function toggleCommentLike(
 }
 
 /** Записываем жалобу на существующий доступный комментарий. */
+/** После current/readable проверки делает уникальный upsert жалобы actor/comment, ограничивая причину512 символами. */
 export async function reportComment(
   commentId: number,
   actor: ContentWriteActor | number,
@@ -351,6 +358,7 @@ export type CommentReportInboxRow = {
 };
 
 /** Административная очередь жалоб читается отдельно от пользовательского обсуждения. */
+/** Читает отдельную ограниченную очередь жалоб с current author/reporter полями и вычисляет canBlockAuthor по роли вызывающего, не отдавая полный User. */
 export async function listCommentReports(
   limit = 100,
   actor?: ModerationActor,
@@ -400,6 +408,7 @@ export async function dismissCommentReport(reportId: number): Promise<void> {
 }
 
 /** Модераторское удаление убирает связанные жалобы согласованно с обсуждением. */
+/** Доверенный служебный wrapper запускает общий cascade с asStaff; внешняя граница обязана проверить полномочия до вызова. */
 export async function deleteCommentAndReports(
   commentId: number,
 ): Promise<void> {
@@ -407,6 +416,7 @@ export async function deleteCommentAndReports(
 }
 
 /** One bounded batch per maintenance tick; retain a full 365 days. */
+/** Одной порцией до500 строк старше365 дней под SKIP LOCKED удаляет comment/likes/reports, сохраняя более новые replies как roots. */
 export async function purgeOldPostComments(): Promise<number> {
   const db = await getDb();
   if (!db) return 0;

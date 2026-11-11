@@ -7,6 +7,7 @@ import type { ContentTransaction } from "./post-deletion";
 export type ContentWriteActor = Pick<User, "id" | "sessionVersion">;
 
 /** Заново читаем текущую сессию под блокировкой пользователя перед записью материала. */
+/** Удерживает строку текущего пользователя в выбранном lock-mode до коммита, сверяет sessionVersion и блокировку после ожидания SQL. */
 export async function lockCurrentContentActor(
   tx: Pick<ContentTransaction, "select">,
   actor: ContentWriteActor,
@@ -20,6 +21,7 @@ export async function lockCurrentContentActor(
 }
 
 /** HTTP adapters always supply the authenticated epoch; actorless system writes stay internal. */
+/** HTTP обязан передать actor; под текущей user-lock требует admin, а отсутствие actor оставлено лишь доверенным внутренним системным вызовам. */
 export async function assertContentWriteActor(
   tx: Pick<ContentTransaction, "select">,
   actor: ContentWriteActor | undefined,

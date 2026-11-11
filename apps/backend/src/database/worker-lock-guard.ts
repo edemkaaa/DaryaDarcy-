@@ -11,6 +11,7 @@ export async function runWithWorkerLock(
   let timer: ReturnType<typeof setInterval> | undefined;
   let pending: Promise<void> | undefined;
 
+  /** При активной задаче завершаем процесс немедленно: отклонение Promise само по себе не отменяет продолжающийся внешний эффект. */
   const lost = () => {
     if (!active) return;
     // Отклонение Promise не отменяет callback: он может продолжать отправлять
@@ -19,6 +20,7 @@ export async function runWithWorkerLock(
     console.error("[WorkerLock] Ownership lost; terminating API process");
     process.exit(1);
   };
+  /** Подтверждаем принадлежность named lock текущему соединению с конечным таймаутом; ошибка проверки равнозначна потере владения. */
   const verify = async () => {
     try {
       const [rows] = await connection.query<RowDataPacket[]>({

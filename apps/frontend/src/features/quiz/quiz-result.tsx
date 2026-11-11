@@ -29,6 +29,7 @@ import {
   BROWN_MUTED,
   HOUSE_IMAGES,
 } from "./quiz-result.content";
+/** Показываем бесплатный итог и по явному действию запрашиваем клубное продолжение выбранной эстетики. */
 export function QuizResultScreen() {
   const router = useRouter();
   const viewport = useViewport();
@@ -39,6 +40,7 @@ export function QuizResultScreen() {
   const result = state.result;
   const [showClubContent, setShowClubContent] = useState(false);
   const [activeKey, setActiveKey] = useState<AestheticKey | null>(null);
+  /** Сворачиваем клубное продолжение при потере доступа, не меняя бесплатный результат. */
   useEffect(() => {
     if (!hasClubAccess) setShowClubContent(false);
   }, [hasClubAccess]);
@@ -55,15 +57,18 @@ export function QuizResultScreen() {
     isBlend && secondary && currentKey === secondary.key ? secondary : primary;
   const houseImage = HOUSE_IMAGES[activeResult.key];
   const clubContent = guide?.data;
+  /** Переключаем доминирующую или вторую эстетику и сбрасываем раскрытие, чтобы не показывать текст прежнего выбора. */
   const handleTabSwitch = (key: AestheticKey) => {
     if (key !== currentKey) {
       setActiveKey(key);
       setShowClubContent(false);
     }
   };
+  /** Новый проход проходит через очередь QuizFlow, которая сохраняет его независимо от текущего экрана результата. */
   const handleRestart = () => {
     dispatch({ type: "RESTART" });
   };
+  /** Передаём только текст выбранного бесплатного результата системному механизму обмена; отмена пользователем не меняет тест. */
   const handleShare = async () => {
     try {
       await shareContent({
@@ -71,6 +76,7 @@ export function QuizResultScreen() {
       });
     } catch {}
   };
+  /** У участницы раскрываем запрос гайда; гостя переводим к экрану доступа клуба. */
   const handleClubCTA = () => {
     if (hasClubAccess) {
       setShowClubContent(true);

@@ -20,6 +20,7 @@ const realFetch = globalThis.fetch;
 const key = "23456789-1234-4123-8123-123456789abc";
 // Distinct payment ID avoids the unique(shop, payment) collision with parallel fixtures.
 const id = "2419a772-000f-5000-9000-1edaf29243f2";
+/** Проверяет checkout и settlement YooKassa через настоящий локальный API и SQL с подменённым только внешним provider fetch. */
 describe.skipIf(!testDatabaseUrl)(
   "YooKassa native checkout and settlement",
   () => {
@@ -40,6 +41,7 @@ describe.skipIf(!testDatabaseUrl)(
     let override: Record<string, unknown>;
     let uncertain: boolean;
     let lookupUnavailable: boolean;
+    /** Удаляет durable-намерения, квитанции, профили и письма только собственного пользователя. */
     async function clearOrders() {
       for (const table of [
         "billing_checkout_intents",
@@ -51,6 +53,7 @@ describe.skipIf(!testDatabaseUrl)(
       ])
         await conn.query(`DELETE FROM ${table} WHERE userId=90780`);
     }
+    /** Создаёт отдельную базу, синтетические TEST-настройки, пользователя и локальное приложение. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       // Dedicated fixture identity; 780 belongs to native boundary tests.
@@ -72,6 +75,7 @@ describe.skipIf(!testDatabaseUrl)(
       base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
     });
     let checkoutClient = 0;
+    /** Возвращает фиксированное время и управляемый ответ провайдера, отдельно считая создание и проверочное чтение платежа. */
     beforeEach(async () => {
       checkoutClient++;
       vi.useFakeTimers({ toFake: ["Date"] });
@@ -131,6 +135,7 @@ describe.skipIf(!testDatabaseUrl)(
         },
       );
     });
+    /** Возвращает время и fetch, удаляет собственные платежи и аккаунт и закрывает приложение и SQL-пул. */
     afterAll(async () => {
       vi.useRealTimers();
       vi.unstubAllGlobals();
@@ -148,6 +153,7 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** Отправляет настоящий checkout с ключом операции и отдельным синтетическим IP сценария. */
     const checkout = (intentKey: string | null = key, plan = "monthly") =>
       realFetch(`${base}/api/trpc/club.createCheckout`, {
         method: "POST",
@@ -161,6 +167,7 @@ describe.skipIf(!testDatabaseUrl)(
           json: { email: "yookassa-checkout-isolated@example.test", plan },
         }),
       });
+    /** Отправляет уведомление succeeded в локальный API; реальность успеха должна проверяться отдельным provider GET. */
     const webhook = (objectId = id) =>
       realFetch(`${base}/api/yookassa/webhook`, {
         method: "POST",
@@ -171,6 +178,7 @@ describe.skipIf(!testDatabaseUrl)(
           object: { id: objectId, status: "succeeded", paid: true },
         }),
       });
+    /** Читает оплаченные сроки и количество квитанций и писем для проверки атомарного settlement. */
     async function state() {
       const [payments] = await conn.query<RowDataPacket[]>(
         "SELECT status,expiresAt FROM club_payments WHERE userId=90780",
@@ -183,8 +191,10 @@ describe.skipIf(!testDatabaseUrl)(
       );
       return { payments, emails: outbox[0].n, receipts: receipts[0].n };
     }
+    /** Вызывает доменное восстановление checkout с управляемым ключом без создания новой покупки. */
     const reconcile = (intentKey: unknown = key) =>
       app.get(YookassaClubService).reconcileCheckout(null, intentKey);
+    /** Отправляет HTTP-проверку возврата с управляемыми query, методом и ключом операции. */
     const returnCheck = (suffix = "", method = "POST", intentKey = key) =>
       realFetch(`${base}/api/trpc/club.reconcileCheckout${suffix}`, {
         method,
@@ -197,6 +207,7 @@ describe.skipIf(!testDatabaseUrl)(
           : {}),
       });
 
+    /** Проверяет unknown отсутствующего намерения без создания заказа, lookup и сессии. */
     it("HTTP return checking a missing intent reports unknown without creating anything", async () => {
       const response = await returnCheck();
       expect(response.status).toBe(200);
@@ -208,6 +219,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect({ creates, lookups }).toEqual({ creates: 0, lookups: 0 });
       expect((await state()).payments).toHaveLength(0);
     });
+    /** Проверяет игнорирование поддельного query-успеха, пока провайдер сообщает pending. */
     it("HTTP return ignores forged query success while the provider is pending", async () => {
       expect((await checkout()).status).toBe(200);
       const response = await returnCheck(
@@ -220,6 +232,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await state()).toMatchObject({ receipts: 0, emails: 0 });
       expect({ creates, lookups }).toEqual({ creates: 1, lookups: 1 });
     });
+    /** Проверяет один settlement при конкурентном подтверждённом возврате и webhook с раскрытием только состояния. */
     it("HTTP verified return settles once with a concurrent webhook and reveals only state", async () => {
       expect((await checkout()).status).toBe(200);
       providerStatus = "succeeded";
@@ -242,6 +255,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await state()).toEqual(first);
       expect(creates).toBe(1);
     });
+    /** Проверяет отменённый возврат без запуска следующей покупки. */
     it("HTTP canceled return never starts the next purchase", async () => {
       expect((await checkout()).status).toBe(200);
       providerStatus = "canceled";
@@ -253,6 +267,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await state()).toMatchObject({ receipts: 0, emails: 0 });
       expect(creates).toBe(1);
     });
+    /** Проверяет, что GET возврата не выполняет settlement даже известного succeeded-платежа. */
     it("HTTP GET cannot settle a known succeeded payment", async () => {
       expect((await checkout()).status).toBe(200);
       providerStatus = "succeeded";
@@ -260,6 +275,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await state()).toMatchObject({ receipts: 0, emails: 0 });
       expect(lookups).toBe(0);
     });
+    /** Проверяет повторяемую ошибку 503 при недоступной проверке провайдера без утечки ключа и выдачи доступа. */
     it("HTTP return outage is retriable and does not leak the key or grant access", async () => {
       expect((await checkout()).status).toBe(200);
       lookupUnavailable = true;
@@ -275,6 +291,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(creates).toBe(1);
     });
 
+    /** Проверяет отказ квоты до provider lookup и сохранение закоммиченного доступа после нового временного окна. */
     it("HTTP quota refuses before provider lookup and preserves committed access on retry", async () => {
       const intentKey = "6789abcd-1234-4123-8123-abcdefabcdef";
       expect((await checkout(intentKey)).status).toBe(200);
@@ -297,11 +314,13 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await state()).toEqual(committed);
     });
 
+    /** Проверяет отсутствие создания заказа и provider POST при восстановлении неизвестного намерения. */
     it("return checking a missing intent cannot create an order or provider payment", async () => {
       expect(await reconcile()).toEqual({ state: "unknown" });
       expect({ creates, lookups }).toEqual({ creates: 0, lookups: 0 });
       expect((await state()).payments).toHaveLength(0);
     });
+    /** Проверяет, что восстановление неопределённого создания не повторяет provider POST и сохраняет исходное намерение. */
     it("return checking an uncertain create never retries provider POST", async () => {
       uncertain = true;
       expect((await checkout()).status).toBe(503);
@@ -316,6 +335,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect({ creates, lookups }).toEqual({ creates: 1, lookups: 0 });
       expect((await state()).payments[0].status).toBe("pending");
     });
+    /** Проверяет provider GET известного pending-платежа и нормализацию регистра UUID без выдачи доступа. */
     it("return checking a known pending payment uses GET without granting access", async () => {
       expect((await checkout()).status).toBe(200);
       expect(await reconcile(key.toUpperCase())).toEqual({ state: "pending" });
@@ -323,6 +343,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await state()).receipts).toBe(0);
       expect((await state()).emails).toBe(0);
     });
+    /** Проверяет pending для waiting_for_capture: возврат не должен самостоятельно списывать или захватывать платёж. */
     it("an uncaptured payment stays pending; return checking cannot capture it", async () => {
       expect((await checkout()).status).toBe(200);
       providerStatus = "waiting_for_capture";
@@ -331,6 +352,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect({ creates, lookups }).toEqual({ creates: 1, lookups: 1 });
       expect((await state()).receipts).toBe(0);
     });
+    /** Проверяет изоляцию настроенного магазина до чтения провайдера и settlement чужого намерения. */
     it("another configured shop cannot discover or settle the saved intent", async () => {
       expect((await checkout()).status).toBe(200);
       vi.stubEnv("YOOKASSA_SHOP_ID", "654321");
@@ -341,6 +363,7 @@ describe.skipIf(!testDatabaseUrl)(
         vi.stubEnv("YOOKASSA_SHOP_ID", "123456");
       }
     });
+    /** Проверяет один оплаченный период и одно письмо при гонке доменного восстановления и webhook. */
     it("a verified return and parallel webhook commit one grant before reporting success", async () => {
       expect((await checkout()).status).toBe(200);
       providerStatus = "succeeded";
@@ -360,6 +383,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await state()).toEqual(first);
       expect(creates).toBe(1);
     });
+    /** Проверяет подтверждённый canceled-статус и failed-заказ без новой покупки. */
     it("a canceled return reports only a verified state without a new purchase", async () => {
       expect((await checkout()).status).toBe(200);
       providerStatus = "canceled";
@@ -368,6 +392,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await state()).receipts).toBe(0);
       expect(creates).toBe(1);
     });
+    /** Проверяет сохранение повторяемой серверной ошибки вместо unknown либо terminal при сбое provider lookup. */
     it("a provider outage cannot turn an existing intent into unknown or terminal", async () => {
       expect((await checkout()).status).toBe(200);
       lookupUnavailable = true;
@@ -379,6 +404,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await reconcile()).toEqual({ state: "pending" });
       expect(creates).toBe(1);
     });
+    /** Проверяет отказ заблокированному получателю до обращения к провайдеру и выдачи доступа. */
     it("a blocked recipient cannot reconcile or receive access", async () => {
       expect((await checkout()).status).toBe(200);
       providerStatus = "succeeded";
@@ -387,6 +413,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(lookups).toBe(0);
       expect((await state()).receipts).toBe(0);
     });
+    /** Проверяет запрет использования сохранённого return-capability другим авторизованным actor. */
     it("another signed-in actor cannot use the saved return capability", async () => {
       expect((await checkout()).status).toBe(200);
       const owner = (await getUserById(90780))!;
@@ -400,6 +427,7 @@ describe.skipIf(!testDatabaseUrl)(
         await app.get(YookassaClubService).reconcileCheckout(owner, key),
       ).toEqual({ state: "pending" });
     });
+    /** Проверяет отказ при изменившейся сохранённой почте получателя до provider lookup. */
     it("a changed persisted email cannot turn a return into access", async () => {
       expect((await checkout()).status).toBe(200);
       await conn.query(
@@ -416,6 +444,7 @@ describe.skipIf(!testDatabaseUrl)(
         );
       }
     });
+    /** Проверяет соответствие сохранённых requestHash и accessDays исходному намерению до settlement. */
     it.each([
       ["requestHash", "0".repeat(64)],
       ["accessDays", 180],
@@ -434,6 +463,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect((await state()).receipts).toBe(0);
       },
     );
+    /** Проверяет откат квитанции и доступа при невозможности атомарно записать письмо и допустимое восстановление после исправления ключа. */
     it("a return cannot report success when atomic email/access settlement fails", async () => {
       expect((await checkout()).status).toBe(200);
       providerStatus = "succeeded";
@@ -450,6 +480,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await reconcile()).toEqual({ state: "succeeded" });
       expect(await state()).toMatchObject({ receipts: 1, emails: 1 });
     });
+    /** Проверяет обязательный ключ и включённый TEST-режим до создания либо provider lookup. */
     it("return checking refuses a missing key or disabled test mode", async () => {
       await expect(reconcile(null)).rejects.toMatchObject({
         code: "BAD_REQUEST",
@@ -460,6 +491,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       expect({ creates, lookups }).toEqual({ creates: 0, lookups: 0 });
     });
+    /** Проверяет создание только pending TEST-платежа без cookie, письма и немедленного доступа. */
     it("creates a pending test payment, never a login or access grant", async () => {
       const response = await checkout();
       expect(response.status).toBe(200);
@@ -473,18 +505,21 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await state()).payments[0].status).toBe("pending");
       expect((await state()).emails).toBe(0);
     });
+    /** Проверяет повторное использование известного платежа для того же ключа без второго provider POST. */
     it("the same checkout key reuses a known payment instead of posting again", async () => {
       expect((await checkout()).status).toBe(200);
       expect((await checkout()).status).toBe(200);
       expect(creates).toBe(1);
       expect((await state()).payments).toHaveLength(1);
     });
+    /** Проверяет отсутствие выдачи доступа по поддельному succeeded-телу, когда проверочный ответ провайдера pending. */
     it("a forged succeeded body cannot grant while the provider reports pending", async () => {
       expect((await checkout()).status).toBe(200);
       expect((await webhook()).status).toBe(503);
       expect((await state()).payments[0].status).toBe("pending");
       expect((await state()).receipts).toBe(0);
     });
+    /** Проверяет единственную квитанцию, письмо и период при параллельных подтверждённых webhook. */
     it("verified succeeded grants one period and one outbox event under parallel replay", async () => {
       expect((await checkout()).status).toBe(200);
       providerStatus = "succeeded";
@@ -501,11 +536,13 @@ describe.skipIf(!testDatabaseUrl)(
         "2026-11-06T00:00:00.000Z",
       );
     });
+    /** Проверяет повторяемый отказ webhook до сохранения provider binding без доверия самому уведомлению. */
     it("a webhook before provider binding is retriable, not acknowledged or trusted", async () => {
       expect((await webhook()).status).toBe(503);
       expect(creates).toBe(0);
       expect((await state()).receipts).toBe(0);
     });
+    /** Проверяет сохранение исходного order_id и намерения при повторе неопределённого создания. */
     it("unknown creation retains the intent and repeats the stored request", async () => {
       uncertain = true;
       expect((await checkout()).status).toBe(503);
@@ -515,11 +552,13 @@ describe.skipIf(!testDatabaseUrl)(
       expect(sent.metadata.order_id).toBe(originalOrder);
       expect((await state()).payments).toHaveLength(1);
     });
+    /** Проверяет обязательность ключа checkout до создания платежа. */
     it("test checkout refuses a missing key before creating a payment", async () => {
       expect((await checkout(null)).status).toBe(400);
       expect(creates).toBe(0);
       expect((await state()).payments).toHaveLength(0);
     });
+    /** Проверяет отказ несовпадающих test-флага, магазина, суммы, валюты, заказа, paid и payment ID без выдачи доступа. */
     it.each([
       ["live payment", { test: false }],
       ["another shop", { recipient: { account_id: "654321" } }],
@@ -543,6 +582,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(result.payments[0].status).toBe("pending");
       },
     );
+    /** Проверяет, что сбой provider lookup не подтверждается webhook и поздний повтор может выполнить settlement. */
     it("does not acknowledge a provider lookup outage; a later retry settles", async () => {
       expect((await checkout()).status).toBe(200);
       providerStatus = "succeeded";
@@ -553,6 +593,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await webhook()).status).toBe(200);
       expect((await state()).receipts).toBe(1);
     });
+    /** Проверяет запрет выдачи доступа получателю, заблокированному после checkout. */
     it("a blocked recipient cannot receive access after checkout", async () => {
       expect((await checkout()).status).toBe(200);
       providerStatus = "succeeded";
@@ -560,6 +601,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await webhook()).status).toBe(503);
       expect(await state()).toMatchObject({ receipts: 0, emails: 0 });
     });
+    /** Проверяет полный откат квитанции и доступа при отказе outbox и последующий безопасный повтор. */
     it("outbox failure rolls back the receipt and access, then safely recovers", async () => {
       expect((await checkout()).status).toBe(200);
       providerStatus = "succeeded";
@@ -575,6 +617,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await webhook()).status).toBe(200);
       expect(await state()).toMatchObject({ receipts: 1, emails: 1 });
     });
+    /** Проверяет закрытие только ожидающего заказа после проверенной отмены без доступа и нового provider POST. */
     it("a verified cancellation closes only the pending order, never grants", async () => {
       expect((await checkout()).status).toBe(200);
       providerStatus = "canceled";
@@ -584,6 +627,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await checkout()).status).toBe(400);
       expect(creates).toBe(1);
     });
+    /** Проверяет отсутствие settlement при браузерном GET webhook с поддельными query-полями. */
     it("a browser-style GET to the callback cannot settle a payment", async () => {
       expect((await checkout()).status).toBe(200);
       providerStatus = "succeeded";
@@ -596,6 +640,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).toBe(404);
       expect(await state()).toMatchObject({ receipts: 0, emails: 0 });
     });
+    /** Проверяет предел тела и синтаксис JSON уведомления до provider verification. */
     it("oversized and malformed notifications are rejected before verification", async () => {
       for (const [body, status] of [
         [JSON.stringify({ data: "x".repeat(65536) }), 413],
@@ -610,6 +655,7 @@ describe.skipIf(!testDatabaseUrl)(
       }
       expect(await state()).toMatchObject({ receipts: 0, emails: 0 });
     });
+    /** Проверяет запрет подтверждения TEST-callback после выключения TEST-режима. */
     it("disabled test mode cannot acknowledge or settle a test callback", async () => {
       expect((await checkout()).status).toBe(200);
       providerStatus = "succeeded";
@@ -617,6 +663,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await webhook()).status).toBe(503);
       expect(await state()).toMatchObject({ receipts: 0, emails: 0 });
     });
+    /** Проверяет полугодовой разовый TEST-доступ на 180 дней без recurring-профиля. */
     it("a six-month test purchase grants 180 days with no recurring profile", async () => {
       expect((await checkout(key, "semiannual")).status).toBe(200);
       providerStatus = "succeeded";
@@ -629,6 +676,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(profiles[0].n).toBe(0);
     });
+    /** Проверяет закрытие renewal-controls доказанного разового платежа без вызова Prodamus и сокращения оплаченного срока. */
     it("a proved one-off payment can close renewal controls without calling Prodamus or reducing access", async () => {
       expect((await checkout()).status).toBe(200);
       providerStatus = "succeeded";
@@ -648,6 +696,7 @@ describe.skipIf(!testDatabaseUrl)(
         "2026-11-06T00:00:00.000Z",
       );
     });
+    /** Проверяет, что похожего имени заказа без durable-квитанции и binding недостаточно для утверждения отмены автопродления. */
     it("a yookassa-looking order without persisted receipt and binding cannot claim renewal cancellation", async () => {
       await conn.query(
         "INSERT INTO club_payments (userId,orderId,status,expiresAt) VALUES (90780,'yk-club-fake','paid','2026-11-06 00:00:00')",

@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const option = (name, fallback) => process.argv.find((arg) => arg.startsWith(`--${name}=`))?.slice(name.length + 3) ?? fallback;
+const option = (name, fallback) => /* Читает простую CLI-опцию name=value с явным запасным значением. */ process.argv.find((arg) => arg.startsWith(`--${name}=`))?.slice(name.length + 3) ?? fallback;
 const baseline = option("baseline", "https://daryadarcy.dev.reeskeen.ru");
 const current = option("current", "http://127.0.0.1:8081");
 const output = option("output", "/tmp/daryadarcy-loading-2026-10-06");
@@ -52,6 +52,7 @@ if (process.argv.includes("--start-current")) {
 }
 // Use the SAME real public guest API for the new build. No fake success replies,
 // credentials, mutations, database startup or changes to the deployed service.
+// Локальный proxy пропускает только GET/HEAD и удаляет cookie/Authorization, сохраняя гостевой характер замера.
 const proxy = http.createServer((req, res) => {
   if (!["GET", "HEAD"].includes(req.method)) { res.writeHead(405); res.end(); return; }
   const upstream = new URL(req.url, req.url.startsWith("/api/") || req.url.startsWith("/media/") ? baseline : current);
@@ -78,6 +79,8 @@ const localAudit = JSON.parse(await fs.readFile(path.join(root, "tooling/data/fr
 for (const entry of localAudit.results) originalSizes.set(entry.uri, entry.before);
 
 function observe() {
+  // Собирает LCP, CLS, блокировку главного потока и готовность видимых фото внутри проверочного браузера.
+
   localStorage.setItem("@darcy_install_guide_seen", "1");
   const data = window.__loadingProbe = { lcp: null, cls: 0, longTaskBlockingMs: 0, firstViewportImagesReady: null };
   new PerformanceObserver((list) => {
@@ -115,6 +118,8 @@ function observe() {
 }
 
 async function measure(context, label, route, run, cache, scroll = false) {
+  // Изолирует браузерный контекст и замеряет холодный/тёплый переход при одинаковых сетевых и CPU-ограничениях.
+
   const page = await context.newPage();
   const cdp = await context.newCDPSession(page);
   await cdp.send("Network.enable");
@@ -172,13 +177,15 @@ async function measure(context, label, route, run, cache, scroll = false) {
   const rows = [...requests.values()].map((row) => ({ ...row }));
   const images = rows.filter((row) => row.type === "Image" || row.mime?.startsWith("image/"));
   function estimatedImageBytes(row) {
+    // Отделяет известный размер файла от оценок по историческому аудиту; неизвестный размер остаётся неизвестным.
+
     if (row.contentLength) return row.contentLength;
     if (row.finished) return row.wireBytes;
     if (originalSizes.has(row.url)) return originalSizes.get(row.url);
     if (label === "baseline") return originalSizes.get(new URL(row.url).pathname) ?? null;
     return null;
   }
-  const wireBytes = (row) => row.cache ? 0 : (row.wireBytes ?? row.partialWireBytes);
+  const wireBytes = (row) => /* Считает реально переданные байты, исключая ответы из локального браузерного кэша. */ row.cache ? 0 : (row.wireBytes ?? row.partialWireBytes);
   const record = { label, route, run, cache, elapsedMs, navigationError, metrics,
     network: { requests: rows.length, imageRequests: images.length, imageFileBytesRequested: images.reduce((s, r) => s + (estimatedImageBytes(r) ?? 0), 0),
       imageFileBytesUnknown: images.filter((r) => estimatedImageBytes(r) === null).length,
@@ -211,6 +218,7 @@ async function measure(context, label, route, run, cache, scroll = false) {
   await page.close();
 }
 
+// Холодные и повторные переходы чередуются между целями; результаты сохраняются до закрытия браузера и proxy.
 try {
   for (const route of ["/", "/club"]) {
     for (let run = 1; run <= runs; run++) {

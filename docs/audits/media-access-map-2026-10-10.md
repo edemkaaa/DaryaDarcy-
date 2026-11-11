@@ -13,7 +13,7 @@ M2a13 октября: добавлен default-off GET/HEAD proxy только �
 S3 bucket. Existing uploads/public-read/persisted URLs не переключались. Старый
 прямой URL остаётся обходом, пока M2b/M2c не приняли private storage и rollout.
 Фронтенд, covers/avatars/articles/comments/VK не менялись; контракт и границы —
-[SPEC-private-files](../../SPEC-private-files.md).
+[SPEC-private-files](../specifications/SPEC-private-files.md).
 
 Checkpoint13 октября: backend-only review сохраняет этот access finding.
 Исправлена только точность новых S3 URL: raw #/?/% и trailing endpoint slash

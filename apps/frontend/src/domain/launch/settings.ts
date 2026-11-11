@@ -24,15 +24,18 @@ export type ManagerOrderSettings = {
   managerEmail: string;
   orderMethod: "email-client";
 };
+/** Принимаем только объект настроек; массивы и пустые значения считаем нарушением API-контракта. */
 function record(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value))
     throw invalidResponse();
   return value as Record<string, unknown>;
 }
+/** Допускаем один из четырёх ключей сезона без неявного fallback. */
 function season(value: unknown): Season {
   if (!SEASONS.includes(value as Season)) throw invalidResponse();
   return value as Season;
 }
+/** Проверяем реальную дату ММ-ДД в невисокосном году; нормализация Date не должна принять 31 февраля. */
 export function validAnnualDate(value: string): boolean {
   if (!/^\d{2}-\d{2}$/.test(value)) return false;
   const date = new Date(`2001-${value}T00:00:00Z`);
@@ -40,6 +43,7 @@ export function validAnnualDate(value: string): boolean {
     Number.isFinite(date.getTime()) && date.toISOString().slice(5, 10) === value
   );
 }
+/** Сезонный ресурс допускает null или абсолютный HTTPS без встроенных учётных данных. */
 export function validSeasonUrl(value: unknown): value is string | null {
   if (value === null) return true;
   if (typeof value !== "string" || value.length > 2048) return false;
@@ -50,7 +54,7 @@ export function validSeasonUrl(value: unknown): value is string | null {
     return false;
   }
 }
-/** Existing saved URLs remain readable; reject share pages when editing. */
+/** Распознаём известные страницы публикации Яндекс Диска, чтобы редактор не принял HTML-страницу за изображение. Уже сохранённые ссылки читаются совместимо; запрет страниц публикации относится к редактированию. */
 export function isSeasonSharingPage(value: string | null): boolean {
   if (!value) return false;
   try {
@@ -60,6 +64,7 @@ export function isSeasonSharingPage(value: string | null): boolean {
     return false;
   }
 }
+/** Нормализуем одну сезонную привязку только после проверки даты начала и обоих URL. */
 function appearance(value: unknown): SeasonAppearance {
   const row = record(value);
   if (
@@ -75,6 +80,7 @@ function appearance(value: unknown): SeasonAppearance {
     bannerUrl: row.bannerUrl,
   };
 }
+/** Ревизия настроек должна укладываться в неотрицательный SQL int, иначе optimistic concurrency недостоверна. */
 function revision(value: unknown): number {
   if (
     !Number.isSafeInteger(value) ||
@@ -84,6 +90,7 @@ function revision(value: unknown): number {
     throw invalidResponse();
   return value as number;
 }
+/** Выделяем и валидируем публичное оформление из полного ответа настроек. */
 export function parsePublicAppearance(value: unknown): PublicAppearance {
   const row = record(value);
   return {
@@ -92,6 +99,7 @@ export function parsePublicAppearance(value: unknown): PublicAppearance {
     appearance: appearance(row.appearance),
   };
 }
+/** Проверяем текущего получателя и поддерживаемый способ заказа, прежде чем строить новое письмо. */
 export function parseManagerOrderSettings(
   value: unknown,
 ): ManagerOrderSettings {
@@ -111,6 +119,7 @@ export function parseManagerOrderSettings(
     orderMethod: row.orderMethod,
   };
 }
+/** Проверяем административный snapshot: московскую зону, режим, четыре разные даты и все сезонные привязки. */
 export function parseLaunchSnapshot(
   value: unknown,
 ): LaunchConfigurationSnapshot {
@@ -140,6 +149,7 @@ export function parseLaunchSnapshot(
     },
   };
 }
+/** Сравниваем нормализованные допустимые конфигурации; порядок полей входного объекта не должен создавать ложный конфликт. */
 export function sameLaunchConfiguration(
   a: LaunchConfiguration,
   b: LaunchConfiguration,
@@ -149,7 +159,7 @@ export function sameLaunchConfiguration(
     JSON.stringify(parseLaunchSnapshot({ revision: 0, config: b }).config)
   );
 }
-/** The server owns season dates; the public client only rechecks at Moscow midnight. */
+/** Вычисляем задержку до московской полуночи; сам выбор сезона остаётся серверным. */
 export function untilMoscowMidnight(date = new Date()): number {
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Europe/Moscow",
@@ -158,6 +168,7 @@ export function untilMoscowMidnight(date = new Date()): number {
     minute: "2-digit",
     second: "2-digit",
   }).formatToParts(date);
+  /** Читаем числовые части времени из явно заданной зоны, не полагаясь на локальную зону устройства. */
   const number = (key: string) =>
     Number(parts.find((part) => part.type === key)?.value);
   const elapsed =

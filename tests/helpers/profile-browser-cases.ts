@@ -19,7 +19,11 @@ export interface ProfileFixture {
 }
 
 export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
+  // Сверяет native ревизии имени с UI и durable storage при гонках, перезагрузке и смене владельца, сохраняя учётные данные и доступ.
+
   it("C3 profile save supersedes a native auth read started before the write", async () => {
+    // Сценарий: Сохранение имени получает новый post-write снимок и не принимает удержанное старое /me за результат записи.
+
     const { connection, rows, context, frontend, base, memberId } = fixture();
     await connection.query(
       "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'c3-profile-ordered-read','paid','0','2030-01-01')",
@@ -143,6 +147,8 @@ export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
     }
   }, 30_000);
   it("C3 profile name accepts an equal-value native snapshot after acknowledged save and lost refresh", async () => {
+    // Сценарий: Ревизия важнее равенства строки: после подтверждённой записи и потерянного refresh равный native снимок принимается без повторного POST.
+
     const { connection, rows, context, frontend, base, memberId } = fixture();
     await connection.query(
       "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'c3-profile-equal-snapshot','paid','0','2030-01-01')",
@@ -221,7 +227,7 @@ export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
       }),
     ).toBeVisible();
     const cached = () =>
-      page.evaluate(
+      /* Проверяет, что подтверждённая запись не превращает старый localStorage-кэш в источник истины. */ page.evaluate(
         (id) =>
           localStorage.getItem(`darcy:user:${id}:@darcy_club_profile_name`),
         memberId,
@@ -251,6 +257,8 @@ export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
     ).toEqual(access);
   }, 30_000);
   it("C3 explicit club setup still saves the chosen name and gender through native SQL", async () => {
+    // Сценарий: Явное заполнение анкеты записывает только выбранные имя и пол, сохраняя email, телефон, пароль, роль и доступ.
+
     const { rows, connection, context, frontend, memberId } = fixture();
     await connection.query(
       "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'c3-club-setup-access','paid','0','2030-01-01')",
@@ -324,6 +332,8 @@ export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
     }
   }, 30_000);
   it("C3 direct club entry does not replay a stale cached name into native SQL", async () => {
+    // Сценарий: Прямой вход в Клуб не отправляет старые имя и пол из browser-кэша в БД.
+
     const { rows, connection, context, frontend, memberId } = fixture();
     await connection.query(
       "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'c3-direct-club-access','paid','0','2030-01-01')",
@@ -402,6 +412,8 @@ export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
     }
   }, 30_000);
   it("C3 profile name reconciles native identity instead of replaying stale browser cache", async () => {
+    // Сценарий: Серверная новая ревизия обновляет отображение, но не введённый draft; конфликт разрешается проверкой и отдельным согласием.
+
     const { rows, connection, context, frontend, memberId } = fixture();
     await connection.query(
       "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'c3-profile-access','paid','0','2030-01-01')",
@@ -583,6 +595,8 @@ export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
     }
   }, 30_000);
   it("C3 profile name discards native committed success after switching the current account", async () => {
+    // Сценарий: Поздний успешный ответ прежнего владельца не публикует его имя после смены аккаунта и не создаёт личные кэши у нового.
+
     const { rows, connection, context, frontend, base, memberId } = fixture();
     await connection.query(
       "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'c3-profile-access','paid','0','2030-01-01')",
@@ -732,6 +746,8 @@ export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
   it.each(["confirmed", "uncommitted", "committed"])(
     "C3 profile name requires native confirmation (%s)",
     async (lost) => {
+    // Сценарий: Подтверждённый, неотправленный и закоммиченный потерянный ответы различаются по SQL и durable draft; повтор допускается лишь после явной сверки.
+
       const { rows, connection, context, frontend, base, memberId } = fixture();
       await connection.query(
         "INSERT INTO club_payments (userId,orderId,status,sum,expiresAt) VALUES (?,'c3-profile-access','paid','0','2030-01-01')",
@@ -864,7 +880,7 @@ export function registerProfileBrowserCases(fixture: () => ProfileFixture) {
           }
           await browserExpect(field).toBeDisabled();
           const persisted = () =>
-            page.evaluate(
+            /* Читает оба durable ключа формы и исходной отправки, чтобы подтвердить сохранность ввода после потерянного ответа. */ page.evaluate(
               (id) => ({
                 draft: JSON.parse(
                   localStorage.getItem(

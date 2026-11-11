@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import Screen from "@/features/videos/video-screen";
 export const metadata: Metadata = { title: "Видео" };
+/** Передаём ID странице ролика; серверный источник воспроизведения запрашивается уже в её жизненном цикле. */
 export default async function Page({
   params,
 }: {

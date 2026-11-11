@@ -17,6 +17,7 @@ vi.mock("node:worker_threads", () => ({
     options: WorkerOptions;
     terminate = vi.fn(async (): Promise<number> => 0);
     postMessage = vi.fn();
+    /** Подменяет Worker управляемым emitter: позволяет отдельно проверить создание, обмен фрагментами и освобождение ресурсов. */
     constructor(_source: string, options: WorkerOptions) {
       super();
       if (state.failConstruction) throw new Error("private startup detail");
@@ -26,6 +27,7 @@ vi.mock("node:worker_threads", () => ({
   },
 }));
 let detect: typeof import("../apps/backend/src/media/file-signature").detectBinaryFileType;
+/** Сбрасывает очередь работников и включает управляемое время перед каждым независимым сценарием детектора. */
 beforeEach(async () => {
   vi.useFakeTimers();
   vi.resetModules();
@@ -34,8 +36,10 @@ beforeEach(async () => {
   detect = (await import("../apps/backend/src/media/file-signature"))
     .detectBinaryFileType;
 });
+/** Возвращает настоящие таймеры, чтобы сроки жизни детектора не влияли на другие тесты. */
 afterEach(() => vi.useRealTimers());
 
+/** Проверяет передачу только запрошенного диапазона принадлежащего буферу представления и отсутствие изменения исходника. */
 it("serves only the requested owned range without copying the entire file", async () => {
   const source = Buffer.from("private-prefix-visible-private-suffix");
   const bytes = source.subarray(15, 22);
@@ -55,6 +59,7 @@ it("serves only the requested owned range without copying the entire file", asyn
   await expect(detection).resolves.toBeUndefined();
 });
 
+/** Отклоняет отрицательные, дробные, пустые и выходящие за границы запросы worker без экспорта байтов. */
 it.each([
   { offset: -1, length: 1 },
   { offset: 0, length: 0 },
@@ -79,6 +84,7 @@ it.each([
   },
 );
 
+/** Проверяет верхнюю границу одного фрагмента и корректное чтение последнего байта файла. */
 it("caps each exported fragment and permits an exact end-of-file read", async () => {
   const bytes = Buffer.alloc(65_537, 0x61);
   bytes[65_536] = 0x62;
@@ -95,6 +101,7 @@ it("caps each exported fragment and permits an exact end-of-file read", async ()
   await detection;
 });
 
+/** По дедлайну завершает зависший worker, снимает обработчики и допускает следующую задачу. */
 it("terminates a hung detector at its deadline and permits the next request", async () => {
   const stalled = expect(detect(Buffer.from("fixture"))).rejects.toMatchObject({
     code: "BAD_REQUEST",
@@ -113,6 +120,7 @@ it("terminates a hung detector at its deadline and permits the next request", as
   expect(vi.getTimerCount()).toBe(0);
 });
 
+/** Проверяет освобождение таймеров и обработчиков после error/exit без раскрытия внутренних диагностик. */
 it.each(["error", "exit"])(
   "tears down after %s without leaking private diagnostics",
   async (event) => {
@@ -134,6 +142,7 @@ it.each(["error", "exit"])(
   },
 );
 
+/** Проверяет, что исключение конструктора Worker не блокирует последующие операции распознавания. */
 it("does not poison serialization after worker construction fails", async () => {
   state.failConstruction = true;
   await expect(detect(Buffer.from("fixture"))).rejects.toThrow();
@@ -144,6 +153,7 @@ it("does not poison serialization after worker construction fails", async () => 
   await expect(next).resolves.toBeUndefined();
 });
 
+/** Удерживает завершение первого worker и проверяет, что второй не выделяется до освобождения первого. */
 it("awaits termination before allocating the next worker and copies only owned bytes", async () => {
   const bytes = Buffer.from("private-prefix-visible-private-suffix").subarray(
     15,
@@ -179,6 +189,7 @@ it("awaits termination before allocating the next worker and copies only owned b
   expect(vi.getTimerCount()).toBe(0);
 });
 
+/** Заполняет лимит ожидающих задач, проверяет отказ лишней и восстановление допуска после освобождения слота. */
 it("bounds waiting detections and admits a new request after a slot is released", async () => {
   const first = detect(Buffer.from("one"));
   const waiting = Array.from({ length: 11 }, (_, index) => detect(Buffer.from(`waiting-${index}`)));
@@ -197,6 +208,7 @@ it("bounds waiting detections and admits a new request after a slot is released"
   expect(vi.getTimerCount()).toBe(0);
 });
 
+/** Проверяет общий бюджет удерживаемых буферов отдельно от ограничения числа задач. */
 it("rejects queued buffers that would exceed the aggregate detector budget", async () => {
   const first = detect(Buffer.alloc(80 * 1024 * 1024));
   await vi.advanceTimersByTimeAsync(0);

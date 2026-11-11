@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
 
+/** Даём разделам достаточно содержимого для достижения конца прокрутки; доступ к клубу управляется одним аргументом fixture. */
 async function data(page: Page, member: boolean) {
   await layoutApi(page, member);
   await page.route("**/api/trpc/videos.list*", (route) =>
@@ -45,6 +46,7 @@ async function data(page: Page, member: boolean) {
   );
 }
 
+/** Прокручиваем внутренний контейнер до конца после шрифтов и возвращаем измеритель расстояния от последнего видимого действия до меню. */
 async function ending(page: Page, path: string) {
   await gotoWithSession(page, path);
   const scroll = page
@@ -62,6 +64,7 @@ async function ending(page: Page, path: string) {
       ),
     )
     .toBeLessThan(2);
+  /** Не учитываем hidden/inert-элементы: измеряем реальный доступный конец контента, а не высоту всех retained-панелей. */
   const measure = () =>
     scroll.evaluate((el) => {
       const menu = document
@@ -92,6 +95,7 @@ async function ending(page: Page, path: string) {
   return { scroll, measure };
 }
 
+/** Проверяем отступ, положение меню и отсутствие горизонтального overflow на двенадцати маршрутах и трёх размерах. */
 for (const [width, height] of [
   [320, 400],
   [390, 844],
@@ -135,6 +139,7 @@ for (const [width, height] of [
   }
 }
 
+/** В клубе нижний край карточек сравнивается с внутренними рубриками, которые стоят над общим меню этой fixture. */
 test("the club list retains clearance above its overlaid section menu", async ({
   page,
 }) => {
@@ -162,6 +167,7 @@ test("the club list retains clearance above its overlaid section menu", async ({
   expect(geometry.menuBottom).toBeCloseTo(geometry.globalMenuTop, 0);
 });
 
+/** Синтетически увеличиваем меню и safe-area: контент резервирует новый размер один раз, сохраняя прежний финальный gap. */
 test("safe-area growth reserves space in the menu without doubling the page gap", async ({
   page,
 }) => {
@@ -185,6 +191,7 @@ test("safe-area growth reserves space in the menu without doubling the page gap"
   expect(after.menuBottom).toBeCloseTo(after.viewport, 0);
 });
 
+/** Уменьшение окна при вводе почты не должно делать недоступной последнюю кнопку формы или терять введённое значение. */
 test("a shorter viewport keeps the login inputs and final action reachable", async ({
   page,
 }) => {

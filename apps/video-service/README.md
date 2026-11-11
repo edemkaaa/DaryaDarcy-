@@ -26,7 +26,7 @@ entrypoint проверяет конкретный ID через публичн�
 ```sh
 pnpm test:video
 pnpm exec vitest run tests/video-service.test.ts
-docker build --platform linux/amd64 -t daryadarcy-video:<version> apps/video-service
+docker build --platform linux/amd64 -f infrastructure/build/Dockerfile.video -t daryadarcy-video:<version> apps/video-service
 ```
 
 Новых npm-зависимостей нет. HTTP, кеш и процессы используют стандартную библиотеку

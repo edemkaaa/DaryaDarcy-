@@ -1,3 +1,4 @@
+/** Signed cancellation notification проверяет merchant binding и durable ACK без настоящего SQL/провайдера. */
 import { createHmac } from "node:crypto";
 import { expect, it, vi } from "vitest";
 import {
@@ -8,6 +9,7 @@ import {
 // Hand-sorted canonical payload, independent of production signing helpers.
 const raw =
   '{"domain":"FIXTURE.payform.ru","subscription":{"action_code":"deactivation","id":"7","profile_id":"23"}}';
+/** Подписываем независимо отсортированный frozen payload и создаём явные secret/binding/confirm ports. */
 function fixture(payload = raw, key = "cancellation-fixture-key") {
   const body = JSON.parse(payload) as Record<string, unknown>;
   Object.freeze(body.subscription);
@@ -24,6 +26,7 @@ function fixture(payload = raw, key = "cancellation-fixture-key") {
   return { body, signature, ports: { secret, binding, confirm } };
 }
 
+/** Корректный proof вызывает confirm ровно один раз до ответа cancelled. */
 it("confirms the bound profile once before acknowledging cancellation", async () => {
   const f = fixture();
   expect(await processCancellation(f.body, f.signature, f.ports)).toEqual({
@@ -37,6 +40,7 @@ it("confirms the bound profile once before acknowledging cancellation", async ()
   });
 });
 
+/** Неуспешная подпись останавливает даже чтение merchant configuration. */
 it.each(["", "wrong-fixture-key"])(
   "rejects selected key %j before evaluating merchant binding",
   async (key) => {
@@ -54,6 +58,7 @@ it.each(["", "wrong-fixture-key"])(
   },
 );
 
+/** Подписанный чужой merchant/тариф или пустой profile не допускается к confirm. */
 it.each([
   raw.replace("FIXTURE.payform.ru", "foreign.payform.ru"),
   raw.replace('"id":"7"', '"id":"8"'),
@@ -70,6 +75,7 @@ it.each([
   },
 );
 
+/** False от транзакционного порта остаётся 422, а не успехом webhook. */
 it("does not acknowledge a refused durable confirmation", async () => {
   const f = fixture();
   f.ports.confirm.mockResolvedValue(false);
@@ -80,6 +86,7 @@ it("does not acknowledge a refused durable confirmation", async () => {
   expect(f.ports.confirm).toHaveBeenCalledTimes(1);
 });
 
+/** SQL-ошибка передаётся вызывающему коду без повторной отмены и ACK. */
 it("propagates durable failure without retrying or acknowledging", async () => {
   const f = fixture();
   const error = new Error("Synthetic durable failure");
@@ -90,6 +97,7 @@ it("propagates durable failure without retrying or acknowledging", async () => {
   expect(f.ports.confirm).toHaveBeenCalledTimes(1);
 });
 
+/** Ошибка доверенной конфигурации возникает только для проверенного подписанного сообщения. */
 it("propagates configuration failure only after signature verification", async () => {
   const f = fixture();
   const error = new Error("Synthetic configuration failure");
@@ -102,6 +110,7 @@ it("propagates configuration failure only after signature verification", async (
   expect(f.ports.confirm).not.toHaveBeenCalled();
 });
 
+/** Пока confirm promise не завершён, webhook не подтверждает сохранение. */
 it("waits for pending durable confirmation before returning success", async () => {
   const f = fixture();
   let resolve!: (confirmed: boolean) => void;

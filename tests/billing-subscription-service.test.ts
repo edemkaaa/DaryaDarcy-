@@ -47,20 +47,26 @@ const service = new ClubSubscriptionService();
 // Selected read transport only; SQL predicates/ownership are tested on MySQL.
 // Cancellation write tests replace the durable helper, not the service.
 const database = {
+  /** Выполняет callback чтения на одном контролируемом reader-double без настоящей SQL-транзакции. */
   async transaction(
     run: (reader: unknown) => Promise<unknown>,
   ): Promise<unknown> {
     return run(this);
   },
+  /** Создаёт цепочку контролируемого SELECT без записей. */
   select: () => ({
-    from: () => ({ where: () => ({ limit: async () => [] }) }),
+    /** Поддерживает from-этап выбранного read-double. */
+    from: () => ({ /** Поддерживает where-этап выбранного read-double. */ where: () => ({ /** Возвращает отсутствие pending-профиля в исходной read-фикстуре. */ limit: async () => [] }) }),
   }),
 } as unknown as NonNullable<Awaited<ReturnType<typeof db.getDb>>>;
+/** Подставляет только управляемый database-reader для настоящего subscription-service. */
 beforeEach(() => {
   vi.spyOn(db, "getDb").mockResolvedValue(database);
 });
+/** Возвращает доменные read/write spies после сценария. */
 afterEach(() => vi.restoreAllMocks());
 
+/** Проверяет гостя и блокированного actor без чтения оплаченного периода. */
 it.each([null, { ...member, role: "admin" as const, blockedAt: new Date(0) }])(
   "guest/blocked status is unsubscribed without reading paid access",
   async (actor) => {
@@ -79,6 +85,7 @@ it.each([null, { ...member, role: "admin" as const, blockedAt: new Date(0) }])(
     expect(read).not.toHaveBeenCalled();
   },
 );
+/** Фиксирует явную owner/staff политику разных ролей без выдуманного оплаченного срока. */
 it.each(["user", "moderator", "admin"] as const)(
   "%s status retains the explicit owner policy",
   async (role) => {
@@ -99,6 +106,7 @@ it.each(["user", "moderator", "admin"] as const)(
     });
   },
 );
+/** Проверяет сохранение paid expiry и confirmed cancelAtPeriodEnd. */
 it("paid status preserves the expiry and confirmed cancellation flag", async () => {
   vi.spyOn(db, "getActiveClubSubscription").mockResolvedValue(paid);
   vi.spyOn(cancellation, "readClubCancellationStatus").mockResolvedValue("confirmed");
@@ -112,6 +120,7 @@ it("paid status preserves the expiry and confirmed cancellation flag", async () 
     monthlyPrice: CLUB_PRICE,
   });
 });
+/** Проверяет claim только уже доказанного paid-доступа без записи pending-заказа. */
 it("claim reports verified paid access without activating a pending checkout", async () => {
   vi.spyOn(db, "getActiveClubSubscription").mockImplementation(async (id) => {
     expect(id).toBe(7);
@@ -126,6 +135,7 @@ it("claim reports verified paid access without activating a pending checkout", a
   });
   expect(databaseAccess).not.toHaveBeenCalled();
 });
+/** Проверяет, что один checkout не позволяет claim без подтверждённой оплаты. */
 it("a checkout alone cannot be claimed as paid", async () => {
   vi.spyOn(db, "getActiveClubSubscription").mockResolvedValue(undefined);
   const databaseAccess = vi
@@ -137,6 +147,7 @@ it("a checkout alone cannot be claimed as paid", async () => {
   });
   expect(databaseAccess).not.toHaveBeenCalled();
 });
+/** Проверяет распространение ошибки чтения вместо ложного guest, paid или claim-успеха. */
 it.each(["subscription", "claimPending"] as const)(
   "%s does not turn a failed read into a false success",
   async (method) => {
@@ -150,6 +161,7 @@ it.each(["subscription", "claimPending"] as const)(
     await expect(result).rejects.toThrow("synthetic SQL outage");
   },
 );
+/** Проверяет закрытый отказ отмены при отсутствии базы до durable-helper. */
 it("cancellation fails closed without a database", async () => {
   vi.spyOn(db, "getDb").mockResolvedValue(null);
   const request = vi.spyOn(cancellation, "requestClubCancellation");
@@ -158,6 +170,7 @@ it("cancellation fails closed without a database", async () => {
   });
   expect(request).not.toHaveBeenCalled();
 });
+/** Проверяет безопасную публичную BAD_REQUEST ошибку подтверждённого бизнес-отказа отмены. */
 it("a business cancellation refusal has a safe public client error", async () => {
   vi.spyOn(db, "getDb").mockResolvedValue(database);
   vi.spyOn(cancellation, "requestClubCancellation").mockRejectedValue(
@@ -168,6 +181,7 @@ it("a business cancellation refusal has a safe public client error", async () =>
     message: "Не удалось определить подписку. Обратитесь в поддержку.",
   });
 });
+/** Проверяет серверный отказ неожиданной ошибки отмены без внутренних подробностей. */
 it("unexpected cancellation failures remain server errors without private details", async () => {
   vi.spyOn(cancellation, "requestClubCancellation").mockRejectedValue(
     new Error("PRIVATE_SQL_DETAIL"),
@@ -177,6 +191,7 @@ it("unexpected cancellation failures remain server errors without private detail
     message: expect.not.stringContaining("PRIVATE_SQL_DETAIL"),
   });
 });
+/** Проверяет pending принятой, но ещё не подтверждённой отмены вместо 500. */
 it("an accepted cancellation reports pending instead of a server error", async () => {
   vi.spyOn(db, "getDb").mockResolvedValue(database);
   vi.spyOn(cancellation, "requestClubCancellation").mockResolvedValue({
@@ -190,6 +205,7 @@ it("an accepted cancellation reports pending instead of a server error", async (
     message: expect.stringContaining("пока не подтвердила отмену"),
   });
 });
+/** Проверяет derivation pending из durable-профиля без утверждения, что автопродление остановлено. */
 it("subscription reads expose a persisted pending cancellation without claiming auto-renewal has stopped", async () => {
   vi.spyOn(db, "getActiveClubSubscription").mockResolvedValue({
     ...paid,
@@ -200,9 +216,13 @@ it("subscription reads expose a persisted pending cancellation without claiming 
   // derive pending from durable profile state; a missing response field fails RED.
   vi.spyOn(db, "getDb").mockResolvedValue({
     ...database,
+    /** Создаёт управляемый SELECT, возвращающий существующий pending-profile. */
     select: () => ({
+      /** Поддерживает from-этап pending-profile reader-double. */
       from: () => ({
+        /** Поддерживает where-этап pending-profile reader-double. */
         where: () => ({
+          /** Возвращает один synthetic pending-profile для настоящего вычисления статуса сервисом. */
           limit: async () => [{ profileKey: "synthetic-pending-profile" }],
         }),
       }),
@@ -216,6 +236,7 @@ it("subscription reads expose a persisted pending cancellation without claiming 
     expiresAt: paidUntil,
   });
 });
+/** Проверяет передачу actor и provider-порта durable-helper и сохранение оплаченного expiry при confirmed-отмене. */
 it.each([paidUntil, null])(
   "confirmed cancellation retains paid expiry %s",
   async (expiresAt) => {

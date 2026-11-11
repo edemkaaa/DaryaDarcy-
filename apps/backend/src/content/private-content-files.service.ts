@@ -15,7 +15,9 @@ import { libraryFileActive } from "./library-files";
 
 @Injectable()
 export class PrivateContentFilesService {
+  /** Получаем проверку текущей сессии для фото комментариев и клубных материалов. */
   constructor(@Inject(SessionService) private readonly sessions: SessionService) {}
+  /** Проверяем готовый неотозванный файл, фактическое присутствие ссылки в опубликованном родителе и текущий доступ; только затем разрешаем серверный ключ, MIME и ETag. */
   async authorizedFile(assetId: string, req: Request) {
     const database = await getDb(); if (!database) throw new Error("Database unavailable");
     const [file] = await database.select().from(privateContentFiles).where(eq(privateContentFiles.assetId, assetId)).limit(1);
@@ -49,6 +51,7 @@ export class PrivateContentFilesService {
       if (!await libraryFileActive(file)) return;
       club = true;
     } else return;
+// Открытые фото постов и статей допускают гостя; фото комментариев требуют входа, а клубные материалы и Библиотека ещё и членства.
     if (club || login) {
       if (!req.headers.cookie && !req.headers.authorization) return;
       try { const user = await this.sessions.authenticateRequest(req); if (club && !(await userHasClubAccess(user))) return; }

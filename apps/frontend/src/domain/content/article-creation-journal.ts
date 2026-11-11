@@ -102,6 +102,7 @@ export const articleDraftSchema = payloadSchema.extend({
 export type ArticleCreationPayload = z.infer<typeof payloadSchema>;
 export type ArticleCreationRecord = z.infer<typeof recordSchema>;
 
+/** Проверяем strict write-payload, владельца и фазу файлов: upload содержит локальные ссылки, write — только готовые подтверждённые URL. */
 export function parseArticleCreationRecord(
   value: unknown,
   ownerId: number,
@@ -136,6 +137,7 @@ export function parseArticleCreationRecord(
   return result.data;
 }
 
+/** Поддерживаем старый формат и восстанавливаем бинарную версию File перед полной проверкой intent. */
 function restoreRecord(value: unknown, ownerId: number): ArticleCreationRecord {
   if ((value as { version?: unknown } | null)?.version !== 2)
     return parseArticleCreationRecord(value, ownerId);
@@ -174,6 +176,7 @@ function restoreRecord(value: unknown, ownerId: number): ArticleCreationRecord {
     ownerId,
   );
 }
+/** Выносим чтение File в ArrayBuffer до IndexedDB-транзакции, сохраняя метаданные и квитанции. */
 async function storeRecord(record: ArticleCreationRecord) {
   if (!record.media) return record;
   const files = await Promise.all(
@@ -189,6 +192,7 @@ async function storeRecord(record: ArticleCreationRecord) {
   );
   return { ...record, version: 2, media: { ...record.media, files } };
 }
+/** Для media-intent сравниваем owner/key/revision/editingId; простую immutable-операцию сверяем целиком. */
 function matches(
   current: ArticleCreationRecord | null,
   expected: ArticleCreationRecord,
@@ -201,6 +205,7 @@ function matches(
     : JSON.stringify(current) === JSON.stringify(expected);
 }
 
+/** Принимаем только notRecorded, created или deleted с валидным articleId; удалённую запись не создаём повторно. */
 export function parseArticleCreationStatus(
   value: unknown,
 ):
@@ -227,6 +232,7 @@ export function parseArticleCreationStatus(
   return result.data;
 }
 
+/** Сбой или нарушение фазы журнала запрещает новый сетевой intent без восстановления исходного. */
 const storageError = () =>
   new Error(
     "Не удалось сохранить или прочитать операцию статьи на этом устройстве. Разрешите хранение данных сайта и попробуйте снова.",
@@ -234,11 +240,14 @@ const storageError = () =>
 
 /** A read/write IndexedDB transaction claims one account slot across tabs. */
 export class ArticleCreationJournal {
+  /** Журнал занимает один account-slot для незавершённого создания или файловой записи статьи. */
   constructor(readonly ownerId: number) {}
+  /** Проверяем текущую личность до и после асинхронной подготовки данных. */
   private assertOwner() {
     if (!isPersonalDataOwner(this.ownerId))
       throw new Error("Аккаунт редактора изменился. Откройте статьи заново.");
   }
+  /** Сериализуем один account-slot транзакцией IndexedDB с дедлайном; успех означает завершённый commit. */
   private transaction<T>(
     mode: IDBTransactionMode,
     work: (
@@ -253,6 +262,7 @@ export class ArticleCreationJournal {
       let tx: IDBTransaction | undefined;
       let result: T;
       let settled = false;
+      /** Закрываем транзакцию и соединение только один раз, не разрешая позднему onsuccess оживить завершённую операцию. */
       const fail = (error: unknown = storageError()) => {
         if (settled) return;
         settled = true;
@@ -320,11 +330,13 @@ export class ArticleCreationJournal {
       }
     });
   }
+  /** Читаем текущую операцию без её повторной отправки или изменения ключа. */
   load(): Promise<ArticleCreationRecord | null> {
     return this.transaction("readonly", (_store, value, finish) =>
       finish(value === undefined ? null : restoreRecord(value, this.ownerId)),
     );
   }
+  /** Снимаем immutable payload до ожидания storage; пустой слот атомарно занимает новый key, занятый возвращает прежнюю операцию. */
   async prepare(
     payload: ArticleCreationPayload,
     media?: { editingId: number | null; files: PrivateArticleFile[] },
@@ -362,6 +374,7 @@ export class ArticleCreationJournal {
       finish({ record: proposed, restored: false });
     });
   }
+  /** Перечитываем ключ и локальную ревизию перед следующим шагом восстановления. */
   async requireCurrent(record: ArticleCreationRecord): Promise<void> {
     const current = await this.load();
     if (!matches(current, record))
@@ -369,6 +382,7 @@ export class ArticleCreationJournal {
         "Операция статьи изменилась в другой вкладке. Откройте статьи заново.",
       );
   }
+  /** Сохраняем только подтверждённый конфликт write существующей статьи, увеличивая ревизию durable-intent. */
   async recordConflict(
     record: ArticleCreationRecord,
     status: 409 | 412,
@@ -393,6 +407,7 @@ export class ArticleCreationJournal {
       finish(next);
     });
   }
+  /** Продвигаем только upload-фазу того же intent; переход к write разрешает лишь точную замену локальных файлов их квитанциями. */
   async checkpoint(
     record: ArticleCreationRecord,
     payload: ArticleCreationPayload,
@@ -435,6 +450,7 @@ export class ArticleCreationJournal {
       finish(next);
     });
   }
+  /** Удаляем только совпадающую durable-операцию; более новая запись другой вкладки остаётся нетронутой. */
   clear(record: ArticleCreationRecord): Promise<void> {
     return this.transaction("readwrite", (store, value, finish) => {
       const current =

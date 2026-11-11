@@ -1,3 +1,4 @@
+// Архив Expo. Показывает кешируемую обложку и запускает видео только по жесту пользователя.
 import { createElement, useEffect, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from "react-native";
 import { Image } from "expo-image";
@@ -27,6 +28,8 @@ if (Platform.OS !== "web") {
 }
 
 function GardenPoster({ onPress }: { onPress: () => void }) {
+  // Показывает кешируемую обложку и запускает видео только по жесту пользователя.
+
   return (
     <View style={styles.frame}>
       <Image
@@ -49,6 +52,8 @@ function GardenPoster({ onPress }: { onPress: () => void }) {
 }
 
 export function GardenTourVideo() {
+  // Выбирает poster, HTML video либо native player с одним фиксированным источником сада.
+
   const [isPlaying, setIsPlaying] = useState(false);
 
   if (!isPlaying) {
@@ -84,11 +89,15 @@ export function GardenTourVideo() {
 }
 
 function NativeGardenPlayer() {
+  // Создаёт native player без loop и передаёт системные controls Expo VideoView.
+
   const player = useVideoPlayer(GARDEN_VIDEO_URL, (p: any) => {
     p.loop = false;
   });
 
   useEffect(() => {
+    // Запускает native video после создания player.
+
     player.play();
   }, [player]);
 
@@ -111,11 +120,15 @@ type SectionProps = {
 };
 
 export function GardenTourSection({ scrollY, viewportHeight = 800 }: SectionProps) {
+  // Открывает сад при попадании секции в область просмотра и кратко показывает конфетти.
+
   const [layoutY, setLayoutY] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [confetti, setConfetti] = useState(false);
 
   const triggerReveal = () => {
+    // Однократно отмечает reveal и ставит таймер снятия конфетти.
+
     if (revealed) return;
     setRevealed(true);
     setConfetti(true);
@@ -123,7 +136,7 @@ export function GardenTourSection({ scrollY, viewportHeight = 800 }: SectionProp
   };
 
   useAnimatedReaction(
-    () => scrollY?.value ?? 0,
+    () => /* Читает scrollY на UI-потоке; reaction вызывает reveal в JS после достижения порога секции. */ scrollY?.value ?? 0,
     (y) => {
       if (revealed || !scrollY) return;
       if (layoutY > 0 && y + viewportHeight > layoutY + 80) {
@@ -134,12 +147,16 @@ export function GardenTourSection({ scrollY, viewportHeight = 800 }: SectionProp
   );
 
   useEffect(() => {
+    // Без внешнего scrollY открывает секцию через 400 мс и снимает таймер при unmount.
+
     if (scrollY) return;
     const timer = setTimeout(triggerReveal, 400);
     return () => clearTimeout(timer);
   }, [scrollY]);
 
   const onLayout = (event: LayoutChangeEvent) => {
+    // Запоминает вертикальную позицию секции для сравнения с scrollY.
+
     setLayoutY(event.nativeEvent.layout.y);
   };
 
@@ -159,6 +176,7 @@ export function GardenTourSection({ scrollY, viewportHeight = 800 }: SectionProp
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   section: {
     paddingHorizontal: 16,

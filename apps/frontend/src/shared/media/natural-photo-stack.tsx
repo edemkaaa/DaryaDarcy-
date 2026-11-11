@@ -13,6 +13,7 @@ export interface VideoGridSlot {
   url: string;
   thumbnailUrl?: string;
 }
+/** Выбираем одиночное видео, видеокарусель, фотокарусель или сетку; исходные индексы фото сохраняем для полноэкранного просмотра. */
 export function NaturalPhotoStack({
   photos,
   onPhotoPress,

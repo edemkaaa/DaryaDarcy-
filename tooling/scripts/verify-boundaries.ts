@@ -6,6 +6,8 @@ const root = process.cwd();
 const violations: string[] = [];
 let checked = 0;
 function walk(directory: string) {
+  // Рекурсивно проверяет только исходники приложений и пакетов, пропуская зависимости, build-output и исключённый legacy Expo.
+
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     if (["node_modules", ".expo", ".next", "dist", "web-dist", ".git", "legacy-expo"].includes(entry.name)) continue;
     const path = resolve(directory, entry.name);

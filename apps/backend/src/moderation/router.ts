@@ -3,6 +3,7 @@ import { z } from "zod";
 import { router, moderatorProcedure } from "../_core/trpc";
 import type { ModerationService } from "./moderation.service";
 
+/** На tRPC-границе требуем роль модератора, валидируем ID и причину, передаём только ID и epoch текущего исполнителя в транзакционные действия. */
 export const createModerationRouter = (moderation: ModerationService) =>
   router({
     listCommentReports: moderatorProcedure.query(async ({ ctx }) => {

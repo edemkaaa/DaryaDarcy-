@@ -46,6 +46,7 @@ export async function getUserSavedPostIds(
 }
 
 /** Toggle once per committed request; a network retry is still a new toggle. */
+/** Сериализуем переключения блокировкой пользователя, проверяем текущую публикацию и членство, затем удаляем все старые дубли либо вставляем одну реакцию; повтор запроса снова переключает состояние. */
 export async function togglePostReaction(
   database: MySql2Database,
   kind: "like" | "save",

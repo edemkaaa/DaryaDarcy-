@@ -6,6 +6,8 @@ type Report = ReturnType<typeof inventoryLegacyMedia>;
 
 /** A work list, never an import/ACL approval. Source bytes must be verified separately. */
 export function planLegacyMedia(report: Report) {
+  // Строит детерминированный план копирования с ключом операции; без размера и хеша источника план не готов к применению.
+
   const operations = [],
     blocked = [],
     alreadyProtected = [];

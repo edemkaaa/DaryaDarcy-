@@ -21,6 +21,7 @@ import {
 type Source = { key: string; etag: string; sha256: string | null };
 
 /** Own legacy video -> conditional streaming PUT. No transcode, disk file or whole-video buffer. */
+/** Копируем собственное старое видео до 1 ГиБ через условный потоковый PUT без перекодирования и диска; сверяем источник, защитную policy, контрольные суммы и итоговый объект, не перезаписывая существующий ключ. */
 export async function ensurePrivateTransferredObject(
   receipt: PrivateUploadObject,
   source: Source,
@@ -73,6 +74,7 @@ export async function ensurePrivateTransferredObject(
     Key: privateAttachmentObjectKey("video", receipt.assetId),
   };
   const origin = { Bucket: namespace.bucket, Key: source.key };
+  /** Открываем поток лишь при точном исходном ETag и размере квитанции; неподходящий ответ немедленно закрываем. */
   async function openSource(key: typeof origin, etag: string) {
     const response = await client.send(
       new GetObjectCommand({ ...key, IfMatch: etag }),
@@ -88,6 +90,7 @@ export async function ensurePrivateTransferredObject(
     }
     return response.Body;
   }
+  /** Потоково считаем SHA-256 и MD5, проверяем точный размер и сигнатуру ограниченного префикса; простой потока и любые ошибки освобождают тело. */
   async function checksum(key: typeof origin, etag: string) {
     const body = await openSource(key, etag);
     const hash = createHash("sha256"),
@@ -161,6 +164,7 @@ export async function ensurePrivateTransferredObject(
       )
         throw error;
     }
+// Первое чтение доказывает контрольную сумму; второе передаёт те же байты с IfNoneMatch и ContentMD5, сохраняя серверную защиту от перезаписи.
     if (!destination) {
       const { sha256, md5 } = await checksum(origin, source.etag);
       if (source.sha256 !== null && sha256 !== source.sha256)
@@ -170,6 +174,7 @@ export async function ensurePrivateTransferredObject(
       let size = 0;
       const checked = new Transform({
         highWaterMark: 64 * 1024,
+        /** На втором чтении пересчитываем размер и SHA-256, передавая каждый проверенный буфер дальше с backpressure без накопления всего видео. */
         transform(chunk: Buffer, _encoding, done) {
           if (
             !Buffer.isBuffer(chunk) ||
@@ -181,6 +186,7 @@ export async function ensurePrivateTransferredObject(
           hash.update(chunk);
           done(null, chunk);
         },
+        /** Перед завершением PUT подтверждаем, что второй поток имеет исходный точный размер и SHA-256; изменившийся источник не считается успешным переносом. */
         flush(done) {
           done(
             size === receipt.fileSize && hash.digest("hex") === sha256
@@ -222,6 +228,7 @@ export async function ensurePrivateTransferredObject(
         abortSignal: signal,
       });
     }
+// Даже уже существующая копия принимается только с точными метаданными квитанции и повторным полным чтением контрольной суммы назначения.
     const sha256 = destination.Metadata?.["source-sha256"];
     if (
       destination.ContentLength !== receipt.fileSize ||

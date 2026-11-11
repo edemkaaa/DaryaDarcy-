@@ -8,6 +8,7 @@ import { createTRPCClient } from "../apps/frontend/src/shared/api/trpc";
 import { cancelSessionRequests } from "../apps/frontend/src/shared/api/request-lifecycle";
 
 const storageKey = "daryadarcy:club-checkout:yookassa-test:v1";
+/** Формирует минимальный ответ tRPC с заданным серверным состоянием оплаты. */
 const response = (state: unknown) =>
   new Response(JSON.stringify({ result: { data: { json: { state } } } }));
 let values: Map<string, string>;
@@ -15,17 +16,21 @@ let key: string;
 let prior: string;
 let changes: ClubCheckoutResultState[];
 
+/** Создаёт независимый журнал intent и управляемые browser API перед каждой проверкой результата. */
 beforeEach(async () => {
   values = new Map();
   vi.stubGlobal("window", {
     isSecureContext: true,
     localStorage: {
+      /** Читает значение из изолированного localStorage сценария. */
       getItem: (key: string) => values.get(key) ?? null,
+      /** Записывает значение в изолированный localStorage сценария. */
       setItem: (key: string, value: string) => values.set(key, value),
     },
   });
   vi.stubGlobal("navigator", {
     locks: {
+      /** Исполняет callback синтетической блокировки; межвкладочная конкуренция проверяется отдельным нативным набором. */
       request: async (
         _key: string,
         _options: unknown,
@@ -38,16 +43,19 @@ beforeEach(async () => {
   prior = values.get(storageKey)!;
   changes = [];
 });
+/** Останавливает запросы сессии и возвращает глобальные объекты и таймеры после сценария. */
 afterEach(() => {
   cancelSessionRequests();
   vi.useRealTimers();
   vi.unstubAllGlobals();
 });
+/** Создаёт настоящий контроллер проверки оплаты и собирает его состояния для утверждений. */
 const create = () =>
   createClubCheckoutResultController(createTRPCClient(), (state) =>
     changes.push(state),
   );
 
+/** При отсутствии сохранённого свидетельства не создаёт intent и не отправляет HTTP-запрос. */
 it("missing evidence reports absence without HTTP or creating an intent", async () => {
   values.clear();
   const fetcher = vi.fn();
@@ -63,6 +71,7 @@ it("missing evidence reports absence without HTTP or creating an intent", async 
   controller.dispose();
 });
 
+/** Показывает только подтверждённое сервером состояние, связанное с сохранённым ключом операции. */
 it.each(["succeeded", "canceled", "unknown"])(
   "publishes only server-checked %s tied to saved evidence",
   async (state) => {
@@ -93,6 +102,7 @@ it.each(["succeeded", "canceled", "unknown"])(
   },
 );
 
+/** Не допускает параллельных явных проверок одной незавершённой кампании. */
 it("duplicate explicit checks cannot overlap an outstanding campaign", async () => {
   let release!: (value: Response) => void;
   const fetcher = vi.fn(
@@ -117,6 +127,7 @@ it("duplicate explicit checks cannot overlap an outstanding campaign", async () 
   controller.dispose();
 });
 
+/** Учитывает точный Retry-After ответа 429 без автоматического повтора по истечении задержки. */
 it("429 Retry-After blocks explicit checks until the exact deadline without automatic retries", async () => {
   vi.useFakeTimers();
   vi.setSystemTime(100_000);
@@ -152,6 +163,7 @@ it("429 Retry-After blocks explicit checks until the exact deadline without auto
   controller.dispose();
 });
 
+/** Останавливает текущую проверку при отмене, смене сессии или disposal и игнорирует поздний ответ. */
 it.each(["cancel", "session", "dispose"])(
   "%s stops outstanding checks without a late result/error",
   async (mode) => {
@@ -178,6 +190,7 @@ it.each(["cancel", "session", "dispose"])(
   },
 );
 
+/** Отмена ожидания polling сохраняет свидетельство и не возобновляет запросы самостоятельно. */
 it("canceling the polling wait keeps evidence and does not resume automatically", async () => {
   vi.useFakeTimers();
   const fetcher = vi.fn(async () => response("pending"));
@@ -197,6 +210,7 @@ it("canceling the polling wait keeps evidence and does not resume automatically"
   controller.dispose();
 });
 
+/** Не принимает неизвестное серверное значение за доказательство завершённой оплаты и не отражает его в ошибке. */
 it("an unrecognized server result becomes a generic error, not terminal proof", async () => {
   vi.stubGlobal(
     "fetch",
@@ -210,6 +224,7 @@ it("an unrecognized server result becomes a generic error, not terminal proof", 
   controller.dispose();
 });
 
+/** Завершает ограниченную кампанию всё ещё ожидающим состоянием, освобождая флаг запроса и таймеры. */
 it("a finite pending campaign ends as still pending, with checking released and no further request", async () => {
   vi.useFakeTimers();
   const fetcher = vi.fn(async () => response("pending"));

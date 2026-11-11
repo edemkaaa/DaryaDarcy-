@@ -25,6 +25,7 @@ import { upsertVkVideo } from "../apps/backend/src/content/vk-catalog";
 import { readFile } from "node:fs/promises";
 
 // Native JWT/HTTP/SQL. Synthetic VK links are stored, never fetched or opened.
+/** Проверяет VK-каталог через настоящий HTTP, JWT и SQL, сохраняя синтетические ссылки без загрузки внешнего VK. */
 describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
   let conn: Connection, app: INestApplication, base: string, admin: string;
   const embedUrl =
@@ -36,10 +37,12 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
     access: "club",
     published: true,
   };
+  /** Читает контрольные SQL-строки каталога и подписок. */
   async function rows(query: string, values: unknown[] = []) {
     const [data] = await conn.query<RowDataPacket[]>(query, values);
     return data;
   }
+  /** Отправляет query либо mutation настоящим tRPC HTTP с управляемой сессией и superjson. */
   async function request(
     path: string,
     value?: unknown,
@@ -68,6 +71,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       cache: response.headers.get("cache-control"),
     };
   }
+  /** Удаляет только свои VK-фикстуры и подписки выделенного диапазона пользователей. */
   async function cleanup() {
     await conn.query(
       "DELETE FROM videos WHERE title LIKE 'Owned VK%' OR id BETWEEN 11501 AND 11505",
@@ -76,6 +80,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       "DELETE FROM club_payments WHERE userId BETWEEN 9150 AND 9154",
     );
   }
+  /** Создаёт отдельную video-базу, пять ролей и локальный API с включённым тестовым VK-каталогом. */
   beforeAll(async () => {
     vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
     conn = await openVideoTestDatabase();
@@ -89,6 +94,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
     base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
     admin = await sdk.createSessionToken("vk-admin", { sessionVersion: 0 });
   });
+  /** Возвращает блокировку, эпохи, роли и флаг перед сценарием. */
   beforeEach(async () => {
     await cleanup();
     await conn.query(
@@ -97,6 +103,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
     await conn.query("UPDATE users SET role='user' WHERE id=9154");
     vi.stubEnv("VK_CATALOG_ENABLED", "true");
   });
+  /** Удаляет свои данные и пользователей и закрывает приложение и SQL-пул. */
   afterAll(async () => {
     await app?.close();
     if (conn) {
@@ -110,6 +117,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
     )?.$client.end();
     vi.unstubAllEnvs();
   });
+  /** Проверяет настоящую VK-строку без выдуманного youtubeId и безопасный replay источника при закрытом гостевом доступе. */
   it("creates a real VK row without a fake YouTube ID and replays the same source", async () => {
     const first = await request("admin.upsertVkVideo", input, admin, true);
     expect(first.code).toBe(200);
@@ -139,6 +147,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       (await request("videos.getById", { id: first.data.id }, null)).data,
     ).toBeUndefined();
   });
+  /** Проверяет допустимый embed без hash и изменение hash только явным edit с сохранением source identity. */
   it("saves a hash-free export, replays it and changes hash only through an explicit edit", async () => {
     const bare = embedUrl.replace("&hash=synthetic_hash", "");
     const payload = { ...input, embedUrl: bare + "&autoplay=1" };
@@ -195,6 +204,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       await rows("SELECT vkSourceKey FROM videos WHERE title LIKE 'Owned VK%'"),
     ).toEqual([before]);
   });
+  /** Проверяет одну source-строку при восьми конкурентных созданиях. */
   it("serializes concurrent creates of the same source without duplicate rows", async () => {
     const results = await Promise.all(
       Array.from({ length: 8 }, () =>
@@ -212,6 +222,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       await rows("SELECT id FROM videos WHERE title='Owned VK fixture'"),
     ).toHaveLength(1);
   });
+  /** Теряет ответ после настоящего commit и проверяет однократное создание с нормализованной обложкой и конфликт изменённого create-payload. */
   it("saves a VK cover and replays creation after a lost response without duplicates", async () => {
     const payload = {
       ...input,
@@ -300,6 +311,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       ]),
     ).toEqual([{ thumbnailUrl: "/assets/responsive/owned-cover.webp" }]);
   });
+  /** Проверяет допустимые server-owned public cover UUID и hash-пути на HTTP save и catalog roundtrip без раскрытия embed. */
   it.each([
     "https://s3.twcstorage.ru/daryadarcy-s3/covers/public-v1/12345678-1234-4234-8234-123456789abc.webp",
     "https://s3.twcstorage.ru/daryadarcy-s3/covers/12345678-1234-4234-8234-123456789abc.webp",
@@ -335,6 +347,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       expect(catalog.data.items[0]).not.toHaveProperty("embedUrl");
     },
   );
+  /** Проверяет сохранение не переданной обложки и её очистку только явным NULL. */
   it("preserves omitted VK cover on update and clears only explicit null", async () => {
     const saved = await request(
       "admin.upsertVkVideo",
@@ -381,6 +394,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       await rows("SELECT thumbnailUrl FROM videos WHERE id=?", [saved.data.id]),
     ).toEqual([{ thumbnailUrl: null }]);
   });
+  /** Проверяет отказ небезопасной обложки без изменения существующей VK-строки. */
   it.each([
     canonical,
     "https://s3.twcstorage.ru/daryadarcy-s3/private-v1/cover.webp",
@@ -415,6 +429,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       ).toEqual([{ title: input.title, thumbnailUrl: null }]);
     },
   );
+  /** Проверяет конфликт изменённого create-payload того же source без нового видео. */
   it("rejects changed create payload under the same source", async () => {
     expect(
       (await request("admin.upsertVkVideo", input, admin, true)).code,
@@ -433,6 +448,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       await rows("SELECT title FROM videos WHERE title LIKE 'Owned VK%'"),
     ).toEqual([{ title: input.title }]);
   });
+  /** Проверяет отказ share URL вместо embed и лишних привилегированных полей строгой схемой. */
   it("rejects a share URL and extra privileges rather than accepting arbitrary embed data", async () => {
     expect(
       (
@@ -458,6 +474,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       await rows("SELECT id FROM videos WHERE title LIKE 'Owned VK%'"),
     ).toHaveLength(0);
   });
+  /** Фиксирует прежнюю публичную wire-форму YouTube без добавления приватных source-полей. */
   it("preserves the legacy public YouTube wire shape without new source fields", async () => {
     await conn.query(
       "INSERT INTO videos (id,youtubeId,title) VALUES (11501,'vkpublic001','Owned VK legacy')",
@@ -469,6 +486,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
     expect(row).not.toHaveProperty("access");
     expect(row).not.toHaveProperty("provider");
   });
+  /** Проверяет source-free карточки и отдельную playback-авторизацию по текущему доступу клуба. */
   it("lists source-free cards and gates club playback by current club access", async () => {
     const created = await request("admin.upsertVkVideo", input, admin, true);
     const guest = await request("videos.catalog", {}, null);
@@ -501,6 +519,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       (await request("videos.playback", { id: created.data.id }, staff)).data,
     ).toEqual({ id: created.data.id, provider: "vk", embedUrl: canonical });
   });
+  /** Проверяет публичную обложку только при явном includeThumbnails без подписи, credentials, traversal и выдачи playback-права. */
   it.each([
     [
       "/assets/responsive/owned-cover.webp",
@@ -580,6 +599,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       ).toBe(401);
     },
   );
+  /** Проверяет независимость includeThumbnails и forward-keyset cursor между страницами с сохранением прежней формы запроса. */
   it("keeps cover opt-in and the forward cursor independent across pages", async () => {
     const first = await request("admin.upsertVkVideo", input, admin, true);
     const second = await request(
@@ -627,6 +647,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       (await request("videos.catalog", { limit: 1 }, null)).data.items[0],
     ).not.toHaveProperty("thumbnailUrl");
   });
+  /** Проверяет публичный VK через additive playback без расширения legacy worker-полномочий. */
   it("serves public VK through additive playback, not through legacy worker authority", async () => {
     const created = await request(
       "admin.upsertVkVideo",
@@ -639,6 +660,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
     ).toEqual({ id: created.data.id, provider: "vk", embedUrl: canonical });
     expect((await request("videos.list", undefined, null)).data).toEqual([]);
   });
+  /** Проверяет действующий paid-доступ с hash и без него и отказ expired, blocked и revoked сессиям. */
   it.each([embedUrl, embedUrl.replace("&hash=synthetic_hash", "")])(
     "accepts paid membership but denies expired, blocked and revoked identities (%s)",
     async (source) => {
@@ -680,6 +702,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       ).toBe(401);
     },
   );
+  /** Проверяет явное обновление существующей VK-строки и запрет записей модератору и гостю. */
   it("uses explicit updates for existing VK rows, and denies moderator writes", async () => {
     const created = await request("admin.upsertVkVideo", input, admin, true);
     const staff = await sdk.createSessionToken("vk-staff", {
@@ -711,6 +734,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
     ).toBe(404);
     expect((await request("videos.catalog", {}, admin)).data.items).toEqual([]);
   });
+  /** Проверяет закрытый default-флаг VK-каталога без ослабления прежней фильтрации. */
   it("is disabled by default and does not weaken legacy filtering when disabled", async () => {
     const created = await request("admin.upsertVkVideo", input, admin, true);
     vi.stubEnv("VK_CATALOG_ENABLED", "");
@@ -726,6 +750,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       await rows("SELECT id FROM videos WHERE title LIKE 'Owned VK%'"),
     ).toHaveLength(1);
   });
+  /** Проверяет строгий allowlist embed-протокола, домена, параметров и идентификаторов до записи source. */
   it("rejects malformed embeds without recording a source", async () => {
     for (const url of [
       "http://vk.com/video_ext.php?oid=-100&id=200&hash=synthetic_hash",
@@ -754,6 +779,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       await rows("SELECT id FROM videos WHERE title LIKE 'Owned VK%'"),
     ).toHaveLength(0);
   });
+  /** Проверяет канонизацию порядка параметров и autoplay, сохраняя конфликт изменённого embed hash. */
   it("replays reordered parameters but conflicts when embed hash changes", async () => {
     const first = await request("admin.upsertVkVideo", input, admin, true);
     const reordered =
@@ -785,6 +811,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       await rows("SELECT id FROM videos WHERE title LIKE 'Owned VK%'"),
     ).toHaveLength(1);
   });
+  /** Проверяет настоящий frontend infinite-query клиент на всех страницах без раскрытия закрытых sources. */
   it("accepts the existing infinite-query client across all pages without exposing club sources", async () => {
     await conn.query(
       "INSERT INTO videos (id,youtubeId,title,published,access) VALUES (11501,'vkpublic001','Owned VK first',TRUE,'public'),(11502,'vkpublic002','Owned VK hidden',FALSE,'public'),(11503,'vkpublic003','Owned VK club',TRUE,'club'),(11504,'vkpublic004','Owned VK last',TRUE,'public')",
@@ -794,6 +821,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       links: [httpLink({
         url: `${base}/api/trpc`,
         transformer: superjson,
+        /** Запоминает фактический query input транспорта, сохраняя настоящий HTTP-запрос. */
         fetch: (url, options) => {
           sent.push(superjson.parse(new URL(String(url)).searchParams.get("input")!));
           return fetch(url, options);
@@ -804,7 +832,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
     const utils = createTRPCQueryUtils({ client, queryClient });
     const observer = new InfiniteQueryObserver(queryClient, utils.videos.catalog.infiniteQueryOptions(
       { limit: 1 },
-      { getNextPageParam: last => last.nextCursor ?? undefined },
+      { /** Преобразует только ненулевой nextCursor в параметр следующей forward-страницы. */ getNextPageParam: last => last.nextCursor ?? undefined },
     ));
     try {
       const first = await observer.fetchNextPage();
@@ -835,6 +863,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       queryClient.clear();
     }
   });
+  /** Проверяет отказ неподдерживаемого direction и лишних query-полей строгого infinite-контракта. */
   it.each([
     { direction: "backward" },
     { direction: "FORWARD" },
@@ -847,6 +876,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
   ])("rejects unsupported infinite-query input %j", async value => {
     expect((await request("videos.catalog", value, null)).code).toBe(400);
   });
+  /** Проверяет source-free keyset-пагинацию, безопасные ID и прежний YouTube playback-контракт. */
   it("paginates source-free cards and validates safe IDs and strict query fields", async () => {
     await conn.query(
       "INSERT INTO videos (id,youtubeId,title,published) VALUES (11501,'vkpublic001','Owned VK first',TRUE),(11502,'vkpublic002','Owned VK second',FALSE),(11503,'vkpublic003','Owned VK third',TRUE)",
@@ -891,6 +921,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       videoUrl: null,
     });
   });
+  /** Временно убирает unique source guard и проверяет закрытый отказ чтения и записи, возвращая индекс в finally. */
   it("fails closed when the unique source guard is missing", async () => {
     await conn.query("ALTER TABLE videos DROP INDEX videos_vk_source_unique");
     try {
@@ -910,6 +941,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       );
     }
   });
+  /** Проверяет отказ повреждённого VK-source вместо небезопасного fallback на YouTube. */
   it("rejects corrupted source evidence instead of falling back to YouTube", async () => {
     const created = await request("admin.upsertVkVideo", input, admin, true);
     await conn.query(
@@ -920,6 +952,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       (await request("videos.playback", { id: created.data.id }, admin)).code,
     ).toBe(500);
   });
+  /** Проверяет единственный source при конкурентном создании независимыми администраторами. */
   it("uses the unique source guard across independent administrators", async () => {
     await conn.query("UPDATE users SET role='admin' WHERE id=9154");
     const secondAdmin = await sdk.createSessionToken("vk-other", {
@@ -941,6 +974,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       await rows("SELECT id FROM videos WHERE title LIKE 'Owned VK%'"),
     ).toHaveLength(1);
   });
+  /** Проверяет откат отказавшей вставки и допустимый повтор того же source после удаления собственного триггера. */
   it("rolls back an interrupted insertion and permits retry of the same source", async () => {
     await conn.query(
       "CREATE TRIGGER owned_vk_insert_failure BEFORE INSERT ON videos FOR EACH ROW BEGIN IF NEW.title='Owned VK fixture' THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='owned synthetic insert failure'; END IF; END",
@@ -959,6 +993,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       (await request("admin.upsertVkVideo", input, admin, true)).code,
     ).toBe(200);
   });
+  /** Удерживает actor-lock и проверяет отзыв административной сессии внутри транзакции до вставки. */
   it("rechecks revoked admin identity inside the transaction", async () => {
     const actor = await getUserById(9150);
     expect(actor).toBeDefined();
@@ -979,6 +1014,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       await conn.rollback();
     }
   });
+  /** Проверяет конфликт попытки перепривязать существующий source через ID другого видео. */
   it("does not overwrite an existing source through another video's ID", async () => {
     const first = await request("admin.upsertVkVideo", input, admin, true);
     const otherInput = {
@@ -1012,6 +1048,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       { id: second.data.id, title: otherInput.title },
     ]);
   });
+  /** Применяет настоящую additive-миграцию только к собственной копии таблицы и проверяет побайтово прежние поля YouTube. */
   it("preserves old YouTube data when applying the actual additive migration", async () => {
     let created = false;
     try {
@@ -1056,6 +1093,7 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       if (created) await conn.query("DROP TABLE owned_vk_migration_fixture");
     }
   });
+  /** Проверяет запрет новых access/provider/VK-полей в прежнем публичном import-контракте. */
   it("rejects new access or provider fields on the legacy public import", async () => {
     for (const extra of [
       { access: "club" },

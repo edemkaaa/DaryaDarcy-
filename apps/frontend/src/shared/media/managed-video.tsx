@@ -11,10 +11,12 @@ type Props = VideoHTMLAttributes<HTMLVideoElement> & {
   releaseOnPageHide?: boolean;
   onRetry?: () => void;
 };
+/** Смена src пересоздаёт состояние ошибки и DOM-владельца видео; старый ресурс очищается его эффектом. */
 export function ManagedVideo(props: Props) {
   return <VideoResource key={props.src} {...props} />;
 }
 
+/** Привязываем остановку и освобождение video к видимости страницы и активности экрана, сохраняя стандартные controls браузера. */
 function VideoResource({
   onError,
   onRetry,
@@ -29,7 +31,9 @@ function VideoResource({
     if (!video) return;
     // Restore after React Strict Mode's setup/cleanup/setup cycle as well.
     if (video.getAttribute("src") !== props.src) video.src = props.src;
+    /** Ставим на паузу без сброса позиции; освобождение src выполняется отдельным путём. */
     const pause = () => video.pause();
+    /** При pagehide всегда останавливаем звук, а опциональный releaseOnPageHide дополнительно отменяет загрузку источника. */
     const hide = () => {
       pause();
       if (releaseOnPageHide) {
@@ -37,6 +41,7 @@ function VideoResource({
         video.load();
       }
     };
+    /** Уход документа в фон останавливает воспроизведение, но не обещает автоматический запуск при возврате. */
     const visibility = () => {
       if (document.hidden) pause();
     };
@@ -72,6 +77,7 @@ function VideoResource({
           <Action
             className={classes.retry}
             onClick={() => {
+              // Внешний retry заново проверяет источник; без него повторяем нативную загрузку текущего video.
               if (onRetry) {
                 onRetry();
                 return;

@@ -25,6 +25,8 @@ export function candidateIdentityAllowed(
   },
   expectedUuid: string,
 ): boolean {
+  // Сверяет имя схемы, UUID, версию MySQL и движок с фиксированным профилем кандидата.
+
   return (
     identity.name === "daryadarcy_candidate_20261019" &&
     identity.serverUuid === expectedUuid &&
@@ -38,6 +40,8 @@ export function candidateTargetAllowed(
   env: NodeJS.ProcessEnv,
   actualPlanHash: string,
 ): boolean {
+  // Разрешает только согласованный hash плана и строго ограниченный URI; это не универсальное разрешение установить схему на произвольном сервере.
+
   const reviewedPlan =
     "51616035e287f221c633d8c7975fef46229d6fbc4ef1e80e586f85e96469684a";
   if (
@@ -70,6 +74,8 @@ export function inspectFreshInstallManifest(
   journal: unknown,
   files: ReadonlyMap<string, string>,
 ) {
+  // Принимает канонический журнал либо только точно распознанный исторический fresh-only разрыв; общую рабочую историю не переписывает.
+
   const original = inspectMigrationManifest(journal, files);
   if (!original.issues.length) {
     return { ...original, journal: journalSchema.parse(journal) };
@@ -124,6 +130,8 @@ export function inspectMigrationManifest(
   journal: unknown,
   files: ReadonlyMap<string, string>,
 ) {
+  // Проверяет порядок журнала, наличие всех SQL-файлов и хеши содержимого, отмечая неизвестные и пустые файлы отдельно.
+
   const parsed = journalSchema.safeParse(journal);
   if (!parsed.success)
     return {
@@ -169,6 +177,8 @@ export function inspectMigrationHistory(
   migrations: readonly MigrationIdentity[],
   rows: readonly { created_at: unknown; hash: unknown }[] | undefined,
 ) {
+  // Сопоставляет применённые временные метки и хеши, выявляя пробелы и подмену; pending выдаётся только при целостной истории.
+
   if (rows === undefined)
     return { issues: ["database-history-missing"], pending: [] as string[] };
   if (!rows.length)

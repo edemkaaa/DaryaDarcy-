@@ -1,3 +1,4 @@
+// Архив Expo. Показывает общие юридические ссылки проекта с внутренней навигацией.
 import { ScrollView, Text, Pressable, StyleSheet, View } from "react-native";
 import { router } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
@@ -8,6 +9,8 @@ const BROWN = "#5C4033";
 const BROWN_MUTED = "#8B7355";
 
 export default function LegalHubScreen() {
+  // Показывает общие юридические ссылки проекта с внутренней навигацией.
+
   return (
     <ScreenContainer containerClassName="bg-[#FDF8F0]">
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -36,6 +39,7 @@ export default function LegalHubScreen() {
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: 24,

@@ -1,3 +1,4 @@
+/** Query cache обновляется адресно после авторитетного ACK, сохраняя структуру страниц и соседние данные. */
 import { expect, it } from "vitest";
 import { QueryClient } from "@tanstack/react-query";
 import {
@@ -5,8 +6,10 @@ import {
   updateCachedPostLikeCount,
 } from "../apps/frontend/src/domain/post/post-interaction-cache";
 
+/** Используем форму tRPC query-key для настоящего QueryClient. */
 const key = (path: string) => [path.split("."), { type: "query" }];
 
+/** Новый likeCount проходит по detail/list/infinite/saved карточкам, не меняя comments cache, pageParams и чужой timestamp. */
 it("propagates an authoritative count through existing cards while preserving pages, content and unrelated caches", () => {
   const client = new QueryClient();
   const post = { id: 7, likeCount: 3, text: "keep", media: [{ id: 7 }] };
@@ -68,6 +71,7 @@ it("propagates an authoritative count through existing cards while preserving pa
   }
 });
 
+/** Unsave удаляет карточку только из saved-выдач; cursors, первая страница и публичная лента сохранены. */
 it("removes an unsaved post from the retained tail without changing keyset cursors or public lists", () => {
   const client = new QueryClient();
   const first = { items: [{ id: 1 }], nextCursor: "saved:1" };

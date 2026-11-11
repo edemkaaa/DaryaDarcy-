@@ -1,3 +1,4 @@
+/** Настоящие Express parsers и retired-upload controller проверяются локальным HTTP, identity/storage — spies. */
 import express from "express";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -11,6 +12,7 @@ import { registerRequestBodies } from "../apps/backend/src/_core/request-bodies"
 import { VideoUploadController } from "../apps/backend/src/content/video-upload.controller";
 import { mp4Fixture } from "./helpers/media-fixtures";
 let server: Server, base: string;
+/** Регистрируем parser-политику и handlers, отражающие сам факт разобранного body. */
 beforeAll(async () => {
   const app = express(); registerRequestBodies(app);
   const controller = new VideoUploadController();
@@ -19,7 +21,9 @@ beforeAll(async () => {
   server = createServer(app); await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 });
+/** Закрываем локальный server. */
 afterAll(async () => { await new Promise<void>(resolve => server.close(() => resolve())); });
+/** Сбрасываем synthetic admin/member authentication и storage счётчик. */
 beforeEach(() => {
   boundary.auth.mockReset().mockImplementation(async req => {
     if (req.headers.authorization === "Bearer admin") return { id: 1, role: "admin", blockedAt: null };
@@ -28,9 +32,11 @@ beforeEach(() => {
   });
   boundary.storage.mockReset().mockResolvedValue({ url: "https://assets.example.test/video.mp4" });
 });
+/** Посылаем JSON заданного размера с необязательным synthetic bearer. */
 function json(path: string, size: number, token?: string) {
   return fetch(base + path, { method: "POST", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ payload: "x".repeat(size) }) });
 }
+/** Legacy raw upload всегда404, даже admin не инициирует auth/parser allocation. */
 it("refuses retired raw video before allocating its body or consulting identity", async () => {
   let firstBody: unknown = "not called";
   const authenticate = boundary.auth.getMockImplementation()!;
@@ -38,24 +44,33 @@ it("refuses retired raw video before allocating its body or consulting identity"
   const response = await fetch(base + "/api/admin/upload-video", { method: "POST", headers: { Authorization: "Bearer admin", "Content-Type": "video/mp4" }, body: new Uint8Array(mp4Fixture) });
   expect(response.status).toBe(404); expect(firstBody).toBe("not called");
 });
+/** Auth JSON чуть больше16КиБ отвергается413. */
 it("bounds public authentication JSON to 16 KiB", async () => { expect((await json("/api/auth/login", 17000)).status).toBe(413); });
+/** Обычные мутации сохраняют256КиБ предел. */
 it("bounds ordinary JSON to 256 KiB", async () => { expect((await json("/api/write", 270000)).status).toBe(413); });
+/** Гостевой большой upload не доходит до body handler. */
 it("refuses anonymous upload JSON before its handler", async () => { expect((await json("/api/trpc/profile.uploadAvatar", 300000)).status).toBe(401); });
+/** Старый admin.uploadMedia закрыт независимо от размера/сессии. */
 it("retires large legacy media JSON even for authenticated members", async () => { expect((await json("/api/trpc/admin.uploadMedia", 300000, "member")).status).toBe(404); });
+/** Avatar admission имеет отдельный путь; legacy media не возвращается для admin. */
 it("preserves authenticated avatars but refuses retired admin media", async () => {
   expect((await json("/api/trpc/profile.uploadAvatar", 300000, "member")).status).toBe(200);
   expect((await json("/api/trpc/admin.uploadMedia", 300000, "admin")).status).toBe(404);
 });
+/** Batch envelope не обходит проверку upload-сессии. */
 it("guards upload procedures even inside a batch", async () => { expect((await json("/api/trpc/profile.uploadAvatar,auth.me", 300000)).status).toBe(401); });
+/** Синтаксическая ошибка даёт400 JSON без кусочка пользовательского body. */
 it("returns a generic JSON parse error without echoing request content", async () => {
   const response = await fetch(base + "/api/write", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{SECRET_INVALID_BODY}" });
   expect(response.status).toBe(400); expect(response.headers.get("content-type")).toContain("application/json");
   expect(await response.text()).not.toContain("SECRET_INVALID_BODY");
 });
+/** Retired маршрут не выполняет storage даже для member. */
 it("refuses raw uploads from non-administrators", async () => {
   const response = await fetch(base + "/api/admin/upload-video", { method: "POST", headers: { Authorization: "Bearer member", "Content-Type": "video/mp4" }, body: "small fixture" });
   expect(response.status).toBe(404); expect(boundary.storage).not.toHaveBeenCalled();
 });
+/** Даже настроенный ошибочный storage spy не вызывается закрытым404 маршрутом и не раскрывает причину. */
 it("keeps storage exception details out of raw upload responses and logs", async () => {
   boundary.storage.mockRejectedValue(new Error("SECRET_STORAGE_ERROR"));
   const log = vi.spyOn(console, "error").mockImplementation(() => {});

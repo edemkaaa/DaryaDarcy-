@@ -6,9 +6,10 @@ import {
   collectMediaSnapshot,
 } from "../tooling/lib/media-reference-map";
 
+// Адреса здесь синтетические: отчёт обязан использовать только хеши и явно отмечать неопределённость, пригодность к закрытию URL этим тестом не утверждается.
 const shared = "https://storage.example.test/bucket/feed/photos/shared.webp";
-const hash = (url: string) => createHash("sha256").update(url).digest("hex");
-const article = (sections: unknown, extra = {}) => ({
+const hash = (url: string) => /* Сопоставляет URL по SHA-256, не включая исходный адрес или подпись в отчёт. */ createHash("sha256").update(url).digest("hex");
+const article = (sections: unknown, extra = {}) => /* Строит минимальную клубную статью и позволяет менять только проверяемые поля снимка. */ ({
   id: 1,
   access: "club",
   published: 1,
@@ -18,6 +19,8 @@ const article = (sections: unknown, extra = {}) => ({
 });
 
 it("groups a public cover and restricted section without using the upload prefix", () => {
+  // Сценарий: Общая обложка и закрытая секция классифицируются по ссылкам, а не по префиксу загрузки.
+
   const result = collectArticleReferences([
     article([{ type: "photo", url: shared }]),
   ]);
@@ -32,6 +35,8 @@ it("groups a public cover and restricted section without using the upload prefix
   expect(result.scope).toBe("articles-only-no-object-inventory");
 });
 it("keeps unpublished public article references restricted and identifies legacy and markdown links", () => {
+  // Сценарий: Неопубликованная статья остаётся закрытой; учитываются прежние блоки и Markdown-ссылки.
+
   const result = collectArticleReferences([
     article(
       JSON.stringify([
@@ -53,6 +58,8 @@ it("keeps unpublished public article references restricted and identifies legacy
   ]);
 });
 it("retains unknown or malformed section diagnostics instead of approving an empty map", () => {
+  // Сценарий: Неизвестная форма секции и повреждённый JSON сохраняются как диагностика, а не пустой успешный снимок.
+
   const result = collectArticleReferences([
     article([
       { type: "video", url: shared },
@@ -69,6 +76,8 @@ it("retains unknown or malformed section diagnostics instead of approving an emp
 });
 
 it("reports a non-string block kind without coercing user-provided objects", () => {
+  // Сценарий: Объект в type не приводится через пользовательский toString.
+
   expect(
     collectArticleReferences([
       article([{ type: { toString: "not-callable" }, url: shared }]),
@@ -77,6 +86,8 @@ it("reports a non-string block kind without coercing user-provided objects", () 
 });
 
 it("diagnoses null URL array elements instead of silently dropping them", () => {
+  // Сценарий: Null внутри массива URL не теряется молча.
+
   expect(
     collectArticleReferences([
       article([{ type: "carousel", urls: [shared, null] }]),
@@ -84,11 +95,15 @@ it("diagnoses null URL array elements instead of silently dropping them", () => 
   ).toEqual(["articles:1.sections:0.urls:1.invalid-url"]);
 });
 it("rejects unknown visibility metadata without leaking input values", () => {
+  // Сценарий: Неизвестная метка доступа вызывает отказ без раскрытия исходного значения.
+
   expect(() =>
     collectArticleReferences([article([], { access: "PRIVATE_SECRET_VALUE" })]),
   ).toThrow("Invalid article snapshot");
 });
 it("does not merge query variants or expose signed URL values in its report", () => {
+  // Сценарий: Варианты query не объединяются, подписи URL не выводятся в отчёт.
+
   const signed = shared + "?signature=PRIVATE_FIXTURE_SECRET";
   const result = collectArticleReferences([
     article([{ type: "png", url: signed }]),
@@ -104,6 +119,8 @@ it("does not merge query variants or expose signed URL values in its report", ()
   expect(JSON.stringify(result)).not.toContain(shared);
 });
 it("runs the offline stdin collector without configuration and fails closed on invalid input", () => {
+  // Сценарий: CLI читает stdin без секретной конфигурации и прекращает работу на неверном вводе.
+
   const bin = "node_modules/tsx/dist/cli.mjs";
   const script = "tooling/scripts/media-reference-map.ts";
   const env = { PATH: process.env.PATH!, NODE_ENV: "test" };
@@ -126,6 +143,8 @@ it("runs the offline stdin collector without configuration and fails closed on i
 });
 
 it("rejects a valid JSON snapshot exceeding the stdin byte budget without producing partial output", () => {
+  // Сценарий: Даже корректный JSON сверх байтового бюджета отклоняется без частичного отчёта.
+
   const failed = spawnSync(
     process.execPath,
     ["node_modules/tsx/dist/cli.mjs", "tooling/scripts/media-reference-map.ts"],
@@ -144,8 +163,10 @@ it("rejects a valid JSON snapshot exceeding the stdin byte budget without produc
 });
 
 it("runs all selected sources through stdin and reports omitted source coverage", () => {
+  // Сценарий: Отчёт явно различает полный выбранный набор полей и неполное покрытие источников.
+
   const run = (content: unknown, inventory?: unknown) =>
-    JSON.parse(
+    /* Запускает офлайн-сборщик через stdin с минимальным окружением и возвращает разобранный отчёт. */ JSON.parse(
       execFileSync(
         process.execPath,
         [
@@ -205,6 +226,8 @@ it("runs all selected sources through stdin and reports omitted source coverage"
 });
 
 it("retains unresolved parent associations instead of labelling their objects unassociated", () => {
+  // Сценарий: Отсутствующий родитель сохраняет неопределённость доступа, не превращая объект в бесхозный.
+
   const report = collectMediaSnapshot(
     {
       articles: [],
@@ -233,6 +256,8 @@ it("retains unresolved parent associations instead of labelling their objects un
 });
 
 it("retains known URL fields in unknown article blocks without guessing their visibility", () => {
+  // Сценарий: Из неизвестного блока извлекаются известные поля URL без угадывания видимости.
+
   const report = collectMediaSnapshot(
     {
       articles: [
@@ -272,6 +297,8 @@ it("retains known URL fields in unknown article blocks without guessing their vi
 });
 
 it("reports malformed unknown-block URL fields but retains valid candidates without a cover", () => {
+  // Сценарий: Повреждённые поля неизвестного блока диагностируются, корректные кандидаты сохраняются.
+
   const report = collectArticleReferences([
     article(
       [
@@ -305,6 +332,8 @@ it("reports malformed unknown-block URL fields but retains valid candidates with
 it.each([shared, shared + "/public-alias"])(
   "keeps unknown parent evidence unresolved when a public reference uses %s",
   (publicUrl) => {
+    // Сценарий: Публичная ссылка не отменяет неопределённость другой ссылки с отсутствующим родителем.
+
     const content = {
       articles: [article([], { coverUrl: publicUrl })],
       posts: [],
@@ -356,6 +385,8 @@ it.each([shared, shared + "/public-alias"])(
 );
 
 it("maps explicit object identities and external hashes without guessing from URL prefixes", () => {
+  // Сценарий: Объекты и внешние ресурсы связываются только явно заданными идентификаторами и хешами.
+
   const external = "https://external.example.test/file.webp";
   const input = {
     articles: [
@@ -397,6 +428,8 @@ it("maps explicit object identities and external hashes without guessing from UR
   });
 });
 it("rejects ambiguous object aliases and retains unmatched URL hashes as unresolved, never orphan", () => {
+  // Сценарий: Неоднозначные псевдонимы отклоняются; несопоставленный хеш не считается безопасным для удаления.
+
   const input = { articles: [article([])], posts: [], media: [] };
   const report = collectMediaSnapshot(input, {
     objects: [],

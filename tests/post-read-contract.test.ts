@@ -1,3 +1,4 @@
+/** Type-level регрессия сохраняет реальные media/commentCount от SQL-репозитория до ApiOutputs без casts. */
 import { expectTypeOf, it } from "vitest";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "../apps/backend/src/routers";
@@ -5,6 +6,7 @@ import type { ApiOutputs } from "../apps/frontend/src/shared/api/types";
 import type { PostMedia } from "../packages/database/src/schema";
 
 type Output = inferRouterOutputs<AppRouter>;
+/** У списков есть commentCount, у деталей только media: тест не требует невыбираемого поля. */
 it("exposes delivered media and comment counts in post API types", () => {
   expectTypeOf<NonNullable<Output["feed"]["getById"]>>().toHaveProperty("media").toEqualTypeOf<PostMedia[]>();
   expectTypeOf<Output["feed"]["listPaginated"]["posts"][number]>().toHaveProperty("commentCount").toEqualTypeOf<number>();
@@ -17,6 +19,7 @@ it("exposes delivered media and comment counts in post API types", () => {
 
 // Compile the same direct accesses a client uses, without widening or casting DTOs.
 // Narrow repository/wrapper annotations or a stale generated contract break this.
+/** Компилируем прямые клиентские обращения к полям; сужение серверного типа или старый generated-contract сломает эту границу. */
 function readClientPostFields(
   detail: NonNullable<ApiOutputs["feed"]["getById"]>,
   feedPost: ApiOutputs["feed"]["listPaginated"]["posts"][number],
@@ -32,6 +35,7 @@ function readClientPostFields(
   expectTypeOf(detail).not.toHaveProperty("commentCount");
 }
 
+/** Сопоставляем целые output-типы клиента и роутера, а не только наличие выбранных полей. */
 it("keeps the generated client post types aligned with tRPC outputs", () => {
   expectTypeOf<ApiOutputs["feed"]["getById"]>().toEqualTypeOf<Output["feed"]["getById"]>();
   expectTypeOf<ApiOutputs["feed"]["listPaginated"]>().toEqualTypeOf<Output["feed"]["listPaginated"]>();

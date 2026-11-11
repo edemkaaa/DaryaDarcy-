@@ -38,6 +38,7 @@ type MatchCard = {
 interface PenPalsProps {
   onClose: () => void;
 }
+/** Разделяем форму анкеты и результаты подбора; компонент вызывается родителем только при включённой возможности, а права и адреса проверяет сервер. */
 export function PenPals({ onClose }: PenPalsProps) {
   const router = useRouter();
   const { isAuthenticated, loading: authLoading } = useAuth();
@@ -59,6 +60,7 @@ export function PenPals({ onClose }: PenPalsProps) {
   const remove = trpc.penPals.remove.useMutation();
   const requestMatch = trpc.penPals.requestMatch.useMutation();
   const respondMatch = trpc.penPals.respondMatch.useMutation();
+  /** Однократно загружаем существующую анкету и подбор после определения сессии; фоновый refetch не перезаполняет уже редактируемую форму. */
   useEffect(() => {
     if (bootRef.current) return;
     if (authLoading) return;
@@ -87,6 +89,7 @@ export function PenPals({ onClose }: PenPalsProps) {
       onError: () => setBooting(false),
     });
   }, [authLoading, isAuthenticated, meQuery.isLoading, meQuery.data, find]);
+  /** Выбираем не более трёх интересов, повторное нажатие снимает отметку. */
   const toggleInterest = (interest: string) => {
     setSelectedInterests((prev) => {
       if (prev.includes(interest))
@@ -100,6 +103,7 @@ export function PenPals({ onClose }: PenPalsProps) {
     fullName.trim().length >= 2 &&
     address.trim().length >= 5 &&
     adultConsent;
+  /** Сначала сохраняем обязательные поля и отдельное согласие совершеннолетия, затем запрашиваем подбор. */
   const handleSubmit = () => {
     if (!canSubmit) return;
     upsert.mutate(
@@ -122,6 +126,7 @@ export function PenPals({ onClose }: PenPalsProps) {
       },
     );
   };
+  /** Повторяем подбор явно и заменяем текущие совпадения только успешным ответом сервера. */
   const handleFindMore = () => {
     find.mutate(undefined, {
       onSuccess: (result) => {
@@ -130,7 +135,9 @@ export function PenPals({ onClose }: PenPalsProps) {
       },
     });
   };
+  /** Удаляем анкету после подтверждения и очищаем локальные результаты только при успешном ответе. */
   const handleRemove = () => {
+    /** Возвращаем интерфейс к пустой форме после подтверждённого удаления анкеты. */
     const clearLocal = () => {
       setFullName("");
       setAddress("");
@@ -139,6 +146,7 @@ export function PenPals({ onClose }: PenPalsProps) {
       setSearched(false);
       setScreen("form");
     };
+    /** Отправляем удаление и связываем очистку формы только с onSuccess. */
     const run = () => remove.mutate(undefined, { onSuccess: clearLocal });
     {
       if (
@@ -155,6 +163,7 @@ export function PenPals({ onClose }: PenPalsProps) {
     remove.isPending ||
     requestMatch.isPending ||
     respondMatch.isPending;
+  /** После запроса или ответа на переписку перечитываем состояние пар и взаимного подтверждения. */
   const refreshMatches = () => {
     find.mutate(undefined, {
       onSuccess: (result) => {

@@ -18,13 +18,16 @@ export class LegacyCheckoutJournalError extends Error {}
 /** Local coordination only. The existing createCheckout API has no replay key.
  * Never present this ID as server idempotency or an order/payment receipt. */
 export class LegacyCheckoutJournal {
+  /** Фиксируем владельца и старый протокол; этот журнал координирует вкладки, но не добавляет идемпотентность серверу. */
   constructor(
     readonly ownerId: number | null,
     readonly mode: LegacyCheckoutIntent["mode"],
   ) {}
+  /** Разделяем записи гостя и аккаунтов, а также legacy и Prodamus TEST. */
   get storageKey() {
     return `darcy:${this.ownerId === null ? "guest" : `user:${this.ownerId}`}:${this.mode}:checkout-guard:v1`;
   }
+  /** Отсекаем запросы, продолжившиеся после отмены или смены владельца сессии. */
   private assertOwner(signal?: AbortSignal) {
     signal?.throwIfAborted();
     if (!isPersonalDataOwner(this.ownerId))
@@ -32,6 +35,7 @@ export class LegacyCheckoutJournal {
         "Аккаунт оплаты изменился. Прежняя заявка сохранена.",
       );
   }
+  /** Проверяем ограниченную запись вместе с владельцем и режимом; повреждение не трактуем как отсутствие покупки. */
   read(): LegacyCheckoutIntent | null {
     this.assertOwner();
     try {
@@ -48,6 +52,7 @@ export class LegacyCheckoutJournal {
       );
     }
   }
+  /** Подтверждаем запись обратным чтением и повторно проверяем владельца после browser storage. */
   private persist(intent: LegacyCheckoutIntent, signal: AbortSignal) {
     this.assertOwner(signal);
     try {
@@ -61,6 +66,7 @@ export class LegacyCheckoutJournal {
     }
     this.assertOwner(signal);
   }
+  /** До сети сохраняем unknown под Web Lock; только декодированный бизнес-отказ меняет его на rejected, успешный ответ на acknowledged. */
   async submit<T>(
     knownId: string | null,
     replaceUnknown: boolean,

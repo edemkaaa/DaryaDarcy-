@@ -1,3 +1,4 @@
+// Архив Expo. Статические локальные alpha-ресурсы четырёх папок и рамки доски.
 import type { ImageSource } from "expo-image";
 import type { MoodboardSeason } from "@/lib/moodboard/types";
 

@@ -4,6 +4,7 @@ import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { getRequestErrorMessage } from "@/shared/api/errors";
 import { StatusNotice } from "@/shared/ui/status-notice";
 
+/** Разделяем ожидание, ошибку с повтором и успешный ответ без готового материала. */
 export function PrivateLibraryState({
   isLoading,
   error,

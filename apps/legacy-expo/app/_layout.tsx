@@ -1,3 +1,4 @@
+// Архив Expo. Ограничивает web-колонку 480 px и берёт высоту viewport с SSR fallback.
 import { WEB_APP_MAX_WIDTH } from "@/lib/web-viewport";
 import "@/global.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -31,6 +32,8 @@ import { WebPostAlerts } from "@/components/web-post-alerts";
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 12, left: 0 };
 
 function getWebFrame(): Rect {
+  // Ограничивает web-колонку 480 px и берёт высоту viewport с SSR fallback.
+
   if (typeof window === "undefined") {
     return { x: 0, y: 0, width: WEB_APP_MAX_WIDTH, height: 800 };
   }
@@ -49,6 +52,8 @@ export const unstable_settings = {
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  // Соединяет тему, SafeArea, Query/tRPC, авторизацию и клубный контекст старого Expo runtime.
+
   const [fontsLoaded, fontError] = useFonts({
     "PlayfairDisplay-Regular": require("@/assets/fonts/PlayfairDisplay-Regular.ttf"),
     "PlayfairDisplay-Italic": require("@/assets/fonts/PlayfairDisplay-Italic.ttf"),
@@ -69,15 +74,21 @@ export default function RootLayout() {
   const router = useRouter();
 
   useEffect(() => {
+    // Инициализирует исторический preview bridge один раз.
+
     initManusRuntime();
   }, []);
 
   useEffect(() => {
+    // Подключает native push navigation и возвращает снятие подписки.
+
     if (Platform.OS === "web") return;
     return registerNativePush(router);
   }, [router]);
 
   const handleSafeAreaUpdate = useCallback((metrics: Metrics) => {
+    // Принимает preview insets и ограничивает присланную ширину приложения.
+
     setInsets(metrics.insets);
     setFrame({
       ...metrics.frame,
@@ -86,8 +97,10 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
+    // На web подписывается на viewport и preview safe-area, снимая все свои listeners в cleanup.
+
     if (Platform.OS !== "web") return;
-    const onResize = () => setFrame(getWebFrame());
+    const onResize = () => /* Обновляет web frame при обычном и visualViewport resize. */ setFrame(getWebFrame());
     window.addEventListener("resize", onResize);
     window.visualViewport?.addEventListener("resize", onResize);
     onResize();
@@ -100,6 +113,8 @@ export default function RootLayout() {
   }, [handleSafeAreaUpdate]);
 
   useEffect(() => {
+    // Скрывает native splash после загрузки шрифтов либо ошибки; web не ждёт native font gate.
+
     if (Platform.OS === "web" || fontsLoaded || fontError) {
       SplashScreen.hideAsync();
     }
@@ -119,6 +134,8 @@ export default function RootLayout() {
   const [trpcClient] = useState(() => createTRPCClient());
 
   const providerInitialMetrics = useMemo(() => {
+    // Собирает стартовые метрики с минимумом 12 px снизу для tab bar.
+
     const metrics = initialWindowMetrics ?? { insets: initialInsets, frame: initialFrame };
     return {
       ...metrics,

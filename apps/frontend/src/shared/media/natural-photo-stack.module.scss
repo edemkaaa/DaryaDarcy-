@@ -2,11 +2,13 @@
 @use "../styles/layers";
 
 @layer elements {
+  /* Сетка накладывается на рассчитанную рамку, не добавляя собственную высоту. */
   .grid {
     position: absolute;
     inset: 0;
     gap: 1px;
   }
+  /* Строки и ячейки делят доступное пространство с min-height:0, чтобы реальный размер фото не раздвигал сетку. */
   .row {
     flex: 1 1 0%;
     min-height: 0;
@@ -20,6 +22,7 @@
     overflow: hidden;
     background-color: #ede6da;
   }
+  /* Пара широких снимков меняет направление на вертикальное; картинка остаётся абсолютной внутри каждой ячейки. */
   .landscapePair {
     flex-direction: column;
   }

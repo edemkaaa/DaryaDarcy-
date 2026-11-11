@@ -10,10 +10,12 @@ import { testDatabaseUrl } from "./helpers/backend-mysql";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { getDb } from "../apps/backend/src/db";
 
+/** Проверяет границу реального SQL-каталога и отдельного анонимного video-worker с прогретым дисковым кешем. */
 describe.skipIf(!testDatabaseUrl)(
   "live SQL API to native anonymous worker",
   () => {
     let conn: Connection, app: INestApplication, api: string;
+    /** Запускает локальный API и создаёт по одной открытой и клубной synthetic-карточке. */
     beforeAll(async () => {
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
     conn = await openVideoTestDatabase();
@@ -24,6 +26,7 @@ describe.skipIf(!testDatabaseUrl)(
         "INSERT INTO videos (id,youtubeId,title,access) VALUES (11511,'vkworker001','Owned worker public','public'),(11512,'vkworker002','Owned worker club','club')",
       );
     });
+    /** Закрывает API, удаляет две карточки и соединения, возвращает окружение. */
     afterAll(async () => {
       await app?.close();
       if (conn) {
@@ -36,7 +39,9 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** Прогревает файл и Range, затем отзывает публикацию и требует 404 для GET, HEAD, Range и thumbnail без обхода кешем. */
     it("denies GET HEAD Range and thumbnails after access revocation despite warm media cache", async () => {
+      /** Строит безопасно сериализованный file URL модулей отдельного native worker. */
       const moduleUrl = (file: string) =>
         JSON.stringify(pathToFileURL(resolve("apps/video-service", file)).href);
       const script = `
@@ -69,6 +74,7 @@ describe.skipIf(!testDatabaseUrl)(
             () => reject(Error("Owned worker startup timeout")),
             10000,
           );
+          /** Завершает ожидание старта worker результатом или ошибкой и снимает таймер запуска. */
           const finish = (error?: Error, value?: string) => {
             clearTimeout(deadline);
             error ? reject(error) : resolve(value!);

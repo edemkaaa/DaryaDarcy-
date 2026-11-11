@@ -37,6 +37,7 @@ const statusSchema = z.union([
   z.object({ state: z.literal("notFound") }).strict(),
 ]);
 
+/** Квитанция должна соответствовать виду команды и целевому userId, а не просто иметь правильную форму. */
 export function parseAdminActionStatus(
   value: unknown,
   request: AdminActionRequest,
@@ -52,8 +53,10 @@ export function parseAdminActionStatus(
   return result.data;
 }
 
+/** Объединяем REST постановки письма и tRPC продления под транспортом журнала; оба пути возвращают проверенный outcome. */
 export function adminActionApi(client: TRPCClient<AppRouter>): AdminActionApi {
   return {
+    /** Статус читается по исходному ключу, затем связывается с ожидаемыми kind и userId. */
     async status(request, signal) {
       requestSchema.parse(request);
       return parseAdminActionStatus(
@@ -64,6 +67,7 @@ export function adminActionApi(client: TRPCClient<AppRouter>): AdminActionApi {
         request,
       );
     },
+    /** До записи проверяем команду и abort; email подтверждается queued, продление — валидным сроком после grantClub. */
     async write(request, signal) {
       if (!requestSchema.safeParse(request).success) throw invalidResponse();
       signal.throwIfAborted();
@@ -95,6 +99,7 @@ export function adminActionApi(client: TRPCClient<AppRouter>): AdminActionApi {
   };
 }
 
+/** Из REST/tRPC извлекаем только положительные целые секунды и безопасный deadline, не используя произвольное значение из ошибки. */
 export function adminActionRetryAt(error: unknown): number | undefined {
   const value = error as {
     retryAfterSec?: unknown;

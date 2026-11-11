@@ -40,9 +40,11 @@ const bytes = Buffer.concat([
   Buffer.from("ftypmp42"),
   Buffer.alloc(16),
 ]);
+/** Вычисляет SHA-256 синтетических байтов, политики и идентификатора операции для контрольной сверки. */
 const hash = (value: string | Buffer) =>
   createHash("sha256").update(value).digest("hex");
 
+/** Опциональный canary проверяет потоковое копирование одного нового объекта на настоящем Timeweb с отдельной пустой SQL-базой. */
 describe.skipIf(!enabled)(
   "owned tiny streaming PUT canary on real Timeweb and disposable fresh44 SQL/API",
   () => {
@@ -50,9 +52,11 @@ describe.skipIf(!enabled)(
     let manifest: unknown, payloadHash: string;
     let ownedRows = false;
     const tokens: Record<string, string> = {};
+    /** Читает контрольные строки собственной одноразовой базы. */
     async function rows(query: string, args: unknown[] = []) {
       return (await conn.query<RowDataPacket[]>(query, args))[0];
     }
+    /** Запрещает canary для versioned-бакета, поскольку очистка чужих версий намеренно не угадывается. */
     async function unversioned() {
       const versioning = await client.send(
         new GetBucketVersioningCommand({ Bucket }),
@@ -63,6 +67,7 @@ describe.skipIf(!enabled)(
           "Canary requires unversioned bucket; no version cleanup guessed",
         );
     }
+    /** Проверяет явные флаги, владение tmpfs-контейнером и принятую политику; создаёт только новый синтетический приватный источник и аккаунты. */
     beforeAll(async () => {
       const url = assertTestDatabase(uri!),
         id = process.env.LEGACY_MEDIA_DATABASE_CONTAINER_ID;
@@ -194,6 +199,7 @@ describe.skipIf(!enabled)(
       await app.listen(0, "127.0.0.1");
       base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
     }, 90000);
+    /** Сверяет владельца, namespace, metadata и размер перед удалением только созданных canary-объектов; закрывает приложение и отдельную базу. */
     afterAll(async () => {
       await app?.close();
       try {
@@ -296,6 +302,7 @@ describe.skipIf(!enabled)(
         vi.unstubAllEnvs();
       }
     }, 90000);
+    /** Проверяет неизменяемую запись, точные байты и доступ ролей, затем возвращает исходную привязку без удаления исходника миграцией. */
     it("copies one tiny owned object, verifies real bytes/access and rolls back without touching old data", async () => {
       const result = await applyLegacyMedia(actor, manifest);
       expect(await applyLegacyMedia(actor, manifest)).toEqual(result);
@@ -304,6 +311,7 @@ describe.skipIf(!enabled)(
         new HeadObjectCommand({ Bucket, Key: privateKey }),
         { abortSignal: AbortSignal.timeout(15000) },
       );
+      /** Преобразует исход SDK-запроса в ограниченный HTTP-статус для проверки защиты от перезаписи. */
       async function status(request: Promise<unknown>) {
         try {
           await request;

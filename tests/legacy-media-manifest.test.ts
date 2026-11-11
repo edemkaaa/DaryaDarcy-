@@ -1,3 +1,4 @@
+/** Lossless migration manifest проверяется офлайн по исходным bytes и закреплённой привязке; настоящие файлы не меняются. */
 import { describe, expect, it } from "vitest";
 import { createHash } from "node:crypto";
 import sharp from "sharp";
@@ -6,8 +7,10 @@ import {
   prepareLegacyMigration,
 } from "../apps/backend/src/content/legacy-media-manifest";
 
+/** Digest fixtures вычисляется независимо от migration helper. */
 const hash = (value: Buffer | string) =>
   createHash("sha256").update(value).digest("hex");
+/** Намерение связывает subject/slot/старый URL и ожидаемые source bytes с обязательным preserveOriginal. */
 function input(
   bytes: Buffer,
   type = "photo",
@@ -31,7 +34,9 @@ function input(
     bytes,
   };
 }
+/** Проверяем строгий источник, отдельный s3Stream для больших video и отсутствие перекодирования. */
 describe("lossless legacy migration manifest", () => {
+  /** Сохранённая Unicode-строка URL остаётся точной; encoded separators/control/traversal отвергаются. */
   it("preserves an exact Unicode database URL while safely resolving its storage key", async () => {
     const bytes = await sharp({
       create: { width: 2, height: 2, channels: 3, background: "red" },
@@ -63,6 +68,7 @@ describe("lossless legacy migration manifest", () => {
       ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     }
   });
+  /** Исторический club/tg key разрешён без расширения allowlist host. */
   it("accepts the existing Telegram club prefix and @ filenames without broadening source hosts", async () => {
     const bytes = await sharp({
       create: { width: 2, height: 2, channels: 3, background: "red" },
@@ -78,6 +84,7 @@ describe("lossless legacy migration manifest", () => {
         .bytes,
     ).toEqual(bytes);
   });
+  /** 200МиБ video получает streaming plan с ETag/probe, но не обходит обычный byte-upload limit; неверные bounds запрещены. */
   it("prepares a large-video copy using only a bounded probe, without changing byte-upload limits", async () => {
     const probe = Buffer.concat([
       Buffer.from([0, 0, 0, 24]),
@@ -119,6 +126,7 @@ describe("lossless legacy migration manifest", () => {
         prepareLegacyMigration({ ...copy, ...changes }),
       ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
+  /** JPEG/PNG/WebP/GIF сохраняются точной отдельной копией Buffer с тем же hash. */
   it.each(["jpeg", "png", "webp", "gif"] as const)(
     "keeps %s bytes instead of re-encoding",
     async (format) => {
@@ -134,6 +142,7 @@ describe("lossless legacy migration manifest", () => {
       expect(result.bytes).not.toBe(bytes);
     },
   );
+  /** Поздняя мутация caller Buffer не меняет уже принятые bytes плана. */
   it("copies caller bytes before asynchronous verification", async () => {
     const bytes = await sharp({
       create: { width: 2, height: 2, channels: 3, background: "red" },
@@ -146,6 +155,7 @@ describe("lossless legacy migration manifest", () => {
     bytes.fill(0);
     expect((await pending).bytes).toEqual(saved);
   });
+  /** Допустимые video/document распознаются без перекодирования. */
   it("recognizes a small video container and a document without transcoding", async () => {
     const video = Buffer.concat([
       Buffer.from([0, 0, 0, 24]),
@@ -166,6 +176,7 @@ describe("lossless legacy migration manifest", () => {
       ).bytes,
     ).toEqual(document);
   });
+  /** Digest/size/URL/operation mismatch, preserveOriginal:false и неизвестные поля блокируют план. */
   it.each([
     { expectedSourceSha256: "0".repeat(64) },
     { expectedSourceBytes: 1 },
@@ -186,6 +197,7 @@ describe("lossless legacy migration manifest", () => {
       ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     },
   );
+  /** SVG и повреждённый JPEG не считаются переносимым фото. */
   it("rejects executable and truncated images", async () => {
     await expect(
       prepareLegacyMedia(input(Buffer.from('<svg onload="alert(1)"></svg>'))),

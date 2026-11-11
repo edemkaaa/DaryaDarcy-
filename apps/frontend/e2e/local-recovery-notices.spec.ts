@@ -3,8 +3,10 @@ import { editorApi, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 import { serializeQuizProgress } from "../src/domain/quiz/quiz-progress";
 
+/** Читаем единственный общий слот фонового статуса, отдельно от блокирующих ошибок внутри main. */
 const notice = (page: Page) =>
   page.locator("[data-background-notice] [role=status]");
+/** Оставляем синтетический вошедший аккаунт без клуба и блокируем внешнее медиа; сценарии проверяют локальное восстановление. */
 async function fixture(page: Page) {
   await editorApi(page, (name) =>
     name === "club.subscription"
@@ -21,6 +23,7 @@ async function fixture(page: Page) {
   );
   await page.route("https://**", (route) => route.abort());
 }
+/** Вызываем QuotaExceededError только для account-scoped ключа теста; прежнее durable-значение остаётся доступным для сравнения. */
 async function failQuizWrites(page: Page) {
   await page.evaluate(() => {
     const set = Storage.prototype.setItem;
@@ -35,6 +38,7 @@ async function failQuizWrites(page: Page) {
     };
   });
 }
+/** На трёх ширинах отказ записи теста не сдвигает вопрос и действие, не перекрывает меню и не отменяет выбранный ответ. */
 for (const width of [320, 390, 1280]) {
   test(`quiz storage errors use one bottom notice without moving the question or covering navigation (${width}px)`, async ({
     page,
@@ -88,6 +92,7 @@ for (const width of [320, 390, 1280]) {
   });
 }
 
+/** Общий повтор сессии не является согласием принять чужой progress: конфликт другой вкладки и несохранённый ответ остаются до отдельного выбора. */
 test("a shared session retry never accepts another tab's quiz or discards an unsaved answer", async ({
   page,
 }) => {
@@ -148,6 +153,7 @@ test("a shared session retry never accepts another tab's quiz or discards an uns
   await expect(page.getByText("2 / 10", { exact: true })).toBeVisible();
 });
 
+/** Повреждённая локальная запись фото блокирует новую загрузку; общий retry не стирает её и не подменяет явное скачивание/сброс. */
 test("a corrupted avatar uses the shared slot and a general retry never resets its stored copy", async ({
   page,
 }, info) => {

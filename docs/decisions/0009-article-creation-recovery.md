@@ -3,6 +3,10 @@
 - **Status:** Accepted for user-approved local backend work; not rollout approval
 - **Date:** 2026-10-13
 
+## Актуальность на 11 ноября 2026
+
+Ключ создания, восстановление и клиентский журнал статьи присутствуют в текущем коде. Ограничения «frontend не обновлён» ниже относятся к первоначальному серверному срезу. Перед выпуском отдельно проверяют реальную историю миграций и совместимость собранного клиента.
+
 ## Context
 
 admin.createArticle already commits article and teaser atomically, but a lost
@@ -57,4 +61,4 @@ is updated here. A pending generated-contract check is an explicit integration
 handoff, not an excuse to change another developer's files. Backend HTTP/SQL and
 independent-process tests do not certify the browser reload scenario.
 
-Reference: [approved server contract](../../SPEC-article-create-recovery.md).
+Reference: [approved server contract](../specifications/SPEC-article-create-recovery.md).

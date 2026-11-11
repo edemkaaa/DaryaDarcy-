@@ -4,7 +4,7 @@ import { useAuth } from "./session-context";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { ScreenStatus } from "@/shared/ui/screen-status";
 
-/** Used by private screens so a failed session check never masquerades as a guest. */
+/** Различаем повтор проверки и повтор незавершённого выхода; ошибку сессии не подменяем предложением входа гостю. */
 export function SessionStatus() {
   const { loading, error, status, refresh, logout } = useAuth();
   return (

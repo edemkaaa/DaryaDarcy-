@@ -9,6 +9,7 @@ export const retiredUploadMessage =
   "Публичная загрузка отключена. Используйте защищённую загрузку файлов.";
 
 /** Tombstones stay callable but can never publish an object or fall back. */
+/** Отклоняем выведенную публичную загрузку без fallback и любых эффектов в хранилище. */
 export function rejectLegacyUpload(): never {
   throw new TRPCError({ code: "NOT_FOUND", message: retiredUploadMessage });
 }

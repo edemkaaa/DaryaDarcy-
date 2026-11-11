@@ -5,6 +5,7 @@ import { ENV } from "./_core/env";
 
 // --- Timeweb S3 Storage ---
 
+/** Нормализуем ведущий slash и запрещаем пустой ключ, управляющие символы, обратный slash и сегменты traversal до выбора провайдера. */
 function storageKey(relKey: string): string {
   const key = relKey.replace(/^\/+/, "");
   if (!key || /[\\\x00-\x1f\x7f]/.test(key) ||
@@ -15,7 +16,9 @@ function storageKey(relKey: string): string {
 }
 
 /** Encode the exact object key, not URL syntax or an already-decoded alias. */
+/** Кодируем точный объектный ключ посегментно, не принимая его за уже готовый URL или декодированный алиас. */
 function s3ObjectUrl(key: string): string {
+  /** Кодируем сегмент и дополнительные зарезервированные символы в единственную каноническую форму. */
   const encode = (part: string) =>
     encodeURIComponent(part).replace(
       /[!'()*]/g,
@@ -25,6 +28,7 @@ function s3ObjectUrl(key: string): string {
   return `${ENV.s3Endpoint.replace(/\/+$/, "")}/${encode(ENV.s3Bucket)}/${encodedKey}`;
 }
 
+/** Создаём клиент только при полной конфигурации S3 с конечными таймаутами и без автоматических повторов PUT. */
 function getS3Client(): S3Client | null {
   if (!ENV.s3Endpoint || !ENV.s3AccessKey || !ENV.s3SecretKey || !ENV.s3Bucket) {
     return null;
@@ -46,6 +50,7 @@ function getS3Client(): S3Client | null {
   });
 }
 
+/** Выполняем совместимую публичную запись в настроенный S3 и возвращаем канонический URL; закрытые файлы обязаны использовать отдельный приватный контракт. */
 async function s3Put(
   relKey: string,
   data: Buffer | Uint8Array | string,
@@ -81,6 +86,7 @@ async function s3Put(
 
 type StorageConfig = { baseUrl: string; apiKey: string };
 
+/** Возвращаем настройки прежнего провайдера только при наличии адреса и серверного ключа. */
 function getManusStorageConfig(): StorageConfig | null {
   const baseUrl = ENV.forgeApiUrl;
   const apiKey = ENV.forgeApiKey;
@@ -88,12 +94,14 @@ function getManusStorageConfig(): StorageConfig | null {
   return { baseUrl: baseUrl.replace(/\/+$/, ""), apiKey };
 }
 
+/** Строим фиксированный endpoint загрузки прежнего провайдера, передавая объектный ключ параметром path. */
 function buildUploadUrl(baseUrl: string, relKey: string): URL {
   const url = new URL("v1/storage/upload", baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`);
   url.searchParams.set("path", relKey.replace(/^\/+/, ""));
   return url;
 }
 
+/** Запрашиваем ссылку прежнего хранилища по фиксированному endpoint с серверной авторизацией и десятисекундным дедлайном. */
 async function buildDownloadUrl(baseUrl: string, relKey: string, apiKey: string): Promise<string> {
   const downloadApiUrl = new URL("v1/storage/downloadUrl", baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`);
   downloadApiUrl.searchParams.set("path", relKey.replace(/^\/+/, ""));
@@ -106,6 +114,7 @@ async function buildDownloadUrl(baseUrl: string, relKey: string, apiKey: string)
   return (await response.json()).url;
 }
 
+/** Передаём публичный файл прежнему провайдеру multipart-запросом под общим сигналом; успешный ответ должен содержать URL результата. */
 async function manusPut(
   relKey: string,
   data: Buffer | Uint8Array | string,
@@ -141,6 +150,7 @@ async function manusPut(
 
 // --- Public API (auto-selects S3 if configured, otherwise Manus) ---
 
+/** Проверяем ключ и общий дедлайн, выбираем полностью настроенный S3 либо прежний Manus; неизвестный исход записи не вызывает автоматический повтор в другом хранилище. */
 export async function storagePut(
   relKey: string,
   data: Buffer | Uint8Array | string,
@@ -162,6 +172,7 @@ export async function storagePut(
   return manusPut(key, data, contentType, signal);
 }
 
+/** Для собственного публичного S3 строим URL без чтения объекта, иначе запрашиваем ссылку прежнего провайдера; этот helper не выдаёт приватные файлы. */
 export async function storageGet(relKey: string): Promise<{ key: string; url: string }> {
   const key = storageKey(relKey);
 
@@ -177,6 +188,7 @@ export async function storageGet(relKey: string): Promise<{ key: string; url: st
 }
 
 // --- Test helper ---
+/** Диагностическая проверка выполняет настоящую публичную запись тестового объекта, поэтому это не read-only проверка соединения. */
 export async function testS3Connection(): Promise<{ success: boolean; message: string }> {
   try {
     if (

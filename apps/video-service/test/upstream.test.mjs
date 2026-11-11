@@ -13,6 +13,8 @@ afterEach(async () => {
     });
 });
 async function upstream(handler) {
+  // Создаёт локальный источник ответов tRPC и записывает сервер для последующей очистки.
+
   const server = createServer(handler);
   servers.push(server);
   server.listen(0, "127.0.0.1");
@@ -20,6 +22,7 @@ async function upstream(handler) {
   return `http://127.0.0.1:${server.address().port}`;
 }
 
+// Сценарий: Компактный контракт строго связывает publication с запрошенным ID.
 test("reads only strict compact publication authority for the requested identifier", async () => {
   let published = true;
   const url = await upstream((req, res) => {
@@ -32,6 +35,7 @@ test("reads only strict compact publication authority for the requested identifi
   assert.equal(await readPublicYoutubeState(url, "sq7pY1H_fYU"), false);
   await assert.rejects(readPublicYoutubeState(url, "../invalid"), /invalid video id/);
 });
+// Сценарий: Повреждённый, слишком большой и redirected compact-ответ получает отказ.
 test("compact authority fails closed on malformed, oversized and redirected responses", async () => {
   for (const state of [[], null, { published: "true" }, { published: true, access: "club" }]) {
     const url = await upstream((_req, res) => res.end(JSON.stringify({ result: { data: { json: state } } })));
@@ -43,6 +47,7 @@ test("compact authority fails closed on malformed, oversized and redirected resp
   await assert.rejects(readPublicYoutubeState(redirect, "sq7pY1H_fYU"));
 });
 
+// Сценарий: Из tRPC-каталога сохраняются только необходимые поля публикации.
 test("reads the real tRPC catalog shape and retains only publication fields", async () => {
   const url = await upstream((_req, res) =>
     res.end(
@@ -66,6 +71,7 @@ test("reads the real tRPC catalog shape and retains only publication fields", as
     { youtubeId: "sq7pY1H_fYU", published: true },
   ]);
 });
+// Сценарий: Явно клубный источник не нормализуется в публичный.
 test("never launders an explicit club source into public worker authority", async () => {
   const url = await upstream((_req, res) =>
     res.end(
@@ -96,6 +102,7 @@ test("never launders an explicit club source into public worker authority", asyn
   ]);
 });
 
+// Сценарий: Ошибки, неверные ID и неboolean publication отклоняются.
 test("rejects errors, invalid shapes, invalid IDs and false publication types", async () => {
   for (const payload of [
     "bad json",
@@ -123,6 +130,7 @@ test("rejects errors, invalid shapes, invalid IDs and false publication types", 
   await assert.rejects(readPublicCatalog(unavailable));
 });
 
+// Сценарий: Redirect каталога не следует к другому сервису.
 test("does not follow a catalog redirect to a different service", async () => {
   const url = await upstream((_req, res) => {
     res.writeHead(302, { Location: "http://127.0.0.1:1/private" });
@@ -131,6 +139,7 @@ test("does not follow a catalog redirect to a different service", async () => {
   await assert.rejects(readPublicCatalog(url));
 });
 
+// Сценарий: Фактические байты ответа ограничены даже без Content-Length.
 test("bounds catalog reply bytes even without Content-Length", async () => {
   const url = await upstream((_req, res) => {
     res.write(" ".repeat(2 * 1024 ** 2));
@@ -139,6 +148,7 @@ test("bounds catalog reply bytes even without Content-Length", async () => {
   await assert.rejects(readPublicCatalog(url));
 });
 
+// Сценарий: URL обложки строится из строгого ID без credentials.
 test("thumbnail request is derived only from an exact ID and omits credentials", async () => {
   const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00]);
   const thumbnail = await readThumbnail(
@@ -154,6 +164,7 @@ test("thumbnail request is derived only from an exact ID and omits credentials",
   assert.deepEqual(thumbnail, jpeg);
 });
 
+// Сценарий: HTML, redirects, произвольные ID и большие файлы не признаются обложкой.
 test("thumbnail rejects arbitrary IDs, HTML, redirects and oversized files", async () => {
   await assert.rejects(readThumbnail("../private"));
   for (const response of [

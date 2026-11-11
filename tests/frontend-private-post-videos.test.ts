@@ -1,5 +1,6 @@
 import { expect, it, vi } from "vitest";
 vi.mock("../apps/frontend/src/shared/media/read-attachment", () => ({
+  /** Кодирует File только для тестового окружения остальных вложений; видео проходит отдельным raw-транспортом. */
   attachmentBase64: async (file: File) => Buffer.from(await file.arrayBuffer()).toString("base64"),
 }));
 import { PostSaveCoordinator } from "../apps/frontend/src/domain/post/save-post";
@@ -10,10 +11,12 @@ import { ApiError } from "../apps/frontend/src/shared/api/errors";
 
 const key = "private-video-original-key";
 const assetId = "3af23d8c-140f-454b-a123-123456789abc";
+/** Создаёт локальный видеофайл с постоянным исходным ключом загрузки. */
 const selected = () => ({
   key,
   file: new File(["original video"], "lesson.mp4", { type: "video/mp4" }),
 });
+/** Создаёт payload со смешанными VK и локальным видео, чтобы проверить замену локального маркера asset-привязкой. */
 const payload = () =>
   serializePostDraft({
     text: "Video",
@@ -35,6 +38,7 @@ const receipt = {
   fileSize: 14,
 };
 
+/** Сохраняет сообщение занятости видео и retryNotBefore через общий координатор обоих редакторов. */
 it("preserves the busy-video message through the save coordinator for both editors", async () => {
   const api = boundary();
   api.uploadPrivateVideo.mockRejectedValueOnce(new ApiError(
@@ -47,6 +51,7 @@ it("preserves the busy-video message through the save coordinator for both edito
   expect(api.create).not.toHaveBeenCalled();
   expect(api.update).not.toHaveBeenCalled();
 });
+/** Создаёт API-double raw-видеозагрузки и status с запрещённым публичным fallback. */
 function boundary() {
   return {
     create: vi.fn(async (_payload: unknown) => 42),
@@ -67,14 +72,17 @@ function boundary() {
     ),
   };
 }
+/** Создаёт операцию сохранения с проверяемым владением для моделирования смены аккаунта. */
 const task = (owns = () => true) =>
   new OperationScope().begin("save", new AbortController().signal, owns)!;
+/** Создаёт координатор с доступным durable checkpoint для приватного видео. */
 function coordinator() {
   const c = new PostSaveCoordinator();
   c.setCheckpoint(async () => {});
   return c;
 }
 
+/** Проверяет отдельный лимит видео и запрет публичных URL в приватной квитанции. */
 it("accepts video receipts above the audio/document limit without accepting public URLs", () => {
   expect(
     requirePrivateReceipt({ ...receipt, fileSize: 45 * 1024 * 1024 }),
@@ -89,6 +97,7 @@ it("accepts video receipts above the audio/document limit without accepting publ
     requirePrivateReceipt({ ...receipt, fileSize: 80 * 1024 * 1024 + 1 }),
   ).toThrow();
 });
+/** До отправки raw File сохраняет исходный ключ и байты, затем привязывает asset вместо локальной или публичной ссылки. */
 it("checkpoints original video bytes/key before raw upload and binds the asset instead of a local/public URL", async () => {
   const c = coordinator(),
     api = boundary(),
@@ -119,6 +128,7 @@ it("checkpoints original video bytes/key before raw upload and binds the asset i
   expect(api.upload).not.toHaveBeenCalled();
   expect(api.privateStatus).not.toHaveBeenCalled();
 });
+/** Отказ durable storage не допускает отправки видео и публикации. */
 it("does not dispatch video bytes or publish when durable storage fails", async () => {
   const c = coordinator(),
     api = boundary();
@@ -132,6 +142,7 @@ it("does not dispatch video bytes or publish when durable storage fails", async 
   expect(api.create).not.toHaveBeenCalled();
   expect(api.upload).not.toHaveBeenCalled();
 });
+/** Восстанавливает потерянную квитанцию через status без повторной загрузки ready-видео. */
 it("recovers lost upload ACK from status before publishing, without uploading ready bytes again", async () => {
   const c = coordinator(),
     api = boundary(),
@@ -153,6 +164,7 @@ it("recovers lost upload ACK from status before publishing, without uploading re
   expect(api.uploadPrivateVideo).toHaveBeenCalledTimes(1);
   expect(api.create).toHaveBeenCalledTimes(1);
 });
+/** При явном восстановлении pending/notRecorded повторяет тот же File и ключ. */
 it.each(["pending", "notRecorded"] as const)(
   "explicitly replays the same File/key after %s status",
   async (state) => {
@@ -172,6 +184,7 @@ it.each(["pending", "notRecorded"] as const)(
     expect(api.create).toHaveBeenCalledTimes(1);
   },
 );
+/** Игнорирует поздний upload/status после смены аккаунта, не привязывая квитанцию. */
 it.each(["upload", "status"] as const)(
   "ignores late %s response after account switch",
   async (stage) => {
@@ -204,6 +217,7 @@ it.each(["upload", "status"] as const)(
     expect(api.create).not.toHaveBeenCalled();
   },
 );
+/** Неопределённый pending-ответ оставляет координатор в upload и блокирует частичную публикацию. */
 it("keeps a pending upload response uncertain and does not publish a partial post", async () => {
   const c = coordinator(),
     api = boundary();
@@ -217,6 +231,7 @@ it("keeps a pending upload response uncertain and does not publish a partial pos
   expect(api.create).not.toHaveBeenCalled();
   expect(c.snapshot().phase).toBe("upload");
 });
+/** Отклоняет неверные тип, размер, MIME или публичную ссылку до привязки видео. */
 it.each([
   { ...receipt, fileSize: 1 },
   { ...receipt, type: "document" },
@@ -231,6 +246,7 @@ it.each([
   ).rejects.toThrow();
   expect(api.create).not.toHaveBeenCalled();
 });
+/** Требует raw-приватный транспорт и durable checkpoint, не переходя на публичную загрузку. */
 it("requires raw private transport and a durable checkpoint, never public fallback", async () => {
   const api = boundary();
   const { uploadPrivateVideo: omitted, ...noVideo } = api;
@@ -253,6 +269,7 @@ it("requires raw private transport and a durable checkpoint, never public fallba
   expect(api.create).not.toHaveBeenCalled();
 });
 
+/** Привязывает приватный poster явной парой assetId и не добавляет его в фотогалерею. */
 it("keeps a video poster private and binds its explicit asset without adding it to the gallery", async () => {
   const photoAssetId = "abf23d8c-140f-454b-a123-123456789abc";
   const video = { ...selected(), poster: { key: "private-video-poster-key", file: new File(["poster"], "poster.png", { type: "image/png" }) } };
@@ -261,6 +278,7 @@ it("keeps a video poster private and binds its explicit asset without adding it 
   expect(api.create.mock.calls[0][0]).toMatchObject({ photos: [], privateAssetIds: [assetId], privateVideoPosters: [{ videoAssetId: assetId, posterAssetId: photoAssetId }] });
   expect(api.uploadPrivatePhoto).toHaveBeenCalledTimes(1); expect(api.upload).not.toHaveBeenCalled();
 });
+/** После потери ответа create повторяет замороженный payload без повторной загрузки видео или poster. */
 it("replays a frozen create after lost response without uploading video or poster again", async () => {
   const api=boundary(),c=coordinator();api.create.mockRejectedValueOnce(Error("Lost create ACK"));
   await expect(c.save(payload(),[],[],api,task(),[],[selected()])).rejects.toThrow();
@@ -268,6 +286,7 @@ it("replays a frozen create after lost response without uploading video or poste
   const restored=coordinator();restored.restore(c.snapshot());await restored.recoverCreation(api,task());
   expect(api.create.mock.calls[1][0]).toEqual(api.create.mock.calls[0][0]);expect(api.uploadPrivateVideo).toHaveBeenCalledTimes(1);expect(api.create.mock.calls[1][0]).not.toHaveProperty("file");
 });
+/** Не повторяет update с неизвестным результатом и не отправляет его видео заново. */
 it("does not replay an unknown update or upload its video again", async () => {
   const api=boundary(),c=new PostSaveCoordinator(42);c.setCheckpoint(async()=>{});api.update.mockRejectedValueOnce(Error("Lost update ACK"));
   await expect(c.save(payload(),[],[],api,task(),[],[selected()])).rejects.toThrow();
@@ -275,6 +294,7 @@ it("does not replay an unknown update or upload its video again", async () => {
   await expect(restored.recoverCreation(api,task())).rejects.toThrow();await expect(restored.save(payload(),[],[],api,task())).rejects.toThrow();
   expect(api.create).not.toHaveBeenCalled();expect(api.update).toHaveBeenCalledTimes(1);expect(api.uploadPrivateVideo).toHaveBeenCalledTimes(1);
 });
+/** Отклоняет отсутствующие и повторные локальные видео и не загружает снятый с выбора файл. */
 it("rejects missing or repeated local videos and never uploads a removed selection", async () => {
   const api=boundary();await expect(coordinator().save(payload(),[],[],api,task(),[],[])).rejects.toThrow();
   await expect(coordinator().save(payload(),[],[],api,task(),[],[selected(),selected()])).rejects.toThrow();

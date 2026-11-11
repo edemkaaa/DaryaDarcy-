@@ -2,7 +2,9 @@ import { test, expect } from "@playwright/test";
 import { editorApi, failure, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
+/** В обоих редакторах неопределённый исход не разрешает новую запись автоматически: нужны Retry-After или явная проверка статуса прежней операции. */
 for (const mode of ["full", "quick"] as const) {
+  /** На границе двух секунд проверяем ожидание без auto-retry, затем статус notRecorded и повтор upload с тем же ключом; create остаётся отдельным действием. */
   test(`${mode}: video 429 waits for Retry-After and manually recovers the original upload`, async ({
     page,
   }) => {
@@ -109,6 +111,7 @@ for (const mode of ["full", "quick"] as const) {
     ]);
     expect(page.url()).not.toContain("/login");
   });
+  /** Закрытие редактора после неопределённого create не сбрасывает черновик и не разрешает второй create. */
   test(`${mode}: closing an unconfirmed create cannot reset the draft and create it twice`, async ({
     page,
   }) => {
@@ -166,6 +169,7 @@ for (const mode of ["full", "quick"] as const) {
     ).toBeVisible();
     expect(creates).toHaveLength(1);
   });
+  /** Выбранный File и ключ переживают reload; неуспешная ручная проверка не повторяет upload, а удаление локальной копии требует отдельного подтверждения. */
   test(`${mode}: a lost private video upload response survives reload and requires an explicit recovery action`, async ({
     page,
   }) => {
@@ -189,6 +193,7 @@ for (const mode of ["full", "quick"] as const) {
       return route.fulfill({ status: 503, json: { error: "Unavailable" } });
     });
     const path = mode === "full" ? "/admin" : "/feed";
+    /** Повторно открываем исходный маршрут после полной навигации, чтобы восстановление шло из durable-журнала, а не памяти прежнего диалога. */
     const open = async () => {
       await gotoWithSession(page, path);
       await page

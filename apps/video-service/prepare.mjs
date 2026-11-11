@@ -4,6 +4,8 @@ import { lstat, readdir, unlink } from "node:fs/promises";
 import { join } from "node:path";
 
 export function runCommand(binary, args, cwd, signal) {
+  // Запускает только заданный бинарник с минимальным окружением и ограниченным stdout; ошибки процесса не раскрывают внешние ссылки.
+
   signal.throwIfAborted();
   return new Promise((resolve, reject) => {
     const child = spawn(binary, args, {
@@ -22,6 +24,8 @@ export function runCommand(binary, args, cwd, signal) {
     let killTimer;
     // Останавливаем всю группу, включая потомков FFmpeg, а не только процесс загрузчика.
     const killGroup = (kind) => {
+      // Посылает сигнал группе процесса вместе с потомками, игнорируя уже завершившуюся группу.
+
       if (child.pid) {
         try {
           process.kill(-child.pid, kind);
@@ -29,11 +33,13 @@ export function runCommand(binary, args, cwd, signal) {
       }
     };
     const stop = (error) => {
+      // Сохраняет исходную причину и даёт короткий срок SIGTERM перед принудительным завершением оставшихся процессов.
+
       failure ||= error;
       killGroup("SIGTERM");
       killTimer ||= setTimeout(() => killGroup("SIGKILL"), 1000);
     };
-    const onAbort = () => stop(signal.reason);
+    const onAbort = () => /* Переводит отмену общего бюджета или зрителей в остановку принадлежащей подготовке группы процессов. */ stop(signal.reason);
     signal.addEventListener("abort", onAbort, { once: true });
     if (signal.aborted) onAbort();
     child.stdout.on("data", (chunk) => {
@@ -62,6 +68,8 @@ export async function prepareVideo(
   signal,
   command = runCommand,
 ) {
+  // Загружает допустимые дорожки, remux без потерь и проверяет кодеки/длительность; готовность файла не выводится из успешного exit FFmpeg одного.
+
   if (!/^[\w-]{11}$/.test(id)) throw new Error("invalid video id");
   const budget = new AbortController();
   const workSignal = AbortSignal.any([signal, budget.signal]);

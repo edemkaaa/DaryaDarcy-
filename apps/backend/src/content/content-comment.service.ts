@@ -15,6 +15,7 @@ import type { z } from "zod";
 /** Transport owns validation/authentication; SQL helpers retain transaction locks. */
 @Injectable()
 export class ContentCommentService {
+  /** Предварительно требует существующий published/status=published parent, не подменяя отсутствие ошибкой доступа. */
   private async publishedPost(postId: number) {
     const post = await db.getPostById(postId);
     if (!post || !post.published || post.status !== "published") {
@@ -23,6 +24,7 @@ export class ContentCommentService {
     return post;
   }
 
+  /** Находит comment и published parent и предварительно проверяет club-доступ текущего user; writer затем повторяет проверку под блокировками. */
   private async requireReadableComment(id: number, user: User) {
     const comment = await comments.getPostCommentById(id);
     const post = comment ? await db.getPostById(comment.postId) : undefined;
@@ -40,6 +42,7 @@ export class ContentCommentService {
     }
   }
 
+  /** Требует доступный published parent и передаёт viewerId в совместимое capped чтение обсуждения. */
   async list(postId: number, user: User) {
     const post = await this.publishedPost(postId);
     if (post.target === "club" && !(await userHasClubAccess(user))) {
@@ -51,10 +54,12 @@ export class ContentCommentService {
     return comments.listPostCommentsV2(postId, user.id);
   }
 
+  /** Передаёт user и validated cursor/post/parent в общую snapshot-пагинацию комментариев. */
   async listPage(input: z.infer<typeof commentsPageInput>, user: User) {
     return commentsPage(await db.getDb(), user, input);
   }
 
+  /** Проверяет published/club/open-window, сохраняет comment через общий recovery writer и отправляет reply push лишь для новой записи после коммита. */
   async add(user: User, input: AddCommentInput): Promise<{ id: number }> {
     const post = await this.publishedPost(input.postId);
     if (post.target === "club" && !(await userHasClubAccess(user))) {
@@ -110,23 +115,27 @@ export class ContentCommentService {
     return { id };
   }
 
+  /** Проверяет читаемость обсуждения и делегирует обновление авторскому writer с current actor. */
   async update(user: User, id: number, text: string): Promise<{ ok: true }> {
     await this.requireReadableComment(id, user);
     await comments.updatePostCommentV2(id, user, text);
     return { ok: true };
   }
 
+  /** После проверки доступности передаёт текущего actor транзакционному toggle; слепой сетевой повтор изменит состояние снова. */
   async toggleLike(user: User, commentId: number) {
     await this.requireReadableComment(commentId, user);
     return comments.toggleCommentLike(user, commentId);
   }
 
+  /** После readable-проверки удаляет комментарий через writer, который повторно проверяет авторство/служебную роль. */
   async delete(user: User, id: number): Promise<{ ok: true }> {
     await this.requireReadableComment(id, user);
     await comments.deletePostCommentV2(id, user);
     return { ok: true };
   }
 
+  /** Проверяет доступ к обсуждению и записывает ограниченную уникальную жалобу от текущего пользователя. */
   async report(user: User, id: number, reason: string): Promise<{ ok: true }> {
     await this.requireReadableComment(id, user);
     await comments.reportComment(id, user, reason);

@@ -12,6 +12,7 @@ if [ ! -f .env ]; then
   exit 1
 fi
 
+# Повторно применяются правила firewall и прежний vhost Nginx.
 ufw allow OpenSSH
 ufw allow 80/tcp
 ufw allow 8080/tcp
@@ -24,6 +25,7 @@ nginx -t
 systemctl enable --now nginx
 systemctl restart nginx
 
+# PM2-процесс пересоздаётся по старому ecosystem, затем сохраняется автозапуск.
 pm2 delete daryadarcy-api >/dev/null 2>&1 || true
 pm2 start "$APP/infrastructure/deploy/ecosystem.config.cjs"
 pm2 save

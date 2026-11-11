@@ -1,7 +1,10 @@
+/** Сдвиги ссылок/форматирования проверяются по реальному изменению текста и native input hint. */
 import { describe, expect, it } from "vitest";
 import { adjustEditorRanges } from "../apps/frontend/src/features/admin/editor-range-change";
 
+/** Повторяющиеся слова, UTF-16 emoji и устаревшая подсказка не должны переносить удалённое форматирование на другой фрагмент. */
 describe("native editor range changes", () => {
+  /** Удаление первого выделенного слова удаляет именно его ссылку. */
   it("deletes the selected linked occurrence instead of attaching it to an identical word", () => {
     expect(
       adjustEditorRanges("Ссылка Ссылка", "Ссылка", [[0, 6]], {
@@ -11,6 +14,7 @@ describe("native editor range changes", () => {
       }),
     ).toEqual([]);
   });
+  /** Удаление несвязанного префикса сдвигает уцелевшую ссылку. */
   it("keeps the surviving linked occurrence when an identical unlinked prefix is deleted", () => {
     expect(
       adjustEditorRanges("Ссылка Ссылка", "Ссылка", [[7, 13]], {
@@ -20,6 +24,7 @@ describe("native editor range changes", () => {
       }),
     ).toEqual([[0, 6]]);
   });
+  /** Backspace/Delete учитывают фактическую сторону курсора среди одинаковых символов. */
   it.each(["deleteContentBackward", "deleteContentForward"])(
     "handles %s among repeated characters at the actual caret",
     (inputType) => {
@@ -41,6 +46,7 @@ describe("native editor range changes", () => {
       ).toEqual([[2, 3]]);
     },
   );
+  /** При удалении части слова ссылка обрезается, а не теряется целиком. */
   it("keeps a link on the remaining text after partial deletion", () => {
     expect(
       adjustEditorRanges("Ссылка", "Ссылк", [[0, 6]], {
@@ -50,6 +56,7 @@ describe("native editor range changes", () => {
       }),
     ).toEqual([[0, 5]]);
   });
+  /** Диапазоны используют DOM UTF-16 offsets, включая surrogate pair. */
   it("accounts for UTF-16 emoji deletion", () => {
     expect(
       adjustEditorRanges(
@@ -67,11 +74,13 @@ describe("native editor range changes", () => {
       ),
     ).toEqual([[0, 2]]);
   });
+  /** Без достоверной подсказки удалённая ссылка не переезжает на похожее слово. */
   it("does not move a removed link to another identical fragment without a native hint", () => {
     expect(
       adjustEditorRanges("Ссылка и Ссылка", " и Ссылка", [[0, 6]]),
     ).toEqual([]);
   });
+  /** Полная замена вставкой не наследует прежний диапазон. */
   it("removes formatting when its entire text is replaced", () => {
     expect(
       adjustEditorRanges("Ссылка", "Другой текст", [[0, 6]], {
@@ -81,6 +90,7 @@ describe("native editor range changes", () => {
       }),
     ).toEqual([]);
   });
+  /** Вставка перед ссылкой сдвигает её обе границы одинаково. */
   it("keeps unrelated links when text is inserted before them", () => {
     expect(
       adjustEditorRanges("Ссылка", "Новый Ссылка", [[0, 6]], {
@@ -90,6 +100,7 @@ describe("native editor range changes", () => {
       }),
     ).toEqual([[6, 12]]);
   });
+  /** Противоречащий изменению native hint игнорируется в пользу фактического diff. */
   it("validates a stale edit hint against the actual text change", () => {
     expect(
       adjustEditorRanges("abc def", "abc Xdef", [[4, 7]], {

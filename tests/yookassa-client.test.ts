@@ -1,3 +1,4 @@
+/** Изолируем TEST-провайдера через synthetic config и подменённый fetch: настоящих платежей, ключей или запросов в YooKassa нет. */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   readYookassaTestConfig,
@@ -11,6 +12,7 @@ const config = {
 };
 const id = "2419a771-000f-5000-9000-1edaf29243f2";
 const order = "yk-club-12345678-1234-4123-8123-123456789abc";
+/** Создаёт минимальный согласованный TEST-ответ; отдельные поля намеренно подменяются в отрицательных сценариях. */
 const payment = () => ({
   id,
   status: "pending",
@@ -26,12 +28,15 @@ const payment = () => ({
     confirmation_url: `https://yoomoney.ru/checkout/payments/v2/contract?orderId=${id}`,
   },
 });
+/** Снимаем глобальный fetch и spies, чтобы последующий файл не унаследовал тестовый провайдер. */
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
+/** Проверяем включение, происхождение ответа, ограничение транспорта и отсутствие автоматического повтора неопределённой записи. */
 describe("YooKassa test-only provider boundary", () => {
+  /** Даже заполненные реквизиты не разрешают внешнюю интеграцию без отдельного TEST-флага. */
   it("fails closed without explicit test enablement", () => {
     expect(() =>
       readYookassaTestConfig({
@@ -40,6 +45,7 @@ describe("YooKassa test-only provider boundary", () => {
       }),
     ).toThrow();
   });
+  /** LIVE-префикс, пустой TEST-секрет и перевод строки отвергаются до формирования заголовков запроса. */
   it.each(["live_synthetic", "test_", "test_bad\nheader"])(
     "rejects unsafe credentials before an external request: %s",
     (secret) => {
@@ -53,6 +59,7 @@ describe("YooKassa test-only provider boundary", () => {
       ).toThrow();
     },
   );
+  /** Принимается ровно разрешённый TEST origin с ожидаемыми реквизитами, без расширения на боевой домен. */
   it("accepts the explicitly enabled test stand only", () => {
     expect(
       readYookassaTestConfig({
@@ -63,6 +70,7 @@ describe("YooKassa test-only provider boundary", () => {
       }),
     ).toEqual(config);
   });
+  /** Тестовый ключ не делает боевую страницу допустимой точкой возврата TEST-оплаты. */
   it("rejects production return origins even with a test key", () => {
     expect(() =>
       readYookassaTestConfig({
@@ -73,6 +81,7 @@ describe("YooKassa test-only provider boundary", () => {
       }),
     ).toThrow();
   });
+  /** Подменённый account response должен подтвердить TEST-магазин и возможность принимать платежи. */
   it("checks the authenticated store is a test payment store", async () => {
     vi.stubGlobal("fetch", async () =>
       Response.json({
@@ -86,6 +95,7 @@ describe("YooKassa test-only provider boundary", () => {
     ).resolves.toBeUndefined();
     vi.unstubAllGlobals();
   });
+  /** Другой магазин, LIVE-аккаунт или аккаунт выплат не проходят проверку идентичности провайдера. */
   it.each([
     { account_id: "999", test: true, payment_methods: ["bank_card"] },
     { account_id: "123456", test: false, payment_methods: ["bank_card"] },
@@ -97,6 +107,7 @@ describe("YooKassa test-only provider boundary", () => {
     ).rejects.toThrow("YooKassa");
     vi.unstubAllGlobals();
   });
+  /** Проверяем фиксированный API origin, запрет redirect, AbortSignal и исключение ненужных карточных полей из результата. */
   it("reads a payment on the fixed origin, redacting unused card fields", async () => {
     let requestUrl = "";
     let options: RequestInit | undefined;
@@ -116,6 +127,7 @@ describe("YooKassa test-only provider boundary", () => {
     expect(result.id).toBe(id);
     vi.unstubAllGlobals();
   });
+  /** Запись использует переданный Idempotence-Key и точный одноразовый payload без сохранения карты или отправки email. */
   it("creates a one-off payment using the given stable key, without email/card data", async () => {
     let outbound: { url: string; init: RequestInit } | undefined;
     vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
@@ -144,6 +156,7 @@ describe("YooKassa test-only provider boundary", () => {
       metadata: { order_id: order },
     });
   });
+  /** Созданный платёж должен совпасть по TEST, магазину, сумме и order metadata; сохранённый метод оплаты тоже запрещён. */
   it.each([
     { test: false },
     { recipient: { account_id: "999" } },
@@ -162,6 +175,7 @@ describe("YooKassa test-only provider boundary", () => {
       ),
     ).rejects.toThrow("YooKassa");
   });
+  /** На 500 остаётся один вызов и безопасная ошибка: провайдер мог принять запись, слепой повтор недопустим. */
   it("never retries an uncertain create automatically or leaks error bodies", async () => {
     let calls = 0;
     vi.stubGlobal("fetch", async () => {
@@ -180,6 +194,7 @@ describe("YooKassa test-only provider boundary", () => {
     ).rejects.toThrow(/^YooKassa provider unavailable$/);
     expect(calls).toBe(1);
   });
+  /** Сегмент пути проверяется до fetch; traversal не должен попасть в адрес внешнего API. */
   it("rejects invalid payment IDs before network work", async () => {
     let calls = 0;
     vi.stubGlobal("fetch", async () => {
@@ -191,6 +206,7 @@ describe("YooKassa test-only provider boundary", () => {
     ).rejects.toThrow();
     expect(calls).toBe(0);
   });
+  /** Платёжная ссылка проверяется по HTTPS и точному хосту без credentials, нестандартного порта и поддоменного обмана. */
   it.each([
     "https://evil.example/checkout/p",
     "https://yoomoney.ru.evil.example/checkout/p",
@@ -208,6 +224,7 @@ describe("YooKassa test-only provider boundary", () => {
       new YookassaTestClient(config).getPayment(id),
     ).rejects.toThrow();
   });
+  /** Слишком большой ответ отклоняется, но занятый слот освобождается для следующего корректного запроса. */
   it("rejects oversized JSON and frees the transport slot", async () => {
     const client = new YookassaTestClient(config);
     vi.stubGlobal("fetch", async () =>
@@ -217,6 +234,7 @@ describe("YooKassa test-only provider boundary", () => {
     vi.stubGlobal("fetch", async () => Response.json(payment()));
     await expect(client.getPayment(id)).resolves.toMatchObject({ id });
   });
+  /** Четыре удержанных fetch занимают лимит; пятый сразу отклоняется, после освобождения все принятые чтения завершаются. */
   it("limits concurrent network operations without an unbounded queue", async () => {
     const releases: Array<(response: Response) => void> = [];
     vi.stubGlobal(

@@ -1,3 +1,4 @@
+// Архив Expo. Распределяет материалы по более короткой колонке, учитывая высоту картинки, подписи и зазор.
 import { useState, useMemo } from "react";
 import { router } from "expo-router";
 import {
@@ -127,6 +128,8 @@ const COLUMN_WIDTH = (screenWidth - HORIZONTAL_PADDING * 2 - GRID_GAP) / 2;
 const CARD_META_HEIGHT = 78;
 
 function splitMasonryColumns(items: MaterialItem[], aspectFor: (item: MaterialItem) => number) {
+  // Распределяет материалы по более короткой колонке, учитывая высоту картинки, подписи и зазор.
+
   const left: MaterialItem[] = [];
   const right: MaterialItem[] = [];
   let leftHeight = 0;
@@ -149,6 +152,8 @@ function splitMasonryColumns(items: MaterialItem[], aspectFor: (item: MaterialIt
 }
 
 export default function LibraryScreen() {
+  // Архивная Библиотека объединяет статический каталог с API-статьями; старые внешние club-ссылки ограничены только UI.
+
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState("");
@@ -157,6 +162,8 @@ export default function LibraryScreen() {
   const articlesQuery = trpc.articles.list.useQuery();
 
   const allMaterials = useMemo(() => {
+    // Добавляет опубликованные API-статьи к статическим материалам с fallback обложкой.
+
     const extra: MaterialItem[] = (articlesQuery.data || []).map((article) => ({
       id: `article-${article.id}`,
       title: article.title,
@@ -170,12 +177,16 @@ export default function LibraryScreen() {
   }, [articlesQuery.data]);
 
   const filteredMaterials = useMemo(() => {
+    // Фильтрует заголовки локально по непустому поиску без учёта регистра.
+
     if (!searchQuery.trim()) return allMaterials;
     const query = searchQuery.toLowerCase();
     return allMaterials.filter((item) => item.title.toLowerCase().includes(query));
   }, [searchQuery, allMaterials]);
 
   const handleMaterialPress = async (item: MaterialItem) => {
+    // Проверяет клиентскую подписку и выбирает внутренний route либо историческую внешнюю ссылку.
+
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -193,6 +204,8 @@ export default function LibraryScreen() {
   };
 
   const getActionLabel = (item: MaterialItem): string => {
+    // Выбирает подпись вступления, чтения или скачивания для текущего UI доступа.
+
     if (item.isClubOnly && !isSubscribed) {
       return "Для участниц клуба Darcy →";
     }
@@ -201,20 +214,24 @@ export default function LibraryScreen() {
   };
 
   const aspectFor = (item: MaterialItem) =>
-    coverAspects[item.id] ?? item.coverAspectRatio ?? DEFAULT_COVER_ASPECT;
+    /* Предпочитает измеренную пропорцию обложки, затем заданную и общую fallback. */ coverAspects[item.id] ?? item.coverAspectRatio ?? DEFAULT_COVER_ASPECT;
 
   const masonry = useMemo(
-    () => splitMasonryColumns(filteredMaterials, aspectFor),
+    () => /* Пересчитывает колонки после фильтра или уточнения размеров обложек. */ splitMasonryColumns(filteredMaterials, aspectFor),
     [filteredMaterials, coverAspects],
   );
 
   const rememberCoverAspect = (itemId: string, width: number, height: number) => {
+    // Запоминает корректное соотношение сторон только при его изменении.
+
     if (!width || !height) return;
     const next = width / height;
     setCoverAspects((prev) => (prev[itemId] === next ? prev : { ...prev, [itemId]: next }));
   };
 
   const renderCard = (item: MaterialItem) => {
+    // Рисует обложку и действие материала; для Лошадки сохраняет отдельный top/cover crop.
+
     const aspect = aspectFor(item);
     return (
     <View key={item.id} style={styles.cardWrapper}>
@@ -344,6 +361,7 @@ export default function LibraryScreen() {
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   container: {
     flex: 1,

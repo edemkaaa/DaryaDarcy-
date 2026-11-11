@@ -1,3 +1,4 @@
+// Меняет alpha сезонных папок и публикует WebP по фиксированным S3-ключам; это запись, не read-only проверка.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -24,6 +25,8 @@ const files = [
 ];
 
 async function knockOutDark(buf) {
+  // Удаляет очень тёмные пиксели и кодирует WebP с alpha; цветовое содержимое может измениться с потерями.
+
   const { data, info } = await sharp(buf).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   for (let i = 0; i < data.length; i += 4) {
     const r = data[i];
@@ -43,6 +46,7 @@ const client = new S3Client({
   forcePathStyle: true,
 });
 
+// Ниже начинается внешняя запись S3 по историческим фиксированным ключам; исходные объекты и ACL нужно проверить до запуска.
 for (const name of files) {
   const local = path.join(root, "apps", "frontend", "assets", "images", "moodboard", name);
   const buf = fs.readFileSync(local);

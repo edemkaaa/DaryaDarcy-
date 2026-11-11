@@ -1,4 +1,5 @@
 /** Разбирает поддерживаемые тела webhook в объект полей с ограниченной структурой. */
+/** Возвращает не-массивный объект либо безопасный пустой объект для отсутствующей/примитивной вложенной записи. */
 export function asProdamusRecord(value: unknown): Record<string, unknown> {
   if (value && typeof value === "object" && !Array.isArray(value)) {
     return value as Record<string, unknown>;
@@ -6,6 +7,7 @@ export function asProdamusRecord(value: unknown): Record<string, unknown> {
   return {};
 }
 
+/** Строит вложенные PHP bracket-поля на объектах без prototype и игнорирует __proto__/constructor/prototype до аутентификации. */
 function nestPhpParams(flat: Record<string, string>): Record<string, unknown> {
   const root: Record<string, unknown> = Object.create(null);
   for (const [rawKey, value] of Object.entries(flat)) {
@@ -34,6 +36,7 @@ function nestPhpParams(flat: Record<string, string>): Record<string, unknown> {
   return root;
 }
 
+/** Оставляет строковые query-значения и первый строковый элемент массива для совместимого разбора Prodamus. */
 function flattenQuery(query: Record<string, unknown>): Record<string, string> {
   const flat: Record<string, string> = Object.create(null);
   for (const [key, value] of Object.entries(query)) {

@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
 
+/** Парные focus и visibilitychange объединяются только в коротком окне; следующий самостоятельный возврат обязан снова проверить доступ. */
 for (const first of ["focus", "visibilitychange"] as const) {
   test(`a fast ${first} check is not repeated by the paired resume event`, async ({
     page,
@@ -24,6 +25,7 @@ for (const first of ["focus", "visibilitychange"] as const) {
     const checked = page.waitForResponse((response) =>
       response.url().endsWith("/api/auth/me"),
     );
+    /** Посылаем событие на его реальный target: focus на window, visibilitychange на document. */
     const dispatch = (event: string) =>
       page.evaluate((event) => {
         (event === "focus" ? window : document).dispatchEvent(new Event(event));
@@ -40,6 +42,7 @@ for (const first of ["focus", "visibilitychange"] as const) {
   });
 }
 
+/** Старые видимые данные обновляются при resume/reconnect без reload и потери DOM-контейнера или прокрутки; доступ и взаимодействия проверяются отдельно. */
 for (const subscribed of [false, true]) {
   test(`stale feed data and scroll survive focus and reconnect for a ${subscribed ? "member" : "guest"}`, async ({
     page,
@@ -133,6 +136,7 @@ for (const subscribed of [false, true]) {
   });
 }
 
+/** Проверяем настоящий HTTP-кеш статической сборки без route interception, поскольку Playwright routing отключает браузерное кеширование. */
 test("browser really reuses hashed artwork on a second visit", async ({
   page,
   context,
@@ -175,6 +179,7 @@ test("browser really reuses hashed artwork on a second visit", async ({
     const entry = responses.find((response) => response.id === requestId);
     if (entry) entry.transferred = encodedDataLength;
   });
+  /** Ждём декодирования hero и возвращаем выбранный браузером currentSrc для сравнения холодного и повторного захода. */
   const openHome = async () => {
     await page.goto("/", { waitUntil: "domcontentloaded" });
     const hero = page.locator('img[src*="hero_header"]').first();

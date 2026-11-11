@@ -2,6 +2,7 @@
 @use "../styles/layers";
 
 @layer components {
+  /* Сам viewport состояния начинается ниже шапки, поэтому прокрутка длинной ошибки не заводит текст под её кнопки. */
   .scroll {
     // The viewport itself starts below the header, even while an error scrolls.
     margin-top: var(
@@ -10,6 +11,7 @@
     );
   }
 
+  /* Контент может расти выше viewport без сжатия, сохраняя центрирование короткого сообщения. */
   .content {
     flex: 1 0 auto;
     align-items: center;

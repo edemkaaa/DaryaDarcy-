@@ -1,5 +1,7 @@
 # БД-кандидат: backend artifact и откат приложения
 
+> Статус на 11 ноября: ниже сохранена история прежних выпусков и репетиций. По сообщению владельца Beget удалён; старые image IDs, SSH-пути и наличие backup на том хосте не подтверждают доступное окружение сегодня. Для нового выпуска используйте [пакет сборки](../../infrastructure/build/README.md) и свежую проверку восстановления. Исторические свидетельства ниже не переписаны.
+
 ## PASSWORD — узкий API-only выпуск22 октября2026
 
 По прямому разрешению выпущены новый экран установки/восстановления пароля
@@ -1770,7 +1772,7 @@ unchanged local native backup tests C6 не повторяли без измен
 
 ## Состав и воспроизведение образа
 
-Отдельный [Dockerfile.backend](../../infrastructure/deploy/teamassist/Dockerfile.backend)
+Отдельный [Dockerfile.backend](../../infrastructure/build/Dockerfile.backend)
 использует тот же pinned Node22 Debian base и pnpm9.12.0, authoritative frozen
 lockfile, `--ignore-scripts` во всех установках. Build и production dependencies
 устанавливаются независимо: повторная prod installation поверх dev tree на pnpm9
@@ -1796,7 +1798,7 @@ dockerignore из проверенного изменения; не посыла
 
 ```sh
 docker build --platform linux/amd64 \
-  --file infrastructure/deploy/teamassist/Dockerfile.backend \
+  --file infrastructure/build/Dockerfile.backend \
   --build-arg SOURCE_REVISION=<full-reviewed-source-commit> \
   --tag daryadarcy-backend:<versioned-tag> <clean-source-context>
 BACKEND_IMAGE_ACCEPTANCE=daryadarcy-backend:<versioned-tag> \

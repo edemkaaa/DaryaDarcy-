@@ -22,6 +22,8 @@ const labels: Record<string, string> = {
   removedMediaIds: "Удаляемые вложения",
 };
 function display(value: unknown, key?: string): string {
+  // Преобразует известные редактируемые поля в читаемый текст, не выводя File или служебные данные целиком.
+
   if (value === null || value === undefined) return "—";
   if (typeof value === "boolean") return value ? "Да" : "Нет";
   if (value instanceof Date) return value.toISOString();
@@ -75,6 +77,8 @@ export function EditComparison({
   onRead: () => void;
   onAccept?: () => void;
 }) {
+  // Сравнение ограничено известными полями; чтение и принятие версии остаются разными действиями без автоматического update.
+
   return (
     <StatusNotice tone="error">
       <p>

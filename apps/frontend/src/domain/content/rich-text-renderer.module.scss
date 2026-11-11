@@ -2,6 +2,7 @@
 @use "../../shared/styles/layers";
 
 @layer elements {
+  /* Слой elements задаёт базовую типографику rich-text до компонентных переопределений. */
   .paragraph {
     font-size: 15px;
     line-height: 22px;
@@ -21,12 +22,14 @@
   .bodyText {
     font-family: var(--font-body);
   }
+  /* Выделения наследуют размер и межстрочный интервал родительского абзаца; меняется начертание, а не геометрия строки. */
   .bold {
     font-family: var(--font-bold);
     font-weight: 700;
     font-size: inherit;
     line-height: inherit;
   }
+  /* Курсив использует отдельный шрифтовой файл, поэтому синтетический font-style не накладывается поверх него. */
   .italic {
     font-family: var(--font-italic);
     font-style: normal;

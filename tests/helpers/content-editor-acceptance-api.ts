@@ -10,6 +10,8 @@ import { assertTestDatabase } from "../../tooling/scripts/test-database-policy";
 import { parseVkEmbed } from "../../apps/backend/src/content/vk-video-input";
 
 async function main() {
+  // Требует принадлежащий тесту файл и пустую одноразовую БД; создаёт синтетические аккаунты, локальный S3 wire и API без почтовых/платёжных workers.
+
   const file = process.env.DARYADARCY_EDITOR_FIXTURE_FILE;
   if (!file || !basename(dirname(file)).startsWith("darcy-editor-acceptance-"))
     throw new Error("Owned editor acceptance fixture required");
@@ -50,7 +52,8 @@ async function main() {
         [parseVkEmbed(embed)!.sourceKey, embed],
       );
     }
-    if (checkout) {
+    // Согласованный checkout-профиль использует fixture payform и не запускает отправку писем или реальный платёжный worker.
+  if (checkout) {
       for (const id of [503, 504])
         await connection.query(
           "INSERT INTO users(id,openId,email,name,gender,role,loginMethod,passwordHash) VALUES(?,?,?,?,'female','user','email',?)",
@@ -66,6 +69,7 @@ async function main() {
   } finally {
     await connection.end();
   }
+  // Синтетические storage credentials относятся к локальному wire и не дают доступа к настоящему бакету.
   const wire = await openPrivateUploadWire({
     content: true,
     attachments: true,
@@ -110,6 +114,8 @@ async function main() {
   );
   let closing = false;
   const close = async () => {
+    // Однократно закрывает API, wire и пул, не оставляя процессы фикстуры после сигнала остановки.
+
     if (closing) return;
     closing = true;
     await app.close();

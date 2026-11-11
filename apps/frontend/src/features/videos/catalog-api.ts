@@ -4,11 +4,14 @@ import { invalidResponse } from "@/shared/api/errors";
 import { getVkVideoEmbedUrl } from "@/shared/media/vk-video-url";
 import { safeExternalUrl } from "@/shared/navigation/external-url";
 
+/** Флаг сборки выбирает новый каталог; это не проверка наличия серверного доступа к отдельному ролику. */
 export const isVkCatalogEnabled = () =>
   process.env.NEXT_PUBLIC_VK_CATALOG_ENABLED === "true";
 // Enable only after the opt-in catalog and VK save contracts are deployed.
+/** Запрашиваем расширенный контракт обложек только после согласованного opt-in выпуска. */
 export const isVideoThumbnailsEnabled = () =>
   process.env.NEXT_PUBLIC_VIDEO_THUMBNAILS_ENABLED === "true";
+/** Собираем wire-input без неопределённых полей, добавляя includeThumbnails только при включённой возможности. */
 export function videoCatalogInput(limit: number, cursor?: number) {
   return {
     limit,
@@ -16,7 +19,7 @@ export function videoCatalogInput(limit: number, cursor?: number) {
     ...(cursor === undefined ? {} : { cursor }),
   };
 }
-/** Documented public cover locations. The API remains authoritative. */
+/** При редактировании допускаем документированные публичные местоположения обложек без query и неоднозначных кодировок; это не общий парсер просмотра. */
 export function normalizeVkThumbnailUrl(value: string): string | null {
   const raw = value.trim();
   if (!raw || /[\u0000-\u0020\u007f\\]/.test(raw)) return null;
@@ -34,9 +37,16 @@ export function normalizeVkThumbnailUrl(value: string): string | null {
         ? url.pathname
         : null;
     if (
+      /^https:\/\//i.test(raw) &&
       url.protocol === "https:" &&
       url.hostname === "s3.twcstorage.ru" &&
-      /^\/daryadarcy-s3\/(?:feed|app-assets)\/.+/.test(url.pathname)
+      (/^\/daryadarcy-s3\/(?:feed|app-assets)\/.+/.test(url.pathname) ||
+        /^\/daryadarcy-s3\/covers\/(?:public-v1\/)?[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}\.webp$/i.test(
+          url.pathname,
+        ) ||
+        /^\/daryadarcy-s3\/covers\/vk-v1\/[a-f0-9]{64}\/[a-f0-9]{64}\.webp$/i.test(
+          url.pathname,
+        ))
     )
       return url.href;
   } catch {
@@ -60,6 +70,7 @@ const page = z
   .object({ items: z.array(card).max(100), nextCursor: id.nullable() })
   .strict();
 export type VideoCard = z.infer<typeof card>;
+/** Для показа принимаем безопасную картинку, исключая защищённое API и адрес самого iframe-провайдера. */
 export function videoThumbnailUrl(
   value: string | null | undefined,
 ): string | null {
@@ -71,12 +82,13 @@ export function videoThumbnailUrl(
     return null;
   return url;
 }
+/** Проверяем strict форму карточек и страницы до помещения ответа в query-кеш. */
 export function parseVideoCatalog(value: unknown) {
   const result = page.safeParse(value);
   if (!result.success) throw invalidResponse();
   return result.data;
 }
-/** Catalog inputs match the actual server allowlist; post embeds keep their existing parser. */
+/** Дополнительно ограничиваем каталог разрешёнными уникальными параметрами iframe, затем применяем общий VK-парсер. */
 export function getVkCatalogEmbedUrl(raw: string): string | null {
   try {
     const url = new URL(raw);
@@ -113,6 +125,7 @@ const playback = z.discriminatedUnion("provider", [
     .strict(),
 ]);
 // Проверяем не только форму источника, но и соответствие запрошенному ролику, прежде чем открыть плеер.
+/** Сверяем playback-source с запрошенным ID и провайдером; VK и прямой videoUrl имеют разные проверки адреса. */
 export function parseVideoPlayback(value: unknown, requestedId: number) {
   const result = playback.safeParse(value);
   if (!result.success || result.data.id !== requestedId)
@@ -131,6 +144,7 @@ export function parseVideoPlayback(value: unknown, requestedId: number) {
   }
   return data;
 }
+/** Продолжаем только возрастающую неповторённую границу; старую/циклическую страницу нельзя пришить к текущей цепочке. */
 export function nextVideoCursor(
   last: ReturnType<typeof parseVideoCatalog>,
   pageParams: readonly unknown[],
@@ -142,6 +156,7 @@ export function nextVideoCursor(
     ? last.nextCursor
     : undefined;
 }
+/** Отличаем завершение nextCursor=null от непродолжаемого ошибочного курсора. */
 export function stalledVideoCursor(
   last: ReturnType<typeof parseVideoCatalog> | undefined,
   pageParams: readonly unknown[],
@@ -150,6 +165,7 @@ export function stalledVideoCursor(
     last?.nextCursor != null && nextVideoCursor(last, pageParams) === undefined
   );
 }
+/** ACK создания VK должен содержать только валидный ID; успешный HTTP недостаточен. */
 export function requireVkVideoId(value: unknown): number {
   const result = z.object({ id }).strict().safeParse(value);
   if (!result.success) throw invalidResponse();
@@ -166,6 +182,7 @@ const vkEditorDetail = z.object({
   editRevision: z.number().int().nonnegative().safe(),
 });
 export type VkEditorDetail = z.infer<typeof vkEditorDetail>;
+/** Сверяем detail редактора с нужным ID, поддерживаемой revision и пригодным VK embed URL. */
 export function parseVkEditorDetail(
   value: unknown,
   requestedId: number,

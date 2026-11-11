@@ -1,3 +1,4 @@
+/** HTTP admission двух API проверяется с отказом общего quota storage до identity side effects. */
 import { afterEach, expect, it, vi } from "vitest";
 import type { INestApplication } from "@nestjs/common";
 import type { AddressInfo } from "node:net";
@@ -8,11 +9,13 @@ import * as shared from "../apps/backend/src/database/shared-limits";
 import type { User } from "../packages/database/src/schema";
 
 let app: INestApplication | undefined;
+/** Закрываем локальный app и снимаем mocks/env. */
 afterEach(async () => {
   await app?.close();
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
 });
+/** Приложение безопасно стартует local=1, затем включается synthetic mysql=2 admission с подменой wire; реальные БД/SMTP не используются. */
 async function fixture() {
   vi.stubEnv("API_COORDINATION_MODE", "local");
   vi.stubEnv("API_REPLICA_COUNT", "1");
@@ -30,6 +33,7 @@ async function fixture() {
   const issuance = vi.spyOn(sessions, "issueSession");
   const request = vi.spyOn(passwords, "request");
   const complete = vi.spyOn(passwords, "complete");
+  /** Собираем однотипный POST к identity routes для проверки порядка допуска. */
   const post = (path: string) =>
     fetch(base + path, {
       method: "POST",
@@ -41,6 +45,7 @@ async function fixture() {
     });
   return { sessions, registration, lookup, issuance, request, complete, post };
 }
+/** Register/login/password request/complete не выполняют identity или cookie issuance при ошибке shared quota. */
 it.each(["register", "login", "password/request", "password/complete"])(
   "fails closed on %s before identity mutations when quota storage fails",
   async (path) => {
@@ -63,6 +68,7 @@ it.each(["register", "login", "password/request", "password/complete"])(
       expect(effect).not.toHaveBeenCalled();
   },
 );
+/** Пока quota promise не завершён, даже поиск аккаунта не начинается. */
 it("waits for quota admission before looking up or authenticating an account", async () => {
   const fx = await fixture();
   let reject!: (error: Error) => void, entered!: () => void;
@@ -83,6 +89,7 @@ it("waits for quota admission before looking up or authenticating an account", a
   expect(response.status).toBe(500);
   await response.arrayBuffer();
 });
+/** После правильного пароля ошибка фиксации success в shared limiter не должна выпустить сессию. */
 it("never issues a cookie when successful-password quota completion fails", async () => {
   const fx = await fixture();
   vi.spyOn(shared, "checkSharedRateLimit").mockResolvedValue({ ok: true });

@@ -2,6 +2,7 @@
 @use "../styles/layers";
 
 @layer elements {
+  /* flex-basis:0 и min-height:0 позволяют экрану занять остаток оболочки и отдать переполнение внутреннему скроллу. */
   .div {
     flex: 1 1 0%;
     min-height: 0;

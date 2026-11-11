@@ -1,3 +1,4 @@
+# Читает SMS/auth логи и маскирует лишь известный API id; прочие приватные данные могут остаться в отчёте.
 import pathlib
 import socket
 import time
@@ -11,6 +12,7 @@ for line in (root / ".env").read_text(encoding="utf-8").splitlines():
         env[k.strip()] = v.strip()
 
 sock = socket.create_connection((env["DEPLOY_HOST"], 22), 45)
+# Подключение использует историческое автоматическое доверие неизвестному SSH host key; перед новым запуском требуется отдельная сверка хоста.
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 client.connect(
@@ -25,6 +27,7 @@ client.connect(
     look_for_keys=False,
 )
 
+# Следующий текст — удалённая команда; её содержимое сохранено как историческое и не исполняется при чтении исходника.
 cmd = r"""
 set -e
 echo '--- PM2 LOGS ---'

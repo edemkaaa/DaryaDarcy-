@@ -6,10 +6,7 @@ import {
   type ThemeColorPalette,
 } from "@/shared/styles/theme";
 import { useColorScheme } from "@/shared/styles/use-color-scheme";
-/**
- * Returns the current theme's color palette.
- * Usage: const colors = useColors(); then colors.text, colors.background, etc.
- */
+/** Явная схема вызова имеет приоритет над системной; результатом остаётся готовая палитра, а не изменение темы документа. */
 export function useColors(
   colorSchemeOverride?: ColorScheme,
 ): ThemeColorPalette {

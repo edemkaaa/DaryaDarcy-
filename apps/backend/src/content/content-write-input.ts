@@ -13,6 +13,7 @@ const dateTime = z.iso.datetime({ offset: true, local: true });
 const firstTimestamp = Date.parse("1970-01-01T00:00:01Z");
 const lastTimestamp = Date.parse("2038-01-19T03:14:07Z");
 
+// Дата допускает очистку пустой строкой/null и legacy local datetime, но обязана поместиться в диапазон MySQL TIMESTAMP 1970–2038.
 export const postTimestampInput = z
   .string()
   .refine((value) => {

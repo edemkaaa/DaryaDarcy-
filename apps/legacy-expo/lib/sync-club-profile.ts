@@ -1,3 +1,4 @@
+// Архив Expo. Отличает HTTP(S) аватар от локального URI устройства.
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { uriToBase64 } from "@/lib/admin-photo-upload";
 
@@ -13,6 +14,8 @@ export type ClubProfileServerApi = {
 };
 
 function isRemoteUrl(value: string): boolean {
+  // Отличает HTTP(S) аватар от локального URI устройства.
+
   return /^https?:\/\//i.test(value);
 }
 
@@ -21,6 +24,8 @@ export async function syncClubProfileToServer(
   api: ClubProfileServerApi,
   options: { currentAvatarUrl?: string | null } = {},
 ): Promise<{ syncedAvatarUrl?: string }> {
+  // Переносит старый общий кеш профиля на сервер; существующий remote-аватар не заменяет, загрузка и обновление профиля раздельны.
+
   const [name, gender, localAvatar] = await Promise.all([
     AsyncStorage.getItem(CLUB_PROFILE_NAME_KEY),
     AsyncStorage.getItem(CLUB_PROFILE_GENDER_KEY),

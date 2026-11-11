@@ -99,6 +99,7 @@ export type PostSaveSnapshot = {
 };
 export class PostSaveError extends Error {
   public data?: { httpStatus: number };
+  /** Сохраняем признак неизвестного исхода и HTTP-статус исходной ошибки для безопасного решения редактора о повторе. */
   constructor(
     message: string,
     public uncertain: boolean,
@@ -127,6 +128,7 @@ export class PostSaveCoordinator {
   private attemptedUpdate?: UpdatePayload;
   private phase: PostSaveSnapshot["phase"] = "idle";
   private checkpoint?: (state: PostSaveSnapshot) => Promise<void>;
+  /** Фиксируем исходную редактируемую базу отдельной копией и её ревизию; новый пост начинается без ID. */
   constructor(
     editingId: number | null = null,
     original?: Payload,
@@ -137,6 +139,7 @@ export class PostSaveCoordinator {
     this.editRevision = editRevision;
   }
   // Контрольная точка включает не только поля поста, но и уже выданные подтверждения файлов.
+  /** Экспортируем фазу записи, ключ create и все квитанции, чтобы durable-журнал мог восстановить ту же операцию. */
   snapshot(): PostSaveSnapshot {
     return {
       savedId: this.savedId,
@@ -153,6 +156,7 @@ export class PostSaveCoordinator {
     };
   }
   // Восстановление возвращает старую базовую ревизию: свежий GET не разрешает автоматически перезаписать чужую правку.
+  /** Восстанавливаем ровно старую базовую ревизию и фазу; незавершённая операция остаётся uncertain, а не готовой к новому save. */
   restore(state: PostSaveSnapshot): void {
     this.savedId = state.savedId;
     this.original = state.original;
@@ -171,10 +175,12 @@ export class PostSaveCoordinator {
     this.postWritePending =
       state.phase === "create" || state.phase === "update";
   }
+  /** Подключаем надёжное сохранение всего coordinator snapshot перед каждой внешней записью. */
   setCheckpoint(checkpoint: (state: PostSaveSnapshot) => Promise<void>): void {
     this.checkpoint = checkpoint;
   }
   // Сравниваем именно отправленные редактируемые поля, чтобы распознать commit после потерянного ответа.
+  /** Читаем тот же пост и сверяем отправленные редактируемые поля; совпадение распознаёт commit после потери ответа без нового update. */
   async compareUpdate(
     api: PostSaveApi,
     operation: ScopedOperation,
@@ -205,6 +211,7 @@ export class PostSaveCoordinator {
     return detail;
   }
   // Принятие новой базы разрешено после явной сверки, а не просто после любого успешного чтения.
+  /** Новая база принимается только после явной сверки другого revision или подтверждённого конфликта; старый GET сам по себе не разрешает повтор. */
   async acceptComparedRevision(detail: unknown): Promise<void> {
     if (
       !detail ||
@@ -232,12 +239,14 @@ export class PostSaveCoordinator {
     await this.remember("idle");
   }
   // Сначала фиксируем фазу локально; без неё последующая перезагрузка не сможет безопасно продолжить запись.
+  /** Меняем фазу до checkpoint, чтобы после закрытия браузера журнал знал, какой запрос мог уже уйти. */
   private async remember(phase: PostSaveSnapshot["phase"]): Promise<void> {
     this.phase = phase;
     await this.checkpoint?.(this.snapshot());
   }
   /** Explicit recovery only. Resolve uploads first, leave publishing to the user. */
   // Дозагрузка файлов не публикует пост сама: окончательная запись остаётся отдельным действием администратора.
+  /** Восстанавливаем только незавершённые закрытые файлы и постеры; итоговая запись поста остаётся отдельным явным действием. */
   async recoverUploads(
     api: PostSaveApi,
     operation: ScopedOperation,
@@ -281,6 +290,7 @@ export class PostSaveCoordinator {
     this.uncertain = false;
     await this.remember("idle");
   }
+  /** Сопоставляем квитанцию с исходным вложением, сохраняем ключ до POST и проверяем прежний status перед восстановлением. */
   private async uploadPrivate(
     attachment: PostAttachment,
     api: PostSaveApi,
@@ -353,6 +363,7 @@ export class PostSaveCoordinator {
   }
   /** Explicit user action only: replay the exact durable create, never uploads or edits. */
   // Повторяем исходную сериализованную нагрузку с прежним ключом, не текущее содержимое полей формы.
+  /** Повторяем точный сохранённый create-payload прежним ключом; содержимое текущей формы не заменяет неизвестную запись. */
   async recoverCreation(
     api: PostSaveApi,
     operation: ScopedOperation,
@@ -385,6 +396,7 @@ export class PostSaveCoordinator {
     return id;
   }
   // Закрытие во время неподтверждённого create может потерять связь с уже созданным постом.
+  /** Неподтверждённая запись поста не допускает обычного закрытия с потерей связи между черновиком и возможным commit. */
   assertCanClose(): void {
     if (this.postWritePending)
       throw new PostSaveError(
@@ -392,6 +404,7 @@ export class PostSaveCoordinator {
         true,
       );
   }
+  /** Проверяем доступность загрузок, готовим и подтверждаем файлы, затем один раз create/update с ревизией; успешный ACK делает координатор терминальным. */
   async save(
     payload: Payload,
     attachments: PostAttachment[],
@@ -645,6 +658,7 @@ export class PostSaveCoordinator {
       throw new PostSaveError(message, this.uncertain, error);
     }
   }
+  /** Закрываем повтор после завершения или неопределённого результата; иначе тот же coordinator мог бы привязать вложения второй раз. */
   private assertCanSave(): void {
     if (this.completed)
       throw new PostSaveError(
@@ -658,6 +672,7 @@ export class PostSaveCoordinator {
       );
     this.assertCanClose();
   }
+  /** Одинаковая definite-retry нагрузка сохраняет ключ create; новый ключ появляется только для нового подтверждённо допустимого intent. */
   private withCreationKey(payload: SavePayload): CreatePayload {
     // Only definite rejections permit another save. Changed confirmed data is a
     // new intent; an identical retry keeps the key and must not conflict on SQL.
@@ -674,6 +689,7 @@ export class PostSaveCoordinator {
     }
     return { ...payload, idempotencyKey: this.creationIntent.key };
   }
+  /** Успешный транспорт подтверждает update только при явном success=true в теле ответа. */
   private assertUpdate(result: unknown) {
     if (
       !result ||

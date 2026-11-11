@@ -41,10 +41,12 @@ import { journalObjectStore } from "./helpers/journal-object-store";
 
 const current = vi.hoisted(() => ({ base: "" }));
 vi.mock("../apps/frontend/src/shared/config/api", () => ({
+  /** Направляет настоящий frontend transport в адрес отдельного API-процесса текущей фазы. */
   getApiBaseUrl: () => current.base,
 }));
 // Real File bytes, replacing only the browser-only FileReader boundary.
 vi.mock("../apps/frontend/src/shared/media/read-attachment", () => ({
+  /** Заменяет только browser FileReader: кодирует реальные байты File для Node-среды проверки. */
   attachmentBase64: async (file: File) =>
     Buffer.from(await file.arrayBuffer()).toString("base64"),
 }));
@@ -54,6 +56,7 @@ const endpoint = "https://s3.twcstorage.ru",
   Bucket = "daryadarcy-s3";
 const acceptedPolicy =
   "0484dfa2cc0164225db616bc516c53e8be377aca975d32701b6a6467ce1715e8";
+/** Вычисляет хеш принятой bucket policy для контроля неизменности. */
 const hash = (s: string) => createHash("sha256").update(s).digest("hex");
 const realFetch = globalThis.fetch;
 const admin = 98830,
@@ -62,6 +65,7 @@ const admin = 98830,
 
 /** Actual frontend transport/coordinator → native API → fresh SQL → Timeweb S3.
  * Journal transactions are a structuredClone double, NOT browser/reload acceptance. */
+/** Опциональная приёмка соединяет настоящий frontend coordinator, native API, отдельную SQL-базу и новые объекты S3; журнал здесь структурный double. */
 describe.skipIf(!enabled)(
   "private raw video actual API/SQL/S3 acceptance",
   () => {
@@ -74,11 +78,14 @@ describe.skipIf(!enabled)(
     let actor = admin,
       previousPuts = 0;
     const objects = new Map<string, { row: RowDataPacket; video: boolean }>();
+    /** Читает контрольные строки отдельной базы. */
     const rows = async (query: string, args: unknown[] = []) =>
       (await conn.query<RowDataPacket[]>(query, args))[0];
+    /** Суммирует PUT текущего и прежних API-процессов для проверки однократной загрузки через рестарты. */
     const puts = () =>
       previousPuts +
       api.commands.filter((n) => n === "PutObjectCommand").length;
+    /** Отправляет настоящий admin tRPC-запрос с cookie выбранного actor и разбирает superjson, не скрывая HTTP-отказ. */
     async function rpc<T>(
       method: string,
       input: unknown,
@@ -106,21 +113,29 @@ describe.skipIf(!enabled)(
         });
       return superjson.deserialize<T>(json.result.data);
     }
+    /** Собирает адаптер настоящих приватных upload/status/create/update операций для frontend coordinator. */
     const client = () => ({
       uploadPrivateVideo: uploadAdminPrivateVideo,
+      /** Читает durable-статус приватного вложения через настоящий API. */
       privateStatus: (value: unknown) =>
         rpc("privateAttachmentStatus", value, true),
+      /** Загружает приватный постер через настоящий API content-файлов. */
       uploadPrivatePhoto: (value: unknown) =>
         rpc("uploadPrivateContentFile", value),
+      /** Читает durable-статус приватного постера через настоящий API. */
       privatePhotoStatus: (value: unknown) =>
         rpc("privateContentFileStatus", value, true),
+      /** Создаёт пост через настоящий API, возвращая его числовой идентификатор. */
       create: (value: unknown) => rpc<number>("createPost", value),
+      /** Редактирует конкретный пост через настоящий API с переданным содержимым. */
       update: (id: number, value: object) =>
         rpc("updatePost", { id, ...value }),
+      /** Запрещает fallback на публичную загрузку в этом сценарии. */
       upload: async () => {
         throw Error("Public upload forbidden");
       },
     });
+    /** Создаёт настоящий синтетический MP4 File с устойчивым ключом и известным временем изменения. */
     const selected = (suffix: string) => ({
       key: `vu4-${suffix}-${owner}`,
       file: new File([new Uint8Array(mp4Fixture)], filename, {
@@ -128,6 +143,7 @@ describe.skipIf(!enabled)(
         lastModified: 123,
       }),
     });
+    /** Формирует редакторский snapshot закрытого черновика с локальным видео, сохраняя исходный File. */
     const editor = (
       video: ReturnType<typeof selected>,
     ): PostEditorSnapshot => ({
@@ -147,12 +163,14 @@ describe.skipIf(!enabled)(
       pending: [],
       privateVideos: [video],
     });
+    /** Создаёт owner-bound операцию сохранения, которая перестаёт быть текущей после смены actor. */
     const task = () =>
       new OperationScope().begin(
         "save",
         new AbortController().signal,
         () => actor === admin,
       )!;
+    /** Перезапускает только отдельный API-процесс с сохранением durable-базы и накопленного счётчика PUT. */
     async function restart() {
       previousPuts = puts();
       const pid = api.pid;
@@ -161,6 +179,7 @@ describe.skipIf(!enabled)(
       current.base = api.base;
       expect(api.pid).not.toBe(pid);
     }
+    /** Теряет downstream-ответ только после завершённого upstream-запроса и проверяет его успешный статус перед закрытием прокси. */
     async function dropResponse<T>(run: (base: string) => Promise<T>) {
       let status = 0;
       const proxy = createServer((req, res) => {
@@ -189,6 +208,7 @@ describe.skipIf(!enabled)(
         await new Promise<void>((resolve) => proxy.close(() => resolve()));
       }
     }
+    /** Читает защищённое вложение с выбранной cookie и методом, включая Range. */
     const read = (url: string, who?: number, method = "GET", range?: string) =>
       realFetch(`${api.base}${url}`, {
         method,
@@ -198,6 +218,7 @@ describe.skipIf(!enabled)(
         },
         signal: AbortSignal.timeout(20000),
       });
+    /** Проверяет отказ без storage-эффектов для GET, HEAD и Range недоступного файла. */
     async function denied(url: string, who?: number) {
       const count = api.commands.length;
       for (const [method, range] of [
@@ -212,6 +233,7 @@ describe.skipIf(!enabled)(
       }
       expect(api.commands).toHaveLength(count);
     }
+    /** Собирает квитанции только собственных видео и постеров с проверкой имени, UUID и назначения перед очисткой. */
     async function rememberObjects() {
       for (const [table, video] of [
         ["private_attachment_uploads", true],
@@ -233,6 +255,7 @@ describe.skipIf(!enabled)(
         }
       }
     }
+    /** Проверяет metadata, MIME, размер и ETag объекта против собственной durable-квитанции. */
     async function objectMeta(row: RowDataPacket) {
       const Key = `content/private-v1/${row.assetId}`;
       const meta = await storage.send(new HeadObjectCommand({ Bucket, Key }), {
@@ -249,6 +272,7 @@ describe.skipIf(!enabled)(
         throw Error("Owned object metadata guard refused");
       return { Key, meta };
     }
+    /** Проверяет явные параметры, владение пустой tmpfs-базой, политику и отсутствие versioning до создания синтетических ролей и API. */
     beforeAll(async () => {
       const url = assertTestDatabase(uri!),
         id = process.env.VU_S3_DATABASE_CONTAINER_ID;
@@ -333,6 +357,7 @@ describe.skipIf(!enabled)(
       api = await workers.start({ contentFiles: true, privateVideos: true });
       current.base = api.base;
     }, 30000);
+    /** Возвращает owner-контекст, новый структурный journal-double и cookie-привязку настоящего бинарного транспорта. */
     beforeEach(() => {
       actor = admin;
       setPersonalDataOwner(admin);
@@ -348,6 +373,7 @@ describe.skipIf(!enabled)(
         return realFetch(url, { ...init, headers });
       });
     });
+    /** Останавливает отдельные процессы и удаляет только подтверждённые собственные новые объекты с If-Match и проверкой неизменности политики. */
     afterAll(async () => {
       cancelSessionRequests();
       setPersonalDataOwner(null);
@@ -401,6 +427,7 @@ describe.skipIf(!enabled)(
       }
     }, 60000);
 
+    /** Проверяет восстановление потерянных upload/create ACK через рестарты без дублирования видео, постера, поста и привязки, затем правила доступа и удаления. */
     it("recovers raw upload and post ACK loss across native API restarts with one video/poster/link/post", async () => {
       const video = {
         ...selected("lost"),
@@ -463,6 +490,7 @@ describe.skipIf(!enabled)(
           [],
           {
             ...baseClient,
+            /** Направляет create-этап coordinator через прокси потери ответа после настоящего коммита. */
             create: (value) => rpc("createPost", value, false, actor, base),
           },
           task(),
@@ -561,6 +589,7 @@ describe.skipIf(!enabled)(
       ).toHaveLength(0);
     }, 60000);
 
+    /** Удерживает настоящий поздний upload/status-ответ, меняет owner и проверяет отсутствие чужой квитанции в состоянии и отсутствие публикации. */
     it.each(["upload", "status"] as const)(
       "ignores an actual late %s reply after switching accounts, without publishing or reassigning the asset",
       async (phase) => {

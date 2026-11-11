@@ -13,6 +13,7 @@ import {
 import { contentRecoveryCutoff } from "./recovery-window";
 import type { ContentTransaction } from "./post-deletion";
 
+/** Проверяем безопасный размер пачки 1–100 и оба отдельных флага: политика срока сама по себе не запускает обслуживание. */
 export function recoveryMaintenanceEnabled(limit: number): boolean {
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100)
     throw new Error("Invalid recovery batch");
@@ -23,6 +24,7 @@ export function recoveryMaintenanceEnabled(limit: number): boolean {
 }
 
 /** Original ledger lock first. A conflicting marker never authorizes removing details. */
+/** После блокировки исходной квитанции сохраняем уникальный маркер её владельца и даты; конфликт доказательств запрещает удалять детали операции. */
 export async function recordSpentRecovery(
   tx: ContentTransaction,
   kind: ContentRecoveryKind,
@@ -67,6 +69,7 @@ export async function recordSpentRecovery(
 }
 
 /** Explicit bounded maintenance only; not registered in the API or any scheduler. */
+/** Явно уплотняем ограниченные пачки старых журналов постов и статей: проверяем транзакционную схему, затем в одной транзакции оставляем маркер и удаляем подробности. */
 export async function compactContentRecovery(
   database: MySql2Database,
   limit = 25,

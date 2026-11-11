@@ -1,8 +1,10 @@
+/** Тестовый fault proxy проверяется на собственном upstream: теряет/удерживает только ответ после принятия запроса. */
 import { expect, it } from "vitest";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { httpResponseFaultProxy } from "./helpers/http-response-fault-proxy";
 
+/** Счётчик upstream подтверждает первый write до разрыва; второй write возникает лишь от явного второго fetch, proxy сам не повторяет. */
 it.each([
   "admin.createPost",
   "club.addComment",
@@ -56,6 +58,7 @@ it.each([
   },
 );
 
+/** До release клиент ждёт; после получает исходные headers/body, а не синтетическую квитанцию. */
 it.each([
   "admin.privateAttachmentStatus",
   "club.privateCommentPhotoStatus",

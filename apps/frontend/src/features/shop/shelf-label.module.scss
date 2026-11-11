@@ -2,11 +2,13 @@
 @use "../../shared/styles/layers";
 
 @layer components {
+  /* Подпись центрируется в геометрии декоративной таблички. */
   .label {
     align-items: center;
     justify-content: center;
   }
 
+  /* Рамка накрывает ту же область абсолютным слоем, а текст остаётся внутри с малыми защитными полями. */
   .frame {
     position: absolute;
     inset: 0;

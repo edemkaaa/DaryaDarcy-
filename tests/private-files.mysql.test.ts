@@ -19,12 +19,14 @@ import { getDb } from "../apps/backend/src/db";
 import { COOKIE_NAME } from "../packages/shared/src/const";
 
 // Real HTTP/JWT/SQL/SDK. The loopback object wire is not an S3 ACL acceptance.
+/** Проверяет защищённый media-прокси с настоящими JWT/SQL/SDK и loopback object-wire; это не приёмка реальных S3 ACL. */
 describe.skipIf(!testDatabaseUrl)("private attachment delivery", () => {
   let conn: Connection, app: INestApplication, wire: Server;
   let endpoint: string, base: string, token: string;
   const effects: string[] = [];
   let wireMode = "normal",
     upstreamClosed = false;
+  /** Запускает local object-wire с режимами отказов, создаёт свой public-post attachment и платного reader и локальный API. */
   beforeAll(async () => {
     conn = await openContentTestDatabase();
     wire = createServer((req, res) => {
@@ -119,6 +121,7 @@ describe.skipIf(!testDatabaseUrl)("private attachment delivery", () => {
       sessionVersion: 0,
     });
   });
+  /** Возвращает normal-wire, published feed-parent, права reader и исходную привязку media. */
   beforeEach(async () => {
     effects.length = 0;
     wireMode = "normal";
@@ -138,6 +141,7 @@ describe.skipIf(!testDatabaseUrl)("private attachment delivery", () => {
       [endpoint + "/private-fixture/feed/documents/fixture.txt"],
     );
   });
+  /** Закрывает API, удаляет собственные SQL-строки и соединения и все сокеты loopback-wire. */
   afterAll(async () => {
     await app?.close();
     if (conn) {
@@ -160,9 +164,11 @@ describe.skipIf(!testDatabaseUrl)("private attachment delivery", () => {
     if (wire) await new Promise<void>((done) => wire.close(() => done()));
     vi.unstubAllEnvs();
   });
+  /** Читает stable post-attachment URL с произвольными HTTP-опциями или проверяемым ID. */
   function read(options: RequestInit = {}, id = "91901") {
     return fetch(`${base}/api/media/post-attachments/${id}`, options);
   }
+  /** Открытый published-parent выдаёт точные байты через HEAD/If-Match GET с private no-store и nosniff. */
   it("streams published public attachment bytes with private no-store", async () => {
     const res = await read();
     expect(res.status, JSON.stringify(effects)).toBe(200);
@@ -175,6 +181,7 @@ describe.skipIf(!testDatabaseUrl)("private attachment delivery", () => {
       "GET /private-fixture/feed/documents/fixture.txt",
     ]);
   });
+  /** Клубный parent закрыт гостю до storage, а действующая HttpOnly-cookie с paid-доступом разрешает скачивание. */
   it("rechecks club access for cookie download and refuses guest without S3", async () => {
     await conn.query("UPDATE posts SET target='club' WHERE id=91901");
     expect((await read()).status).toBe(404);
@@ -183,6 +190,7 @@ describe.skipIf(!testDatabaseUrl)("private attachment delivery", () => {
     expect(res.status).toBe(200);
     expect(await res.text()).toBe("0123456789");
   });
+  /** Неявный true-флаг отключает маршрут до SQL и storage с приватным 404. */
   it.each(["", "false", "1"])(
     "disabled flag %s does not touch SQL or S3",
     async (flag) => {
@@ -200,6 +208,7 @@ describe.skipIf(!testDatabaseUrl)("private attachment delivery", () => {
       }
     },
   );
+  /** HEAD возвращает метаданные и длину без GET объекта и без тела. */
   it("HEAD returns length without a storage GET or response body", async () => {
     const res = await read({ method: "HEAD" });
     expect(res.status).toBe(200);
@@ -209,6 +218,7 @@ describe.skipIf(!testDatabaseUrl)("private attachment delivery", () => {
       "HEAD /private-fixture/feed/documents/fixture.txt",
     ]);
   });
+  /** Обычный, открытый, suffix и обрезанный диапазоны возвращают точные 206 и Content-Range. */
   it.each([
     { range: "bytes=2-5", body: "2345", contentRange: "bytes 2-5/10" },
     { range: "bytes=8-", body: "89", contentRange: "bytes 8-9/10" },
@@ -224,6 +234,7 @@ describe.skipIf(!testDatabaseUrl)("private attachment delivery", () => {
       expect(await res.text()).toBe(body);
     },
   );
+  /** Неверный, множественный и выходящий за объект Range возвращает 416 без GET байтов. */
   it.each([
     "",
     "items=0-1",
@@ -242,6 +253,7 @@ describe.skipIf(!testDatabaseUrl)("private attachment delivery", () => {
       expect(effects.some((effect) => effect.startsWith("GET"))).toBe(false);
     },
   );
+  /** Чужие origin, неоднозначные пути, credentials, query и backup namespace запрещаются до storage без утечки URL. */
   it.each([
     "https://external.example.test/file.txt",
     "http://127.0.0.1:1/private-fixture/feed/documents/fixture.txt",
@@ -276,6 +288,7 @@ describe.skipIf(!testDatabaseUrl)("private attachment delivery", () => {
       expect(await res.text()).not.toMatch(/PRIVATE_QUERY|secret|private.sql/);
     },
   );
+  /** Новый Range повторно проверяет истечение paid-периода, блокировку и epoch. */
   it.each([
     "UPDATE club_payments SET expiresAt=DATE_SUB(NOW(),INTERVAL 1 SECOND) WHERE orderId='private-files-paid'",
     "UPDATE users SET blockedAt=NOW() WHERE id=91901",
@@ -293,6 +306,7 @@ describe.skipIf(!testDatabaseUrl)("private attachment delivery", () => {
       expect(effects).toEqual([]);
     },
   );
+  /** Staff-доступ основан на текущей роли и исчезает после demotion, не создавая оплаченный период. */
   it("staff access requires current role and grants no paid period", async () => {
     await conn.query("UPDATE posts SET target='club' WHERE id=91901");
     await conn.query(
@@ -306,6 +320,7 @@ describe.skipIf(!testDatabaseUrl)("private attachment delivery", () => {
     expect((await read({ headers, method: "HEAD" })).status).toBe(404);
     expect(effects).toEqual([]);
   });
+  /** Hidden/scheduled/draft, отсутствующий parent и активный MIME закрыты до storage. */
   it.each([
     "UPDATE posts SET published=FALSE WHERE id=91901",
     "UPDATE posts SET status='draft' WHERE id=91901",
@@ -317,6 +332,7 @@ describe.skipIf(!testDatabaseUrl)("private attachment delivery", () => {
     expect((await read()).status).toBe(404);
     expect(effects).toEqual([]);
   });
+  /** Неверный ID и клиентский URL-query не превращают маршрут в произвольный proxy. */
   it.each([
     "0",
     "-1",
@@ -328,6 +344,7 @@ describe.skipIf(!testDatabaseUrl)("private attachment delivery", () => {
     expect((await read({}, id)).status).toBe(404);
     expect(effects).toEqual([]);
   });
+  /** Upstream error/redirect даёт безопасный 503 без Location, Set-Cookie и provider body. */
   it.each(["error", "redirect"])(
     "provider %s stays generic without retry or leaked headers",
     async (mode) => {
@@ -344,6 +361,7 @@ describe.skipIf(!testDatabaseUrl)("private attachment delivery", () => {
       ]);
     },
   );
+  /** Client abort закрывает удерживаемое тело upstream вместо продолжения фонового чтения. */
   it("client abort closes the held upstream body", async () => {
     wireMode = "hold";
     const abort = new AbortController();
@@ -354,6 +372,7 @@ describe.skipIf(!testDatabaseUrl)("private attachment delivery", () => {
       timeout: 2000,
     });
   });
+  /** Idle-body завершается по прогресс-таймауту раньше общего внешнего cutoff. */
   it("body with no further progress closes before the outer safety cutoff", async () => {
     wireMode = "hold";
     const started = Date.now();
@@ -363,12 +382,14 @@ describe.skipIf(!testDatabaseUrl)("private attachment delivery", () => {
     expect(Date.now() - started).toBeLessThan(33_000);
     await vi.waitFor(() => expect(upstreamClosed).toBe(true));
   }, 40_000);
+  /** Длительное скачивание с реальным прогрессом не обрывается по idle-таймеру. */
   it("progressing download outlives the idle limit without truncation", async () => {
     wireMode = "progress";
     const res = await read({ signal: AbortSignal.timeout(45_000) });
     expect(res.status).toBe(200);
     expect(await res.text()).toBe("0123456789");
   }, 48_000);
+  /** Ingress-отказ чужому Origin сохраняет private no-store до чтения SQL или объекта. */
   it("ingress rejection is also private no-store, without SQL or object reads", async () => {
     const res = await read({
       headers: { Origin: "https://untrusted.example.test" },
@@ -377,6 +398,7 @@ describe.skipIf(!testDatabaseUrl)("private attachment delivery", () => {
     expect(res.headers.get("cache-control")).toBe("private, no-store");
     expect(effects).toEqual([]);
   });
+  /** Отсутствие media-таблицы возвращает безопасный 503 без SQL и без storage. */
   it("SQL read failure stays generic and never reaches storage", async () => {
     await conn.query("RENAME TABLE post_media TO private_files_missing_media");
     try {
@@ -392,6 +414,7 @@ describe.skipIf(!testDatabaseUrl)("private attachment delivery", () => {
       );
     }
   });
+  /** HEAD без ETag не допускает непроверяемый GET байтов. */
   it("refuses missing object version before GET", async () => {
     wireMode = "missing-etag";
     const res = await read();
@@ -400,6 +423,7 @@ describe.skipIf(!testDatabaseUrl)("private attachment delivery", () => {
       "HEAD /private-fixture/feed/documents/fixture.txt",
     ]);
   });
+  /** Изменённый ETag или проигнорированный Range блокирует ответ до выдачи неправильных байтов. */
   it.each(["changed", "ignored-range"])(
     "refuses inconsistent provider response %s before sending bytes",
     async (mode) => {

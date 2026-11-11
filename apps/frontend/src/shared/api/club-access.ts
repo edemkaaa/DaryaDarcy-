@@ -2,7 +2,7 @@
 import type { ApiOutputs } from "./types";
 import { invalidResponse } from "./errors";
 
-/** Keep server-confirmed club access separate from the paid period. */
+/** Проверяем признаки прав, оплаты и отмены отдельно, приводя срок к Date без вывода доступа из одной только даты. */
 export function parseClubAccess(
   value: unknown,
 ): ApiOutputs["club"]["subscription"] {
@@ -40,6 +40,7 @@ export function parseClubAccess(
   };
 }
 
+/** У claim должны согласоваться granted и orderId: отказ не может притворяться подтверждённым заказом. */
 export function requireClubClaim(value: unknown): void {
   const data = value as { granted?: unknown; orderId?: unknown } | null;
   if (

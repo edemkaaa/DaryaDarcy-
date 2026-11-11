@@ -3,6 +3,10 @@
 - **Status:** Accepted for the user-approved local backend stage; not release approval
 - **Date:** 2026-10-05
 
+## Актуальность на 11 ноября 2026
+
+Серверный журнал и клиентское восстановление реализованы в текущем коде. Упоминания первоначально неподключённого фронтенда и миграционного допуска ниже относятся к дате решения. Это не подтверждение состояния новой рабочей БД; применимость миграций проверяют перед каждым выпуском.
+
 ## Context
 
 An HTTP response can be lost after MySQL commits. Retrying admin.createPost used

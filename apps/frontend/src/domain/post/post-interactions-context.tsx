@@ -14,6 +14,7 @@ import { createPostInteractionReader } from "./post-interaction-reader";
 
 type InteractionFailure = { message: string; blocked: boolean };
 
+/** Храним batch-reader, scopes, optimistic overrides и ошибки выше карточек; cleanup отзывает все задачи владельца. */
 function useInteractionState() {
   const utils = trpc.useUtils();
   const [reader] = useState(() =>
@@ -51,11 +52,13 @@ const Context = createContext<ReturnType<typeof useInteractionState> | null>(
   null,
 );
 
+/** Один экземпляр состояния взаимодействий обслуживает все карточки текущей личности. */
 function InteractionStateProvider({ children }: { children: ReactNode }) {
   const state = useInteractionState();
   return <Context.Provider value={state}>{children}</Context.Provider>;
 }
 
+/** Смена пользователя пересоздаёт провайдер, а обычная навигация сохраняет текущие операции. */
 export function PostInteractionsProvider({
   children,
 }: {
@@ -70,6 +73,7 @@ export function PostInteractionsProvider({
   );
 }
 
+/** Возвращаем общее состояние только внутри провайдера взаимодействий, не создавая независимый кеш карточки. */
 export function usePostInteractionState() {
   const state = useContext(Context);
   if (!state) throw new Error("Post interactions provider is missing");

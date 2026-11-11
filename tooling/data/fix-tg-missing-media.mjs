@@ -36,6 +36,8 @@ const s3 = new S3Client({
 const S3_PUBLIC = `${env.S3_ENDPOINT}/${env.S3_BUCKET}/`;
 
 function guessContentType(name) {
+  // Выводит MIME по расширению исходника; содержимое файла эта историческая эвристика не проверяет.
+
   const lower = name.toLowerCase();
   if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
   if (lower.endsWith(".png")) return "image/png";
@@ -50,6 +52,8 @@ function guessContentType(name) {
 }
 
 async function listDiskFiles(folder) {
+  // Читает полный список файлов публичного Диска страницами, чтобы сопоставлять имена из экспорта.
+
   const names = [];
   let offset = 0;
   while (true) {
@@ -72,6 +76,8 @@ async function listDiskFiles(folder) {
 }
 
 async function yandexDownload(diskPath) {
+  // Запрашивает временную ссылку скачивания конкретного файла публичного Диска.
+
   const url =
     "https://cloud-api.yandex.net/v1/disk/public/resources/download?public_key=" +
     encodeURIComponent(YANDEX_PUBLIC) +
@@ -85,6 +91,8 @@ async function yandexDownload(diskPath) {
 }
 
 async function getCachedOrDownload(diskPath) {
+  // Переиспользует локальную копию или скачивает исходник в кэш; этот исторический путь может обращаться к сети и в dry-run.
+
   fs.mkdirSync(CACHE_DIR, { recursive: true });
   const safe = diskPath.replace(/[^\w@.\-]+/g, "_");
   const cacheFile = path.join(CACHE_DIR, safe);
@@ -95,6 +103,8 @@ async function getCachedOrDownload(diskPath) {
 }
 
 async function uploadS3(key, body, contentType) {
+  // Историческая загрузка создаёт публичный объект public-read; не использовать как замену нынешнему защищённому переносу.
+
   await s3.send(
     new PutObjectCommand({
       Bucket: env.S3_BUCKET,
@@ -108,10 +118,14 @@ async function uploadS3(key, body, contentType) {
 }
 
 function diskPathForFile(folder, name) {
+  // Ищет экспортированное имя среди известных файлов Диска, не перебирая произвольные внешние адреса.
+
   return `${folder}/${name}`;
 }
 
 function resolveMediaPaths(msg) {
+  // Сопоставляет исходные аудио/видео/документы сообщения с доступными именами Диска.
+
   const paths = [];
   if (msg.file_name && !FILE_NOT_INCLUDED.test(String(msg.file_name))) {
     const base = path.basename(String(msg.file_name));
@@ -129,6 +143,8 @@ function resolveMediaPaths(msg) {
 }
 
 function resolvePhotoPaths(msg, photoIndex, albumCount = 1) {
+  // Сначала ищет точные имена, затем исторически сопоставляет фотографии по дате и количеству.
+
   const paths = [];
   if (msg.photo && !FILE_NOT_INCLUDED.test(String(msg.photo))) {
     const base = path.basename(String(msg.photo).replace(/\\/g, "/"));
@@ -156,6 +172,8 @@ function resolvePhotoPaths(msg, photoIndex, albumCount = 1) {
 }
 
 function dateSuffix(msg) {
+  // Формирует суффикс имени по локальному часовому поясу процесса; окружение должно совпадать с экспортом.
+
   const d = new Date(Number(msg.date_unixtime) * 1000);
   const dd = String(d.getDate()).padStart(2, "0");
   const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -167,14 +185,20 @@ function dateSuffix(msg) {
 }
 
 function expectedPhotoName(msg) {
+  // Восстанавливает ожидаемое имя экспортированного фото из идентификатора и даты сообщения.
+
   return `photo_${msg.id}${dateSuffix(msg)}.jpg`;
 }
 
 function resolveThumbPath(videoName) {
+  // Определяет исходное превью видеосообщения по экспортированному имени.
+
   return diskPathForFile("/видео из клуба", `${videoName}_thumb.jpg`);
 }
 
 async function main() {
+  // Восстанавливает отсутствующие вложения из экспорта и Диска, затем пишет их публичные URL в выбранную БД.
+
   console.log("Loading disk indexes...");
   const photoFiles = await listDiskFiles("/фото из клуба");
   const videoNames = new Set((await listDiskFiles("/видео из клуба")).map((f) => f.name));

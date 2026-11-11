@@ -1,9 +1,5 @@
 "use client";
 /** Переходы между приветствием, вопросами и результатом описаны отдельно от хранения и компонентов экрана. */
-/**
- * Quiz State Management
- * Uses React Context + useReducer for quiz flow state.
- */
 import { createContext, useContext, type Dispatch } from "react";
 import {
   QUESTIONS,
@@ -48,6 +44,7 @@ type QuizAction =
   | {
       type: "RESTART";
     };
+/** Чисто переключаем welcome/question/result и выбранные ответы; переход после последнего вопроса вычисляет результат общей моделью. */
 function quizReducer(state: QuizState, action: QuizAction): QuizState {
   switch (action.type) {
     case "RESTORE_RESULT":
@@ -90,6 +87,7 @@ interface QuizContextValue {
   dispatch: Dispatch<QuizAction>;
 }
 export const QuizContext = createContext<QuizContextValue | null>(null);
+/** Получаем состояние общего запуска и dispatch, не создавая второй независимый reducer на экране. */
 export function useQuiz() {
   const ctx = useContext(QuizContext);
   if (!ctx) throw new Error("useQuiz must be used within QuizProvider");

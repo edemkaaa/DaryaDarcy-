@@ -19,10 +19,12 @@ type PhotoScope = {
 };
 /** Blob URLs belong to this editor/account only; durable records contain File bytes, never URLs. */
 export function usePrivatePostPhotos(active: boolean, slot: string | number) {
+  // Разделяет фото по владельцу и слоту; в журнал идут File, а временные адреса принадлежат только открытому редактору.
+
   const { user } = useAuth();
   const ownerId = user?.id;
   const resources = useMemo(
-    () => ({ ownerId, active, slot, urls: new Map<string, string>() }),
+    () => /* Создаёт отдельное хранилище превью при смене владельца, активности или поста. */ ({ ownerId, active, slot, urls: new Map<string, string>() }),
     [ownerId, active, slot],
   );
   const [selection, setSelection] = useState<{
@@ -30,11 +32,15 @@ export function usePrivatePostPhotos(active: boolean, slot: string | number) {
     photos: PrivatePostPhoto[];
   } | null>(null);
   const release = useCallback(() => {
+    // Освобождает Blob URL текущей области без удаления исходных файлов.
+
     for (const url of resources.urls.values()) URL.revokeObjectURL(url);
     resources.urls.clear();
   }, [resources]);
-  useEffect(() => release, [release]);
+  useEffect(() => /* При закрытии или смене области освобождает её браузерные адреса. */ release, [release]);
   const removePreview = (reference: string) => {
+    // Удаляет адрес только снятого фото и освобождает его браузерную память.
+
     const url = resources.urls.get(reference);
     if (url) URL.revokeObjectURL(url);
     resources.urls.delete(reference);
@@ -43,10 +49,12 @@ export function usePrivatePostPhotos(active: boolean, slot: string | number) {
     photos:
       active && selection?.resources === resources ? selection.photos : empty,
     preview: (reference: string) =>
-      reference.startsWith("local-photo:")
+      /* Разрешает local-photo только через собственную карту; серверные URL возвращает без подмены. */ reference.startsWith("local-photo:")
         ? (resources.urls.get(reference) ?? "")
         : reference,
     add: async (source: File, operation: ScopedOperation) => {
+      // Готовит совместимое фото с сохранением прозрачности, проверяет актуальность операции и создаёт локальную ссылку.
+
       const file = await fileForPhotoUpload(source, {
         preserveAlpha: true,
         signal: operation.signal,
@@ -67,6 +75,8 @@ export function usePrivatePostPhotos(active: boolean, slot: string | number) {
     },
     removePreview,
     restore: (photos: PrivatePostPhoto[], references: string[]) => {
+      // Восстанавливает адреса только выбранных ссылок из сохранённых File, а не из устаревших Blob URL.
+
       release();
       for (const photo of photos) {
         validatePrivatePostPhoto(photo);
@@ -77,6 +87,8 @@ export function usePrivatePostPhotos(active: boolean, slot: string | number) {
       setSelection({ resources, photos });
     },
     reset: () => {
+      // Закрывает все локальные превью и очищает выбор формы.
+
       release();
       setSelection(null);
     },

@@ -1,3 +1,4 @@
+// Архив Expo. Собирает имя/пол/локальный аватар и передаёт сохранение владельцу через onComplete.
 import { useState } from "react";
 import {
   Text,
@@ -44,6 +45,8 @@ interface CropperImage {
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export function ProfileSetup({ onComplete }: ProfileSetupProps) {
+  // Собирает имя/пол/локальный аватар и передаёт сохранение владельцу через onComplete.
+
   const [name, setName] = useState("");
   const [gender, setGender] = useState<Gender | null>(null);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
@@ -51,6 +54,8 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
   const [submitting, setSubmitting] = useState(false);
 
   const pickImage = async () => {
+    // Открывает галерею без встроенного editing и переносит размеры выбранного фото в кроппер.
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: false,
@@ -68,15 +73,21 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
   };
 
   const handleCropComplete = (croppedUri: string) => {
+    // Заменяет локальный preview результатом и закрывает кроппер.
+
     setAvatarUri(croppedUri);
     setCropperImage(null);
   };
 
   const handleCropCancel = () => {
+    // Закрывает кроппер без изменения выбранного аватара.
+
     setCropperImage(null);
   };
 
   const handleSubmit = async () => {
+    // Проверяет непустое имя/пол и ждёт onComplete; после успеха предполагается переход владельцем формы.
+
     if (!name.trim() || !gender) return;
 
     setSubmitting(true);
@@ -221,6 +232,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
+// SafeArea и KeyboardAvoidingView сохраняют форму над клавиатурой, а ScrollView оставляет кнопку доступной на коротком экране.
 const styles = StyleSheet.create({
   container: {
     flex: 1,

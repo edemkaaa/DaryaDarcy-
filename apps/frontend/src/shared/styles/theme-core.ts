@@ -7,6 +7,7 @@ type ThemeColorTokens = typeof ThemeColors;
 type ThemeColorName = keyof ThemeColorTokens;
 type SchemePalette = Record<ColorScheme, Record<ThemeColorName, string>>;
 type SchemePaletteItem = SchemePalette[ColorScheme];
+/** Разворачиваем пары light/dark в две палитры с одинаковыми именами токенов; источником остаётся один themeColors. */
 function buildSchemePalette(colors: ThemeColorTokens): SchemePalette {
   const palette: SchemePalette = {
     light: {} as SchemePalette["light"],
@@ -29,6 +30,7 @@ type RuntimePalette = SchemePaletteItem & {
   tabIconSelected: string;
   border: string;
 };
+/** Добавляем совместимые семантические имена text/icon/tab поверх схемы, сохраняя исходные значения базовых токенов. */
 function buildRuntimePalette(scheme: ColorScheme): RuntimePalette {
   const base = SchemeColors[scheme];
   return {

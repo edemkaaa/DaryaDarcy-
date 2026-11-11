@@ -9,6 +9,7 @@ import {
   recoveryExportOutput,
 } from "../content/recovery-export";
 
+/** Для текущей сессии разделяем новую идемпотентную загрузку аватара со статусом, совместимую старую загрузку и сохранение профиля с ревизией. */
 export const createProfileRouter = (profiles: ProfileService) =>
   router({
     uploadAvatarWithReceipt: protectedProcedure.input(avatarReceiptInput)
@@ -25,6 +26,7 @@ export const createProfileRouter = (profiles: ProfileService) =>
       ),
   });
 
+/** Экспорт восстановления и запрос удаления доступны только владельцу текущей сессии, без userId из клиентского тела. */
 export const createProfileExtrasRouter = (profiles: ProfileService) =>
   router({
     recoveryExport: protectedProcedure

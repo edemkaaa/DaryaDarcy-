@@ -22,9 +22,11 @@ export const MediaTypeOptions = {
   Videos: "videos",
   All: "all",
 };
+/** Совместимый browser stub не запрашивает системное разрешение: реальный доступ к файлам предоставляет нативный picker при выборе. */
 export async function requestMediaLibraryPermissionsAsync() {
   return { status: "granted", granted: true };
 }
+/** Выбираем изображения или видео, последовательно читаем data URL и размеры; отсутствие выбранных файлов возвращается как canceled. */
 export async function launchImageLibraryAsync(
   options: FileSelectionOptions & {
     mediaTypes?: string | string[];
@@ -66,11 +68,13 @@ export async function launchImageLibraryAsync(
         (signal) =>
           new Promise<{ width: number; height: number }>((resolve, reject) => {
             const image = new Image();
+            /** Разрываем ссылки Image на callbacks и data URL, чтобы чтение размеров не удерживало декодированный исходник. */
             const cleanup = () => {
               signal.removeEventListener("abort", cancel);
               image.onload = image.onerror = null;
               image.removeAttribute("src");
             };
+            /** Отмена обработки изображения очищает его ресурс и возвращает исходную причину abort владельцу picker. */
             const cancel = () => {
               cleanup();
               reject(signal.reason);
@@ -100,6 +104,7 @@ export async function launchImageLibraryAsync(
   }
   return { canceled: !assets.length, assets };
 }
+/** Преобразуем выбранные File в совместимые assets; optional preview URL создаётся только по запросу и должен освобождаться владельцем. */
 export async function getDocumentAsync(
   options: FileSelectionOptions & {
     type?: string | string[];

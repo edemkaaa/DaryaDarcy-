@@ -154,7 +154,7 @@ InnoDB может ждать на первом INSERT в том же unique-inde
 
 ## Docker-пакет
 
-[Инструкция и файлы сборки](../../infrastructure/deploy/teamassist/README.build.md):
+[Инструкция и файлы сборки](../../infrastructure/build/README.md):
 явные build-time флаги Next, API+TEST bundle, versioned build-only Compose,
 image-only runtime overlay и безопасный порядок backup/migration/rollout/rollback.
 Четыре build-contract проверки и пять существующих Compose merge проверок прошли;

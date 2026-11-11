@@ -2,6 +2,7 @@
 @use "../../shared/styles/layers";
 
 @layer components {
+  /* Юридический текст прокручивается с постоянными боковыми полями и запасом под концом страницы. */
   .scroll {
     padding-left: 24px;
     padding-right: 24px;
@@ -9,6 +10,7 @@
     padding-top: 8px;
   }
 
+  /* Бренд, заголовок и дата отделены от разделов документа собственной иерархией. */
   .kicker {
     letter-spacing: 2px;
     text-align: center;
@@ -38,6 +40,7 @@
     margin-bottom: 20px;
   }
 
+  /* Приложенная иллюстрация центрируется независимо от текстовых блоков. */
   .picture {
     align-self: center;
     margin-bottom: 20px;
@@ -45,6 +48,7 @@
     background-color: #fff;
   }
 
+  /* Заголовок и тело каждого раздела сгруппированы; интервалы не зависят от длины текста. */
   .block {
     margin-bottom: 18px;
     gap: 8px;

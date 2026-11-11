@@ -1,6 +1,7 @@
 /** Канонизация и HMAC-подпись Prodamus; сравнение подписи не раскрывает различие по байтам. */
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+/** Канонизирует scalar в строки и null в пустую строку рекурсивно, сохраняя собственные __proto__ как данные в null-prototype объектах. */
 function stringifyValues(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(stringifyValues);
   if (value && typeof value === "object") {
@@ -17,6 +18,7 @@ function stringifyValues(value: unknown): unknown {
   return String(value);
 }
 
+/** Сортирует ключи объектов на каждом уровне, сохраняя порядок массива и исключая влияние порядка полей на подпись. */
 function sortDeep(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(sortDeep);
   if (value && typeof value === "object") {
@@ -29,10 +31,12 @@ function sortDeep(value: unknown): unknown {
   return value;
 }
 
+/** Сериализует канонические данные с PHP-совместимым экранированием slash. */
 function toProdamusJson(value: unknown): string {
   return JSON.stringify(value).replace(/\//g, "\\/");
 }
 
+/** Выводит HMAC-SHA256 hex из строково-нормализованного, глубоко отсортированного JSON и переданного секрета. */
 export function createProdamusSign(data: unknown, secret: string): string {
   const prepared = sortDeep(stringifyValues(data));
   return createHmac("sha256", secret)

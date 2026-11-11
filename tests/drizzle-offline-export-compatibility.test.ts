@@ -1,3 +1,4 @@
+/** Проверяем настоящий offline export Drizzle с синтетической схемой; это не команда применения миграций. */
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
@@ -12,6 +13,7 @@ const cli = realpathSync(resolve("node_modules/drizzle-kit/bin.cjs"));
 
 // Export generates DDL on stdout only; it does NOT execute SQL or migrate a DB.
 // Both paths use the real CLI/register/schema serializer. No mocked results.
+/** В дочернем процессе запрещаем сетевые соединения, отключаем .env и сверяем точный DDL и неизменность fixture-каталога. */
 it.each([false, true])(
   "exports synthetic MySQL schema through the native CLI (candidate: %s)",
   (candidate) => {

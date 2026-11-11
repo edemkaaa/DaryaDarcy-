@@ -62,7 +62,9 @@ const content = prepareLegacyClubContent({
   ],
 });
 
+/** Проверяет явный запрет rehearsal на рабочем имени БД и удалённом хосте до любого SQL. */
 describe("legacy Club rehearsal target guard", () => {
+  /** Неодноразовый target либо не-loopback host отклоняется guard до подключения. */
   it.each([
     "mysql://root@127.0.0.1/live",
     "mysql://root@db.example.test/backend_test",
@@ -73,12 +75,14 @@ describe("legacy Club rehearsal target guard", () => {
   });
 });
 
+/** Проверяет перенос legacy-поста, статьи и media только в принадлежащую fixture восстановленную БД. */
 describe.skipIf(!uri || !containerId)(
   "legacy Club transaction on an owned restored database",
   () => {
     let connection: Connection;
     const target = { uri: uri!, containerId: containerId! };
     let plan: Awaited<ReturnType<typeof planLegacyClubRehearsal>>;
+    /** Проверяет disposable URL, строит план с baseline и открывает connection с точными строковыми датами/JSON. */
     beforeAll(async () => {
       assertTestDatabase(uri!);
       plan = await planLegacyClubRehearsal(target, content);
@@ -91,6 +95,7 @@ describe.skipIf(!uri || !containerId)(
         timezone: "Z",
       });
     }, 20000);
+    /** Снимает fault-trigger и удаляет только remapped ID из плана и закрывает соединение. */
     afterAll(async () => {
       if (!connection) return;
       await connection.query(
@@ -109,6 +114,7 @@ describe.skipIf(!uri || !containerId)(
       }
       await connection.end();
     });
+    /** Отказ последней media-вставки откатывает импорт статьи и тизера, сохраняя baseline target. */
     it("rolls back article and post writes when the final media insert fails", async () => {
       await connection.query(
         "CREATE TRIGGER legacy_club_rehearsal_fault BEFORE INSERT ON post_media FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Owned rehearsal injected failure'",
@@ -123,6 +129,7 @@ describe.skipIf(!uri || !containerId)(
       const after = await planLegacyClubRehearsal(target, content);
       expect(after.baseline).toEqual(plan.baseline);
     }, 20000);
+    /** Таблица больше допустимого snapshot-bound запрещает план вместо fingerprint усечённых данных. */
     it("refuses an oversized table instead of fingerprinting a truncated snapshot", async () => {
       await connection.query(
         "CREATE TABLE legacy_club_bounds (id int PRIMARY KEY) ENGINE=InnoDB",
@@ -140,6 +147,7 @@ describe.skipIf(!uri || !containerId)(
         await connection.query("DROP TABLE legacy_club_bounds");
       }
     }, 20000);
+    /** Импорт ремапит source статьи и postId media, сохраняет даты и существующие строки; повтор узнаёт committed результат. */
     it("remaps article cards and media, preserves existing rows and tolerates a lost response", async () => {
       const first = await applyLegacyClubRehearsal(target, content, plan);
       expect(first).toMatchObject({
@@ -178,6 +186,7 @@ describe.skipIf(!uri || !containerId)(
         posterUrl: null,
       });
     }, 20000);
+    /** Изменённый источник или отредактированный target запрещает повторную перезапись. */
     it("refuses changed source content or target content instead of overwriting it", async () => {
       const changed = structuredClone(content);
       changed.posts[0].text = "Changed";
@@ -192,6 +201,7 @@ describe.skipIf(!uri || !containerId)(
         applyLegacyClubRehearsal(target, content, plan),
       ).rejects.toThrow();
     }, 20000);
+    /** Rollback отказывается удалять изменённый импорт, затем удаляет только проверенные неизменённые remapped-строки. */
     it("refuses rollback of edited content, then removes only the unchanged imported rows", async () => {
       await expect(
         rollbackLegacyClubMerge(connection, content, plan),

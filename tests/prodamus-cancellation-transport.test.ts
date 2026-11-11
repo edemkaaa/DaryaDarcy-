@@ -1,3 +1,4 @@
+/** Настоящий cancellation fetch проверяется двумя owned loopback endpoints; реальные подписки не меняются. */
 import { createHmac } from "node:crypto";
 import { createServer, type Server } from "node:http";
 import {
@@ -41,6 +42,7 @@ let location: string | undefined;
 let merchantRequests: RequestRecord[];
 let forwardedRequests: RequestRecord[];
 
+/** Сервер слушает только loopback и очищает временный error listener после старта. */
 async function listen(server: Server): Promise<string> {
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);
@@ -54,6 +56,7 @@ async function listen(server: Server): Promise<string> {
   return `http://127.0.0.1:${address.port}`;
 }
 
+/** Закрываем listener и активные соединения собственного fixture. */
 async function close(server: Server): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     server.close((error) => (error ? reject(error) : resolve()));
@@ -61,6 +64,7 @@ async function close(server: Server): Promise<void> {
   });
 }
 
+/** Один endpoint имитирует merchant, второй считает запрещённые redirect-переходы. */
 beforeAll(async () => {
   destination = createServer(async (request, response) => {
     let body = "";
@@ -89,10 +93,12 @@ beforeAll(async () => {
   merchantOrigin = await listen(merchant);
 });
 
+/** Закрываем оба owned endpoints. */
 afterAll(async () => {
   await Promise.all([close(merchant), close(destination)]);
 });
 
+/** Задаём synthetic profile/config и сбрасываем wire-ответы/логи. */
 beforeEach(() => {
   status = 200;
   responseBody = "success";
@@ -107,12 +113,15 @@ beforeEach(() => {
   vi.spyOn(console, "warn").mockImplementation(() => {});
 });
 
+/** Возвращаем env/console spies. */
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
 });
 
+/** Подпись формируется независимо; успех другого endpoint не считается подтверждением отмены. */
 describe("native Prodamus cancellation transport", () => {
+  /** Любой3xx не пересылает signed body в redirect origin и даётfalse. */
   it.each([301, 302, 303, 307, 308])(
     "does not follow a %i response or confirm another origin's success",
     async (redirectStatus) => {
@@ -130,6 +139,7 @@ describe("native Prodamus cancellation transport", () => {
     },
   );
 
+  /** Даже redirect на тот же host не заменяет фиксированный setActivity path. */
   it("does not accept success from an unconfigured same-origin path", async () => {
     status = 307;
     location = `${merchantOrigin}/unconfigured-success`;
@@ -138,6 +148,7 @@ describe("native Prodamus cancellation transport", () => {
     expect(forwardedRequests).toHaveLength(0);
   });
 
+  /** Ровно один POST с полной form/signature подтверждается только точным success ответа. */
   it.each([false, true])(
     "preserves the independently signed cancellation request (manager=%s)",
     async (manager) => {
@@ -170,6 +181,7 @@ describe("native Prodamus cancellation transport", () => {
     },
   );
 
+  /** Похожий/пустой body,204 и HTTP500 не подтверждают отмену. */
   it.each([
     [200, "not-success"],
     [200, ""],
@@ -183,6 +195,7 @@ describe("native Prodamus cancellation transport", () => {
     expect(forwardedRequests).toHaveLength(0);
   });
 
+  /** Чужие domain/tariff и пустой profile отвергаются до wire. */
   it.each([
     { domain: "other.example.test" },
     { subscriptionId: "8" },
@@ -195,6 +208,7 @@ describe("native Prodamus cancellation transport", () => {
     expect(forwardedRequests).toHaveLength(0);
   });
 
+  /** Локальная test-оговорка HTTP не переносится в production. */
   it("retains the production prohibition on plain HTTP", async () => {
     vi.stubEnv("NODE_ENV", "production");
     expect(await cancelProdamusSubscription(profile)).toBe(false);

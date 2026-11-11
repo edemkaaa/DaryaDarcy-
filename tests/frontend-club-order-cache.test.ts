@@ -1,3 +1,4 @@
+/** Проверяем версионирование цепочки страниц Клуба после смены серверной хронологии. */
 import { expect, it } from "vitest";
 import { QueryClient } from "@tanstack/react-query";
 import {
@@ -7,6 +8,7 @@ import {
   type CursorPage,
 } from "../apps/frontend/src/shared/api/cursor-pages";
 
+/** Новый ключ порядка начинает чтение с первой страницы, сохраняя личные/посторонние кеши и совместимую invalidation. */
 it.each([{}, { category: "life" }, { category: "life", tag: "spring" }])(
   "starts a fresh chronological chain for %j without clearing personal or unrelated data",
   async (filters) => {
@@ -72,6 +74,7 @@ it.each([{}, { category: "life" }, { category: "life", tag: "spring" }])(
   },
 );
 
+/** Управляемым Promise завершаем старую страницу после новой; поздний offset не должен попасть в новый ключ. */
 it("a late response from the previous order cannot append its offset to the new cache", async () => {
   const client = new QueryClient();
   const base = [

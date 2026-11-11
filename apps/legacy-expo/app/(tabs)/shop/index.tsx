@@ -1,3 +1,4 @@
+// Архив Expo. Совмещает короткое название с прозрачной рамкой, сохраняя геометрию торца полки.
 import { useEffect } from "react";
 import {
   Text,
@@ -166,6 +167,8 @@ const LABEL_HEIGHT = LABEL_WIDTH / 2.33;
 // ─── Shelf Label Component ─────────────────────────────────────────────────
 
 function ShelfLabel({ text, style }: { text: string; style?: any }) {
+  // Совмещает короткое название с прозрачной рамкой, сохраняя геометрию торца полки.
+
   return (
     <View
       style={[
@@ -227,6 +230,8 @@ function ShelfItem({
   height?: number;
   style?: any;
 }) {
+  // Показывает книгу без обрезки, добавляет press-анимацию и Apple-web fallback перехода.
+
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -234,6 +239,8 @@ function ShelfItem({
   }));
 
   const handlePressIn = () => {
+    // Уменьшает книгу при нажатии и даёт native haptic.
+
     scale.value = withTiming(0.93, { duration: 100 });
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -241,6 +248,8 @@ function ShelfItem({
   };
 
   const handlePressOut = () => {
+    // Возвращает исходный масштаб книги после отпускания.
+
     scale.value = withTiming(1, { duration: 150 });
   };
 
@@ -269,12 +278,16 @@ function ShelfItem({
 // ─── Main Screen ────────────────────────────────────────────────────────────
 
 function ShopScreenInner() {
+  // Располагает статические товары по измеренным долям фоновой полки; свет/пылинки декоративны и не перехватывают жесты.
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const books = PRODUCTS.filter((p) => p.type === "book");
   const digitals = PRODUCTS.filter((p) => p.type === "digital");
 
   const handleProductPress = (product: Product) => {
+    // Открывает карточку выбранного товара по стабильному строковому id.
+
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -286,6 +299,8 @@ function ShopScreenInner() {
   const scrollY = useSharedValue(0);
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
+      // Передаёт scroll offset в shared value для свечения, пыли и качания ценников на UI-потоке.
+
       scrollY.value = event.contentOffset.y;
     },
   });
@@ -310,6 +325,8 @@ function ShopScreenInner() {
   const lightPulse = useSharedValue(0);
 
   useEffect(() => {
+    // Запускает постоянные UI-анимации пульса света и 16 разных циклов пыли; отдельный cancelAnimation cleanup в архиве отсутствует.
+
     // Light beam slow pulse
     lightPulse.value = withRepeat(
       withSequence(
@@ -338,7 +355,8 @@ function ShopScreenInner() {
   }, []);
 
   // Light beam reacts to scroll - gets brighter AND shifts position when scrolling
-  const lightBeamStyle = useAnimatedStyle(() => {
+  // Общая яркость света складывается из автономной пульсации и ограниченного scroll boost.
+const lightBeamStyle = useAnimatedStyle(() => {
     const baseOpacity = interpolate(lightPulse.value, [0, 1], [0.10, 0.22]);
     const scrollBoost = interpolate(scrollY.value, [0, 200, 500], [0, 0.08, 0.12], Extrapolation.CLAMP);
     // Beam gently shifts right and down as user scrolls (like sunlight moving)
@@ -355,6 +373,8 @@ function ShopScreenInner() {
 
   // Helper: each mote combines autonomous loop + scroll-driven displacement
   const makeDustStyle = (loop: SharedValue<number>, baseY: number, baseX: number, scrollMult: number, opacityRange: [number, number]) => {
+    // Для фиксированного числа пылинок объединяет автономный drift и смещение от scroll; вызовы hook идут в постоянном порядке.
+
     return useAnimatedStyle(() => {
       const loopY = loop.value * baseY;
       const loopX = loop.value * baseX;
@@ -392,7 +412,8 @@ function ShopScreenInner() {
   // Pivot at string hole near top of tag artwork
   const PIVOT_OFFSET = TAG_H * 0.1;
 
-  const priceTag2000Style = useAnimatedStyle(() => {
+  // Два ценника качаются встречно вокруг верхнего отверстия, сохраняя постоянный базовый наклон.
+const priceTag2000Style = useAnimatedStyle(() => {
     const swing = interpolate(
       scrollY.value % 600,
       [0, 150, 300, 450, 600],
@@ -425,7 +446,8 @@ function ShopScreenInner() {
   });
 
   // New shelf image aspect ratio: 1021:3118
-  const SHELF_ASPECT = 1021 / 3118;
+  // Все позиции полок выводятся из одной высоты фона, чтобы обложки стояли на досках при изменении ширины.
+const SHELF_ASPECT = 1021 / 3118;
   const shelfImageHeight = SCREEN_WIDTH / SHELF_ASPECT;
 
   // Shelf plank positions (as fraction of new image height 3118px):
@@ -437,7 +459,7 @@ function ShopScreenInner() {
   // Metal nameplates sit on the shelf front edge (торец), not below it
   // Front lip of the shelf plank (below book bottoms), not on the book spines
   const shelfLabelTop = (plankBottom: number) =>
-    plankBottom - LABEL_HEIGHT * 0.05;
+    /* Ставит табличку на передний край полки относительно её нижней кромки. */ plankBottom - LABEL_HEIGHT * 0.05;
 
   const digitalInner = SCREEN_WIDTH - DIGITAL_SIDE * 2;
   const digitalGap = (digitalInner - BOOK_WIDTH * 2) / 3;
@@ -446,8 +468,8 @@ function ShopScreenInner() {
   const shelf3LabelTop = shelfLabelTop(SHELF3_PLANK_BOTTOM);
 
   // Price tags on left/right edges of nameplates (see shop mockup)
-  const nameplateLeft = (cx: number) => cx - LABEL_WIDTH / 2;
-  const nameplateRight = (cx: number) => cx + LABEL_WIDTH / 2;
+  const nameplateLeft = (cx: number) => /* Переводит центр таблички в левую границу для подвешенного ценника. */ cx - LABEL_WIDTH / 2;
+  const nameplateRight = (cx: number) => /* Переводит центр таблички в правую границу для встречного ценника. */ cx + LABEL_WIDTH / 2;
   const PRICE_TAG_EDGE_OVERLAP = TAG_W * 0.2;
   const PRICE_TAG_TOP = shelf3LabelTop + LABEL_HEIGHT - TAG_H * 0.72;
   const PRICE_TAG_LEFT_0 =
@@ -983,6 +1005,8 @@ function ShopScreenInner() {
 }
 
 export default function ShopScreen() {
+  // Сохраняет совместимую обёртку tab-сцены вокруг Магазина.
+
   return (
     <TabFocusGate>
       <ShopScreenInner />
@@ -992,6 +1016,7 @@ export default function ShopScreen() {
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
+// Координаты товаров и табличек считаются от одного фонового изображения; декоративные свет/пыль имеют pointerEvents none.
 const styles = StyleSheet.create({
   container: {
     flex: 1,

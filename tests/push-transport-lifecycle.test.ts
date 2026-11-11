@@ -1,3 +1,4 @@
+/** Bounded push transport проверяется fake-clock и управляемыми fetch-streams, без Expo-сети. */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
   sendExpoPushBatch,
@@ -9,16 +10,19 @@ vi.mock("../apps/backend/src/db", () => ({
   getServicePushTokens: async () => audience.tokens,
 }));
 
+/** Включаем fake timers и перехватываем безопасные warning для каждого сценария. */
 beforeEach(() => {
   vi.useFakeTimers();
   vi.spyOn(console, "warn").mockImplementation(() => {});
 });
+/** Возвращаем таймеры/fetch/console. */
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
+/** Формируем синтетические Expo-сообщения с уникальными токенами, чтобы видеть границу пакетов 100+5. */
 const messages = (count: number): ExpoPushMessage[] =>
   Array.from({ length: count }, (_, i) => ({
     to: `ExponentPushToken[lifecycle-${i}]`,
@@ -26,6 +30,7 @@ const messages = (count: number): ExpoPushMessage[] =>
     title: "Fixture",
     body: "Fixture",
   }));
+/** Создаём правдоподобный provider ACK нужного числа элементов. */
 const accepted = (count: number) =>
   Response.json({
     data: Array.from({ length: count }, (_, i) => ({
@@ -34,6 +39,7 @@ const accepted = (count: number) =>
     })),
   });
 
+/** Зависшие headers/body первого пакета обрываются по deadline; второй пакет из пяти всё равно отправляется, без повторной отправки первых 100. */
 it.each(["headers", "body"] as const)(
   "abandons stalled %s after the deadline, without retrying or losing the next batch",
   async (stage) => {
@@ -93,6 +99,7 @@ it.each(["headers", "body"] as const)(
   },
 );
 
+/** Неуспешный HTTP-body отменяется до следующего пакета, освобождая stream и timer. */
 it("cancels a rejected response body before continuing and releases the deadline", async () => {
   const input = messages(105);
   audience.tokens = input.map((message) => message.to);

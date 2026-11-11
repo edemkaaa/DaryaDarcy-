@@ -20,6 +20,7 @@ import { sdk } from "../apps/backend/src/_core/sdk";
 import type { AppRouter } from "../apps/backend/src/routers";
 
 // Real HTTP, JWT, schema validation, transactions and SQL; no external transports.
+/** Проверяет соответствие HTTP-валидации реальным пределам SQL и итоговому содержимому после sanitization. */
 describe.skipIf(!testDatabaseUrl)(
   "content write validation on disposable SQL",
   () => {
@@ -35,6 +36,7 @@ describe.skipIf(!testDatabaseUrl)(
       source,
       published: false,
     };
+    /** Создаёт настоящий admin tRPC-клиент с JWT тестового редактора. */
     const client = () =>
       createTRPCProxyClient<AppRouter>({
         links: [
@@ -45,6 +47,7 @@ describe.skipIf(!testDatabaseUrl)(
           }),
         ],
       });
+    /** Удаляет только посты своего source, media, журналы автора и тестовую статью с тизером. */
     async function cleanup() {
       const [rows] = await conn.query<RowDataPacket[]>(
         "SELECT id FROM posts WHERE source=?",
@@ -64,6 +67,7 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query("DELETE FROM articles WHERE id=99214");
       await conn.query("DELETE FROM posts WHERE source='article:99214'");
     }
+    /** Подготавливает content-схему, администратора и локальный HTTP API без внешних транспортов. */
     beforeAll(async () => {
       conn = await openContentTestDatabase();
       // This suite must also run first against an empty disposable fixture.
@@ -84,6 +88,7 @@ describe.skipIf(!testDatabaseUrl)(
       base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
       bearer = `Bearer ${await sdk.createSessionToken("sec-content-validation-admin", { sessionVersion: 0 })}`;
     });
+    /** Возвращает два черновика постов и пустую черновую статью собственной fixture. */
     beforeEach(async () => {
       await cleanup();
       await conn.query(
@@ -94,6 +99,7 @@ describe.skipIf(!testDatabaseUrl)(
         "INSERT INTO articles (id,title,sections,published) VALUES (99214,'Validation article',JSON_ARRAY(),FALSE)",
       );
     });
+    /** Закрывает API, удаляет данные своего автора и соединения и возвращает окружение. */
     afterAll(async () => {
       await app?.close();
       if (conn) {
@@ -106,6 +112,7 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** Снимает полные собственные посты, media, creation-ledger и статью для проверки отказа без записи. */
     async function snapshot() {
       const [posts] = await conn.query<RowDataPacket[]>(
         "SELECT * FROM posts WHERE source=? ORDER BY id",
@@ -124,6 +131,7 @@ describe.skipIf(!testDatabaseUrl)(
       return { posts, media, ledger, article };
     }
     const bad = { data: { code: "BAD_REQUEST", httpStatus: 400 } };
+    /** Неверные даты и недопустимый sortOrder отклоняются create и update до SQL-изменений. */
     it.each([
       { publishedAt: "invalid" },
       { scheduledAt: "2026-02-30T10:00:00Z" },
@@ -145,6 +153,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).rejects.toMatchObject(bad);
       expect(await snapshot()).toEqual(before);
     });
+    /** Дробный или меньший signed INT sortOrder статьи отклоняется без изменений. */
     it.each([-1.5, -2_147_483_649])(
       "rejects invalid article order %s without SQL changes",
       async (sortOrder) => {
@@ -162,6 +171,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await snapshot()).toEqual(before);
       },
     );
+    /** Обе границы signed INT сохраняются точно без округления и переполнения. */
     it.each([-2_147_483_648, 2_147_483_647])(
       "persists exact signed INT boundary %s on post and article",
       async (sortOrder) => {
@@ -178,6 +188,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(state.article[0].sortOrder).toBe(sortOrder);
       },
     );
+    /** Допустимые граничные TIMESTAMP и timezone-offset записываются как точные UTC-моменты. */
     it.each([
       "1970-01-01T00:00:01.000Z",
       "2038-01-19T03:14:07.000Z",
@@ -195,6 +206,7 @@ describe.skipIf(!testDatabaseUrl)(
         new Date(publishedAt).toISOString(),
       );
     });
+    /** Нормализованный текст и отрицательный порядок дают стабильный idempotent intent при повторе. */
     it("preserves negative order and unchanged retry intent after text sanitization", async () => {
       const input = {
         ...draft,
@@ -211,6 +223,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       expect(state.ledger).toHaveLength(1);
     });
+    /** Строка, ставшая пустой после sanitization, не создаёт пост и не оставляет creation-receipt. */
     it.each([" \t\n ", "\u0000\uFFFD\uFEFF"])(
       "rejects a new post empty after sanitizing %j and rolls back its receipt",
       async (text) => {
@@ -225,6 +238,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(await snapshot()).toEqual(before);
       },
     );
+    /** Нельзя очистить единственное содержимое существующего поста. */
     it("rejects clearing the only text without changing the existing post", async () => {
       const before = await snapshot();
       await expect(
@@ -232,6 +246,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).rejects.toMatchObject(bad);
       expect(await snapshot()).toEqual(before);
     });
+    /** Пробельные ссылки фото и видео не считаются сохранённым содержимым. */
     it("does not count whitespace-only photo/video references as content", async () => {
       const before = await snapshot();
       await expect(
@@ -244,6 +259,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).rejects.toMatchObject(bad);
       expect(await snapshot()).toEqual(before);
     });
+    /** Legacy-пустой пост допускает изменение только метаданных без принудительного заполнения. */
     it("preserves metadata-only maintenance of an already empty legacy post", async () => {
       await conn.query("UPDATE posts SET text='' WHERE id=99211");
       expect(
@@ -253,6 +269,7 @@ describe.skipIf(!testDatabaseUrl)(
         (await snapshot()).posts.find((row) => row.id === 99211),
       ).toMatchObject({ text: "", sortOrder: -2 });
     });
+    /** Пост только с фото, видео, документом или аудио остаётся допустимым при правке текста без передачи media. */
     it.each(["photo", "video", "document", "audio"] as const)(
       "keeps a %s-only post valid, including edits with omitted media",
       async (type) => {
@@ -287,6 +304,7 @@ describe.skipIf(!testDatabaseUrl)(
         ).toBe("");
       },
     );
+    /** Удаление последнего документа откатывается без замены содержимого, но проходит с новым текстом. */
     it("rolls back removal of the last file when the post has no other content", async () => {
       await conn.query("UPDATE posts SET text='' WHERE id=99211");
       await conn.query(
@@ -308,6 +326,7 @@ describe.skipIf(!testDatabaseUrl)(
         }),
       ).toEqual({ success: true });
     });
+    /** Явное очищение последнего фото или видео отклоняется даже при отсутствии text в PATCH. */
     it("rolls back clearing the last photo or video with omitted text", async () => {
       await conn.query(
         "UPDATE posts SET text='',photos=JSON_ARRAY('https://example.invalid/p.webp') WHERE id=99211",

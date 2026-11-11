@@ -10,10 +10,12 @@ const resultInput = z.object({ token: z.string().max(192) }).strict();
 
 @Controller("api/prodamus/test")
 export class ProdamusTestClubController {
+  /** Принимает отдельный TEST-сервис через Nest без подстановки рабочего обработчика оплат. */
   constructor(
     @Inject(ProdamusTestClubService)
     private readonly service: ProdamusTestClubService,
   ) {}
+  /** Принимает только body-only уведомление допустимого MIME без query/cookie; передаёт исходный sign сервису и сохраняет его HTTP-результат. */
   @Post("webhook")
   async notification(@Req() request: Request, @Res() response: Response) {
     if (Object.keys(request.query).length || request.headers.cookie) {
@@ -36,6 +38,7 @@ export class ProdamusTestClubController {
     );
     response.status(result.status).send(result.body);
   }
+  /** Ограничивает частоту body-only чтения результата по token, валидирует JSON и отображает безопасные 400/429/503 без деталей proof. */
   @Post("result")
   async result(@Req() request: Request, @Res() response: Response) {
     if (Object.keys(request.query).length || request.headers.cookie) {

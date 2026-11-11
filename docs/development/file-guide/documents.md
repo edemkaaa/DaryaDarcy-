@@ -862,6 +862,10 @@ Daryadarcy: задачи фронтендеру. Датированный док
 
 Зимний баннер: обновлённый файл и границы обрезки — 23 октября 2026. Датированный документ: проверяйте дату и пометки статуса.
 
+## [docs/development/frontend-work-plan.md](../frontend-work-plan.md)
+
+План работы и результаты аудита фронтенда DARYADARCY. Инструкция или навигация по проекту.
+
 ## [docs/development/getting-started.md](../getting-started.md)
 
 Локальный запуск и команды Daryadarcy. Инструкция или навигация по проекту.
@@ -884,11 +888,15 @@ Push-регистрация: серверный контракт и переда
 
 ## [docs/development/source-explanation-2026-11-11.md](../source-explanation-2026-11-11.md)
 
-Пояснения к исходникам и передача проекта — 11 ноября 2026. Датированный документ: проверяйте дату и пометки статуса.
+Пояснения к коду и порядок в репозитории — 11 ноября 2026. Датированный документ: проверяйте дату и пометки статуса.
 
 ## [docs/development/subscription-cancellation-contract-2026-10-21.md](../subscription-cancellation-contract-2026-10-21.md)
 
 Отмена подписки: pending/confirmed и инструкция фронтендеру. Датированный документ: проверяйте дату и пометки статуса.
+
+## [docs/development/team-workflow.md](../team-workflow.md)
+
+Работа вдвоём: бэкенд и фронтенд. Инструкция или навигация по проекту.
 
 ## [docs/development/vk-metadata-export-2026-10-20.md](../vk-metadata-export-2026-10-20.md)
 
@@ -1082,23 +1090,27 @@ Shelf Position Analysis for shop_thin_shelves.png (1440x2560). Инструкц�
 
 Shop Assets Key Info. Инструкция или навигация по проекту.
 
-## [SPEC-article-create-recovery.md](../../../SPEC-article-create-recovery.md)
+## [docs/specifications/README.md](../../specifications/README.md)
+
+Спецификации и согласованные контракты. Инструкция или навигация по проекту.
+
+## [docs/specifications/SPEC-article-create-recovery.md](../../specifications/SPEC-article-create-recovery.md)
 
 Spec: создание статьи без дублей после потери ответа. Инструкция или навигация по проекту.
 
-## [SPEC-email-binding.md](../../../SPEC-email-binding.md)
+## [docs/specifications/SPEC-email-binding.md](../../specifications/SPEC-email-binding.md)
 
 Spec: first email binding for a legacy member. Инструкция или навигация по проекту.
 
-## [SPEC-normal-checkout-recovery.md](../../../SPEC-normal-checkout-recovery.md)
+## [docs/specifications/SPEC-normal-checkout-recovery.md](../../specifications/SPEC-normal-checkout-recovery.md)
 
 Spec: восстановление обычного checkout — AG6/P2. Инструкция или навигация по проекту.
 
-## [SPEC-private-files.md](../../../SPEC-private-files.md)
+## [docs/specifications/SPEC-private-files.md](../../specifications/SPEC-private-files.md)
 
 Spec: закрытая серверная выдача вложений постов. Инструкция или навигация по проекту.
 
-## [SPEC-vk-catalog-access.md](../../../SPEC-vk-catalog-access.md)
+## [docs/specifications/SPEC-vk-catalog-access.md](../../specifications/SPEC-vk-catalog-access.md)
 
 AG8: VK-каталог и клубный доступ. Инструкция или навигация по проекту.
 

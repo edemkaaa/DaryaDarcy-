@@ -22,6 +22,7 @@ type Group = keyof typeof groups;
 const sourcePattern = /\.(?:[cm]?tsx?|[cm]?jsx?)$/;
 const otherTextPattern = /\.(?:s?css|py|sh|conf|toml|ya?ml)$/;
 
+/** Убирает маркеры комментария и теги, сводит пояснение к одной короткой строке; это извлечение уже написанного смысла, не генерация ревью. */
 function commentText(raw: string): string {
   return raw
     .replace(/^\/\*+|\*\/$/g, "")
@@ -33,6 +34,7 @@ function commentText(raw: string): string {
 }
 
 /** Фиксируем имена и пояснения блоков; тела функций и значения переменных не публикуем. */
+/** Разбирает текст TypeScript без импорта модуля: собирает объявления, доступные JSDoc и статические имена тестовых сценариев. Тела функций и значения данных в отчёт не выводятся. */
 export function summarizeSource(
   file: string,
   text: string,
@@ -47,6 +49,7 @@ export function summarizeSource(
         !/eslint|@license|copyright|reference path|auto.generated/i.test(value),
     );
   const blocks: Block[] = [];
+  /** Сохраняет имя и строку исходного блока; последнее прикреплённое JSDoc имеет приоритет над типовой подписью. */
   const add = (node: ts.Node, name: string, kind: string) => {
     const docs = ts.getJSDocCommentsAndTags(node).filter(ts.isJSDoc);
     const leading = text.slice(node.getFullStart(), node.getStart(source));
@@ -96,6 +99,7 @@ export function summarizeSource(
     }
   }
   // В тестах смысловым блоком также является сценарий внутри describe/it.each.
+  /** Находит вложенные function declarations и тестовые группы, включая цепочки each/skip/runIf; остальная структура остаётся в исходнике. */
   const visit = (node: ts.Node) => {
     if (ts.isFunctionDeclaration(node) && node.parent !== source && node.name)
       add(node, node.name.text, "Вложенная функция");
@@ -125,6 +129,7 @@ export function summarizeSource(
 }
 
 /** SQL-историю только читаем: описываем именованные DDL-операции без изменения их хешей. */
+/** Извлекает только именованные CREATE/ALTER/DROP шаги схемы; SQL не выполняется и история не переписывается. */
 function sqlBlocks(text: string): Block[] {
   const result: Block[] = [];
   for (const match of text.matchAll(
@@ -141,6 +146,7 @@ function sqlBlocks(text: string): Block[] {
 }
 
 /** Имена Python/shell-блоков извлекаем как текст: импорт опасного инструмента не нужен. */
+/** Из Python/shell читает имена объявлений регулярным выражением, не исполняя опасные операторские файлы. */
 function scriptBlocks(file: string, text: string): Block[] {
   const result: Block[] = [];
   const pattern = file.endsWith(".py")
@@ -156,16 +162,16 @@ function scriptBlocks(file: string, text: string): Block[] {
   return result;
 }
 
+/** Назначает каждому пути одну страницу: специальные тестовые, архивные и документальные каталоги проверяются раньше общих apps/tooling. */
 function groupFor(file: string): Group {
   if (
-    /^(tests|__tests__)\//.test(file) ||
+    /^tests\//.test(file) ||
     /^apps\/frontend\/(e2e|scripts)\//.test(file)
   )
     return "tests.md";
   if (
     file.startsWith("docs/") ||
-    file.startsWith("tasks/") ||
-    /^SPEC-.*\.md$/.test(file)
+    file.startsWith("tasks/")
   )
     return "documents.md";
   if (/^apps\/legacy-|^tooling\/legacy\/|^apps\/frontend\/public\//.test(file))
@@ -178,19 +184,18 @@ function groupFor(file: string): Group {
   return "root.md";
 }
 
+/** Берёт содержательное пояснение из заголовка исходника или известного формата. Архивный статус не должен подменять уже написанное описание файла. */
 function purposeFor(file: FileEntry): string {
   const name = path.posix.basename(file.path);
   if (file.path.startsWith(`${destination}/`))
     return "Сгенерированная навигация по файлам; обновляется командой pnpm docs:files.";
   if (/^docs\/(archive|audits\/archive)\//.test(file.path))
     return "Исторический материал. Сохраняет прежние требования или доказательства; не является инструкцией текущего выпуска.";
-  if (/^apps\/legacy-|^tooling\/legacy\//.test(file.path))
-    return "Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.";
   if (sourcePattern.test(file.path) && file.text !== null) {
     const source = summarizeSource(file.path, file.text);
     return (
       source.purpose ||
-      `Модуль ${name}; объявления и смысловые границы перечислены ниже.`
+      `${/^apps\/legacy-|^tooling\/legacy\//.test(file.path) ? "Архивный модуль" : "Модуль"} ${name}; объявления и смысловые границы перечислены ниже.`
     );
   }
   if (
@@ -212,6 +217,8 @@ function purposeFor(file: FileEntry): string {
         .join(" ")
         .slice(0, 300);
   }
+  if (/^apps\/legacy-|^tooling\/legacy\//.test(file.path))
+    return "Прежний клиент или инструмент. Сохранён для совместимости и истории; назначение исполнения проверять отдельно.";
   if (/\.md$/.test(name) && file.text !== null) {
     const title = file.text
       .split("\n")
@@ -255,12 +262,14 @@ function purposeFor(file: FileEntry): string {
   return "Служебный файл проекта; назначение уточняется по каталогу и связанному README.";
 }
 
+/** Экранирует разделитель таблицы, убирает переводы строк и краевые пробелы; кодовые значения не интерпретируются как Markdown. */
 const clean = (value: string) =>
   value
     .replace(/\|/g, "\\|")
     .replace(/[\r\n]+/g, " ")
     .replace(/`/g, "'")
     .trim();
+/** Строит относительную ссылку из каталога справочника и кодирует каждый сегмент пути, сохраняя структуру папок. */
 function fileLink(file: string) {
   const relative = path.posix
     .relative(destination, file)
@@ -271,6 +280,7 @@ function fileLink(file: string) {
 }
 
 /** Каждый путь попадает в один раздел. Сгенерированные страницы описывают себя без чтения своих тел. */
+/** Удаляет повторы путей, формирует разделы и общую карту; автогенерация описывает своё назначение без рекурсивного чтения собственных страниц. */
 export function buildFileGuide(files: FileEntry[]): Map<string, string> {
   const sorted = [
     ...new Map(files.map((entry) => [entry.path, entry])).values(),
@@ -340,6 +350,7 @@ export function buildFileGuide(files: FileEntry[]): Map<string, string> {
 }
 
 /** CLI читает только Git-инвентарь; записи ограничены каталогом справочника. */
+/** CLI допускает только write/check, читает Git-инвентарь и разрешённые тексты, затем пишет только страницы справочника или сообщает устаревшие результаты. */
 function main() {
   const mode = process.argv[2];
   if (!["--write", "--check"].includes(mode) || process.argv.length !== 3)

@@ -1,14 +1,18 @@
+/** Браузерная проверка геометрии, lazy-loading, fallback и повторов фото на синтетических PNG/API fixtures. Внешние фото и рабочие данные не используются; проверка браузера не заменяет живой iPhone. */
 import { test, expect, type Page } from "@playwright/test";
 import sharp from "sharp";
 import { editorApi, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
+/** Стабильный synthetic URL позволяет считать запросы и отличать замену фото от повторного запроса того же ресурса. */
 const imageUrl = (id: number) => `https://images.example.test/photo-${id}.svg`;
 // Raster fixtures expose real intrinsic dimensions consistently in WebKit.
+/** Создаёт настоящий PNG с известной геометрией: naturalWidth/Height должны работать и в WebKit без SVG-особенностей. */
 const raster = (width = 640, height = 800) =>
   sharp({ create: { width, height, channels: 3, background: "#e4cfb4" } })
     .png()
     .toBuffer();
+/** Минимальная карточка с каноническими датами и пустыми реакциями исключает влияние постороннего контента на размеры. */
 const post = (id: number, photos = [imageUrl(id)]) => ({
   id,
   text: `IMAGE_POST_${id}`,
@@ -22,6 +26,7 @@ const post = (id: number, photos = [imageUrl(id)]) => ({
   createdAt: "2026-10-06T10:00:00Z",
   publishedAt: "2026-10-06T10:00:00Z",
 });
+/** Подменяет данные Ленты/Клуба и устанавливает наблюдатель Image.src: скрытые фото не должны создавать eager probes размеров. */
 async function imagesApi(page: Page, posts = [post(1)]) {
   await editorApi(page, (name) => {
     if (name === "feed.listPaginated" || name === "club.listByCategory")
@@ -52,6 +57,7 @@ async function imagesApi(page: Page, posts = [post(1)]) {
     Object.defineProperty(window, "__photoProbes", { value: probes });
     const NativeImage = window.Image;
     window.Image = class extends NativeImage {
+/** Наблюдаем только тестовый origin, сохраняя настоящий setter браузерного Image и его загрузочное поведение. */
       set src(uri: string) {
         if (uri.startsWith("https://images.example.test/")) probes.push(uri);
         super.src = uri;
@@ -64,6 +70,7 @@ async function imagesApi(page: Page, posts = [post(1)]) {
 }
 
 for (const width of [390, 1440]) {
+  /** На мобильной и desktop ширине нижние фото запрашиваются после прокрутки, без отдельных скрытых Image probes. */
   test(`below-viewport photos wait for scrolling without eager size probes at ${width}px`, async ({
     page,
   }) => {
@@ -117,6 +124,7 @@ for (const width of [390, 1440]) {
   });
 }
 
+/** 404 после задержки заменяет загрузку понятным fallback, сохраняя исходные ширину и высоту карточки. */
 test("a delayed missing photo keeps its frame and shows a readable fallback", async ({
   page,
 }) => {
@@ -154,6 +162,7 @@ test("a delayed missing photo keeps its frame and shows a readable fallback", as
 });
 
 for (const mode of ["direct", "preview", "original-fallback"] as const) {
+  /** Для direct/preview/original fallback проверяем общий timeout, отсутствие вечной загрузки и игнорирование позднего результата до ручного retry. */
   test(`a hung photo stops loading and recovers only after manual retry (${mode})`, async ({
     page,
   }) => {
@@ -232,6 +241,7 @@ for (const mode of ["direct", "preview", "original-fallback"] as const) {
   });
 }
 
+/** Таймер загрузки не истекает у смонтированного, но ещё невидимого кадра карусели; отсчёт начинается при показе. */
 test("a mounted photo outside the carousel viewport does not time out before scrolling", async ({
   page,
 }) => {
@@ -289,6 +299,7 @@ test("a mounted photo outside the carousel viewport does not time out before scr
   }
 });
 
+/** Первый connection reset допускает ограниченный автоматический повтор и не оставляет кнопку ручной ошибки после успеха. */
 test("a transient image error recovers automatically", async ({ page }) => {
   await imagesApi(page);
   await page.clock.install();
@@ -316,6 +327,7 @@ test("a transient image error recovers automatically", async ({ page }) => {
   ).toHaveCount(0);
 });
 
+/** Offline приостанавливает уже намеченный retry; возврат связи возобновляет один запрос, не серию фоновых скачиваний. */
 test("a failed photo retries after the connection returns", async ({
   page,
   context,
@@ -348,6 +360,7 @@ test("a failed photo retries after the connection returns", async ({
 });
 
 for (const count of [1, 9, 10]) {
+  /** После трёх неудач галереи 1/9/10 фото показывают доступный ручной retry; Enter повторяет загрузку без случайного открытия viewer. */
   test(`manual retry restores a photo in a ${count}-photo gallery without opening the viewer`, async ({
     page,
   }) => {
@@ -415,6 +428,7 @@ for (const count of [1, 9, 10]) {
   });
 }
 
+/** Большой preview и original могут отказать независимо от карточки; ручной retry восстанавливает фото внутри уже открытого viewer. */
 test("manual retry restores a viewer photo when optimized and original requests fail", async ({
   page,
 }) => {
@@ -477,6 +491,7 @@ test("manual retry restores a viewer photo when optimized and original requests 
   await expect(retry).toHaveCount(0);
 });
 
+/** Отказ Next preview убирает srcset и ожидает original без параллельных повторов, пока его deadline не исчерпан. */
 test("a failed optimized preview falls back to the original and waits for it", async ({
   page,
 }) => {
@@ -518,6 +533,7 @@ test("a failed optimized preview falls back to the original and waits for it", a
   }
 });
 
+/** Эмулирует pull-to-refresh DOM touch-событиями; это проверка обработчика, а не физического жеста iOS. */
 async function refresh(page: Page) {
   await page
     .locator(
@@ -536,6 +552,7 @@ async function refresh(page: Page) {
     });
 }
 
+/** Refresh с новым URL сбрасывает прежний отказ, но карточка Ленты сохраняет зарезервированное отношение сторон. */
 test("replacing a photo keeps its reserved frame and clears a previous failure", async ({
   page,
 }) => {
@@ -602,6 +619,7 @@ test("replacing a photo keeps its reserved frame and clears a previous failure",
   await expect(photo).toBeVisible();
 });
 
+/** Переключение сетка/лента не теряет геометрию карточки до повторного получения landscape-фото. */
 test("recreated cards reserve the same frame before reloading a landscape photo", async ({
   page,
 }) => {
@@ -652,6 +670,7 @@ test("recreated cards reserve the same frame before reloading a landscape photo"
 });
 
 for (const width of [390, 1440]) {
+  /** Первый hero загружается приоритетно из responsive hashed static asset с immutable cache; выбор размера проверяется по currentSrc и intrinsic width. */
   test(`the first home banner loads eagerly using economical variants at ${width}px`, async ({
     page,
   }) => {
@@ -702,6 +721,7 @@ for (const width of [390, 1440]) {
 for (const width of [390, 1440]) {
   for (const path of ["/feed", "/club", "/post/1"]) {
     for (const count of [1, 4, 10]) {
+/** Матрица Лента/Клуб/detail ×1/4/10 фото ×две ширины проверяет задержку, ошибку одного кадра, геометрию, object-fit, счётчик и отсутствие horizontal overflow. */
       test(`${path === "/club" ? "club aspect-aware galleries load" : "reserved gallery frames keep text stable while loading"} ${count} photos in ${path} at ${width}px`, async ({
         page,
       }) => {
@@ -874,6 +894,7 @@ for (const width of [390, 1440]) {
 }
 
 for (const width of [390, 1440]) {
+  /** Высокое видео не раздувает блок соседних фото; открытие последнего изображения сохраняет правильную нумерацию без video thumbnail. */
   test(`photos beside a tall video stay inside the reserved gallery and the last photo opens correctly at ${width}px`, async ({
     page,
   }) => {
@@ -930,6 +951,7 @@ for (const width of [390, 1440]) {
 }
 
 for (const reducedMotion of [false, true]) {
+  /** Opacity-анимация не меняет размеры, а reduced-motion выключает transition; повторный mount сохраняет высоту. */
   test(`photo fades in without resizing its frame; reduced motion: ${reducedMotion}`, async ({
     page,
   }) => {
@@ -956,6 +978,7 @@ for (const reducedMotion of [false, true]) {
       await expect(image).toBeVisible();
       await expect(image).toHaveCSS("opacity", "0");
       const before = (await image.boundingBox())!.height;
+      /** Снимает размеры и opacity по animation frames вокруг загрузки: плавность не должна менять зарезервированную геометрию. */
       const samples = image.evaluate(async (node) => {
         const values: { height: number; opacity: number }[] = [];
         const end = performance.now() + 600;
@@ -994,6 +1017,7 @@ for (const viewport of [
   { width: 1440, height: 844 },
   { width: 390, height: 568 },
 ]) {
+  /** Галереи от одного до десяти фото занимают один стабильный блок до и после загрузки, включая низкий viewport и заполнение всей сетки. */
   test(`one to ten photos share one reserved block at ${viewport.width}x${viewport.height}`, async ({
     page,
   }) => {

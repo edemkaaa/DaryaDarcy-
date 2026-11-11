@@ -29,6 +29,7 @@ export const SHOP_MISSING_FILES = new Set([
   "luiZwEIyLvSFPdXH.JPG",
 ]);
 
+/** Размер карусели задаётся долей ширины; детальный каталог переиспользуется из domain без копирования товаров. */
 export function getProductScreenContent(viewport: ViewportSize) {
   const { width: SCREEN_WIDTH } = viewport;
   const CAROUSEL_ITEM_WIDTH = SCREEN_WIDTH * 0.58;

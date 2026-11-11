@@ -51,8 +51,10 @@ const requestSchema = z
   })
   .strict();
 export type YookassaCreateRequest = z.infer<typeof requestSchema>;
+/** Создаёт обезличенную ошибку провайдера без тела ответа, секрета и реквизитов получателя. */
 const failure = () => new Error("YooKassa provider unavailable");
 
+/** Допускает только точный TEST-флаг, test_ ключ, shopId и фиксированный dev-origin; формирует отдельный returnUrl. */
 export function readYookassaTestConfig(
   env: NodeJS.ProcessEnv = process.env,
 ): YookassaTestConfig {
@@ -70,6 +72,7 @@ export function readYookassaTestConfig(
   };
 }
 
+/** Разрешает браузерный переход лишь на HTTPS yoomoney.ru в известных каталогах без credentials/port/fragment. */
 export function confirmationUrl(payment: YookassaPayment): string | null {
   if (!payment.confirmation) return null;
   const url = new URL(payment.confirmation.confirmation_url);
@@ -89,7 +92,9 @@ export function confirmationUrl(payment: YookassaPayment): string | null {
 /** Ограниченный транспорт с фиксированным origin; тела провайдера и доступы наружу не передаются. */
 export class YookassaTestClient {
   private inFlight = 0;
+  /** Сохраняет уже проверенную TEST-конфигурацию для ограниченного клиента фиксированного origin. */
   constructor(private readonly config: YookassaTestConfig) {}
+  /** Строит строго разовый RUB capture из целых minor units и проверенного yk-club order, без сохранения платёжного метода. */
   paymentRequest(orderId: string, amountMinor: number): YookassaCreateRequest {
     if (
       !orderIdSchema.safeParse(orderId).success ||
@@ -114,6 +119,7 @@ export class YookassaTestClient {
     };
   }
 
+  /** Валидирует структуру/return URL/idempotence-key, создаёт платёж и сверяет provider amount/order с неизменяемым запросом. */
   async createPayment(
     rawRequest: unknown,
     key: string,
@@ -139,6 +145,7 @@ export class YookassaTestClient {
     return payment;
   }
 
+  /** Ограничивает четыре конкурентных запроса, 15-секундный fetch и 64 KiB JSON; запрещает redirects и всегда освобождает inFlight. */
   private async request(
     path: string,
     create?: { request: YookassaCreateRequest; key: string },
@@ -191,6 +198,7 @@ export class YookassaTestClient {
     }
   }
 
+  /** Проверяет, что credentials действительно принадлежат нужному TEST shopId с доступным способом оплаты. */
   async verifyAccount(): Promise<void> {
     const account = z
       .object({
@@ -202,6 +210,7 @@ export class YookassaTestClient {
     if (!account.success) throw failure();
   }
 
+  /** Читает только проверенный UUID платежа и сверяет его с id ответа провайдера. */
   async getPayment(id: string): Promise<YookassaPayment> {
     if (!paymentIdSchema.safeParse(id).success) throw failure();
     const payment = this.parsePayment(await this.request(`payments/${id}`));
@@ -209,6 +218,7 @@ export class YookassaTestClient {
     return payment;
   }
 
+  /** Проверяет TEST-платёж по схеме, принадлежности shopId, положительной сумме и безопасной confirmation-ссылке. */
   private parsePayment(raw: unknown): YookassaPayment {
     const payment = paymentSchema.safeParse(raw);
     if (

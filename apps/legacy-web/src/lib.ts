@@ -1,3 +1,5 @@
+/** Принимает массив, JSON-строку массива или старый одиночный HTTP-адрес; полноценной политики безопасных URL здесь нет. */
+/** Архивные преобразования старых API-полей в данные карточек Vite. */
 export function asPhotos(photos: unknown): string[] {
   if (Array.isArray(photos)) return photos.filter((p): p is string => typeof p === "string" && p.length > 0);
   if (typeof photos === "string") {
@@ -11,6 +13,7 @@ export function asPhotos(photos: unknown): string[] {
   return [];
 }
 
+/** Совмещает прежние массивы и JSON-представление тегов; повреждённые данные превращает в пустой список. */
 export function asTags(tags: unknown): string[] {
   if (Array.isArray(tags)) return tags.filter((t): t is string => typeof t === "string");
   if (typeof tags === "string") {
@@ -38,6 +41,7 @@ const MONTHS = [
   "декабря",
 ];
 
+/** Форматирует корректную дату в локальном часовом поясе браузера, скрывая пустые и неверные значения. */
 export function formatDate(value: Date | string | null | undefined): string {
   if (!value) return "";
   const d = new Date(value);
@@ -45,6 +49,7 @@ export function formatDate(value: Date | string | null | undefined): string {
   return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+/** Сжимает пробелы для краткой карточки и добавляет многоточие после обрезки по длине строки. */
 export function previewText(text: string, max = 140): string {
   const clean = text.replace(/\s+/g, " ").trim();
   if (clean.length <= max) return clean;

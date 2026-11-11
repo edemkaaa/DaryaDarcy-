@@ -3,6 +3,7 @@ import { cursorFixture, legacyCursorFixture } from "./cursor-fixture";
 import { interactionFixture } from "./interaction-fixture";
 
 /** Wait for client startup before interacting with server-rendered controls. */
+/** Ждём стартовый успешный /auth/me вместе с навигацией, прежде чем нажимать SSR-кнопки до hydration. */
 export async function gotoWithSession(page: Page, path: string) {
   const [, response] = await Promise.all([
     page.waitForResponse(
@@ -16,6 +17,7 @@ export async function gotoWithSession(page: Page, path: string) {
 }
 
 /** Browser-only data: layout checks must not start an API or write to a database. */
+/** Перехватываем API внутри браузера и задаём гостя или синтетическую участницу; layout-проверка не запускает настоящую БД. */
 export async function layoutApi(
   page: Page,
   subscribed = false,
@@ -97,6 +99,7 @@ export async function layoutApi(
         url.pathname.slice("/api/trpc/".length),
       ).split(",");
       const inputs = JSON.parse(url.searchParams.get("input") ?? "{}");
+      /** Выбираем минимальный успешный ответ для известного запроса; особые сценарии переопределяют его через answer. */
       const data = (name: string) => {
         switch (name) {
           case "club.subscription":

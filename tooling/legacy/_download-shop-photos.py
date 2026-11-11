@@ -1,3 +1,4 @@
+# Скачивает прежние фото Магазина в локальную временную папку по ссылкам старого Expo-экрана; в S3 не пишет.
 import pathlib
 import re
 import urllib.request

@@ -1,4 +1,5 @@
 // Captured from the original mixed modules before splitting. Ordered field hashes.
+// Эталонные хеши разделяют бесплатные и клубные authored поля; значения являются неизменяемыми данными регрессии, а не секретами.
 export const aestheticContentHashes = {
   cottagecore: {
     paid: "ed7ddfadcbc6521455b4410b7c53d5484702be13ed8c38cf943bdb88d79b864b",

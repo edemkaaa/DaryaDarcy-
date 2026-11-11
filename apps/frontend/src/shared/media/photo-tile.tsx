@@ -16,11 +16,12 @@ type PhotoTileProps = {
   sizes?: string;
 };
 
-/** Keep the retry button beside the photo action, avoiding nested buttons. */
+/** Смена URI сбрасывает локальное состояние отказа и повтора через новый экземпляр карточки. Кнопка повтора остаётся рядом с действием фото, без вложенных кнопок. */
 export function PhotoTile(props: PhotoTileProps) {
   return <PhotoTileContent key={props.uri} {...props} />;
 }
 
+/** Держим кнопку открытия и кнопку повтора соседями, чтобы не создавать вложенные интерактивные элементы. */
 function PhotoTileContent({
   uri,
   onPhotoPress,

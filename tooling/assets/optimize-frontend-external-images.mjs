@@ -13,15 +13,17 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const sourceDir = path.join(root, "apps/frontend/src");
 const publicDir = path.join(root, "apps/frontend/public");
 const write = process.argv.includes("--write");
-const argument = (name) => process.argv.find((arg) => arg.startsWith(`--${name}=`))?.slice(name.length + 3);
+const argument = (name) => /* Читает только явную CLI-настройку указанного имени, не подгружая секретное окружение приложения. */ process.argv.find((arg) => arg.startsWith(`--${name}=`))?.slice(name.length + 3);
 const cacheDir = argument("cache-dir") ?? await fs.mkdtemp(path.join(os.tmpdir(), "darcy-public-images-"));
 const reportPath = argument("report") ?? "/tmp/darcy-external-image-audit.json";
 const resumePath = argument("resume-report");
 const downloadTimeout = Number(argument("download-timeout") ?? 30_000);
 const attempts = Number(argument("attempts") ?? 3);
 await fs.mkdir(cacheDir, { recursive: true });
-const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
+const hash = (bytes) => /* Адресует сохранённый source и производные по точным байтам либо исходному URL для воспроизводимого продолжения аудита. */ createHash("sha256").update(bytes).digest("hex");
 async function walk(dir) {
+  // Собирает локальные исходники для извлечения публичных изображений и дальнейшей замены проверенных ссылок.
+
   const entries = await fs.readdir(dir, { withFileTypes: true });
   return (await Promise.all(entries.map((entry) => {
     const file = path.join(dir, entry.name);
@@ -45,6 +47,8 @@ for (const text of sources.values()) {
   }
 }
 async function download(url) {
+  // Возобновляет чтение из собственного кеша либо ограниченно скачивает источник, сохраняя заголовки и время для отчёта.
+
   const key = hash(url);
   const file = path.join(cacheDir, key + ".source");
   const metadata = path.join(cacheDir, key + ".json");
@@ -68,6 +72,8 @@ async function download(url) {
   throw lastError;
 }
 async function pixels(bytes) {
+  // Приводит source и кандидата к одинаковому ориентированному RGBA перед разрешением замены.
+
   return sharp(bytes).autoOrient().toColourspace("srgb").ensureAlpha().raw().toBuffer({ resolveWithObject: true });
 }
 let jpegtranAvailable = true;
@@ -113,7 +119,7 @@ await Promise.all(Array.from({ length: 3 }, async () => {
           const check = await pixels(candidate.bytes);
           if (decoded.info.width !== check.info.width || decoded.info.height !== check.info.height || !decoded.data.equals(check.data)) continue;
           if ((meta.bitsPerSample ?? 8) > 8) {
-            const nativePixels = (data) => sharp(data).toColourspace("rgb16").raw({ depth: "ushort" }).toBuffer();
+            const nativePixels = (data) => /* Дополнительно сравнивает 16-битные образцы; обычного RGBA8 недостаточно для доказательства сохранения глубины PNG. */ sharp(data).toColourspace("rgb16").raw({ depth: "ushort" }).toBuffer();
             if (!(await nativePixels(bytes)).equals(await nativePixels(candidate.bytes))) continue;
             const outputMeta = await sharp(candidate.bytes).metadata();
             if (outputMeta.bitsPerSample !== meta.bitsPerSample || !(meta.icc ?? Buffer.alloc(0)).equals(outputMeta.icc ?? Buffer.alloc(0))) continue;

@@ -4,6 +4,7 @@ import { gotoWithSession, layoutApi } from "./layout-fixtures";
 test.use({ isMobile: true, hasTouch: true });
 
 // These are keyboard geometry models, not a real iOS/Android keyboard.
+/** Моделируем два вида изменения viewport клавиатурой; это геометрическая проверка, а не эмуляция настоящей клавиатуры iOS. */
 async function resizeKeyboard(
   page: Page,
   model: "layout" | "visual",
@@ -26,6 +27,7 @@ async function resizeKeyboard(
     .toBeCloseTo(height, 0);
 }
 
+/** Проверяем пересечение поля одновременно с внутренним scroll-контейнером и visualViewport. */
 async function fullyVisible(field: Locator) {
   await expect
     .poll(() =>
@@ -44,6 +46,7 @@ async function fullyVisible(field: Locator) {
     .toBe(true);
 }
 
+/** Четыре режима входа проверяем на двух ширинах и двух моделях клавиатуры; тест сам не прокручивает поле для сокрытия дефекта. */
 for (const model of ["layout", "visual"] as const)
   for (const width of [320, 390])
     for (const mode of ["login", "register", "recover", "totp"] as const)

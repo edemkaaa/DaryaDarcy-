@@ -2,6 +2,7 @@
 @use "../styles/layers";
 
 @layer elements {
+  /* Заглушка повторяет поля основного контента и ограничивает карточки по ширине. */
   .content {
     width: 100%;
     padding: 0 20px 24px;
@@ -16,6 +17,7 @@
     overflow: hidden;
     border-radius: 16px;
   }
+  /* Пустые обложки и строки используют статическую поверхность без дополнительного shimmer. */
   .cover,
   .line {
     background: rgba(139, 115, 85, 0.09);
@@ -37,6 +39,7 @@
   .line:last-child {
     width: 48%;
   }
+  /* Пропорции ленты и line boxes видеокарточки различаются, уменьшая сдвиг после загрузки данных. */
   .feed .cover {
     aspect-ratio: 4 / 3;
   }
@@ -54,6 +57,7 @@
   .video .card {
     background: rgba(253, 248, 240, 0.65);
   }
+  /* Библиотечная заглушка повторяет двухколоночную сетку с minmax:0, а не вертикальный список. */
   .library .frames {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -68,6 +72,7 @@
   .library .lines {
     padding: 10px 0;
   }
+  /* Текстовая статья имеет другой отступ и длину строк, чем карточки каталога. */
   .article {
     padding-top: 24px;
   }

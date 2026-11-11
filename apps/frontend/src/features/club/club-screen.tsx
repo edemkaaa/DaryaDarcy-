@@ -48,6 +48,7 @@ import {
 import { getClubScreenContent } from "./club-screen.content";
 import { ClubCheckoutMode } from "./checkout-mode";
 import { getClubPaymentMode } from "./payment-mode";
+/** Оборачиваем раздел в выбранный платежный режим до показа клуба или формы подписки. */
 export default function ClubScreen() {
   return (
     <ClubCheckoutMode>
@@ -56,6 +57,7 @@ export default function ClubScreen() {
   );
 }
 
+/** Ждём подтверждения сессии и доступа; отдельное намерение checkout позволяет действующей участнице открыть продление. */
 function LegacyClubScreen() {
   const prodamusTest = getClubPaymentMode() === "prodamus-test";
   const active = useScreenActive();
@@ -93,6 +95,7 @@ function LegacyClubScreen() {
   });
   const payError = payment.payError;
   const payLabel = payment.purchaseLabel ?? defaultPayLabel;
+  /** Одинаковые контакты в двух блоках формы связаны с одним owner-scoped черновиком; сохранённая покупка подставляет свои неизменяемые значения. */
   const contactPhoneField = (
     <GuestContactFields
       email={payment.savedGuestEmail ?? guestEmail}
@@ -106,6 +109,7 @@ function LegacyClubScreen() {
     />
   );
   const [, setActiveLetterIndex] = useState(0);
+  /** Запоминаем индекс рекламной карусели по её согласованному шагу; это не состояние покупки. */
   const onLetterScroll = useCallback(
     (e: React.UIEvent<HTMLDivElement>) => {
       const offsetX = e.currentTarget.scrollLeft;

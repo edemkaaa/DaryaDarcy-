@@ -3,6 +3,7 @@ import type { AddressInfo } from "node:net";
 import { createBackendApplication } from "../_core/application";
 import { requireProdamusTestConfiguration } from "./prodamus-test-club.service";
 
+/** Проверяет отдельную TEST-конфигурацию и порт, запускает приложение только с тремя разрешёнными POST путями и без WorkerJobs. */
 async function start(): Promise<void> {
   requireProdamusTestConfiguration();
   const port = Number(process.env.PORT ?? "3000");

@@ -3,7 +3,7 @@
 
 import { useEffect } from "react";
 
-/** Observe touch movement without taking over native scroll, selection or pinch. */
+/** Единая capture-подписка отличает swipe/pinch от tap и подавляет только недавний совместимый click на управляющем элементе. */
 export function TouchPressGuard() {
   useEffect(() => {
     const root = document.documentElement;
@@ -15,6 +15,7 @@ export function TouchPressGuard() {
       canceled: boolean;
       endedAt: number | null;
     } | null = null;
+    /** Новый одиночный touch начинает независимый tap; второй палец помечает его отменённым, а мышь сбрасывает touch-режим. */
     const down = (event: PointerEvent) => {
       if (event.pointerType !== "touch") {
         root.removeAttribute("data-touch-press");
@@ -34,6 +35,7 @@ export function TouchPressGuard() {
       else if (touch) touch.canceled = true;
       pointers.add(event.pointerId);
     };
+    /** Заметный сдвиг первого пальца отменяет нажатие, не запрещая нативную прокрутку или масштабирование. */
     const move = (event: PointerEvent) => {
       if (event.pointerType === "mouse")
         root.removeAttribute("data-touch-press");
@@ -43,22 +45,26 @@ export function TouchPressGuard() {
       )
         touch.canceled = true;
     };
+    /** Запоминаем время завершения последнего указателя; pointercancel тоже запрещает последующий compatibility click. */
     const end = (event: PointerEvent) => {
       if (!pointers.delete(event.pointerId) || !touch) return;
       if (event.type === "pointercancel") touch.canceled = true;
       if (!pointers.size) touch.endedAt = event.timeStamp;
     };
+    /** Клавиатура возвращает обычный focus/press режим и очищает незавершённую последовательность касаний. */
     const keyboard = () => {
       root.removeAttribute("data-touch-press");
       touch = null;
       pointers.clear();
     };
+    /** Нативный scroll может раньше отменить Pointer Events, поэтому фактическое поднятие пальца уточняет окно подавления click. */
     const touchEnd = (event: TouchEvent) => {
       // Native scrolling cancels pointer events before the finger is lifted.
       // Date the possible compatibility click from the actual end of the swipe.
       if (!event.touches.length && touch?.canceled)
         touch.endedAt = event.timeStamp;
     };
+    /** Не трогаем клавиатурные/мышиные активации; подавляем лишь короткий след отменённого touch на ссылке или кнопке. */
     const click = (event: MouseEvent) => {
       // Keyboard/programmatic clicks and actual mouse clicks keep their native
       // behavior. A fresh pointerdown always starts a new, independent tap.

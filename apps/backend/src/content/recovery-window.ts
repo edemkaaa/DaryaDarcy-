@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 
 const RECOVERY_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
+/** Вычисляем границу 30-дневного окна по текущим часам процесса, запрещая некорректное время. */
 export function contentRecoveryCutoff(): Date {
   const now = Date.now();
   if (!Number.isFinite(now)) throw new Error("Invalid recovery clock");
@@ -10,6 +11,7 @@ export function contentRecoveryCutoff(): Date {
 }
 
 /** Expire recovery, not the material or its live attachment read evidence. */
+/** При включённой политике отличаем истёкший ключ от ненадёжных часов; ограничиваем только повтор операции, а не жизнь опубликованного файла. */
 export function assertContentRecoveryWindow(createdAt: Date): void {
   if (process.env.CONTENT_RECOVERY_RETENTION_ENABLED !== "true") return;
   const recordedAt = createdAt instanceof Date ? createdAt.getTime() : NaN;

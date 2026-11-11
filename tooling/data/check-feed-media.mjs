@@ -13,6 +13,7 @@ const env = Object.fromEntries(
     })
 );
 
+// Диагностика только читает выбранную БД; старый путь загрузки env нужно сверить перед запуском.
 const conn = await mysql.createConnection(env.DATABASE_URL);
 const [manyPhotos] = await conn.query(
   "SELECT id, JSON_LENGTH(photos) AS n FROM posts WHERE published = 1 AND target IN ('feed', 'both') AND JSON_LENGTH(photos) > 9 ORDER BY JSON_LENGTH(photos) DESC LIMIT 15"

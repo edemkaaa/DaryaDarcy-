@@ -14,14 +14,18 @@ afterEach(async () => {
 const id = "sq7pY1H_fYU";
 
 async function start(options = {}) {
+  // Поднимает loopback HTTP-сервер с коротким синтетическим MP4 и собственной очисткой, не используя рабочие файлы.
+
   const directory = await mkdtemp(join(tmpdir(), "video-http-test-"));
   cleanups.push(() => rm(directory, { recursive: true, force: true }));
   const path = join(directory, "fixture.mp4");
   await writeFile(path, Buffer.from("0123456789"));
   const server = createVideoServer({
     catalogUrl: "http://unused.invalid/api/trpc/videos.list",
-    readCatalog: async () => [{ youtubeId: id, published: true }],
-    cache: { acquire: async () => ({ path, release() {} }) },
+    readCatalog: async () => /* Подставляет разрешающий, закрытый, изменившийся или недоступный каталог для конкретной границы выдачи. */ [{ youtubeId: id, published: true }],
+    cache: { acquire: async () => /* Имитирует файловую аренду либо запрещает её достижение, чтобы проверить порядок отказов до подготовки. */ ({ path, release() {
+      // Завершает подставную аренду без реальных внешних ресурсов.
+} }) },
     ...options,
     ...(options.makeCache ? { cache: options.makeCache(path) } : {}),
   });
@@ -37,6 +41,7 @@ async function start(options = {}) {
   return `http://127.0.0.1:${server.address().port}`;
 }
 
+// Сценарий: Полная выдача содержит точные длину, MP4-тип и Range-заголовки.
 test("serves a complete prepared video with a bounded content length", async () => {
   const base = await start();
   const response = await fetch(`${base}/api/yt/${id}`);
@@ -47,12 +52,17 @@ test("serves a complete prepared video with a bounded content length", async () 
   assert.equal(response.headers.get("x-content-type-options"), "nosniff");
   assert.equal(await response.text(), "0123456789");
 });
+// Сценарий: GET, HEAD, Range и обложка дважды проверяют компактную authority без чтения каталога.
 test("uses compact authority twice for GET HEAD Range and thumbnails without reading the catalog", async () => {
   let checks = 0;
   const base = await start({
-    readCatalog: async () => { throw new Error("whole catalog must not be requested"); },
-    readPublication: async requested => { assert.equal(requested, id); checks++; return true; },
-    readThumbnail: async () => Buffer.from([0xff, 0xd8, 0xff]),
+    readCatalog: async () => {
+      // Подставляет разрешающий, закрытый, изменившийся или недоступный каталог для конкретной границы выдачи.
+ throw new Error("whole catalog must not be requested"); },
+    readPublication: async requested => {
+      // Подставляет компактное решение и считает обращения; проверки должны выполняться до и после чтения.
+ assert.equal(requested, id); checks++; return true; },
+    readThumbnail: async () => /* Предоставляет тестовые JPEG-байты либо запрещает чтение закрытой обложки. */ Buffer.from([0xff, 0xd8, 0xff]),
   });
   for (const [path, options, status] of [
     [`/api/yt/${id}`, {}, 200], [`/api/yt/${id}`, { method: "HEAD" }, 200],
@@ -63,25 +73,35 @@ test("uses compact authority twice for GET HEAD Range and thumbnails without rea
   }
   assert.equal(checks, 8);
 });
+// Сценарий: Снятие публикации во время подготовки запрещает выдачу байтов.
 test("rechecks compact authority after preparation and never returns unpublished bytes", async () => {
   let published = true;
   const base = await start({
-    readPublication: async () => published,
-    makeCache: path => ({ acquire: async () => { published = false; return { path, release() {} }; } }),
+    readPublication: async () => /* Подставляет компактное решение и считает обращения; проверки должны выполняться до и после чтения. */ published,
+    makeCache: path => /* Создаёт cache-двойник вокруг точного тестового пути для изменения публикации во время подготовки. */ ({ acquire: async () => {
+      // Имитирует файловую аренду либо запрещает её достижение, чтобы проверить порядок отказов до подготовки.
+ published = false; return { path, release() {
+      // Завершает подставную аренду без реальных внешних ресурсов.
+} }; } }),
   });
   assert.equal((await fetch(`${base}/api/yt/${id}`)).status, 404);
 });
+// Сценарий: Явно клубная authority запрещает все виды чтения до подготовки.
 test("rejects explicit club authority for GET HEAD Range and thumbnail before preparation", async () => {
   const base = await start({
-    readCatalog: async () => [
+    readCatalog: async () => /* Подставляет разрешающий, закрытый, изменившийся или недоступный каталог для конкретной границы выдачи. */ [
       { youtubeId: id, published: true, access: "club" },
     ],
     cache: {
       acquire: async () => {
+        // Имитирует файловую аренду либо запрещает её достижение, чтобы проверить порядок отказов до подготовки.
+
         throw Error("club preparation reached");
       },
     },
     readThumbnail: async () => {
+      // Предоставляет тестовые JPEG-байты либо запрещает чтение закрытой обложки.
+
       throw Error("club thumbnail reached");
     },
   });
@@ -94,6 +114,7 @@ test("rejects explicit club authority for GET HEAD Range and thumbnail before pr
     assert.equal((await fetch(base + path, options)).status, 404);
 });
 
+// Сценарий: Обычный Range обеспечивает перемотку с точными байтами.
 test("serves a byte range for browser seeking", async () => {
   const base = await start();
   const response = await fetch(`${base}/api/yt/${id}`, {
@@ -105,6 +126,7 @@ test("serves a byte range for browser seeking", async () => {
   assert.equal(await response.text(), "345");
 });
 
+// Сценарий: Suffix и открытый конец ограничиваются размером файла.
 test("serves suffix and open-ended ranges", async () => {
   const base = await start();
   for (const [range, want, contentRange] of [
@@ -121,6 +143,7 @@ test("serves suffix and open-ended ranges", async () => {
   }
 });
 
+// Сценарий: Некорректные, пустые и multipart-диапазоны получают 416.
 test("rejects invalid, unsatisfiable and multipart ranges", async () => {
   const base = await start();
   for (const range of [
@@ -139,6 +162,7 @@ test("rejects invalid, unsatisfiable and multipart ranges", async () => {
   }
 });
 
+// Сценарий: HEAD возвращает заголовки без тела.
 test("HEAD reports video headers without a body", async () => {
   const base = await start();
   const response = await fetch(`${base}/api/yt/${id}`, { method: "HEAD" });
@@ -147,15 +171,20 @@ test("HEAD reports video headers without a body", async () => {
   assert.equal(await response.text(), "");
 });
 
+// Сценарий: Снятая публикация запрещает даже уже закешированный ролик и обложку.
 test("unpublishing denies cached playback before preparing or reading media", async () => {
   let published = true;
   const base = await start({
-    readCatalog: async () => [{ youtubeId: id, published }],
-    makeCache: (path) => ({
+    readCatalog: async () => /* Подставляет разрешающий, закрытый, изменившийся или недоступный каталог для конкретной границы выдачи. */ [{ youtubeId: id, published }],
+    makeCache: (path) => /* Создаёт cache-двойник вокруг точного тестового пути для изменения публикации во время подготовки. */ ({
       acquire: async () => {
+        // Имитирует файловую аренду либо запрещает её достижение, чтобы проверить порядок отказов до подготовки.
+
         if (!published)
           throw new Error("unpublished media must not be accessed");
-        return { path, release() {} };
+        return { path, release() {
+          // Завершает подставную аренду без реальных внешних ресурсов.
+} };
       },
     }),
   });
@@ -168,10 +197,13 @@ test("unpublishing denies cached playback before preparing or reading media", as
   );
 });
 
+// Сценарий: Неизвестный ID не запускает произвольное скачивание YouTube.
 test("unknown IDs cannot turn the worker into an arbitrary YouTube downloader", async () => {
   const base = await start({
     cache: {
       acquire: async () => {
+        // Имитирует файловую аренду либо запрещает её достижение, чтобы проверить порядок отказов до подготовки.
+
         throw new Error("must not download");
       },
     },
@@ -179,9 +211,12 @@ test("unknown IDs cannot turn the worker into an arbitrary YouTube downloader", 
   assert.equal((await fetch(`${base}/api/yt/abcdefghijk`)).status, 404);
 });
 
+// Сценарий: Ошибка каталога возвращает общий 502 без внутренних подробностей.
 test("catalog failures fail closed with generic errors", async () => {
   const base = await start({
     readCatalog: async () => {
+      // Подставляет разрешающий, закрытый, изменившийся или недоступный каталог для конкретной границы выдачи.
+
       throw new Error("private details and credentials");
     },
   });
@@ -190,23 +225,31 @@ test("catalog failures fail closed with generic errors", async () => {
   assert.deepEqual(await response.json(), { error: "video unavailable" });
 });
 
+// Сценарий: После долгой подготовки публикация проверяется снова.
 test("rechecks publication after long preparation", async () => {
   let published = true;
   const base = await start({
-    readCatalog: async () => [{ youtubeId: id, published }],
+    readCatalog: async () => /* Подставляет разрешающий, закрытый, изменившийся или недоступный каталог для конкретной границы выдачи. */ [{ youtubeId: id, published }],
     cache: {
       acquire: async () => {
+        // Имитирует файловую аренду либо запрещает её достижение, чтобы проверить порядок отказов до подготовки.
+
         published = false;
-        return { path: "/absent", release() {} };
+        return { path: "/absent", release() {
+          // Завершает подставную аренду без реальных внешних ресурсов.
+} };
       },
     },
   });
   assert.equal((await fetch(`${base}/api/yt/${id}`)).status, 404);
 });
 
+// Сценарий: Пути, query URL и изменяющие методы отклоняются.
 test("rejects malformed IDs, URL input and mutating methods", async () => {
   const base = await start({
     readCatalog: async () => {
+      // Подставляет разрешающий, закрытый, изменившийся или недоступный каталог для конкретной границы выдачи.
+
       throw new Error("must not read catalog");
     },
   });
@@ -220,30 +263,35 @@ test("rejects malformed IDs, URL input and mutating methods", async () => {
   assert.equal(response.headers.get("allow"), "GET, HEAD");
 });
 
+// Сценарий: Health проверяет процесс независимо от интернета.
 test("health does not depend on internet or the catalog", async () => {
   const base = await start({
     readCatalog: async () => {
+      // Подставляет разрешающий, закрытый, изменившийся или недоступный каталог для конкретной границы выдачи.
+
       throw new Error("offline");
     },
   });
   assert.equal((await fetch(`${base}/health`)).status, 200);
 });
 
+// Сценарий: Опубликованная обложка возвращает проверенные JPEG-байты.
 test("serves the existing published thumbnail route with JPEG bytes", async () => {
   const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00]);
-  const base = await start({ readThumbnail: async () => jpeg });
+  const base = await start({ readThumbnail: async () => /* Предоставляет тестовые JPEG-байты либо запрещает чтение закрытой обложки. */ jpeg });
   const response = await fetch(`${base}/media/yt-thumb/${id}/hqdefault.jpg`);
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("content-type"), "image/jpeg");
   assert.deepEqual(Buffer.from(await response.arrayBuffer()), jpeg);
 });
 
+// Сценарий: Тёплая обложка немедленно закрывается после снятия публикации.
 test("a cached thumbnail is denied immediately after unpublishing", async () => {
   let published = true;
   const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0]);
   const base = await start({
-    readCatalog: async () => [{ youtubeId: id, published }],
-    readThumbnail: createThumbnailReader({ load: async () => jpeg }),
+    readCatalog: async () => /* Подставляет разрешающий, закрытый, изменившийся или недоступный каталог для конкретной границы выдачи. */ [{ youtubeId: id, published }],
+    readThumbnail: createThumbnailReader({ load: async () => /* Возвращает синтетическую обложку, позволяя проверить, что её тёплый кеш не обходит снятие публикации. */ jpeg }),
   });
   const url = `${base}/media/yt-thumb/${id}/hqdefault.jpg`;
   for (let i = 0; i < 2; i++) {
@@ -256,6 +304,7 @@ test("a cached thumbnail is denied immediately after unpublishing", async () => 
   assert.equal((await fetch(url)).status, 404);
 });
 
+// Сценарий: Лимит HTTP-работы возвращает 503, сохраняя доступность health.
 test("bounds concurrent HTTP work and still serves health while busy", async () => {
   let begin;
   let finish;
@@ -268,6 +317,8 @@ test("bounds concurrent HTTP work and still serves health while busy", async () 
   const base = await start({
     maxRequests: 1,
     readCatalog: async () => {
+      // Подставляет разрешающий, закрытый, изменившийся или недоступный каталог для конкретной границы выдачи.
+
       begin();
       await gate;
       return [{ youtubeId: id, published: true }];

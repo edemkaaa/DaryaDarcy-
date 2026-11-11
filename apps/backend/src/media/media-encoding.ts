@@ -5,12 +5,14 @@ import { TRPCError } from "@trpc/server";
 // limit also includes JSON metadata, so this does not increase accepted body size.
 const MAX_ENCODED_MEDIA_LENGTH = 50 * 1024 * 1024;
 const BASE64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+/** Возвращаем ошибку входных данных для неканонического Base64, не пытаясь исправлять или угадывать файл. */
 const invalidEncoding = () => new TRPCError({
   code: "BAD_REQUEST",
   message: "Некорректные данные файла",
 });
 
 /** Strict canonical encoding and decoded-size check without allocating a media buffer. */
+/** Проверяем алфавит, кратность, padding и неиспользуемые биты, вычисляем декодированный размер без большого буфера; превышение лимита отделяем как 413. */
 export function validateMediaBase64(base64: string, maxDecodedBytes?: number): void {
   if (
     !base64.length ||
@@ -38,6 +40,7 @@ export function validateMediaBase64(base64: string, maxDecodedBytes?: number): v
 }
 
 /** Strict canonical encoding; an optional decoded ceiling is checked before allocation. */
+/** После полной проверки канонической формы и размера выделяем единственный декодированный буфер. */
 export function decodeMediaBase64(base64: string, maxDecodedBytes?: number): Buffer {
   validateMediaBase64(base64, maxDecodedBytes);
   return Buffer.from(base64, "base64");

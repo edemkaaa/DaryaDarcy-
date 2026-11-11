@@ -14,6 +14,7 @@ export type ProdamusCancellationTarget = Pick<
   "domain" | "subscriptionId" | "profileId" | "manager"
 >;
 
+/** Проверяет профиль против configured merchant/subscription, подписывает setActivity и разрешает подтверждение только точным success от того же endpoint без redirects. */
 export async function cancelProdamusProfile(
   profile: ProdamusCancellationTarget,
   config: ProdamusCancellationConfig,

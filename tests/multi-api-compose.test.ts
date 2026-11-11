@@ -1,3 +1,4 @@
+/** Опциональная офлайн проверка resolved Compose учитывает два API и дополнительный TEST процесс без запуска контейнеров. */
 import { execFileSync } from "node:child_process";
 import { copyFileSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -5,9 +6,11 @@ import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { inspectMultiApiDeployment } from "../tooling/scripts/multi-api-policy";
 
+/** Synthetic secret-bearing конфигурация читается только из owned temp-файлов и не печатается. */
 describe.skipIf(process.env.API_MULTI_COMPOSE_ACCEPTANCE !== "true")(
   "multi API resolved Compose preflight",
   () => {
+    /** Общий бюджет включает все процессы/пулы, запрещает local coordination и не меняет закрытые флаги; CLI ok не равен productionApproval. */
     it.each([false, true])(
       "preserves private flags and budgets the actual merged stack (TEST=%s)",
       (withTest) => {
@@ -33,6 +36,7 @@ describe.skipIf(process.env.API_MULTI_COMPOSE_ACCEPTANCE !== "true")(
           writeFileSync(join(dir, "test.mjs"), "export {};", { mode: 0o600 });
           const envText = `DATABASE_URL=mysql://fixture:private-db-secret@mysql/backend_test\nJWT_SECRET=${"private-jwt-secret".padEnd(32, "!")}\nAUTH_LINK_ENCRYPTION_KEY=${Buffer.alloc(32, 1).toString("base64")}\nAPI_COORDINATION_MODE=mysql\nAPI_REPLICA_COUNT=2\nPRIVATE_CONTENT_FILES_ENABLED=false\nPRIVATE_LIBRARY_FILES_ENABLED=false\nENABLE_SMS_LOGIN=false\n`;
           writeFileSync(join(dir, "api.env"), envText, { mode: 0o600 });
+          /** Рендерим полную выбранную Compose-композицию через config --format json, не up/run/pull. */
           const config = () =>
             JSON.parse(
               execFileSync(

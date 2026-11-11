@@ -5,6 +5,7 @@ import { mkdtempSync, rmSync, rmdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
+/** Собирает ESM с реальной Nest DI и проверяет биллинг по HTTP в изолированном подпроцессе: маршрутизацию сервисов, подпись webhook и безопасные отказы конфигурации. */
 it("compiled ESM wires Nest billing providers and retains fail-closed configuration and authorization", async () => {
   const directory = mkdtempSync(resolve(".tmp-nest-billing-"));
   const entry = join(directory, "application.mjs");
@@ -125,6 +126,7 @@ it("compiled ESM wires Nest billing providers and retains fail-closed configurat
       format: "esm",
       outfile: entry,
     });
+    // Подпроцесс получает только перечисленные тестовые настройки: рабочие секреты оболочки не наследуются.
     const output = execFileSync(process.execPath, [entry], {
       cwd: tmpdir(),
       env: {
@@ -142,6 +144,7 @@ it("compiled ESM wires Nest billing providers and retains fail-closed configurat
       .split("\n")
       .find((line) => line.startsWith("BILLING_RESULTS:"));
     expect(result).toBeDefined();
+    // Сверяем общий результат реальных HTTP/tRPC вызовов, включая передачу actor, сериализацию Date и отказ неверных привязок webhook.
     expect(JSON.parse(result!.slice("BILLING_RESULTS:".length))).toEqual({
       realError: { code: "PRECONDITION_FAILED", status: 412 },
       injected: {

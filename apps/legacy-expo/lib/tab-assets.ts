@@ -1,3 +1,4 @@
+// Архив Expo. Публичные декоративные ресурсы вкладок и фоновая музыка, не приватные клубные вложения.
 /** Licensed ambient music for Club Darcy tab (Darcy's Autumn). */
 export const CLUB_MUSIC_URL =
   "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/club/darcys-autumn.mp3";

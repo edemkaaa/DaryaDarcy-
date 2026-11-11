@@ -1,7 +1,10 @@
+/** Проверяем, что локальный нагрузочный CLI отказывается наследовать рабочую конфигурацию до Docker и SQL. */
 import { describe, expect, it } from "vitest";
 import { spawn } from "node:child_process";
 
+/** Запускаем отдельный процесс с искусственным опасным DATABASE_URL; соединение с ним не разрешается. */
 describe("local load CLI preflight", () => {
+  /** Требуем отказ preflight и отсутствие адреса/пароля в объединённом stdout/stderr. */
   it("refuses inherited working configuration before Docker/SQL without printing it", async () => {
     const result = await new Promise<{ code: number | null; output: string }>(
       (resolve, reject) => {

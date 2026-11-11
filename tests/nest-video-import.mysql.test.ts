@@ -22,6 +22,7 @@ import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 const transport = vi.hoisted(() => ({ store: vi.fn() }));
 vi.mock("../apps/backend/src/storage", () => ({ storagePut: transport.store }));
 const httpFetch = globalThis.fetch;
+/** Проверяет allowlist клиентской video URL на настоящем HTTP без скачивания или копирования внешнего содержимого. */
 describe.skipIf(!testDatabaseUrl)(
   "native video URL policy over HTTP/JWT/MySQL",
   () => {
@@ -32,6 +33,7 @@ describe.skipIf(!testDatabaseUrl)(
     const outbound = vi.fn(() => {
       throw new Error("Unexpected outbound fixture request");
     });
+    /** Создаёт настоящий HTTP tRPC-клиент выбранного Bearer с сохранённым до подмены fetch. */
     const client = (token?: string) =>
       createTRPCProxyClient<AppRouter>({
         links: [
@@ -43,6 +45,7 @@ describe.skipIf(!testDatabaseUrl)(
           }),
         ],
       });
+    /** Настраивает synthetic S3 namespace и собственного администратора, поднимает локальный API и перехватывает outbound. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -64,6 +67,7 @@ describe.skipIf(!testDatabaseUrl)(
         sessionVersion: 0,
       });
     });
+    /** Очищает spies и возвращает действующие admin-права и epoch. */
     beforeEach(async () => {
       outbound.mockClear();
       transport.store.mockReset();
@@ -71,6 +75,7 @@ describe.skipIf(!testDatabaseUrl)(
         "UPDATE users SET role='admin',blockedAt=NULL,sessionVersion=0 WHERE id=9030",
       );
     });
+    /** Закрывает API, удаляет своего пользователя и соединения и возвращает fetch и окружение. */
     afterAll(async () => {
       await application?.close();
       if (conn) {
@@ -83,6 +88,7 @@ describe.skipIf(!testDatabaseUrl)(
       vi.unstubAllGlobals();
       vi.unstubAllEnvs();
     });
+    /** Loopback, metadata, чужие origin/bucket, credentials, traversal и неподдерживаемые соцсети отклоняются до сети и storage. */
     it.each([
       "http://127.0.0.1/admin.mp4",
       "http://169.254.169.254/latest/meta-data/video.mp4",
@@ -110,6 +116,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(transport.store).not.toHaveBeenCalled();
       },
     );
+    /** Разрешённый S3 URL только нормализуется и возвращается без заявления о скачивании, проверке или копировании файла. */
     it.each([
       "https://s3.example.test/darcy/feed/a.mp4",
       "  https://s3.example.test/darcy/feed/a.mp4  ",
@@ -120,6 +127,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(outbound).not.toHaveBeenCalled();
       expect(transport.store).not.toHaveBeenCalled();
     });
+    /** Смена роли, блокировка или отзыв epoch запрещают import URL по прежней JWT до внешней работы. */
     it.each([
       ["role='user'", "FORBIDDEN", 403],
       ["role='moderator'", "FORBIDDEN", 403],
@@ -138,6 +146,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(transport.store).not.toHaveBeenCalled();
       },
     );
+    /** Гостевой import URL получает 401 без fetch и storage. */
     it("denies anonymous URL imports", async () => {
       await expect(
         client().admin.importVideoUrl.mutate({

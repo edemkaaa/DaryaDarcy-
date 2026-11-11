@@ -31,9 +31,9 @@ const subscription = {
   },
 };
 const requestUrl = (url: RequestInfo | URL) =>
-  new URL(String(url), "https://caller.example.test");
+  /* Разбирает относительный путь запроса относительно фиксированного тестового origin. */ new URL(String(url), "https://caller.example.test");
 const response = (url: RequestInfo | URL) =>
-  new Response(
+  /* Формирует одиночный либо пакетный tRPC-ответ в зависимости от реального URL транспорта. */ new Response(
     JSON.stringify(
       requestUrl(url).searchParams.has("batch")
         ? requestUrl(url)
@@ -46,13 +46,16 @@ const response = (url: RequestInfo | URL) =>
   );
 let values: Map<string, string>;
 
+// Синтетические storage и locks изолируют транспорт: тест сверяет настоящие URL, POST-тела и заголовки, но не создаёт оплату.
 beforeEach(() => {
   values = new Map();
   vi.stubGlobal("window", {
     isSecureContext: true,
     localStorage: {
-      getItem: (key: string) => values.get(key) ?? null,
+      getItem: (key: string) => /* Читает слот checkout-намерения из синтетической памяти. */ values.get(key) ?? null,
       setItem: (key: string, value: string) => {
+        // Сохраняет сериализованное намерение для сверки durable-ключа перед отправкой.
+
         values.set(key, value);
       },
     },
@@ -63,7 +66,7 @@ beforeEach(() => {
         _name: string,
         _options: unknown,
         callback: () => unknown,
-      ) => callback(),
+      ) => /* Выполняет тестовую работу внутри имитируемой эксклюзивной блокировки. */ callback(),
     },
   });
 });
@@ -74,6 +77,8 @@ afterEach(() => {
 });
 
 it("sends an intent header on an individual tRPC mutation, never in URL or input", async () => {
+  // Сценарий: Ключ идемпотентности передаётся заголовком отдельной мутации, не в URL и входных данных.
+
   const fetcher = vi.fn(
     async (url: RequestInfo | URL, _options?: RequestInit) => response(url),
   );
@@ -94,6 +99,8 @@ it("sends an intent header on an individual tRPC mutation, never in URL or input
 });
 
 it("does not merge distinct keyed mutations into a shared batch/header", async () => {
+  // Сценарий: Разные ключевые мутации не объединяются в batch с общим заголовком.
+
   const fetcher = vi.fn(
     async (url: RequestInfo | URL, _options?: RequestInit) => response(url),
   );
@@ -115,6 +122,8 @@ it("does not merge distinct keyed mutations into a shared batch/header", async (
 it.each([null, "invalid", `${firstKey}\r\nAuthorization: private`, [firstKey]])(
   "rejects malformed operation keys before HTTP (%#)",
   async (idempotencyKey) => {
+    // Сценарий: Неверная форма ключа, включая попытку вставить заголовок, отклоняется до HTTP.
+
     const fetcher = vi.fn(async (url: RequestInfo | URL) => response(url));
     vi.stubGlobal("fetch", fetcher);
     await expect(
@@ -127,6 +136,8 @@ it.each([null, "invalid", `${firstKey}\r\nAuthorization: private`, [firstKey]])(
 );
 
 it("does not permit an intent header on a read operation", async () => {
+  // Сценарий: Ключ намерения нельзя прикрепить к операции чтения.
+
   const fetcher = vi.fn(async (url: RequestInfo | URL) => response(url));
   vi.stubGlobal("fetch", fetcher);
   await expect(
@@ -138,6 +149,8 @@ it("does not permit an intent header on a read operation", async () => {
 });
 
 it("preserves legacy batching without context and does not leak a keyed mutation's header into a concurrent query", async () => {
+  // Сценарий: Старый batch без context сохраняется; заголовок мутации не протекает в соседнее чтение.
+
   const fetcher = vi.fn(
     async (url: RequestInfo | URL, _options?: RequestInit) => response(url),
   );
@@ -161,6 +174,8 @@ it("preserves legacy batching without context and does not leak a keyed mutation
 });
 
 it("the club orchestrator sends the saved canonical intent and reuses it after a transport failure", async () => {
+  // Сценарий: Координатор канонизирует выбор и повторно использует сохранённое намерение после сетевого отказа.
+
   const fetcher = vi.fn(
     async (url: RequestInfo | URL, _options?: RequestInit) => response(url),
   );
@@ -182,9 +197,13 @@ it("the club orchestrator sends the saved canonical intent and reuses it after a
 });
 
 it("storage refusal prevents the orchestrator from making any request", async () => {
+  // Сценарий: Недоступное хранилище запрещает запрос координатора.
+
   vi.stubGlobal("window", {
     isSecureContext: true,
     get localStorage() {
+      // Инъецирует отказ доступа к localStorage до любой сетевой операции.
+
       throw new Error("Private storage denial");
     },
   });
@@ -197,6 +216,8 @@ it("storage refusal prevents the orchestrator from making any request", async ()
 });
 
 it("an already canceled purchase cannot reserve evidence or dispatch", async () => {
+  // Сценарий: Заранее отменённая покупка не резервирует намерение и не отправляется.
+
   const controller = new AbortController();
   controller.abort();
   const fetcher = vi.fn(async (url: RequestInfo | URL) => response(url));
@@ -209,6 +230,8 @@ it("an already canceled purchase cannot reserve evidence or dispatch", async () 
 });
 
 it("caller cancellation while waiting for a writer lock prevents late reservation and dispatch", async () => {
+  // Сценарий: Отмена во время ожидания lock запрещает позднее резервирование и отправку.
+
   const controller = new AbortController();
   let release: (() => void) | undefined;
   vi.stubGlobal("navigator", {
@@ -218,6 +241,8 @@ it("caller cancellation while waiting for a writer lock prevents late reservatio
         _options: unknown,
         callback: () => unknown,
       ) => {
+        // Удерживает блокировку до явного освобождения, позволяя отменить ожидающего клиента.
+
         await new Promise<void>((resolve) => {
           release = resolve;
         });
@@ -241,6 +266,8 @@ it("caller cancellation while waiting for a writer lock prevents late reservatio
 });
 
 it("caller cancellation aborts purchase transport but retains the same key for explicit retry", async () => {
+  // Сценарий: Отмена передачи сохраняет тот же ключ для явного повтора.
+
   const controller = new AbortController();
   const fetcher = vi.fn(
     async (url: RequestInfo | URL, _options?: RequestInit) => response(url),
@@ -266,6 +293,8 @@ it("caller cancellation aborts purchase transport but retains the same key for e
 it.each(["first", "next"] as const)(
   "%s purchase refuses a late URL after browser evidence was replaced",
   async (kind) => {
+    // Сценарий: Поздний платёжный URL не применяется после подмены сохранённого доказательства первой/следующей покупки.
+
     const prior = await getClubCheckoutIntent(input);
     const fetcher = vi.fn(async (url: RequestInfo | URL) => {
       if (requestUrl(url).pathname.endsWith("club.reconcileCheckout"))
@@ -298,6 +327,8 @@ it.each(["first", "next"] as const)(
 );
 
 it("a real request-lifecycle timeout retains the durable identity for an explicit retry", async () => {
+  // Сценарий: Транспортный таймаут не повторяет мутацию и сохраняет durable-ключ.
+
   vi.useFakeTimers();
   const fetcher = vi.fn(
     async (url: RequestInfo | URL, _options?: RequestInit) => response(url),
@@ -322,6 +353,8 @@ it("a real request-lifecycle timeout retains the durable identity for an explici
 });
 
 it("session cancellation aborts a dispatched request without replacing its intent", async () => {
+  // Сценарий: Смена сессии отменяет отправленный запрос, не заменяя его намерение.
+
   const fetcher = vi.fn(
     async (url: RequestInfo | URL, _options?: RequestInit) => response(url),
   );
@@ -342,6 +375,8 @@ it("session cancellation aborts a dispatched request without replacing its inten
 });
 
 it("a session change during intent preparation prevents late dispatch under the next identity", async () => {
+  // Сценарий: Смена сессии при подготовке запрещает отправку от следующей личности.
+
   const fetcher = vi.fn();
   vi.stubGlobal("fetch", fetcher);
   const pending = createClubTestCheckout(createTRPCClient(), input).catch(
@@ -353,6 +388,8 @@ it("a session change during intent preparation prevents late dispatch under the 
 });
 
 it("a return with no saved intent cannot dispatch any check or create request", async () => {
+  // Сценарий: Возврат без сохранённого намерения не создаёт и не проверяет платежи.
+
   const fetcher = vi.fn();
   vi.stubGlobal("fetch", fetcher);
   expect(await reconcileClubTestCheckout(createTRPCClient())).toBeNull();
@@ -363,6 +400,8 @@ it("a return with no saved intent cannot dispatch any check or create request", 
 it.each(["unknown", "pending", "succeeded", "canceled"] as const)(
   "checks only saved evidence by POST/header and retains it after %s",
   async (state) => {
+    // Сценарий: Проверка выполняется POST с прежним ключом в заголовке, сохраняя доказательство для всех допустимых состояний.
+
     const saved = await getClubCheckoutIntent(input);
     const prior = [...values.values()][0];
     const fetcher = vi.fn(
@@ -396,6 +435,8 @@ it.each(["unknown", "pending", "succeeded", "canceled"] as const)(
 it.each([null, {}, { state: "paid" }, { state: "succeeded", email: "SECRET" }])(
   "rejects malformed return replies without accepting payment proof (%#)",
   async (reply) => {
+    // Сценарий: Повреждённый ответ статуса не принимается как доказательство оплаты.
+
     await getClubCheckoutIntent(input);
     const prior = [...values.values()][0];
     vi.stubGlobal(
@@ -417,6 +458,8 @@ it.each([null, {}, { state: "paid" }, { state: "succeeded", email: "SECRET" }])(
 );
 
 it("corrupt return evidence prevents HTTP and is never replaced", async () => {
+  // Сценарий: Повреждённый слот возврата запрещает HTTP и не заменяется.
+
   values.set("daryadarcy:club-checkout:yookassa-test:v1", "corrupt");
   const fetcher = vi.fn();
   vi.stubGlobal("fetch", fetcher);
@@ -430,6 +473,8 @@ it("corrupt return evidence prevents HTTP and is never replaced", async () => {
 it.each(["session", "caller"])(
   "cancels an outstanding return on %s abort without rotating or retrying",
   async (source) => {
+    // Сценарий: Отмена возврата сессией либо вызывающим кодом не вращает ключ и не повторяет запрос.
+
     await getClubCheckoutIntent(input);
     const prior = [...values.values()][0];
     const fetcher = vi.fn(
@@ -453,11 +498,15 @@ it.each(["session", "caller"])(
 );
 
 it("an already canceled return cannot read storage or dispatch", async () => {
+  // Сценарий: Заранее отменённый возврат не читает storage и не отправляется.
+
   const controller = new AbortController();
   controller.abort();
   vi.stubGlobal("window", {
     isSecureContext: true,
     get localStorage() {
+      // Инъецирует недоступное хранилище, которое уже отменённый запрос не должен даже читать.
+
       throw new Error("SECRET");
     },
   });
@@ -472,6 +521,8 @@ it("an already canceled return cannot read storage or dispatch", async () => {
 it.each(["replaced", "removed", "corrupt"])(
   "does not apply a late success to %s browser evidence",
   async (change) => {
+    // Сценарий: Поздний успех не применяется к удалённой, подменённой либо повреждённой записи.
+
     await getClubCheckoutIntent(input);
     const fetcher = vi.fn(async () => {
       const storageKey = "daryadarcy:club-checkout:yookassa-test:v1";
@@ -504,6 +555,8 @@ it.each(["replaced", "removed", "corrupt"])(
 );
 
 it("a timed-out return leaves the same evidence for an explicit check, never a create/retry", async () => {
+  // Сценарий: Таймаут проверки оставляет прежнее доказательство только для явной проверки без create/retry.
+
   await getClubCheckoutIntent(input);
   const prior = [...values.values()][0];
   vi.useFakeTimers();

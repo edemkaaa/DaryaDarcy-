@@ -31,12 +31,16 @@ const probeSchema = z.object({
 });
 
 async function hash(path: string) {
+  // Потоково считает SHA-256 локального аудио, не загружая подкаст целиком в память.
+
   const digest = createHash("sha256");
   for await (const chunk of createReadStream(path)) digest.update(chunk);
   return digest.digest("hex");
 }
 
 async function probe(path: string) {
+  // Запускает ffprobe только с file/pipe и проверяет одну моно/стереодорожку и допустимую длительность.
+
   let stdout: string;
   try {
     ({ stdout } = await execute(
@@ -69,6 +73,8 @@ async function probe(path: string) {
 
 // Inspect only atom headers; never buffer a complete podcast in memory.
 function hasFastStart(path: string, size: number) {
+  // Читает заголовки MP4-атомов и проверяет moov до mdat, не буферизуя весь файл.
+
   const fd = openSync(path, "r");
   try {
     let seenMoov = false;
@@ -90,6 +96,8 @@ function hasFastStart(path: string, size: number) {
 
 /** Offline operator only: no URL fetching, credentials, DB writes or runtime jobs. */
 async function prepareAudioRendition(input: string, outputDirectory: string) {
+  // Создаёт отдельный AAC-LC faststart без перезаписи, затем сверяет кодек, размер, длительность и неизменность исходника.
+
   assert(
     isAbsolute(input) && isAbsolute(outputDirectory),
     "Explicit absolute local paths required",
@@ -204,6 +212,8 @@ async function prepareAudioRendition(input: string, outputDirectory: string) {
 }
 
 async function main() {
+  // Принимает только два абсолютных локальных пути, печатает квитанцию проверенной копии и не обращается к БД или S3.
+
   const args = process.argv.slice(2);
   try {
     assert(

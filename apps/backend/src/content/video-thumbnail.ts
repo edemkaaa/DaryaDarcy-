@@ -1,6 +1,7 @@
 /** Каталог принимает только точные публичные пути обложек; подписанные и закрытые адреса не рекламируются клиенту. */
 /** Only existing public image namespaces; never advertise private/signed media
  * or a player URL as a cover. This function does not fetch external content. */
+/** Без сетевого чтения разрешаем только точные публичные пространства картинок приложения; отклоняем исходные traversal/percent/control, подписанные параметры, приватные и неподдерживаемые URL. */
 export function publicCatalogThumbnail(raw: string | null) {
   if (!raw || raw.length > 2048) return null;
   const value = raw.trim();

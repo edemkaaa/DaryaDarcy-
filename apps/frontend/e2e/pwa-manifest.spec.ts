@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
 
+/** Проверяем связь страницы с manifest и фактические размеры декодированных иконок; установка на физическом устройстве этим не подтверждается. */
 test("the page links to a standalone manifest with decodable 192/512 PNG icons", async ({
   page,
   request,

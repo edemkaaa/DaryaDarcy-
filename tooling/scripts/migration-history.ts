@@ -5,6 +5,8 @@ async function withReadOnlyConnection<T>(
   uri: string,
   read: (conn: Connection) => Promise<T>,
 ) {
+  // Ограничивает время подключения, открывает read-only транзакцию и закрывает её rollback независимо от результата проверки.
+
   const url = new URL(uri);
   if (url.protocol !== "mysql:" || !url.pathname || url.pathname === "/")
     throw new Error("Invalid preflight connection");
@@ -23,6 +25,8 @@ async function withReadOnlyConnection<T>(
 
 /** Fixed metadata queries only; no creation of Drizzle's migration table. */
 export async function readMigrationHistory(uri: string) {
+  // Читает только существующую служебную историю с ограничением строк, не создавая таблицу при её отсутствии.
+
   return withReadOnlyConnection(uri, async (conn) => {
     const [tables] = await conn.query<mysql.RowDataPacket[]>({
       sql: "SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='__drizzle_migrations'",
@@ -43,6 +47,8 @@ export async function readMigrationHistory(uri: string) {
 }
 
 export async function readFeedListingIndexAvailable(uri: string) {
+  // Проверяет видимость нужного индекса, поскольку FORCE INDEX не принимает отсутствующий или invisible индекс.
+
   return withReadOnlyConnection(uri, async (conn) => {
     // MySQL rejects FORCE INDEX for a missing or invisible index.
     const [rows] = await conn.query<mysql.RowDataPacket[]>({

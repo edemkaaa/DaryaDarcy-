@@ -10,6 +10,7 @@ type Props = {
   style?: CSSProperties;
   className?: string;
 };
+/** Показываем общий адрес поддержки и открываем почтовый клиент явным действием; доставку письма не утверждаем. */
 export function ContactEmailFooter({
   hint = "Если письмо не пришло в течение 15 минут или нужна помощь — напишите нам:",
   style,

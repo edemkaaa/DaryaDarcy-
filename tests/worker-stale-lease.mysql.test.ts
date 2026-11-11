@@ -13,12 +13,14 @@ import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 import { processAccessEmails } from "../apps/backend/src/identity/access";
 import { processCancellations } from "../apps/backend/src/billing/cancellation";
 
+/** Проверяет актуальное владение lease письма и отмены непосредственно перед внешним эффектом. */
 describe.skipIf(!testDatabaseUrl)(
   "worker lease ownership before external effects",
   () => {
     let conn: Connection, pool: mysql.Pool;
     let owns = false;
     const id = 99631;
+    /** Проверяет свободный ID, создаёт собственного адресата и отдельный пул на четыре соединения. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       const [occupied] = await conn.query<RowDataPacket[]>(
@@ -38,6 +40,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       vi.stubEnv("PUBLIC_APP_URL", "https://fixture.example.test");
     });
+    /** Восстанавливает по одной готовой записи email-outbox и отмены billing-профиля. */
     beforeEach(async () => {
       await conn.query("DELETE FROM access_email_outbox WHERE userId=?", [id]);
       await conn.query("DELETE FROM billing_profiles WHERE userId=?", [id]);
@@ -50,6 +53,7 @@ describe.skipIf(!testDatabaseUrl)(
         [id],
       );
     });
+    /** Закрывает пул и только при успешном владении fixture удаляет собственные строки и пользователя. */
     afterAll(async () => {
       await pool?.end();
       if (owns) {
@@ -66,18 +70,21 @@ describe.skipIf(!testDatabaseUrl)(
       vi.unstubAllEnvs();
     });
 
+    /** Переназначенный другому worker lease запрещает отправку и последующее изменение записи. */
     it.each(["mail", "cancellation"] as const)(
       "does not perform %s after another worker takes its lease",
       async (kind) => {
         await check(kind, "reassigned");
       },
     );
+    /** Просроченный lease запрещает внешний эффект и не меняет чужое новое расписание. */
     it.each(["mail", "cancellation"] as const)(
       "does not perform %s with an expired lease",
       async (kind) => {
         await check(kind, "expired");
       },
     );
+    /** Разрешает claim, затем блокирует чтение пользователя и меняет lease до финальной проверки внешней отправки. */
     async function check(
       kind: "mail" | "cancellation",
       change: "reassigned" | "expired",
@@ -95,6 +102,7 @@ describe.skipIf(!testDatabaseUrl)(
         // user read. No mocked business/SQL results and no arbitrary sleeps.
         await control.query("LOCK TABLES users WRITE");
         const database = drizzle(pool);
+        /** Считает попытки внешнего эффекта без SMTP или платёжного провайдера. */
         const send = async () => {
           calls++;
           return true;

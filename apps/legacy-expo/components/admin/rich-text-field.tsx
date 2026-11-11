@@ -1,3 +1,4 @@
+// Архив Expo. Выделяет рамку и минимальную высоту внешней оболочки из пользовательского textAreaStyle.
 import { forwardRef, useImperativeHandle, useState } from "react";
 import {
   Modal,
@@ -37,6 +38,8 @@ interface RichTextFieldProps {
 }
 
 function shellStyle(textAreaStyle: StyleProp<TextStyle> | undefined) {
+  // Выделяет рамку и минимальную высоту внешней оболочки из пользовательского textAreaStyle.
+
   const flat = StyleSheet.flatten(textAreaStyle) ?? {};
   return {
     backgroundColor: flat.backgroundColor ?? "#fff",
@@ -48,6 +51,8 @@ function shellStyle(textAreaStyle: StyleProp<TextStyle> | undefined) {
 }
 
 function inputStyle(textAreaStyle: StyleProp<TextStyle> | undefined) {
+  // Передаёт внутреннему textarea только метрики текста и отступы без дублирования рамки.
+
   const flat = StyleSheet.flatten(textAreaStyle) ?? {};
   return {
     paddingHorizontal: flat.padding ?? 14,
@@ -70,6 +75,8 @@ export const RichTextField = forwardRef<RichTextFieldHandle, RichTextFieldProps>
   },
   ref,
 ) {
+  // Соединяет plain ввод, общий formatting hook, toolbar и preview; imperative handle возвращает актуальные блоки для отправки.
+
   const fmt = useRichTextFormatting(value, richTextSeed, onRichTextChange);
   const [previewOpen, setPreviewOpen] = useState(false);
 
@@ -79,15 +86,15 @@ export const RichTextField = forwardRef<RichTextFieldHandle, RichTextFieldProps>
   }));
 
   const formatActionProps = (action: () => void) =>
-    formatToolbarProps(() => runAfterSelectionReady(action), () => fmt.syncLiveSelection());
+    /* Запоминает live selection до toolbar-жеста и выполняет действие после двух кадров web. */ formatToolbarProps(() => runAfterSelectionReady(action), () => fmt.syncLiveSelection());
 
   const webInputProps =
     Platform.OS === "web"
       ? ({
           id: RICH_TEXT_INPUT_ID,
-          onMouseUp: () => fmt.syncLiveSelection(),
-          onKeyUp: () => fmt.syncLiveSelection(),
-          onTouchEnd: () => fmt.syncLiveSelection(),
+          onMouseUp: () => /* Сохраняет web-selection после выделения мышью. */ fmt.syncLiveSelection(),
+          onKeyUp: () => /* Согласует выделение после клавиатурного движения курсора. */ fmt.syncLiveSelection(),
+          onTouchEnd: () => /* Сохраняет диапазон после touch-выделения в web textarea. */ fmt.syncLiveSelection(),
         } as const)
       : ({} as const);
 
@@ -209,6 +216,7 @@ export const RichTextField = forwardRef<RichTextFieldHandle, RichTextFieldProps>
   );
 });
 
+// Toolbar находится в потоке под textarea, а отдельная Modal ссылки не зависит от размеров и scroll редактора.
 const styles = StyleSheet.create({
   editorShell: {
     overflow: "hidden",

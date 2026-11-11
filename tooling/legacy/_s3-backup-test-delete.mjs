@@ -1,3 +1,4 @@
+// Опасная историческая проба пытается удалить первый реальный объект backup-бакета. Не использовать для проверки политики без отдельного синтетического объекта.
 import fs from "node:fs";
 import { DeleteObjectCommand, ListObjectsV2Command, S3Client } from "@aws-sdk/client-s3";
 
@@ -28,6 +29,7 @@ if (!key) {
   process.exit(0);
 }
 
+// Ниже отправляется настоящий DeleteObject по первому найденному ключу, не синтетическая проверка разрешений.
 try {
   await client.send(new DeleteObjectCommand({ Bucket: "daryadarcy-s3-backup", Key: key }));
   console.log("DELETE ALLOWED - BAD", key);

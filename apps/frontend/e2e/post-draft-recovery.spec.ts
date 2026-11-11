@@ -4,10 +4,13 @@ import { gotoWithSession } from "./layout-fixtures";
 
 test.setTimeout(45_000);
 type Mode = "full" | "quick";
+/** Выбираем единый dialog полного и быстрого редактора. */
 const editor = (page: Page) =>
   page.getByRole("dialog", { name: "Редактор публикации" });
+/** Адресуем ввод текущей формы после reload, не сохраняя detached textarea. */
 const field = (form: Locator) =>
   form.getByPlaceholder("Текст поста… Enter — новый абзац");
+/** Create/edit и full/quick имеют разные подписи, но одно проверяемое действие отправки. */
 const submit = (form: Locator, mode: Mode, editing = false) =>
   form
     .getByRole("button", {
@@ -15,6 +18,7 @@ const submit = (form: Locator, mode: Mode, editing = false) =>
       exact: true,
     })
     .first();
+/** Открываем create/edit по нужному маршруту и ждём чтения durable-draft прежде любых изменений. */
 async function open(page: Page, mode: Mode, editing = false) {
   await gotoWithSession(page, mode === "full" ? "/admin" : "/feed");
   if (editing && mode === "quick")
@@ -35,11 +39,13 @@ async function open(page: Page, mode: Mode, editing = false) {
   ).toHaveCount(0);
   return editor(page);
 }
+/** Проверяем видимое завершение checkpoint, а в чувствительных случаях ниже отдельно читаем конкретные durable-поля. */
 async function saved(form: Locator) {
   await expect(
     form.getByText("Черновик сохранён на этом устройстве", { exact: true }),
   ).toBeVisible();
 }
+/** Передаём синтетический audio/document через filechooser; реальное чтение байтов проверяется при upload после восстановления. */
 async function choose(
   page: Page,
   form: Locator,
@@ -54,6 +60,7 @@ async function choose(
   ).setFiles({ name, mimeType, buffer: Buffer.from("attachment fixture") });
   await expect(form.getByText(name, { exact: true })).toBeVisible();
 }
+/** Собираем alert и подтверждаем явные отказ/закрытие, не вызывая server-write напрямую. */
 function dialogs(page: Page) {
   const messages: string[] = [];
   page.on("dialog", async (dialog) => {
@@ -94,6 +101,7 @@ const existing = {
   ],
 };
 
+/** Полный и быстрый редакторы одинаково защищают неполный media-detail, durable-files, unknown-create/update и подтверждённые receipts. */
 for (const mode of ["full", "quick"] as const) {
   for (const media of [undefined, null]) {
     test(`${mode}: an incomplete media response cannot overwrite attachments (${media})`, async ({
@@ -133,6 +141,7 @@ for (const mode of ["full", "quick"] as const) {
         return;
       }
       await gotoWithSession(page, "/feed");
+      /** В quick-пути заново читаем admin-detail из меню карточки; ошибка не должна открыть частичную форму. */
       const requestEdit = async () => {
         await page
           .getByRole("button", { name: "Действия с постом", exact: true })
@@ -557,6 +566,7 @@ for (const mode of ["full", "quick"] as const) {
   });
 }
 
+/** Account-scoped draft возвращается лишь исходному владельцу и не появляется в новой форме другого admin. */
 test("drafts belong to the authenticated account and return only to their original owner", async ({
   page,
 }) => {
@@ -565,6 +575,7 @@ test("drafts belong to the authenticated account and return only to their origin
   let form = await open(page, "full");
   await field(form).fill("OWNER_101_PRIVATE_DRAFT");
   await saved(form);
+  /** Меняем только synthetic identity, оставляя local IndexedDB общий для проверки namespace. */
   const user = (id: number) => ({
     id,
     openId: `admin-${id}`,
@@ -588,6 +599,7 @@ test("drafts belong to the authenticated account and return only to their origin
   await expect(field(form)).toHaveValue("OWNER_101_PRIVATE_DRAFT");
 });
 
+/** Старый tab не перезаписывает свежий draft другого tab и не отправляет stale-create. */
 test("another tab cannot overwrite the newer draft or send a stale creation", async ({
   page,
   context,
@@ -614,6 +626,7 @@ test("another tab cannot overwrite the newer draft or send a stale creation", as
   await secondPage.close();
 });
 
+/** Отказ checkpoint блокирует server-write, сохраняя полный ввод в форме. */
 test("failed local persistence blocks server writes and keeps input", async ({
   page,
 }) => {
@@ -626,6 +639,7 @@ test("failed local persistence blocks server writes and keeps input", async ({
   await field(form).fill("KEEP_ON_QUOTA_FAILURE");
   await saved(form);
   await page.evaluate(() => {
+    /** Полный synthetic quota-failure проверяет защиту до отправки запроса, не очищая базу. */
     IDBObjectStore.prototype.put = () => {
       throw new DOMException("Storage full", "QuotaExceededError");
     };
@@ -638,6 +652,7 @@ test("failed local persistence blocks server writes and keeps input", async ({
   expect(creates).toBe(0);
 });
 
+/** Неизвестная schema-version сохраняется как повреждённая копия и требует отдельного explicit-discard, а не авто-reset. */
 test("a corrupt draft is not overwritten or submitted and can be explicitly discarded", async ({
   page,
 }) => {
@@ -695,6 +710,7 @@ test("a corrupt draft is not overwritten or submitted and can be explicitly disc
   await expect(field(form)).toHaveValue("");
 });
 
+/** Подтверждённый server-commit переживает неудачу local-delete: recovery завершает уборку без второго create. */
 test("a confirmed commit surviving local cleanup is finished without another server write", async ({
   page,
 }) => {
@@ -707,6 +723,7 @@ test("a confirmed commit surviving local cleanup is finished without another ser
   await field(form).fill("CONFIRMED_COMMIT");
   await saved(form);
   await page.evaluate(() => {
+    /** Инъекция cleanup-failure происходит после commit и не должна менять смысл подтверждённого результата. */
     IDBObjectStore.prototype.delete = () => {
       throw new DOMException("Unavailable", "UnknownError");
     };
@@ -729,6 +746,7 @@ test("a confirmed commit surviving local cleanup is finished without another ser
   expect(creates).toBe(1);
 });
 
+/** Совместимость v1 проверяется там, где IndexedDB умеет Blob: сохранённые bytes переводятся обратно в File и доходят до того же upload. */
 test("legacy version-one drafts remain readable with their selected file", async ({
   page,
   browserName,

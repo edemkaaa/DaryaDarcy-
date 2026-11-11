@@ -5,10 +5,12 @@ import type { Season } from "@shared/launch-settings";
 import { runFileTask } from "@/shared/browser/file-task";
 import { resolveImageAttributes } from "@/shared/ui/static-images";
 
+/** Загружаем и декодируем подходящий вариант картинки под отменяемым файловым заданием; отмена снимает источники изображения. */
 async function prepareImage(uri: string, signal: AbortSignal) {
   return runFileTask(async (taskSignal) => {
     const image = new Image();
     const resolved = resolveImageAttributes(uri);
+    /** Прекращаем загрузку src/srcset после отмены владельца подготовки. */
     const cancel = () => {
       image.removeAttribute("srcset");
       image.removeAttribute("src");
@@ -29,7 +31,7 @@ async function prepareImage(uri: string, signal: AbortSignal) {
   }, signal);
 }
 
-/** Publish the pair together; retain the confirmed theme during later loads. */
+/** Публикуем фон, баннер и его размеры одной парой только после успешного декодирования; прежние ресурсы удерживаем до замены. */
 export function usePreparedAppearance(
   season: Season | null,
   background: string | null,
@@ -44,6 +46,7 @@ export function usePreparedAppearance(
     images: HTMLImageElement[];
   } | null>(null);
 
+  /** Готовим уникальные URL параллельно; неполный или отменённый набор не меняет подтверждённое оформление. */
   useEffect(() => {
     if (!season) return;
     const controller = new AbortController();

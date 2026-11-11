@@ -43,6 +43,7 @@ import { PrivateLibraryState } from "./private-library-state";
 import type { PatternItem } from "./patterns-screen.content";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
 import { LOSHADKA_PDF_URL } from "./library-screen.content";
+/** Пересоздаём локальное состояние выкроек при смене аккаунта или клубного доступа, исключая перенос открытого просмотра. */
 export default function PatternsScreen() {
   const { user } = useAuth();
   const { hasClubAccess } = useClub();
@@ -50,6 +51,7 @@ export default function PatternsScreen() {
     <PatternsScreenContent key={`${user?.id ?? "guest"}:${hasClubAccess}`} />
   );
 }
+/** Разделяем четыре закрытые выкройки по серверным привязкам и бесплатный PDF «Лошадки», который открывается независимо от подписки. */
 function PatternsScreenContent() {
   const active = useScreenActive();
   const router = useRouter();
@@ -61,6 +63,7 @@ function PatternsScreenContent() {
   const [viewerImage, setViewerImage] = useState("");
   const [viewerTitle, setViewerTitle] = useState("");
   const [downloading] = useState(false);
+  /** Убираем просмотр при скрытии экрана, потере доступа или ошибке привязок. */
   useEffect(() => {
     if (!active || !hasClubAccess || bindings.error) {
       setViewerVisible(false);
@@ -68,12 +71,15 @@ function PatternsScreenContent() {
       setViewerTitle("");
     }
   }, [active, hasClubAccess, bindings.error]);
+  /** Ведём к экрану клуба для оформления или проверки доступа. */
   const handleClubCTA = () => {
     router.push("/club");
   };
+  /** Открываем бесплатный тест независимо от доступа к выкройкам. */
   const handleQuizCTA = () => {
     router.push("/quiz");
   };
+  /** Открываем только файл, который присутствует в актуальном наборе проверенных привязок. */
   const openPattern = (pattern: PatternItem) => {
     const file = bindings.files?.[pattern.id];
     if (!hasClubAccess || !file) return;
@@ -81,6 +87,7 @@ function PatternsScreenContent() {
     setViewerTitle(pattern.title);
     setViewerVisible(true);
   };
+  /** Повторно проверяем, что выбранный URL принадлежит текущим привязкам, прежде чем передать его браузеру. */
   const handleDownload = useCallback(async () => {
     {
       if (
@@ -92,9 +99,11 @@ function PatternsScreenContent() {
       return;
     }
   }, [viewerImage, hasClubAccess, bindings.files]);
+  /** Открываем согласованный бесплатный PDF по исходной внешней ссылке. */
   const handleOpenLoshadka = async () => {
     await WebBrowser.openBrowserAsync(LOSHADKA_PDF_URL);
   };
+  /** Очищаем URL и подпись вместе с закрытием просмотра, чтобы новое открытие не использовало прежний выбор. */
   const closeViewer = () => {
     setViewerVisible(false);
     setViewerImage("");
@@ -354,6 +363,7 @@ interface FullScreenViewerProps {
   onDownload: () => void;
   downloading: boolean;
 }
+/** Показываем оригинал для печати с независимым масштабированием; закрытие возвращает масштаб и смещение в исходное состояние. */
 function FullScreenViewer({
   visible,
   imageUrl,
@@ -374,6 +384,7 @@ function FullScreenViewer({
   const translateY = useSharedValue(0);
   const savedTranslateX = useSharedValue(0);
   const savedTranslateY = useSharedValue(0);
+  /** Ограничиваем итоговый масштаб диапазоном 1–4; при возврате к единице обнуляем панорамирование. */
   const pinchGesture = Gesture.Pinch()
     .onUpdate((e) => {
       scale.value = savedScale.value * e.scale;
@@ -393,6 +404,7 @@ function FullScreenViewer({
         savedScale.value = scale.value;
       }
     });
+  /** Смещение доступно только при увеличении; завершение жеста сохраняет базу для следующего движения. */
   const panGesture = Gesture.Pan()
     .onUpdate((e) => {
       if (scale.value > 1) {
@@ -411,6 +423,7 @@ function FullScreenViewer({
         savedTranslateY.value = 0;
       }
     });
+  /** Двойное нажатие переключает обычный размер и 2,5×, сбрасывая смещение при уменьшении. */
   const doubleTapGesture = Gesture.Tap()
     .numberOfTaps(2)
     .onEnd(() => {
@@ -438,6 +451,7 @@ function FullScreenViewer({
       { scale: scale.value },
     ]),
   }));
+  /** Сбрасываем текущие и сохранённые координаты жестов до передачи закрытия родителю. */
   const handleClose = () => {
     // Reset zoom state
     scale.value = 1;

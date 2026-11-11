@@ -10,6 +10,8 @@
 - [Карта документации](docs/README.md) — где искать инструкции, решения и отчёты.
 - [Как читать код](docs/development/code-reading-guide.md) и [справочник каждого файла](docs/development/file-guide/index.md) — назначение модулей и карта функций.
 - [Полная инструкция запуска](docs/development/getting-started.md) — окружение, настройки и команды.
+- [Работа вдвоём: бэкенд и фронтенд](docs/development/team-workflow.md) — ответственность, API-контракт и проверки перед объединением.
+- [Сборка образов](infrastructure/build/README.md) и [запуск сервисов](infrastructure/deploy/teamassist/README.md).
 - [Правила работы с репозиторием](docs/development/workflow.md) — ветки, проверки и безопасная работа с данными.
 - [Бэкенд](apps/backend/README.md) / [фронтенд](apps/frontend/README.md) — устройство приложений.
 - [Текущий план](tasks/plan.md) и [чеклист](tasks/todo.md) — незавершённые работы.
@@ -27,11 +29,19 @@ packages/
   shared/         общие контракты и утилиты
   database/       Drizzle-схема и SQL-миграции
 infrastructure/
-  deploy/         конфигурация развёртывания и инфраструктурные сценарии
+  build/          Dockerfile, build-only Compose и публичные параметры сборки
+  deploy/         runtime Compose, Nginx и сценарии развёртывания
+  ci/             конфигурация отдельного CI runner
 tooling/          инструменты сборки, проверок и обслуживания
-__tests__/        автоматические тесты
-tests/            дополнительные тестовые сценарии
-docs/             актуальная документация и отдельно архив
+tests/            unit, HTTP и SQL-тесты, helpers и fixtures
+  regression/     общие регрессионные проверки (прежний __tests__)
+docs/
+  specifications/ согласованные контракты и спецификации
+  development/    запуск, совместная работа и передача фронтендеру
+  architecture/   устройство приложения
+  operations/     эксплуатация и выпуск
+  audits/         датированные результаты проверок
+  archive/        исходные и исторические материалы
 tasks/            рабочий план и чеклист
 ```
 
@@ -62,6 +72,8 @@ pnpm verify
 ```
 
 Без отдельной тестовой MySQL часть интеграционных тестов пропускается. Как запустить их полностью — в [рабочем процессе](docs/development/workflow.md).
+
+Результаты сборки не коммитятся: API — `dist/`, Next — `apps/frontend/.next/`, архивный Vite — `web-dist/`. Файлы описания сборки находятся в `infrastructure/build/`.
 
 Единственный рабочий lockfile — pnpm-lock.yaml. Команды запускаются из корня репозитория.
 

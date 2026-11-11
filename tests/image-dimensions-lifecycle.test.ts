@@ -1,3 +1,4 @@
+/** Измеритель картинки проверяется управляемым Image-двойником без DOM/сети. */
 import { afterEach, expect, it, vi } from "vitest";
 vi.mock("@/shared/ui/static-image-catalog", () => ({
   STATIC_IMAGE_URLS: {},
@@ -17,15 +18,18 @@ class ProbeImage {
   constructor() {
     ProbeImage.last = this;
   }
+  /** Двойник отражает освобождение src/srcset, чтобы тест видел отмену источника. */
   removeAttribute(key: "src" | "srcset") {
     this[key] = "";
   }
 }
+/** Возвращаем глобальные объекты и настоящие часы. */
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.useRealTimers();
 });
 
+/** Размер публичного S3-постера запрашивается через preview; отменённый probe не вызывает поздний success. */
 it("probes a public poster through its preview and returns cancellable ownership", () => {
   vi.stubGlobal("window", {
     Image: ProbeImage,
@@ -47,6 +51,7 @@ it("probes a public poster through its preview and returns cancellable ownership
   expect(success).not.toHaveBeenCalled();
 });
 
+/** Десятисекундный deadline снимает handlers/источник и сообщает ошибку ровно один раз. */
 it("releases a stalled poster probe once after its deadline", () => {
   vi.useFakeTimers();
   vi.stubGlobal("window", {
@@ -63,6 +68,7 @@ it("releases a stalled poster probe once after its deadline", () => {
   expect(success).not.toHaveBeenCalled();
 });
 
+/** Успешный onload возвращает natural dimensions и освобождает временный источник. */
 it("reports decoded dimensions once and releases its source", () => {
   vi.stubGlobal("window", {
     Image: ProbeImage,

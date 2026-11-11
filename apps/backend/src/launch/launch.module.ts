@@ -7,6 +7,7 @@ import { IdentityModule } from "../identity/identity.module";
 
 @Controller("api/capabilities")
 class CapabilitiesController {
+  /** Публикуем только актуальные серверные возможности без кеширования, чтобы скрытая клиентом функция не считалась серверным разрешением. */
   @Get()
   @Header("Cache-Control", "no-store")
   capabilities() {

@@ -14,6 +14,7 @@ import {
   type ContentFileReference,
 } from "./private-content-binding";
 
+/** Создаём одинаковый конфликт для изменившейся ссылки, структуры блока или прав: перенос не угадывает новое место вложения. */
 export const legacyConflict = () =>
   new TRPCError({
     code: "CONFLICT",
@@ -31,6 +32,7 @@ export type LegacyTarget = {
 };
 
 /** Actor is locked first. Parent then child locks match the existing editor order. */
+/** После блокировки исполнителя блокируем материал, затем вложение; возвращаем точечную замену только проверенного слота опубликованного клубного материала. */
 export async function lockLegacyTarget(
   tx: Tx,
   plan: LegacyMediaPlan,
@@ -59,6 +61,7 @@ export async function lockLegacyTarget(
       throw legacyConflict();
     const currentUrl = nested === undefined ? block.url : block.urls?.[nested];
     if (typeof currentUrl !== "string") throw legacyConflict();
+    /** Строим копию секций с заменой одного URL или элемента карусели; соседние блоки и порядок сохраняются. */
     const sections = (url: string) =>
       article.sections.map((entry, i) =>
         i !== index
@@ -76,7 +79,9 @@ export async function lockLegacyTarget(
       currentUrl,
       usage: plan.type === "photo" ? "articlePhoto" : "articleDocument",
       previous: articleFileReferences(article.sections),
+      /** Вычисляем ссылки статьи после предполагаемой замены для согласованного обновления приватных привязок. */
       referencesAfter: async (url) => articleFileReferences(sections(url)),
+      /** Записываем изменённые секции под блокировкой статьи, сохраняя исходную дату обновления при техническом переносе. */
       write: async (url) => {
         await tx
           .update(articles)
@@ -115,7 +120,9 @@ export async function lockLegacyTarget(
       mediaId: media.id,
       currentUrl: media.url,
       previous: [],
+      /** У отдельного postMedia нет ссылок в массиве фотографий: эту ветку привязывает собственная запись вложения. */
       referencesAfter: async () => [],
+      /** Меняем только URL уже заблокированного вложения, не создавая новую запись и не меняя исходный файл. */
       write: async (url) => {
         await tx
           .update(postMedia)
@@ -127,6 +134,7 @@ export async function lockLegacyTarget(
   const index = Number(subject.slot.slice("photos.".length));
   const currentUrl = post.photos?.[index];
   if (typeof currentUrl !== "string") throw legacyConflict();
+  /** Копируем массив фотографий и заменяем только проверенную позицию. */
   const photos = (url: string) =>
     post.photos.map((old, i) => (i === index ? url : old));
   return {
@@ -135,7 +143,9 @@ export async function lockLegacyTarget(
     currentUrl,
     usage: "postPhoto",
     previous: await postFileReferences(tx, post.id, post.photos),
+    /** Пересчитываем ссылки фотографий поста для нового URL до записи привязок. */
     referencesAfter: (url) => postFileReferences(tx, post.id, photos(url)),
+    /** Сохраняем новый массив фотографий под блокировкой поста, не изменяя редакторскую дату обновления. */
     write: async (url) => {
       await tx
         .update(posts)

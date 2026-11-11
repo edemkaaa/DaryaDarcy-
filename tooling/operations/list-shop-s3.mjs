@@ -45,6 +45,7 @@ console.log("shop objects", keys.length);
 for (const item of keys.slice(0, 15)) console.log(item.size, item.key);
 if (keys.length > 15) console.log("...");
 
+// В отличие от обычного списка, эта стадия изменяет публичность каждого найденного объекта Магазина.
 if (apply) {
   let ok = 0;
   for (const item of keys) {

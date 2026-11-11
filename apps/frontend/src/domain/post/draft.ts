@@ -14,7 +14,7 @@ export type PostDraft = {
   sortOrder: number;
   richText?: RichTextBlock[] | null;
 };
-/** Single serialization boundary shared by the full editor and quick editor. */
+/** В общей точке сохранения проверяем выбранную дату и размер текста; оба редактора отправляют один нормализованный payload. */
 export function serializePostDraft(draft: PostDraft) {
   if (
     draft.status === "scheduled" &&
@@ -27,7 +27,7 @@ export function serializePostDraft(draft: PostDraft) {
   assertPostTextSize(payload.text);
   return payload;
 }
-/** Normalize the initial editor state without requiring an incomplete schedule to be valid. */
+/** Снимок допускает ещё не заполненную дату расписания, нормализует richText и сериализует только подходящую статусу дату. */
 export function postDraftSnapshot(draft: PostDraft) {
   const rich = preparePostRichTextForSave(
     draft.text || " ",

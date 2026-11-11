@@ -6,6 +6,7 @@ const MAX_BUCKETS = 10000;
 const CLEANUP_INTERVAL_MS = 60000;
 let lastCleanup = 0;
 
+/** Считает попытки одного ключа в фиксированном окне процесса; очищает истёкшие записи и отказывает при переполнении, не вытесняя живую квоту. */
 export function checkRateLimit(key: string, max: number, windowMs: number): { ok: true } | { ok: false; retryAfterSec: number } {
   const now = Date.now();
   if (key.length > 512 || !Number.isSafeInteger(max) || max <= 0 || !Number.isSafeInteger(windowMs) || windowMs <= 0) {

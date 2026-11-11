@@ -9,14 +9,17 @@ import { createBackendApplication } from "../apps/backend/src/_core/application"
 import { sdk } from "../apps/backend/src/_core/sdk";
 import { getDb } from "../apps/backend/src/db";
 
+/** Проверяет явный предел старых полных списков и доступность page-процедур на коллекциях больше 200 строк. */
 describe.skipIf(!testDatabaseUrl || process.env.LEGACY_LIST_BOUNDS_DATABASE_URL !== testDatabaseUrl)("bounded legacy post collections", () => {
   let conn: Connection, app: INestApplication, base: string, token: string;
   let commentPostId: number;
+  /** Вызывает настоящий HTTP tRPC с admin JWT и извлекает результат или код ошибки. */
   async function call(path: string, input?: unknown) {
     const res = await fetch(`${base}/api/trpc/${path}${input === undefined ? "" : `?input=${encodeURIComponent(superjson.stringify(input))}`}`, { headers: { authorization: `Bearer ${token}` } });
     const body = await res.json();
     return { status: res.status, data: body.result ? superjson.deserialize<unknown>(body.result.data) : body.error?.json?.data?.code as unknown };
   }
+  /** Только при явном отдельном URL создаёт 201 собственную запись каждого legacy-списка и локальный API. */
   beforeAll(async () => {
     conn = await openContentTestDatabase(); vi.stubEnv("DATABASE_URL", testDatabaseUrl!); vi.stubEnv("JWT_SECRET", "legacy-bounds-fixture-secret-32-characters");
     await conn.query("INSERT INTO users(id,openId,role) VALUES (98640,'legacy-list-bounds-admin','admin')");
@@ -30,6 +33,7 @@ describe.skipIf(!testDatabaseUrl || process.env.LEGACY_LIST_BOUNDS_DATABASE_URL 
     app = await createBackendApplication(); await app.listen(0, "127.0.0.1");
     base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`; token = await sdk.createSessionToken("legacy-list-bounds-admin", { sessionVersion: 0 });
   });
+  /** Закрывает API, удаляет только suite-фикстуры по owner/source/title и закрывает пул. */
   afterAll(async () => {
     await app?.close();
     if (conn) {
@@ -42,9 +46,11 @@ describe.skipIf(!testDatabaseUrl || process.env.LEGACY_LIST_BOUNDS_DATABASE_URL 
     }
     await ((await getDb()) as unknown as { $client: Pool })?.$client.end(); vi.unstubAllEnvs();
   });
+  /** Переполненные legacy-коллекции возвращают 413 вместо полной гидратации или скрытого усечения. */
   it.each(["feed.list", "feed.savedPosts", "admin.posts", "admin.members", "admin.articles"])("refuses oversized %s explicitly instead of hydrating or silently truncating", async path => {
     expect(await call(path)).toEqual({ status: 413, data: "PAYLOAD_TOO_LARGE" });
   });
+  /** Тег фильтруется до cap, а paginated feed и saved остаются рабочими на большой коллекции. */
   it("filters legacy feed tags before the cap and keeps page APIs usable", async () => {
     const filtered = await call("feed.list", { tag: "last-only" });
     expect(filtered.status).toBe(200); expect(filtered.data).toHaveLength(1);
@@ -53,11 +59,13 @@ describe.skipIf(!testDatabaseUrl || process.env.LEGACY_LIST_BOUNDS_DATABASE_URL 
     const saved = await call("feed.savedPostsPage", { limit: 12, target: "feed" });
     expect(saved.status).toBe(200); expect((saved.data as { items: unknown[] }).items).toHaveLength(12);
   });
+  /** Legacy-список комментариев ограничен, но отдельная commentsPage выдаёт запрошенную страницу. */
   it("bounds the old comments collection and preserves its page endpoint", async () => {
     expect((await call("club.comments", { postId: commentPostId })).status).toBe(413);
     const page = await call("club.commentsPage", { postId: commentPostId, limit: 12 });
     expect(page.status).toBe(200); expect((page.data as { items: unknown[] }).items).toHaveLength(12);
   });
+  /** Дробные и отрицательные идентификаторы отклоняются валидацией до чтения данных. */
   it.each([
     ["feed.getById", { id: 1.5 }], ["feed.getById", { id: -1 }],
     ["admin.getPostMedia", { postId: 1.5 }], ["videos.getById", { id: -1 }],

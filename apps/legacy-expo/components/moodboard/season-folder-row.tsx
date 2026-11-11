@@ -1,3 +1,4 @@
+// Архив Expo. Показывает четыре сезонные папки с текущей и недоступными состояниями; решение перехода остаётся родителю.
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SeasonFolder } from "@/components/moodboard/season-folder";
 import { MOODBOARD_BROWN_DARK, SEASON_META } from "@/lib/moodboard/constants";
@@ -13,6 +14,8 @@ type Props = {
 };
 
 export function SeasonFolderRow({ activeSeason, onPressSeason, folderSize = 78 }: Props) {
+  // Показывает четыре сезонные папки с текущей и недоступными состояниями; решение перехода остаётся родителю.
+
   return (
     <View style={styles.row}>
       {SEASONS.map((season) => {
@@ -35,6 +38,7 @@ export function SeasonFolderRow({ activeSeason, onPressSeason, folderSize = 78 }
   );
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   row: {
     flexDirection: "row",

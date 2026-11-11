@@ -1,3 +1,4 @@
+/** Проверки отделяют бесплатный контент от платного текста в браузерных bundles; исходные авторские данные не меняются. */
 import { build } from "esbuild";
 import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
@@ -22,10 +23,13 @@ const free = {
   lightAcademia: LIGHT_ACADEMIA_RESULT,
 };
 
+/** Source-bundle проверка не подменяет отдельный production-build gate и проверку доступа к файлам. */
 describe("Library client privacy", () => {
+  /** Явно включённый gate сканирует настоящие build artifacts и запрещает paid markers, сохраняя бесплатный PDF Лошадки. */
   it.skipIf(process.env.DARYADARCY_LIBRARY_PRODUCTION_BUILD !== "1")(
     "keeps paid guide text out of the newly built production JS/HTML/RSC",
     async () => {
+      /** Рекурсивно собираем только JS/HTML/RSC/TXT артефакты уже созданной Next-сборки. */
       async function scan(path: string): Promise<string[]> {
         const entries = await readdir(path, { withFileTypes: true });
         return (
@@ -68,6 +72,7 @@ describe("Library client privacy", () => {
         expect(served.includes(share)).toBe(false);
     },
   );
+  /** Hash каждой free эстетики сверяется с независимым исходным снимком. */
   it.each(Object.keys(free) as (keyof typeof free)[])(
     "keeps exactly the original five free fields for %s",
     (key) => {
@@ -76,6 +81,7 @@ describe("Library client privacy", () => {
       ).toBe(aestheticContentHashes[key].free);
     },
   );
+  /** Esbuild in-memory граф обоих consumers не содержит backend imports/paid intro/старые платные ссылки, сохраняя явно бесплатные материалы. */
   it("ships no paid guide text or external pattern fallback in either consumer's browser bundle", async () => {
     const bundle = await build({
       entryPoints: [

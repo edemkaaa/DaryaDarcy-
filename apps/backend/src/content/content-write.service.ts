@@ -22,17 +22,21 @@ import type { ContentEditPrecondition } from "./content-edit-revision";
 /** The adapter authorizes/validates inputs; existing helpers own transactions. */
 @Injectable()
 export class ContentWriteService {
+  /** Проверяет club-доступ на reader текущей reaction-транзакции, не открывая независимый snapshot. */
   private readonly reactionAccess: ReactionAccessCheck = (actor, reader) =>
     userHasClubAccess(actor, (id) => db.getActiveClubSubscription(id, reader));
 
+  /** Делегирует один toggle лайка current actor; результат повтора проверяют чтением, а не слепым вторым toggle. */
   toggleLike(actor: ContentWriteActor, postId: number): Promise<boolean> {
     return db.toggleLike(actor, postId, this.reactionAccess);
   }
 
+  /** Делегирует один toggle сохранения с актуальной проверкой parent-доступа в writer. */
   toggleSave(actor: ContentWriteActor, postId: number): Promise<boolean> {
     return db.toggleSave(actor, postId, this.reactionAccess);
   }
 
+  /** Отделяет клиентский idempotencyKey от хранимых полей и строит actor-bound immutable intent перед атомарной записью статьи. */
   createArticle(
     input: Parameters<typeof db.createArticle>[0] & { idempotencyKey?: string },
     actorUserId: number,
@@ -48,10 +52,12 @@ export class ContentWriteService {
     );
   }
 
+  /** Читает receipt создания данного actor/key без повторного создания статьи или отправки уведомления. */
   articleCreationStatus(actorUserId: number, key: string) {
     return db.getArticleCreationStatus(actorUserId, key);
   }
 
+  /** Отделяет expectedRevision от partial-полей и передаёт оба в транзакционное изменение статьи. */
   async updateArticle(
     input: { id: number } & Parameters<typeof db.updateArticle>[1] & ContentEditPrecondition,
     actor?: PrivateAttachmentActor,
@@ -61,24 +67,29 @@ export class ContentWriteService {
     return { ok: true };
   }
 
+  /** Ждёт cascade статьи/teaser и возвращает ok лишь после завершения writer. */
   async deleteArticle(id: number, actor?: PrivateAttachmentActor): Promise<{ ok: true }> {
     await db.deleteArticle(id, actor);
     return { ok: true };
   }
 
+  /** Удаляет пост через общий cascade с текущим административным actor, не затрагивая исходные S3-объекты. */
   deletePost(id: number, actor?: PrivateAttachmentActor): Promise<void> {
     return db.deletePost(id, actor);
   }
 
+  /** Делегирует удаление привязки media с повторной административной проверкой, не удаляя файл в storage. */
   deleteMedia(id: number, actor?: PrivateAttachmentActor): Promise<void> {
     return db.deletePostMediaById(id, actor);
   }
 
+  /** Запускает административную очистку технических raw-camera имён через общий writer с current actor. */
   async cleanupMediaNames(actor: ContentWriteActor): Promise<{ ok: true }> {
     await db.clearRawCameraFilenames(actor);
     return { ok: true };
   }
 
+  /** Нормализует legacy YouTube-import поля/null и порядок, затем выполняет общий transactional import с current admin. */
   async importVideos(
     input: ImportVideosInput,
     actor: ContentWriteActor,
@@ -98,6 +109,7 @@ export class ContentWriteService {
     return { imported: count };
   }
 
+  /** Нормализует plain/rich text, теги и publication dates, связывает private assets с creation-key и отправляет marketing push только после нового published коммита. */
   async createPost(
     actorUserId: number,
     input: CreatePostInput,
@@ -174,6 +186,7 @@ export class ContentWriteService {
     return result.postId;
   }
 
+  /** Собирает partial без undefined-действий, синхронизует plain/richText и даты, передаёт revision/attachments writer и уведомляет лишь о новом переходе в published. */
   async updatePost(input: UpdatePostInput, actor?: PrivateAttachmentActor): Promise<{ success: boolean }> {
     const {
       id,
@@ -236,6 +249,7 @@ export class ContentWriteService {
     return { success: true };
   }
 
+  /** Публикует scheduled через общий actor-aware writer и отправляет push только при реально выполненном переходе. */
   async confirmPost(postId: number, actor?: PrivateAttachmentActor): Promise<{ success: boolean }> {
     const post = await db.confirmScheduledPost(postId, actor);
     if (post) {

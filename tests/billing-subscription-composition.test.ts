@@ -1,3 +1,4 @@
+/** Тест роутерной композиции с непрозрачным subscription-портом: не подтверждает настоящий settlement или SQL. */
 import { afterEach, expect, it, vi } from "vitest";
 import { createAppRouter } from "../apps/backend/src/routers";
 import { ContentReadService } from "../apps/backend/src/content/content-read.service";
@@ -33,6 +34,7 @@ const member: User = {
 };
 const paidUntil = new Date("2026-11-01T00:00:00Z");
 const subscriptions = {
+  /** Синтетический порт возвращает заранее заданный действующий период и цену для проверки передачи ответа. */
   async subscription(_actor: User | null) {
     return {
       hasClubAccess: true,
@@ -44,10 +46,12 @@ const subscriptions = {
       monthlyPrice: "1250",
     };
   },
+  /** Порт проверяет userId и возвращает фиктивное уже подтверждённое назначение. */
   async claimPending(userId: number) {
     expect(userId).toBe(7);
     return { granted: true as const, orderId: "club-7-confirmed" };
   },
+  /** Порт получает полный actor и возвращает confirmed с сохранённым концом оплаченного периода. */
   async cancel(actor: User) {
     expect(actor).toEqual(member);
     return {
@@ -58,6 +62,7 @@ const subscriptions = {
     };
   },
 };
+/** Собираем настоящий AppRouter вокруг переданного subscription provider и выбранного actor. */
 function caller(user: User | null = member) {
   return createAppRouter(
     new ContentReadService(),
@@ -74,8 +79,10 @@ function caller(user: User | null = member) {
     new ModerationService(),
   ).createCaller({ user, req: {}, res: {} } as TrpcContext);
 }
+/** Снимаем DATABASE_URL подстановку. */
 afterEach(() => vi.unstubAllEnvs());
 
+/** Ответ статуса берётся из внедрённого сервиса, не глобального фасада. */
 it("subscription status uses the supplied billing service", async () => {
   vi.stubEnv("DATABASE_URL", "");
   expect(await caller().club.subscription()).toEqual({
@@ -88,6 +95,7 @@ it("subscription status uses the supplied billing service", async () => {
     monthlyPrice: "1250",
   });
 });
+/** Роутер сохраняет grant/orderId возвращённого порта. */
 it("claimPending reports the supplied service's verified order", async () => {
   vi.stubEnv("DATABASE_URL", "");
   expect(await caller().club.claimPending()).toEqual({
@@ -95,6 +103,7 @@ it("claimPending reports the supplied service's verified order", async () => {
     orderId: "club-7-confirmed",
   });
 });
+/** Cancel DTO не теряет status, expiresAt и разрешённое сообщение. */
 it("cancellation uses the supplied service and retains paid expiry", async () => {
   vi.stubEnv("DATABASE_URL", "");
   expect(await caller().club.cancel()).toEqual({
@@ -104,6 +113,7 @@ it("cancellation uses the supplied service and retains paid expiry", async () =>
     message: "synthetic supplied cancellation confirmation",
   });
 });
+/** Без сессии cancel/claimPending отвергаются до service. */
 it.each(["cancel", "claimPending"] as const)(
   "anonymous %s stays protected",
   async (method) => {
@@ -112,6 +122,7 @@ it.each(["cancel", "claimPending"] as const)(
     });
   },
 );
+/** Blocked actor не проходит защищённые операции. */
 it.each(["cancel", "claimPending"] as const)(
   "blocked %s stays protected",
   async (method) => {

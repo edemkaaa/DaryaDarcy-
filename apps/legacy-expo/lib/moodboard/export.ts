@@ -1,9 +1,12 @@
+// Архив Expo. Исторический native fallback сохраняет первое фото, а не коллаж; запрашивает галерею и использует один временный путь.
 import * as FileSystem from "expo-file-system/legacy";
 import * as MediaLibrary from "expo-media-library";
 import * as Sharing from "expo-sharing";
 import type { MoodboardDoc } from "@/lib/moodboard/types";
 
 export async function saveAndShareMoodboard(_board: MoodboardDoc): Promise<void> {
+  // Исторический native fallback сохраняет первое фото, а не коллаж; запрашивает галерею и использует один временный путь.
+
   const perm = await MediaLibrary.requestPermissionsAsync();
   if (!perm.granted) {
     throw new Error("Нужен доступ к галерее");

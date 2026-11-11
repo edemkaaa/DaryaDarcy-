@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { editorApi, failure, ok } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
+/** Делаем реальный query-кеш устаревшим временем и повторным входом в раздел; ошибка скрывает прежние числа, повтор возвращает новые. */
 test("statistics hide cached numbers after a failed refresh and recover on retry", async ({
   page,
 }) => {
@@ -64,6 +65,7 @@ test("statistics hide cached numbers after a failed refresh and recover on retry
   });
 });
 
+/** Отличаем недоступную статистику от корректного ответа, в котором все значения равны нулю. */
 test("an unavailable initial read can recover to genuinely zero statistics", async ({
   page,
 }) => {

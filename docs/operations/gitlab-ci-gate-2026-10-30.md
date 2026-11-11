@@ -68,7 +68,7 @@ push и выкладки нет.
 
 Профили и критерии: [checkout browser CI](checkout-browser-ci-2026-10-30.md).
 Полная native сборка образов — отдельный gate
-[пакета DevOps](../../infrastructure/deploy/teamassist/README.build.md),
+[пакета DevOps](../../infrastructure/build/README.md),
 а не побочный эффект включения CI/CD.
 
 Обезличенный результат чтения сохранён вне Git:

@@ -27,6 +27,8 @@ if (args.length !== 1 || !args[0] || args[0].startsWith("-")) {
 }
 
 async function accept(image) {
+  // Разрешает только локальный Docker и точный image ID, создаёт собственную MySQL и сохраняет результаты вместе с доказательством адресной очистки.
+
   const owner = `daryadarcy-fresh-backend-audit-${randomBytes(8).toString("hex")}`;
   const folder = resolve(root, "../.local-artifacts", owner);
   await mkdir(folder, { mode: 0o700 });
@@ -47,6 +49,8 @@ async function accept(image) {
   );
   Object.assign(env, { DATABASE_URL: "", NODE_ENV: "test" });
   async function run(command, commandArgs, { log, timeout = 30_000 } = {}) {
+    // Ограничивает время дочерней команды и при необходимости пишет закрытый лог вне репозитория, не печатая её приватные аргументы при ошибке.
+
     const handle = log
       ? await open(resolve(folder, log), "wx", 0o600)
       : undefined;
@@ -79,7 +83,7 @@ async function accept(image) {
       await handle?.close();
     }
   }
-  const docker = (...parts) => run("docker", parts);
+  const docker = (...parts) => /* Выполняет Docker-команды через тот же контролируемый runner, а не отдельный shell с наследованными интеграционными ключами. */ run("docker", parts);
   // Docker contexts can point at a remote/working host: refuse those before
   // creating anything. An explicit DOCKER_HOST takes precedence over context.
   const context = JSON.parse(await docker("context", "inspect"))[0];

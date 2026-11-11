@@ -1,10 +1,12 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
 
+/** Находим активный промобаннер по доступному имени, не привязываясь к его декоративной разметке. */
 function banner(page: Page) {
   return page.getByRole("button", { name: /^Перейти: / });
 }
 
+/** Открываем главную с синтетическими API и дожидаемся начального слайда перед жестами. */
 async function openHome(page: Page) {
   await layoutApi(page);
   await gotoWithSession(page, "/");
@@ -12,6 +14,7 @@ async function openHome(page: Page) {
   await expect(banner(page)).toHaveAccessibleName("Перейти: Клуб Darcy");
 }
 
+/** Совершаем реальное перетаскивание мышью внутри баннера; направление и расстояние задаются относительно его ширины. */
 async function drag(page: Page, direction = -1, distance = 0.5) {
   const box = (await banner(page).boundingBox())!;
   const x = box.x + box.width * (direction < 0 ? 0.8 : 0.2);
@@ -22,6 +25,7 @@ async function drag(page: Page, direction = -1, distance = 0.5) {
   await page.mouse.up();
 }
 
+/** Посылаем последовательность native touch через CDP, включая отмену и вертикальный жест для проверки разграничения прокрутки. */
 async function touchSwipe(
   page: Page,
   target: Locator,
@@ -51,6 +55,7 @@ async function touchSwipe(
   await session.detach();
 }
 
+/** Мышь проверяет циклическое листание, click после жеста, потерю фокуса и перенос срока автоматической смены после ручного действия. */
 test.describe("homepage promo mouse dragging", () => {
   test.use({ viewport: { width: 1440, height: 1000 }, hasTouch: false });
 
@@ -118,6 +123,7 @@ test.describe("homepage promo mouse dragging", () => {
   });
 });
 
+/** Касание проверяет смену слайдов и обычный tap отдельно от вертикального scroll и отменённого жеста. */
 test.describe("homepage promo touch swiping", () => {
   test.use({
     viewport: { width: 390, height: 844 },

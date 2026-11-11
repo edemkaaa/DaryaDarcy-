@@ -26,13 +26,16 @@ import {
 
 // The policy is shared by private uploads. These byte/MIME regressions must not
 // depend on keeping the retired public HTTP routes writable.
+/** Применяет реальную общую MIME-нормализацию и определение формата по байтам для выбранной категории вложения. */
 const resolve = (
   type: "audio" | "video" | "document",
   mime: string,
   bytes: Buffer,
 ) =>
   resolveMediaContentType(type, normalizeMediaContentType(type, mime), bytes);
+/** Проверяет политику приватных media независимо от retired публичных HTTP upload-маршрутов. */
 describe("media policy independent of legacy public uploads", () => {
+  /** Проверяет PDF, DOCX и допустимые текстовые кодировки без изменения исходных байтов, включая границы probe и MIME-параметры. */
   it.each([
     ["PDF", pdfFixture, "application/pdf", "application/pdf"],
     ["DOCX", docxFixture, docxMime, docxMime],
@@ -117,6 +120,7 @@ describe("media policy independent of legacy public uploads", () => {
       expect(bytes).toEqual(original);
     },
   );
+  /** Проверяет запрет неверных кодировок, управляющих символов, конфликтов BOM и превышения итогового MIME. */
   it.each([
     ["invalid UTF-8", Buffer.from([255, 65]), "text/plain"],
     ["NUL", Buffer.from("hello\0world"), "text/plain"],
@@ -153,6 +157,7 @@ describe("media policy independent of legacy public uploads", () => {
       code: "BAD_REQUEST",
     });
   });
+  /** Проверяет невозможность скрыть бинарный документ или media под text/plain. */
   it.each([
     pdfFixture,
     docxFixture,
@@ -165,6 +170,7 @@ describe("media policy independent of legacy public uploads", () => {
       resolve("document", "text/plain", bytes),
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
+  /** Проверяет отказ посторонних байтов, ложно объявленных PDF либо DOCX. */
   it.each([
     zipFixture,
     docmFixture,
@@ -176,6 +182,7 @@ describe("media policy independent of legacy public uploads", () => {
         code: "BAD_REQUEST",
       });
   });
+  /** Проверяет отказ взаимной подмены PDF и DOCX по заявленному MIME. */
   it.each([
     [pdfFixture, docxMime],
     [docxFixture, "application/pdf"],
@@ -184,6 +191,7 @@ describe("media policy independent of legacy public uploads", () => {
       code: "BAD_REQUEST",
     });
   });
+  /** Проверяет канонический audio/video MIME по реальным сигнатурам с сохранением допустимых параметров. */
   it.each([
     ["audio", " Audio/MPEG ", mp3Fixture, "audio/mpeg"],
     [
@@ -204,6 +212,7 @@ describe("media policy independent of legacy public uploads", () => {
       expect(await resolve(type, mime, bytes)).toBe(canonical);
     },
   );
+  /** Проверяет запрет audio-байтов в категории video. */
   it.each([mp3Fixture, wavFixture()])(
     "refuses audio bytes in the video category",
     async (bytes) => {
@@ -212,6 +221,7 @@ describe("media policy independent of legacy public uploads", () => {
       });
     },
   );
+  /** Проверяет запрет постороннего или усечённого содержимого под audio/video MIME. */
   it.each([
     pdfFixture,
     zipFixture,
@@ -224,6 +234,7 @@ describe("media policy independent of legacy public uploads", () => {
         resolve(type, type === "audio" ? "audio/mpeg" : "video/mp4", bytes),
       ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
+  /** Проверяет форму MIME, допустимую категорию и запрет header-injection до чтения содержимого. */
   it.each([
     "text/html",
     "image/svg+xml",

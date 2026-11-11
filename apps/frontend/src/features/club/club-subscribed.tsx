@@ -66,6 +66,7 @@ import {
 } from "./club-subscribed.content";
 import { POST_PAGE_WINDOW } from "@/shared/api/cursor-pages";
 import type { ClubTab, ClubPost } from "./club-subscribed.content";
+/** Соединяем scoped-ленту, оформление и внутренние рубрики; календарный порядок и фильтрация остаются серверными до пагинации. */
 export function ClubSubscribed({
   purchaseNotice,
 }: {
@@ -88,6 +89,7 @@ export function ClubSubscribed({
   useClubContentProtection(true);
   const utils = trpc.useUtils();
   // Admin post management (edit/delete)
+  /** После изменения публикации перечитываем текущую цепочку клуба. */
   const onRefresh = () => {
     void clubQuery.refetch();
   };
@@ -98,9 +100,11 @@ export function ClubSubscribed({
   const listRef = useRef<HTMLDivElement>(null);
   const clubTabsRef = useRef<HTMLDivElement>(null);
   const [clubMenuHeight, setClubMenuHeight] = useState(86);
+  /** Измеряем фактическую высоту внутреннего меню и отключаем ResizeObserver при уходе владельца. */
   useEffect(() => {
     const tabs = clubTabsRef.current;
     if (!tabs) return;
+    /** Удерживаем последнюю ненулевую высоту меню: скрытая сохранённая вкладка не должна обнулять отступы плавающих элементов. */
     const measure = () => {
       const height = tabs.getBoundingClientRect().height;
       // Retained tabs are hidden between visits; keep their measured clearance.
@@ -111,12 +115,15 @@ export function ClubSubscribed({
     observer.observe(tabs, { box: "border-box" });
     return () => observer.disconnect();
   }, []);
+  /** Сохраняем набор фотографии карточки и индекс перед открытием просмотра. */
   const openPhotoViewer = (photos: string[], index: number) => {
     setViewerPhotos(photos);
     setViewerInitialIndex(index);
     setViewerVisible(true);
   };
+  /** Передаём числовой id модели подтверждённых взаимодействий. */
   const handleClubLike = (postId: string) => interactions.like(Number(postId));
+  /** Сохранение выполняет общая account-scoped модель, а не локальная подмена карточки. */
   const handleClubSave = (postId: string) => interactions.save(Number(postId));
   const needsProfileSetup = !setupHidden && !isOwner;
   const displayName = user?.name;
@@ -167,9 +174,11 @@ export function ClubSubscribed({
     onRetry: () => clubQuery.refetch({ cancelRefetch: false }),
   });
   const { fetchNextPage, hasNextPage, isFetching, isError } = clubQuery;
+  /** Автоматически продолжаем цепочку только активного списка без текущей загрузки и ошибки. */
   const loadMore = useCallback(() => {
     if (active && hasNextPage && !isFetching && !isError) void fetchNextPage();
   }, [active, fetchNextPage, hasNextPage, isFetching, isError]);
+  /** Повторяем именно сбойную следующую страницу либо обновление головы, не пересоздавая всю цепочку. */
   const retryPosts = () => {
     if (clubQuery.isFetching) return;
     if (clubQuery.isFetchNextPageError) void clubQuery.fetchNextPage();
@@ -239,6 +248,7 @@ export function ClubSubscribed({
     backgroundCandidates.find(Boolean),
     bannerCandidates.find(Boolean),
   ].some((url) => url && failedImages.includes(url));
+  /** Исключаем один неисправный URL из кандидатов оформления до явного повтора. */
   const failImage = useCallback((url: string | null) => {
     if (url)
       setFailedImages((previous) =>
@@ -262,6 +272,7 @@ export function ClubSubscribed({
       ? preparedAppearance.bannerSize
       : null;
   const { stylesLayout } = getClubSubscribedLayout(viewport, bannerSize);
+  /** Снимаем локальный список отказавших картинок и заново читаем настройки без перекрытия текущего refetch. */
   const retryAppearance = () => {
     setFailedImages([]);
     return appearanceQuery.refetch({ cancelRefetch: false });
@@ -272,6 +283,7 @@ export function ClubSubscribed({
       "Не удалось обновить оформление Клуба. Используется доступное оформление.",
     onRetry: retryAppearance,
   });
+  /** Передаём карточке подтверждённые лайки и сохранения; админское меню получает исходные поля записи, а не очищенный preview. */
   const renderPost = ({ item }: { item: ClubPost }) => (
     <ClubPostCard
       item={item}
@@ -312,6 +324,7 @@ export function ClubSubscribed({
     />
   );
   // Banner image as the first element in the scrollable list
+  /** Баннер входит в ту же прокрутку, что публикации; приветствие, комьюнити и индикатор фильтра зависят от выбранной рубрики. */
   const ListHeader = () => (
     <div className="ui-stack ">
       <PostInteractionStatus

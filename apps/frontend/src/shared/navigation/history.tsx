@@ -9,15 +9,14 @@ import {
 
 const entryIndex = "__darcyEntryIndex";
 
+/** Наличие предыдущей записи определяем своим индексом: history.length включает внешние сайты и пустую стартовую вкладку. */
 export function hasAppHistory() {
   return (
     typeof window !== "undefined" && window.history.state?.[entryIndex] > 0
   );
 }
 
-/** Mark only entries created in this app, preserving Next's history state.
- * history.length also counts external pages and the initial blank tab.
- */
+/** Добавляем индекс к push/replace, сохраняя служебные поля Next; при cleanup возвращаем только всё ещё свои wrappers. history.length включает внешние страницы и начальную пустую вкладку, поэтому для возврата его недостаточно. */
 export function NavigationHistory() {
   const path = usePathname();
   const params = useSearchParams().toString();
@@ -26,8 +25,10 @@ export function NavigationHistory() {
     const history = window.history;
     const pushState = history.pushState;
     const replaceState = history.replaceState;
+    /** У прямого входа индекс начинается с нуля; только собственный push увеличивает глубину безопасного back. */
     const index = () => history.state?.[entryIndex] ?? 0;
     replaceState.call(history, { ...history.state, [entryIndex]: index() }, "");
+    /** Новая запись получает следующий индекс, затем очищает чужие hints и уведомляет читающие навигацию компоненты. */
     const push: History["pushState"] = function (state, title, url) {
       pushState.call(
         history,
@@ -38,6 +39,7 @@ export function NavigationHistory() {
       clearOtherPageIntents();
       window.dispatchEvent(new Event(navigationIntentEvent));
     };
+    /** Замена текущей записи сохраняет индекс, иначе обычная очистка query выглядела бы как дополнительный шаг назад. */
     const replace: History["replaceState"] = function (state, title, url) {
       replaceState.call(
         history,

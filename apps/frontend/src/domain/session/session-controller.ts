@@ -46,24 +46,30 @@ export class SessionController {
   private authenticating = false;
   private refreshing = false;
   private confirmedIdentity: string | null = null;
+  /** Получаем побочные действия извне: контроллер упорядочивает сессию без зависимости от React и QueryClient. */
   constructor(private dependencies: Dependencies) {}
+  /** Возвращаем последнюю опубликованную ссылку состояния для внешнего store React. */
   getSnapshot = (): SessionState => this.state;
+  /** Добавляем слушателя и возвращаем его индивидуальную отписку. */
   subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener);
     return () => {
       this.listeners.delete(listener);
     };
   };
+  /** Сначала заменяем состояние, затем уведомляем слушателей о согласованном snapshot. */
   private publish(state: SessionState): void {
     this.state = state;
     for (const listener of this.listeners) listener();
   }
   // Новый владелец запроса одновременно отзывает прежний сигнал и увеличивает версию ответа.
+  /** Отзываем предыдущий сетевой сигнал и выдаём номер поколения, которым проверяются все поздние ответы. */
   private begin() {
     this.pending?.abort();
     this.pending = new AbortController();
     return { version: ++this.operation, signal: this.pending.signal };
   }
+  /** Подтверждаем личность вместе с ролью; смена владельца сбрасывает приватные данные, scope пересоздаёт связанные экраны. */
   private commit(
     user: Api.AuthUser | null,
     status: SessionStatus,
@@ -91,6 +97,7 @@ export class SessionController {
       scope: this.state.scope + (changed ? 1 : 0),
     });
   }
+  /** Перечитываем пользователя с защитой от устаревшего ответа; временный фоновой сбой сохраняет ранее подтверждённую сессию. */
   refresh = async (force = false): Promise<void> => {
     if (
       this.state.status === "logging-out" ||
@@ -129,6 +136,7 @@ export class SessionController {
       }
     }
   };
+  /** Вход вытесняет прежнее чтение сессии; только актуальный валидный ответ меняет пользователя и уведомляет другие вкладки. */
   authenticate = async (
     request: (signal: AbortSignal) => Promise<{ user: Api.AuthUser }>,
   ): Promise<boolean> => {
@@ -156,6 +164,7 @@ export class SessionController {
       }
     }
   };
+  /** Принимаем явно подтверждённую сессию, отменяя старые чтения; незавершённый серверный выход имеет приоритет. */
   applySession = async (user: Api.AuthUser | null): Promise<void> => {
     if (["logging-out", "logout-error"].includes(this.state.status)) return;
     this.begin();
@@ -166,7 +175,7 @@ export class SessionController {
       user ? "authenticated" : "guest",
     );
   };
-  /** A write ACK supersedes every session read started before that write. */
+  /** ACK профиля текущего владельца вытесняет старые чтения и не может понизить известную ревизию; фоновая перепроверка идёт после commit. */
   confirmProfileUpdate = (
     ownerId: number,
     patch: ConfirmedProfilePatch,
@@ -193,6 +202,7 @@ export class SessionController {
     return true;
   };
   // Прочитанный профиль не должен откатить более новую подтверждённую ревизию полей.
+  /** Сверяем владельца и ревизию повторного чтения перед заменой сессии, чтобы не откатить более свежий ACK. */
   reconcileProfile = async (
     ownerId: number,
     user: Api.AuthUser | null,
@@ -214,12 +224,14 @@ export class SessionController {
     return user?.id === ownerId;
   };
   // Изменение клубных прав может очистить приватные данные без смены самого аккаунта.
+  /** Отзываем приватный кеш текущего аккаунта без смены личности; при необходимости пересоздаём экраны через scope. */
   invalidateAccess = (resetScreens = true): void => {
     if (this.state.status !== "authenticated") return;
     this.dependencies.resetIdentity(this.state.user?.id ?? null);
     if (resetScreens)
       this.publish({ ...this.state, scope: this.state.scope + 1 });
   };
+  /** 403 перепроверяет полномочия без ложного выхода, а 401 закрывает текущую личность до принудительного чтения. */
   verifyAfterAccessError = (status: 401 | 403): void => {
     if (this.state.status !== "authenticated") return;
     // A 403 can mean insufficient permission while the session remains valid.
@@ -230,6 +242,7 @@ export class SessionController {
     this.commit(null, "checking");
     void this.refresh(true);
   };
+  /** Принимаем подтверждённый выход другой вкладки только из локального состояния незавершённого выхода. */
   completeExternalLogout = (): void => {
     if (
       this.state.status !== "logging-out" &&
@@ -245,6 +258,7 @@ export class SessionController {
       refreshError: null,
     });
   };
+  /** Сразу закрываем локальный доступ и сохраняем durable-маркер; состояние guest наступает лишь после подтверждения серверного отзыва. */
   logout = async (): Promise<void> => {
     // Strict Mode can cancel the initial pending-logout request during cleanup.
     // Coalesce live requests, but allow the next setup to restart an aborted one.
@@ -284,6 +298,7 @@ export class SessionController {
       if (task.version === this.operation) this.pending = null;
     }
   };
+  /** Инвалидируем поколение и сетевой запрос при cleanup, сохраняя подписчиков и snapshot для повторного setup Strict Mode. */
   dispose = (): void => {
     this.operation++;
     this.pending?.abort();

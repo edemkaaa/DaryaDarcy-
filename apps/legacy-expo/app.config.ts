@@ -1,3 +1,4 @@
+// Архив Expo. Параметры старой Expo-сборки: нормализованный bundle id, deep links, native разрешения и плагины.
 // Load environment variables with proper priority (system > .env)
 import "../../tooling/scripts/load-env.js";
 import type { ExpoConfig } from "expo/config";

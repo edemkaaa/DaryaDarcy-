@@ -14,6 +14,7 @@ import { MaterialIcons } from "@/shared/ui/icons";
 import { BROWN_MUTED } from "./profile-screen.content";
 import classes from "./profile-screen.module.scss";
 
+/** Отделяем локальный ввод имени от подтверждённого профиля; unknown и review управляются общим revision-aware hook. */
 export function ProfileNameEditor({ displayName }: { displayName: string }) {
   const { user } = useAuth();
   const update = useProfileUpdate(
@@ -33,6 +34,7 @@ export function ProfileNameEditor({ displayName }: { displayName: string }) {
   }, [editing]);
   useEffect(() => {
     if (!editing || update.busy || update.unknown) return;
+    /** Закрываем готовый редактор при клике вне реальных controls; неподтверждённая операция остаётся открытой. */
     const dismiss = (event: PointerEvent) => {
       const control =
         event.target instanceof Element
@@ -48,14 +50,17 @@ export function ProfileNameEditor({ displayName }: { displayName: string }) {
       document.removeEventListener("pointerdown", dismiss, true);
     };
   }, [editing, update.busy, update.unknown]);
+  /** Помечаем возврат фокуса на исходную кнопку после следующего render без редактора. */
   const closeWithFocus = () => {
     restoreFocus.current = true;
     setEditing(false);
   };
+  /** Закрываем только подтверждённое сохранение текущего владельца; поздний ответ другого аккаунта игнорируем. */
   const finish = async (saved: boolean) => {
     if (!saved || !user || !isPersonalDataOwner(user.id)) return;
     if (isPersonalDataOwner(user.id)) closeWithFocus();
   };
+  /** Нормализуем имя и запрещаем запись, пока ввод пуст, занят, unknown или требует сверки. */
   const save = async () => {
     const name = draft.trim();
     if (
@@ -68,6 +73,7 @@ export function ProfileNameEditor({ displayName }: { displayName: string }) {
       return;
     await finish(await update.save({ name }));
   };
+  /** Обычная отмена закрывает форму с возвратом фокуса, но не разрешает бросить выполняющийся/неизвестный write. */
   const cancel = () => {
     if (update.busy || update.unknown) return;
     closeWithFocus();

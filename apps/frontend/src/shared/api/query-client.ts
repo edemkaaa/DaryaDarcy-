@@ -11,13 +11,14 @@ import { requestSessionCheck } from "./session-events";
 export const INACTIVE_COMMENT_QUERY_LIMIT = 48;
 export const INACTIVE_FEED_QUERY_LIMIT = 2;
 
-/** Bound abandoned data without evicting a retained screen or a reply draft. */
+/** Ограничиваем только известные неиспользуемые query; активные observers и незавершённые fetch не удаляются ради лимита. */
 function limitContentCache(cache: QueryCache) {
   const comments = new Map<string, Query>();
   const feeds = new Map<string, Query>();
   const clubPosts = new Map<string, Query>();
   const lists = new Map<string, Map<string, Query>>();
   let scheduled = false;
+  /** Порядок Map отражает недавние события query; удаляем наиболее старые подходящие записи сверх своего лимита. */
   const trim = (entries: Map<string, Query>, limit: number) => {
     const inactive = [...entries.values()].filter(
       (query) =>
@@ -83,6 +84,7 @@ function limitContentCache(cache: QueryCache) {
 /** Defaults keep cache stable; content refresh and access checks opt in separately. */
 // Настройки создаём на экземпляр приложения, чтобы новый QueryClient не возникал при каждом рендере провайдера.
 export function createAppQueryClient() {
+  /** 401/403 просят владельца сессии перепроверить полномочия; сам QueryCache не очищает пользователя по догадке. */
   const checkAccess = (error: unknown) => {
     const status = getHttpStatus(error);
     if (status === 401 || status === 403) requestSessionCheck(status);

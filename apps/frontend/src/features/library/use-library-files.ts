@@ -5,6 +5,7 @@ import { useAuth } from "@/domain/session/session-context";
 import { useClub } from "@/domain/subscription/subscription-context";
 import { getLibraryFiles, type LibraryMaterialKey } from "./library-files-api";
 
+/** Привязываем ссылки к текущему аккаунту и материалу; на перепроверке доступа скрываем ранее полученные привязки. */
 export function useLibraryFiles(material: LibraryMaterialKey, active = true) {
   const { user, isAuthenticated } = useAuth();
   const { hasClubAccess } = useClub();

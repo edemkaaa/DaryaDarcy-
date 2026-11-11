@@ -9,6 +9,7 @@ import { Typography } from "@/shared/ui/elements";
 import { Picture } from "@/shared/media/image";
 import { ASSETS } from "./shop-screen.content";
 import { getShopScreenContent } from "./shop-screen.content";
+/** Собираем декоративную рамку и односложную подпись полки, сохраняя внешний style для рассчитанного положения. */
 export function ShelfLabel({
   text,
   style,

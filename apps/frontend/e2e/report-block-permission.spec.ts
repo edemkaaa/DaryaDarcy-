@@ -15,9 +15,11 @@ const report = {
   reporterUserId: 202,
   reporterName: "Участница",
 };
+/** Выбираем только действие блокировки автора, отдельно от удаления комментария и закрытия жалобы. */
 const block = (page: Page) =>
   page.getByRole("button", { name: "Заблокировать автора", exact: true });
 
+/** Разрешение кнопки и последующий серверный отказ управляются независимо, чтобы воспроизвести отзыв прав после чтения. */
 async function fixture(page: Page, role: "admin" | "moderator", hint: unknown) {
   const state = {
     hint,
@@ -58,6 +60,7 @@ async function fixture(page: Page, role: "admin" | "moderator", hint: unknown) {
   );
   return state;
 }
+/** Открываем соответствующую роли очередь и ждём саму жалобу до действий. */
 async function open(page: Page, role: "admin" | "moderator") {
   await gotoWithSession(page, "/admin");
   if (role === "admin")
@@ -67,6 +70,7 @@ async function open(page: Page, role: "admin" | "moderator") {
   ).toBeVisible();
 }
 
+/** Для обеих ролей проверяем строгое boolean-разрешение, защиту от двойного click и 403 без ложного успеха или повторной записи. */
 for (const role of ["admin", "moderator"] as const) {
   for (const hint of [false, undefined, "true"] as const) {
     test(`${role}: hint ${String(hint)} (${typeof hint}) does not allow author blocking`, async ({

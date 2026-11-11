@@ -16,6 +16,7 @@ import classes from "./post-video-carousel.module.scss";
 
 export type PostVideoSlide = { url: string; posterUrl?: string };
 
+/** Согласуем индекс, ширину и инертность слайдов; смена активности пересоздаёт VideoGridCell и освобождает старый плеер. */
 export function PostVideoCarousel({ videos }: { videos: PostVideoSlide[] }) {
   const [width, setWidth] = useState(0);
   const [index, setIndex] = useState(0);
@@ -25,6 +26,7 @@ export function PostVideoCarousel({ videos }: { videos: PostVideoSlide[] }) {
   const mouseDrag = usePhotoMouseDrag(width, videos.length);
   useCollectionItemRetention(index > 0);
   useLayoutEffect(() => {
+    // После изменения размеров или состава роликов удерживаем доступный индекс и выравниваем слот до paint.
     const preserved = Math.min(
       currentIndex.current,
       Math.max(videos.length - 1, 0),
@@ -36,6 +38,7 @@ export function PostVideoCarousel({ videos }: { videos: PostVideoSlide[] }) {
       behavior: "instant",
     });
   }, [width, videos.length]);
+  /** Прокручиваем к разрешённому индексу через общий helper, сохраняя единый расчёт ширины слота. */
   const navigate = (next: number) =>
     scrollPhotoTo(scrollRef.current, width, videos.length, next);
   if (!videos.length) return null;

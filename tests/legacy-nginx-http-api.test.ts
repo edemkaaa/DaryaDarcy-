@@ -1,7 +1,9 @@
+/** Регрессия архивного Nginx: проверяет текст HTTP-конфига, не запускает сервер. */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, it } from "vitest";
 
+/** Отдельно выделяем HTTP server-блок: /api должен завершаться отказом, чтобы учётные данные не проксировались без TLS. */
 it("does not proxy API credentials over HTTP in the legacy nginx config", () => {
   const config = readFileSync(resolve("infrastructure/deploy/nginx-daryadarcy.conf"), "utf8");
   const httpServer = config.split(/\nserver \{/)[1];

@@ -28,6 +28,7 @@ import classes from "./club-post-photos.module.scss";
 
 // Club-only trial of the original Expo layout. Learn dimensions from the actual
 // displayed Picture, preserving bounded loading and protected delivery.
+/** Размер одной ячейки уточняем по реально показанной картинке; активное ближайшее окно управляет ранней загрузкой без отдельного скачивания оригинала. */
 function ClubPhoto({
   uri,
   index,
@@ -97,6 +98,7 @@ function ClubPhoto({
   );
 }
 
+/** Для наборов свыше девяти фото используем постраничное листание; смена ширины сохраняет выбранный индекс и соседнюю предзагрузку. */
 function ClubPhotoCarousel({
   photos,
   onPhotoPress,
@@ -173,6 +175,7 @@ function ClubPhotoCarousel({
   );
 }
 
+/** Выбираем одиночный кадр, сетку или карусель и располагаем видео отдельно; пара горизонтальных фото учитывает измеренные пропорции. */
 export function ClubPostPhotos({
   photos,
   videos,

@@ -1,9 +1,11 @@
+/** Проверяем безопасную начальную HTML-разметку результата TEST checkout без браузерных побочных эффектов. */
 import { expect, it, vi } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ClubTestCheckoutResult } from "../apps/frontend/src/features/club/checkout-result";
 import { createTRPCClient } from "../apps/frontend/src/shared/api/trpc";
 
+/** Два SSR-прохода должны совпасть, не запускать timer/fetch и не объявлять доступ открытым. */
 it("server rendering is deterministic without document, storage, timers or HTTP", () => {
   const fetcher = vi.fn();
   const timer = vi.spyOn(globalThis, "setTimeout");
@@ -28,6 +30,7 @@ it("server rendering is deterministic without document, storage, timers or HTTP"
   }
 });
 
+/** Даже готовая session-prop не заменяет браузерную проверку: fieldset остаётся disabled до hydration. */
 it("TEST purchase form starts disabled until a browser check, with no storage, timer or HTTP on SSR", () => {
   const fetcher = vi.fn();
   const timer = vi.spyOn(globalThis, "setTimeout");

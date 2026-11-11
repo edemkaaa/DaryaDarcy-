@@ -23,6 +23,8 @@ const poolSize = 10,
   connectionReserve = 10,
   hostReserveMiB = 1024;
 function seconds(value = "10s") {
+  // Переводит только поддерживаемую составную длительность Compose в секунды; произвольное значение не считается безопасным grace period.
+
   if (!/^(?:\d+(?:\.\d+)?(?:ms|s|m|h))+$/.test(value)) return 0;
   return [...value.matchAll(/(\d+(?:\.\d+)?)(ms|s|m|h)/g)].reduce(
     (sum, m) =>
@@ -34,13 +36,15 @@ export function inspectMultiApiDeployment(
   input: unknown,
   capacity: { hostMemoryMiB: number; mysqlMaxConnections: number },
 ) {
+  // Сверяет общую идентичность, SQL-координацию, restart/grace и совокупные бюджеты всех процессов, включая TEST ingress.
+
   const parsed = model.safeParse(input);
   const issues = new Set<string>();
   const result = (
     apiProcesses = 0,
     requiredConnections = 0,
     requiredMemoryMiB = 0,
-  ) => ({
+  ) => /* Возвращает только безопасные коды и числовые бюджеты, не исходную приватную конфигурацию с ключами. */ ({
     ok: issues.size === 0,
     issues: [...issues],
     apiProcesses,
@@ -62,7 +66,7 @@ export function inspectMultiApiDeployment(
   }
   const services = parsed.data.services;
   const replicas = (value: z.infer<typeof service>) =>
-    value.scale ?? value.deploy?.replicas ?? 1;
+    /* Определяет число экземпляров по разрешённой Compose-конфигурации, учитывая явный scale прежде deploy.replicas. */ value.scale ?? value.deploy?.replicas ?? 1;
   if (!services.api || replicas(services.api) < 2) {
     issues.add("multiple-api-replicas-required");
     return result();

@@ -16,6 +16,7 @@ import type {
   GetUserInfoWithJwtResponse,
 } from "./types/manusTypes";
 // Общая проверка обязательных строк в данных внешнего identity-адаптера.
+/** Проверяет обязательный строковый claim JWT без приведения посторонних типов. */
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.length > 0;
 
@@ -31,17 +32,20 @@ const GET_USER_INFO_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfo`;
 const GET_USER_INFO_WITH_JWT_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfoWithJwt`;
 
 class OAuthService {
+  /** Сохраняет переданный HTTP-клиент legacy OAuth; наличие настроенного origin отмечается служебным журналом. */
   constructor(private client: ReturnType<typeof axios.create>) {
     if (ENV.oAuthServerUrl) {
       console.log("[OAuth] Legacy Manus client enabled:", ENV.oAuthServerUrl);
     }
   }
 
+  /** Декодирует совместимый base64 state в redirectUri внешнего OAuth-обмена. */
   private decodeState(state: string): string {
     const redirectUri = atob(state);
     return redirectUri;
   }
 
+  /** Отправляет code/state вместе с appId на фиксированный RPC обмена токена. */
   async getTokenByCode(code: string, state: string): Promise<ExchangeTokenResponse> {
     const payload: ExchangeTokenRequest = {
       clientId: ENV.appId,
@@ -55,6 +59,7 @@ class OAuthService {
     return data;
   }
 
+  /** Читает профиль внешнего identity-сервиса по полученному accessToken. */
   async getUserInfoByToken(token: ExchangeTokenResponse): Promise<GetUserInfoResponse> {
     const { data } = await this.client.post<GetUserInfoResponse>(GET_USER_INFO_PATH, {
       accessToken: token.accessToken,
@@ -64,6 +69,7 @@ class OAuthService {
   }
 }
 
+/** Создаёт Axios-клиент на настроенной базе OAuth с единым конечным таймаутом. */
 const createOAuthHttpClient = (): AxiosInstance =>
   axios.create({
     baseURL: ENV.oAuthServerUrl,
@@ -74,11 +80,13 @@ class SDKServer {
   private readonly client: AxiosInstance;
   private readonly oauthService: OAuthService;
 
+  /** Связывает внешний HTTP-клиент и OAuth-адаптер; запросы не выполняются до вызова методов. */
   constructor(client: AxiosInstance = createOAuthHttpClient()) {
     this.client = client;
     this.oauthService = new OAuthService(this.client);
   }
 
+  /** Сохраняет явный platform; иначе выбирает известный способ входа из списка провайдера с совместимым fallback. */
   private deriveLoginMethod(
     platforms: unknown,
     fallback: string | null | undefined,
@@ -125,6 +133,7 @@ class SDKServer {
     } as GetUserInfoResponse;
   }
 
+  /** Разбирает Cookie header в Map, а отсутствующий заголовок даёт пустой набор. */
   private parseCookies(cookieHeader: string | undefined) {
     if (!cookieHeader) {
       return new Map<string, string>();
@@ -134,6 +143,7 @@ class SDKServer {
     return new Map(Object.entries(parsed));
   }
 
+  /** Кодирует текущий серверный JWT_SECRET в байты для HS256, не раскрывая его клиенту. */
   private getSessionSecret() {
     const secret = ENV.cookieSecret;
     return new TextEncoder().encode(secret);
@@ -159,6 +169,7 @@ class SDKServer {
     );
   }
 
+  /** Подписывает appId/openId/name/epoch алгоритмом HS256 и задаёт конечный срок действия. */
   async signSession(
     payload: SessionPayload,
     options: { expiresInMs?: number } = {},
@@ -179,6 +190,7 @@ class SDKServer {
       .sign(secretKey);
   }
 
+  /** Проверяет HS256, expiration, appId и типы claims; отсутствующий или недействительный JWT возвращает null. */
   async verifySession(
     cookieValue: string | undefined | null,
   ): Promise<{ openId: string; appId: string; name: string; sessionVersion: number } | null> {
@@ -211,6 +223,7 @@ class SDKServer {
     }
   }
 
+  /** Получает внешний профиль по JWT/projectId и приводит его platform к общему loginMethod. */
   async getUserInfoWithJwt(jwtToken: string): Promise<GetUserInfoWithJwtResponse> {
     const payload: GetUserInfoWithJwtRequest = {
       jwtToken,

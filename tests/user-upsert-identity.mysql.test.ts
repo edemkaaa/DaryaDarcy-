@@ -10,9 +10,11 @@ import {
 import mysql from "mysql2/promise";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 
+/** Проверяет upsert идентичности на временной users с дополнительными уникальными email и phone. */
 describe.skipIf(!testDatabaseUrl)("identity upsert on disposable MySQL", () => {
   let conn: mysql.Connection;
   let database: typeof import("../apps/backend/src/db");
+  /** Копирует реальный DDL во временную таблицу и направляет writer на владеющее ею соединение без изменения общей users. */
   beforeAll(async () => {
     conn = await openTestDatabase();
     // Connection-local shadow: unique-email experiments cannot change the
@@ -43,6 +45,7 @@ describe.skipIf(!testDatabaseUrl)("identity upsert on disposable MySQL", () => {
     );
     database = await import("../apps/backend/src/db");
   });
+  /** Восстанавливает две собственные идентичности с различными учётными данными и epoch. */
   beforeEach(async () => {
     await conn.query("DELETE FROM users"); // only this connection's temporary table
     await conn.query(`INSERT INTO users
@@ -50,6 +53,7 @@ describe.skipIf(!testDatabaseUrl)("identity upsert on disposable MySQL", () => {
       VALUES (41,'owner','occupied@example.test','+79991112233','Owner','OWNER_HASH',7,'user','2026-01-01'),
       (42,'other','other@example.test','+79994445566','Other','OTHER_HASH',3,'moderator','2026-01-02')`);
   });
+  /** Удаляет только временную users, закрывает соединение и возвращает mocks и окружение. */
   afterAll(async () => {
     if (conn) {
       await conn.query("DROP TEMPORARY TABLE IF EXISTS users");
@@ -58,12 +62,14 @@ describe.skipIf(!testDatabaseUrl)("identity upsert on disposable MySQL", () => {
     vi.restoreAllMocks();
     vi.unstubAllEnvs();
   });
+  /** Читает все identity-поля временной таблицы для проверки полного отсутствия побочных изменений. */
   async function accounts() {
     const [rows] = await conn.query<mysql.RowDataPacket[]>(
       "SELECT id,openId,email,phone,name,passwordHash,sessionVersion,role,lastSignedIn FROM users ORDER BY id",
     );
     return rows;
   }
+  /** Новый openId не может захватить email или phone существующего владельца и изменить его роль или credentials. */
   it.each([{ email: "occupied@example.test" }, { phone: "+79991112233" }])(
     "rejects a different openId colliding on $email $phone without changing the owner",
     async (collision) => {
@@ -86,6 +92,7 @@ describe.skipIf(!testDatabaseUrl)("identity upsert on disposable MySQL", () => {
       }
     },
   );
+  /** Попытка существующего аккаунта занять чужой email откатывает все переданные поля. */
   it("rolls back every field when an existing identity attempts an occupied email", async () => {
     const before = await accounts();
     const logger = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -104,6 +111,7 @@ describe.skipIf(!testDatabaseUrl)("identity upsert on disposable MySQL", () => {
       logger.mockRestore();
     }
   });
+  /** Обновление lastSignedIn сохраняет пароль, роль и sessionVersion существующей идентичности. */
   it("refreshes the existing identity without resetting its credentials or session version", async () => {
     const before = await accounts();
     const signedIn = new Date("2026-10-10T12:00:00Z");
@@ -112,6 +120,7 @@ describe.skipIf(!testDatabaseUrl)("identity upsert on disposable MySQL", () => {
     expect(after[0]).toEqual({ ...before[0], lastSignedIn: signedIn });
     expect(after[1]).toEqual(before[1]);
   });
+  /** Последовательные повторы openId обновляют один аккаунт с прежней почтой и безопасными defaults. */
   it("creates one identity under sequential retries of the same openId", async () => {
     // Single dedicated connection serializes its wire commands; multi-connection
     // unique-key races remain a separate acceptance gate, not proved here.

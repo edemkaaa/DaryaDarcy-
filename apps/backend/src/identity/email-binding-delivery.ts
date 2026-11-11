@@ -42,6 +42,7 @@ function decryptProof(
 }
 
 /** Ограниченная внутренняя доставка; приём SMTP не доказывает появление письма во входящих. */
+/** Обрабатываем до 20 заявок: под user→binding→outbox захватываем lease и проверяем получателя, перед SMTP повторно сверяем владение, pending и срок; поздний ответ не перезаписывает завершённую заявку. */
 export async function processMemberEmailBindingEmails(
   database: MySql2Database,
   send: (mail: Mail) => Promise<boolean>,
@@ -182,6 +183,7 @@ export async function processMemberEmailBindingEmails(
             ),
           )
           .limit(1);
+// Последняя проверка уменьшает окно устаревшей отправки, но SQL и SMTP не образуют общую транзакцию; подтверждение доставки не обещается как exactly-once.
         if (!owned) continue;
         success = await send({
           to: claim.email,

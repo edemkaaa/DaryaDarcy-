@@ -10,11 +10,13 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const frontend = path.join(root, "apps/frontend");
 const publicDir = path.join(frontend, "public");
 const manifestPath = path.join(frontend, "image-variants.json");
-const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
+const hash = (bytes) => /* Связывает кеш и имя производного файла с точными байтами, а не изменяемым URL. */ createHash("sha256").update(bytes).digest("hex");
 const iconUris = new Set(["/assets/images/icon.png", "/assets/images/favicon.png"]);
 const pattern = /\/assets\/[^\s"'`<>)]*\.(?:jpe?g|png|webp|avif)/gi;
 
 function isLosslessWebp(bytes) {
+  // Ищет VP8L в RIFF-контейнере, отличая lossless WebP от обычного VP8 с похожим расширением.
+
   if (bytes.toString("ascii", 8, 12) !== "WEBP") return false;
   for (let offset = 12; offset + 8 <= bytes.length;) {
     if (bytes.toString("ascii", offset, offset + 4) === "VP8L") return true;
@@ -25,6 +27,8 @@ function isLosslessWebp(bytes) {
 }
 
 async function walk(dir) {
+  // Перечисляет локальные файлы детерминированно для поиска исходных ссылок и проверки неиспользуемых изображений.
+
   return (await Promise.all((await fs.readdir(dir, { withFileTypes: true })).map((entry) => {
     const file = path.join(dir, entry.name);
     return entry.isDirectory() ? walk(file) : [file];
@@ -32,6 +36,8 @@ async function walk(dir) {
 }
 
 export async function normalizeFrontendImages({ write = false, quality = 85 } = {}) {
+  // Подготавливает преобразования и карту живых ссылок; source/manifest переключаются до удаления собственных старых файлов.
+
   const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8"));
   const files = (await walk(path.join(frontend, "src")))
     .filter((file) => !file.endsWith("/static-image-catalog.ts"));
@@ -68,7 +74,7 @@ export async function normalizeFrontendImages({ write = false, quality = 85 } = 
       throw new Error(`Asset needs a separate conversion policy: ${uri}`);
     }
     const lossless = meta.format === "png" || meta.hasAlpha || protectedFull.has(uri);
-    const pipeline = () => sharp(original).autoOrient().toColourspace("srgb");
+    const pipeline = () => /* Применяет одинаковые ориентацию и sRGB к кодированию и проверке пикселей конкретного исходника. */ sharp(original).autoOrient().toColourspace("srgb");
     // Cache only by source bytes and encoder policy, never by a mutable URL.
     const cacheDir = path.join("/tmp", "daryadarcy-webp-conversions");
     await fs.mkdir(cacheDir, { recursive: true });
@@ -136,6 +142,8 @@ export async function normalizeFrontendImages({ write = false, quality = 85 } = 
     } else canonical.set(sha256, uri);
   }
   const replace = (uri) => {
+    // Доходит до окончательного URI через цепочку конвертации и дедупликации, не оставляя ссылку на удаляемый промежуточный файл.
+
     while (conversions.has(uri)) uri = conversions.get(uri).uri;
     return uri;
   };

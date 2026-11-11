@@ -1,3 +1,4 @@
+# Скачивает контрольную YouTube-обложку и сравнивает внешние hosts; сохраняет временный файл на VPS.
 import pathlib
 import paramiko
 
@@ -8,6 +9,7 @@ for line in (root / ".env").read_text(encoding="utf-8").splitlines():
         k, v = line.split("=", 1)
         env[k.strip()] = v.strip()
 
+# Следующий текст — удалённая команда; её содержимое сохранено как историческое и не исполняется при чтении исходника.
 cmd = r"""
 set +e
 echo '==== ytimg from VPS ===='
@@ -20,6 +22,7 @@ curl -sS -o /dev/null -w "s3=%{http_code}\n" --max-time 8 "https://s3.twcstorage
 echo DONE
 """
 
+# Подключение использует историческое автоматическое доверие неизвестному SSH host key; перед новым запуском требуется отдельная сверка хоста.
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 client.connect(

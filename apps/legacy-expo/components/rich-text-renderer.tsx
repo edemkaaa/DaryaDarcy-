@@ -1,3 +1,4 @@
+// Архив Expo. Очищает серверный richText и plain fallback, сохраняя корректный numberOfLines для объединённого preview.
 import { Text, Linking, StyleSheet, TextStyle } from "react-native";
 import { memo } from "react";
 import { splitForEmojiRendering } from "@/lib/emoji-text";
@@ -34,6 +35,8 @@ export const RichTextRenderer = memo(function RichTextRenderer({
   linkColor = "#6B7B5E",
   selectable = true,
 }: RichTextRendererProps) {
+  // Очищает серверный richText и plain fallback, сохраняя корректный numberOfLines для объединённого preview.
+
   const safePlain = plainText ? sanitizePlainPostText(plainText) : "";
   const blocks = sanitizeRichTextForDisplay(richText);
 
@@ -117,6 +120,8 @@ export const RichTextRenderer = memo(function RichTextRenderer({
 });
 
 function baseFontMetrics(textStyle?: TextStyle) {
+  // Получает размер и высоту строки для стилей inline без изменения общего масштаба текста.
+
   const flat = StyleSheet.flatten(textStyle) ?? {};
   const fontSize = typeof flat.fontSize === "number" ? flat.fontSize : 15;
   const lineHeight =
@@ -125,6 +130,8 @@ function baseFontMetrics(textStyle?: TextStyle) {
 }
 
 function boldInlineStyle(textStyle?: TextStyle): TextStyle {
+  // Использует настоящий bold-шрифт с метриками основного текста.
+
   const { fontSize, lineHeight } = baseFontMetrics(textStyle);
   return {
     fontFamily: "EBGaramond-Bold",
@@ -135,6 +142,8 @@ function boldInlineStyle(textStyle?: TextStyle): TextStyle {
 }
 
 function italicInlineStyle(textStyle?: TextStyle): TextStyle {
+  // Применяет читаемый italic и сохраняет высоту строки родителя.
+
   const { fontSize, lineHeight } = baseFontMetrics(textStyle);
   return {
     ...READABLE_ITALIC_STYLE,
@@ -148,6 +157,8 @@ function renderInlines(
   linkColor: string,
   textStyle?: TextStyle,
 ) {
+  // Рисует текстовые сегменты со стилями и открываемыми ссылками после общего sanitizer.
+
   if (!Array.isArray(children)) return null;
   return children.map((inline, i) => {
     const text = typeof inline.text === "string" ? inline.text : "";
@@ -188,6 +199,8 @@ function renderInlines(
 }
 
 function renderPlainText(text: string | undefined | null, textStyle?: TextStyle) {
+  // Разделяет emoji и обычный текст, оставляя emoji системному шрифту.
+
   const safe = typeof text === "string" ? text : "";
   const segments = splitForEmojiRendering(safe);
   if (segments.length === 1 && !segments[0].isEmoji) {
@@ -203,6 +216,7 @@ function renderPlainText(text: string | undefined | null, textStyle?: TextStyle)
   ));
 }
 
+// Связанные размеры, цвета и состояния соответствуют render-блокам этого архивного экрана; геометрию активного frontend они не задают.
 const styles = StyleSheet.create({
   paragraph: {
     fontSize: 15,

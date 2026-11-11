@@ -21,6 +21,8 @@ export function MemberAccessEmail({
   disabled: boolean;
   onSend: (member: AccessEmailMember) => Promise<void>;
 }) {
+  // Различает очередь, неизвестный исход и выполняющуюся команду; новое письмо требует явного подтверждения адресата.
+
   const noticeId = useId();
   const blocked = disabled || pending || result?.status === "unknown";
   return (

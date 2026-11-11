@@ -1,3 +1,4 @@
+// Публикует конкретную обложку «Лошадки» с серверного /tmp по фиксированному публичному ключу.
 import fs from "node:fs";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
@@ -22,6 +23,7 @@ const client = new S3Client({
 const file = "/tmp/loshadka-cover.jpg";
 const Body = fs.readFileSync(file);
 const Key = "app-assets/library/loshadka-cover.jpg";
+// Ниже начинается внешняя запись S3 по историческим фиксированным ключам; исходные объекты и ACL нужно проверить до запуска.
 await client.send(
   new PutObjectCommand({
     Bucket: env.S3_BUCKET,

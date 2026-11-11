@@ -15,6 +15,7 @@ import { appRouter } from "../apps/backend/src/routers";
 import type { TrpcContext } from "../apps/backend/src/_core/context";
 
 // Research probe: only owned disposable SQL; no HTTP listener, worker or storage.
+/** Проверяет повторную проверку доступа к обсуждению после ожидания SQL-блокировки писателя. */
 describe.skipIf(!testDatabaseUrl)(
   "comment access changes while writes wait",
   () => {
@@ -24,6 +25,7 @@ describe.skipIf(!testDatabaseUrl)(
       postId = 989650,
       commentId = 989650;
     let conn: Connection;
+    /** Удаляет собственный тестовый пост, комментарии, реакции, аудит и двух участников. */
     async function cleanup() {
       await conn.query("DELETE FROM club_payments WHERE userId=?", [owner]);
       await conn.query("DELETE FROM admin_audit_log WHERE actorUserId=?", [
@@ -43,12 +45,14 @@ describe.skipIf(!testDatabaseUrl)(
         neighbor,
       ]);
     }
+    /** Открывает изолированную схему и настраивает флаги без HTTP, storage или фоновых задач. */
     beforeAll(async () => {
       conn = await openContentTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
       vi.stubEnv("CONTENT_RECOVERY_RETIREMENT_ENABLED", "true");
       vi.stubEnv("PRIVATE_CONTENT_FILES_ENABLED", "false");
     });
+    /** Восстанавливает двух участников, открытый пост и по одному комментарию каждого автора. */
     beforeEach(async () => {
       await cleanup();
       await conn.query(
@@ -64,6 +68,7 @@ describe.skipIf(!testDatabaseUrl)(
         [commentId, postId, owner, commentId + 1, postId, neighbor],
       );
     });
+    /** Удаляет собственные строки, закрывает контрольное и прикладное соединения и возвращает окружение. */
     afterAll(async () => {
       if (conn) await cleanup();
       await conn?.end();
@@ -73,6 +78,7 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** Создаёт прямой tRPC caller с текущей строкой тестового автора, сохраняя серверные middleware. */
     async function caller() {
       return appRouter.createCaller({
         user: (await getUserByOpenId("access-race-owner"))!,
@@ -80,6 +86,7 @@ describe.skipIf(!testDatabaseUrl)(
         res: {} as TrpcContext["res"],
       });
     }
+    /** Снимает тексты комментариев, лайки и жалобы для проверки отсутствия частичной записи при отказе. */
     async function state() {
       const [rows] = await conn.query(
         "SELECT id,text FROM post_comments WHERE postId=? ORDER BY id",
@@ -97,6 +104,7 @@ describe.skipIf(!testDatabaseUrl)(
     }
     const operations = ["create", "edit", "delete", "like", "report"] as const;
     const changes = ["private", "draft", "subscription"] as const;
+    /** Удерживает строку автора отдельной транзакцией, запускает запись и меняет доступ до снятия блокировки. */
     async function checkRace(
       operation: (typeof operations)[number],
       change: (typeof changes)[number] | "closed",
@@ -195,11 +203,14 @@ describe.skipIf(!testDatabaseUrl)(
         await pending?.catch(() => {});
       }
     }
+    /** Повторяет один и тот же контролируемый конфликт доступа для создания, правки, удаления, лайка и жалобы. */
     describe.each(operations)("%s", (operation) => {
+      /** После ожидания отклоняет смену поста на клубный, снятие публикации либо отзыв подписки без изменения обсуждения. */
       it.each(changes)("rechecks %s after the SQL wait", (change) =>
         checkRace(operation, change),
       );
     });
+    /** После ожидания заново проверяет закрывшееся окно создания комментариев. */
     it("rechecks the comment deadline after the SQL wait", () =>
       checkRace("create", "closed"));
   },

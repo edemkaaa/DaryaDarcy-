@@ -9,7 +9,7 @@ import {
   type AuthUser,
 } from "../apps/frontend/src/shared/api/auth";
 
-const member = (id: number): AuthUser => ({
+const member = (id: number): AuthUser => /* Строит минимального синтетического пользователя для проверки переходов личности и ревизии. */ ({
   id,
   openId: `member-${id}`,
   name: `Member ${id}`,
@@ -22,16 +22,21 @@ const member = (id: number): AuthUser => ({
   lastSignedIn: "2026-10-04T10:00:00Z",
 });
 function deferred<T>() {
+  // Даёт управляемый Promise, чтобы завершать старый HTTP-ответ строго после нужного перехода сессии.
+
   let resolve!: (value: T) => void;
   const promise = new Promise<T>((r) => {
     resolve = r;
   });
   return { promise, resolve };
 }
+// Контроллер проверяется отдельно от React: управляемые Promise и локальный HTTP позволяют доказать порядок смены личности даже когда транспорт игнорирует отмену.
 function fixture(
   getMe = vi.fn(async () => null as AuthUser | null),
   logout = vi.fn(async () => {}),
 ) {
+  // Создаёт контроллер с QueryClient и наблюдаемыми сбросом кеша, broadcast и маркером незавершённого выхода.
+
   const cache = new QueryClient();
   const resetIdentity = vi.fn(() => {
     void cache.cancelQueries();
@@ -55,6 +60,8 @@ function fixture(
 }
 
 it("a late guest response cannot overwrite a successful sign-in", async () => {
+  // Сценарий: Поздний guest-ответ не перезаписывает успешный вход.
+
   const old = deferred<AuthUser | null>();
   const f = fixture(vi.fn(() => old.promise));
   const refresh = f.controller.refresh();
@@ -72,6 +79,8 @@ it("a late guest response cannot overwrite a successful sign-in", async () => {
 it.each([200, 401])(
   "a late loopback session response (%s) cannot replace the new account or its private cache",
   async (status) => {
+    // Сценарий: Поздний локальный HTTP 200/401 прежней сессии не заменяет новый аккаунт и его приватный кеш.
+
     const entered = deferred<void>();
     const release = deferred<void>();
     const server = createServer(async (_request, response) => {
@@ -134,6 +143,8 @@ it.each([200, 401])(
 );
 
 it("an older HTTP refresh cannot clear the in-flight marker of a newer forced refresh", async () => {
+  // Сценарий: Старый refresh не очищает in-flight маркер более нового принудительного refresh.
+
   const entered = [deferred<void>(), deferred<void>()];
   const release = [deferred<void>(), deferred<void>()];
   let requests = 0;
@@ -187,6 +198,8 @@ it("an older HTTP refresh cannot clear the in-flight marker of a newer forced re
 });
 
 it("switching accounts removes private queries and resets the screen scope", async () => {
+  // Сценарий: Смена аккаунта удаляет приватные queries и меняет область экранов.
+
   const f = fixture();
   await f.controller.applySession(member(1));
   f.cache.setQueryData(["savedPosts"], ["private member 1"]);
@@ -198,10 +211,12 @@ it("switching accounts removes private queries and resets the screen scope", asy
 });
 
 it("login completion does not wait for unrelated query refetches", async () => {
+  // Сценарий: Вход завершается без ожидания посторонних refetch.
+
   const f = fixture();
   const never = deferred<string>();
   const oldQuery = f.cache
-    .fetchQuery({ queryKey: ["slow"], queryFn: () => never.promise })
+    .fetchQuery({ queryKey: ["slow"], queryFn: () => /* Оставляет посторонний запрос незавершённым, проверяя, что вход не ждёт его refetch. */ never.promise })
     .catch(() => undefined);
   await f.controller.applySession(member(1));
   expect(f.controller.getSnapshot().status).toBe("authenticated");
@@ -211,6 +226,8 @@ it("login completion does not wait for unrelated query refetches", async () => {
 });
 
 it("initial network failure is a recoverable error, not a confirmed guest", async () => {
+  // Сценарий: Первоначальный сетевой отказ остаётся восстанавливаемой ошибкой, а не подтверждённым гостем.
+
   const getMe = vi.fn(async () => {
     throw new ApiError("Нет сети", 0, undefined, false, "network");
   });
@@ -229,6 +246,8 @@ it.each([
 ])(
   "failed initial session checks preserve public queries: %s",
   async (error) => {
+    // Сценарий: Неудачная первоначальная проверка сохраняет публичные данные до установления личности.
+
     const getMe = vi
       .fn<() => Promise<AuthUser | null>>()
       .mockRejectedValue(error);
@@ -254,6 +273,8 @@ it.each([
 );
 
 it("repeated initial errors keep public data until a real identity is established", async () => {
+  // Сценарий: Повторные стартовые ошибки не сбрасывают публичный кеш; реальный вход создаёт новую область.
+
   const getMe = vi
     .fn<() => Promise<AuthUser | null>>()
     .mockRejectedValue(new ApiError("unavailable", 503));
@@ -273,6 +294,8 @@ it("repeated initial errors keep public data until a real identity is establishe
 });
 
 it("logout closes local access immediately and preserves an unconfirmed logout for retry", async () => {
+  // Сценарий: Выход сразу закрывает локальный доступ, сохраняя маркер до подтверждения сервера.
+
   const request = deferred<void>();
   const f = fixture(
     undefined,
@@ -292,6 +315,8 @@ it("logout closes local access immediately and preserves an unconfirmed logout f
 });
 
 it("failed logout cannot silently resurrect the account or accept another login", async () => {
+  // Сценарий: Неудачный выход не восстанавливает старую личность и блокирует новый вход до подтверждения выхода.
+
   const f = fixture(
     undefined,
     vi.fn(async () => {
@@ -308,6 +333,8 @@ it("failed logout cannot silently resurrect the account or accept another login"
 });
 
 it("an old login response cannot reopen access after logout", async () => {
+  // Сценарий: Старый login-ответ не открывает доступ после logout.
+
   const f = fixture();
   const login = deferred<{ user: AuthUser }>();
   const pending = f.controller.authenticate(() => login.promise);
@@ -318,6 +345,8 @@ it("an old login response cannot reopen access after logout", async () => {
 });
 
 it("initial refresh can restart after Strict Mode cleanup", async () => {
+  // Сценарий: Первоначальная проверка может возобновиться после StrictMode cleanup.
+
   const old = deferred<AuthUser | null>();
   const getMe = vi.fn(() => old.promise).mockResolvedValueOnce(member(1));
   const f = fixture(getMe);
@@ -330,6 +359,8 @@ it("initial refresh can restart after Strict Mode cleanup", async () => {
 });
 
 it("a pending logout restarts after Strict Mode cleanup without restoring access", async () => {
+  // Сценарий: Незавершённый выход перезапускается после cleanup без восстановления доступа.
+
   const interrupted = deferred<void>();
   const logout = vi.fn(async (): Promise<void> => {
     throw new Error("offline");
@@ -352,6 +383,8 @@ it("a pending logout restarts after Strict Mode cleanup without restoring access
 });
 
 it("a 403 permission failure does not discard a valid identity or cause query refetch loops", async () => {
+  // Сценарий: Отказ права 403 не удаляет действительную личность и не создаёт refetch-цикл.
+
   const f = fixture(vi.fn(async () => member(1)));
   await f.controller.applySession(member(1));
   const scope = f.controller.getSnapshot().scope;
@@ -364,6 +397,8 @@ it("a 403 permission failure does not discard a valid identity or cause query re
 });
 
 it("a 401 closes private data before the session recheck completes", async () => {
+  // Сценарий: 401 закрывает приватные данные до завершения проверки сессии.
+
   const check = deferred<AuthUser | null>();
   const f = fixture(vi.fn(() => check.promise));
   await f.controller.applySession(member(1));
@@ -376,6 +411,8 @@ it("a 401 closes private data before the session recheck completes", async () =>
 });
 
 it("another tab can confirm a previously failed logout", async () => {
+  // Сценарий: Другая вкладка может подтвердить ранее неудачный выход.
+
   const f = fixture(
     undefined,
     vi.fn(async () => {
@@ -393,6 +430,8 @@ it("another tab can confirm a previously failed logout", async () => {
 });
 
 it("a temporary session check failure preserves the screen scope for the same person", async () => {
+  // Сценарий: Временный сбой проверки того же человека сохраняет область экрана.
+
   const getMe = vi.fn(async () => member(1));
   const f = fixture(getMe);
   await f.controller.applySession(member(1));
@@ -419,6 +458,8 @@ it("a temporary session check failure preserves the screen scope for the same pe
 });
 
 it("a confirmed guest stays visible throughout a pending background check", async () => {
+  // Сценарий: Подтверждённый гость остаётся видимым во время фоновой проверки без нового loading.
+
   const check = deferred<AuthUser | null>();
   const f = fixture(vi.fn(() => check.promise));
   await f.controller.applySession(null);
@@ -443,6 +484,8 @@ it.each([
 ])(
   "a temporary background failure preserves identity, queries and scope: %s",
   async (error) => {
+    // Сценарий: Фоновый network/timeout/503 сохраняет личность, queries и scope.
+
     const f = fixture(
       vi.fn(async () => {
         throw error;
@@ -468,6 +511,8 @@ it.each([
 );
 
 it("a guest's failed background check does not become an initial loading screen", async () => {
+  // Сценарий: Ошибка фоновой проверки гостя не становится стартовым экраном загрузки.
+
   const f = fixture(
     vi.fn(async () => {
       throw new ApiError("offline", 0, undefined, false, "network");
@@ -484,6 +529,8 @@ it("a guest's failed background check does not become an initial loading screen"
 });
 
 it("a 401 followed by a failed recheck never restores the previous identity", async () => {
+  // Сценарий: После 401 неудачная перепроверка не восстанавливает прежний доступ.
+
   const f = fixture(
     vi.fn(async () => {
       throw new ApiError("offline", 0, undefined, false, "network");
@@ -505,6 +552,8 @@ it("a 401 followed by a failed recheck never restores the previous identity", as
 it.each([401, 403])(
   "a session endpoint rejection clears previously confirmed access: %s",
   async (status) => {
+    // Сценарий: Отказ самого endpoint сессии 401/403 удаляет подтверждённый доступ.
+
     const f = fixture(
       vi.fn(async () => {
         throw new ApiError("denied", status);
@@ -523,6 +572,8 @@ it.each([401, 403])(
 );
 
 it("a malformed background session response still closes private access", async () => {
+  // Сценарий: Повреждённый фоновый session-ответ закрывает приватные данные.
+
   const f = fixture(
     vi.fn(async () => {
       throw new ApiError("invalid", 0, undefined, false, "invalid-response");
@@ -540,6 +591,8 @@ it("a malformed background session response still closes private access", async 
 });
 
 it("a confirmed role change clears cached access and remounts the old screen", async () => {
+  // Сценарий: Подтверждённая смена роли сбрасывает старый кеш прав и меняет область экрана.
+
   const f = fixture(vi.fn(async () => member(1)));
   await f.controller.applySession({ ...member(1), role: "admin" });
   const scope = f.controller.getSnapshot().scope;
@@ -553,6 +606,8 @@ it("a confirmed role change clears cached access and remounts the old screen", a
 it.each(["stale success", "stale denial"])(
   "a confirmed profile write supersedes an earlier auth/me %s without clearing private state",
   async (reply) => {
+    // Сценарий: Подтверждение записи профиля вытесняет более ранний auth/me без потери текущего приватного состояния.
+
     const beforeWrite = deferred<AuthUser | null>();
     const afterWrite = deferred<AuthUser | null>();
     let signal: AbortSignal | undefined;
@@ -598,6 +653,8 @@ it.each(["stale success", "stale denial"])(
 );
 
 it("a failed post-write refresh retains the acknowledged profile and merges fields into the current session", async () => {
+  // Сценарий: Неудачный post-write refresh сохраняет подтверждённые поля и объединяет их с текущим профилем.
+
   const getMe = vi.fn(async () => {
     throw new ApiError("offline", 0, undefined, false, "network");
   });
@@ -620,6 +677,8 @@ it("a failed post-write refresh retains the acknowledged profile and merges fiel
 });
 
 it("a photo ACK changes only the avatar, and late profile writes cannot change another account or a guest", async () => {
+  // Сценарий: Квитанция фото меняет только аватар; старый owner не изменяет новый аккаунт или гостя.
+
   const waiting = deferred<AuthUser | null>();
   const f = fixture(vi.fn(() => waiting.promise));
   await f.controller.applySession({ ...member(1), gender: "female" });
@@ -650,6 +709,8 @@ it("a photo ACK changes only the avatar, and late profile writes cannot change a
 });
 
 it("profile ACK and reconciliation cannot cancel an in-flight sign-in", async () => {
+  // Сценарий: Поздний profile ACK и reconcile не отменяют текущий вход другого аккаунта.
+
   const signIn = deferred<{ user: AuthUser }>();
   const f = fixture();
   await f.controller.applySession(member(1));
@@ -666,6 +727,8 @@ it("profile ACK and reconciliation cannot cancel an in-flight sign-in", async ()
 });
 
 it("compares profile revisions only inside the same account", async () => {
+  // Сценарий: Ревизии сравниваются только внутри одной личности; другой аккаунт не подчиняется старому номеру ревизии.
+
   const f = fixture();
   await f.controller.applySession({ ...member(1), profileRevision: 8 });
   expect(
@@ -685,6 +748,8 @@ it("compares profile revisions only inside the same account", async () => {
 });
 
 it("a late lower-revision profile ACK cannot overwrite a newer confirmed profile", async () => {
+  // Сценарий: Запоздалая квитанция меньшей ревизии не перезаписывает более новый подтверждённый профиль.
+
   const f = fixture();
   await f.controller.applySession({
     ...member(1),

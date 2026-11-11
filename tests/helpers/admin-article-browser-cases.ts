@@ -14,7 +14,11 @@ type Fixture = {
 };
 
 export function registerAdminArticleBrowserCases(fixture: () => Fixture) {
+  // Проверяет статьи и связанные тизеры через настоящий API: отмена, публикация, ревизии, поздние ответы и точечная уборка собственных строк.
+
   it("C2 preserves article media associations through cancelled and committed title edits", async () => {
+    // Сценарий: Отмена изменения заголовка сохраняет исходные медиа; подтверждённая правка меняет ту же статью и её клубный тизер.
+
     const { rows, connection, context, frontend } = fixture();
     const title = "C2 article media associations fixture";
     const renamed = title + " renamed";
@@ -106,6 +110,8 @@ export function registerAdminArticleBrowserCases(fixture: () => Fixture) {
       await page.getByRole("button", { name: "Статьи", exact: true }).click();
       const field = page.getByPlaceholder("Что посмотреть осенью...");
       const edit = async (name: string, restoredTitle = name) => {
+        // Открывает карточку по серверному названию и ждёт ожидаемый восстановленный заголовок формы.
+
         await page
           .getByText(name, { exact: true })
           .locator("..")
@@ -173,6 +179,8 @@ export function registerAdminArticleBrowserCases(fixture: () => Fixture) {
   ] as const)(
     "C2 fences pending article cancellation reads across %s changes with %s response",
     async (transition, outcome) => {
+    // Сценарий: Удержанное чтение после отмены не закрывает новый редактор и не раскрывает данные после смены аккаунта; проверяются успешный и потерянный ответы.
+
       const { rows, connection, context, frontend, base, memberId } = fixture();
       const title = `C2 pending reconciliation ${transition} ${outcome} fixture`;
       const newTitle = title + " unsent new editor";
@@ -410,6 +418,8 @@ export function registerAdminArticleBrowserCases(fixture: () => Fixture) {
   it.each(["create", "update"] as const)(
     "C2 retains an article after a committed %s reply is lost and blocks repeated writes",
     async (mode) => {
+    // Сценарий: Потеря уже закоммиченного create или update сохраняет ввод и блокирует повтор; восстановление различает сетевой отказ чтения и некорректный ID.
+
       const { rows, connection, context, frontend, base } = fixture();
       const title = `C2 lost article ${mode} fixture`;
       const originalTitle = title + " original";
@@ -627,6 +637,8 @@ export function registerAdminArticleBrowserCases(fixture: () => Fixture) {
     30_000,
   );
   it("C2 retains the article editor while the committed create acknowledgement is pending", async () => {
+    // Сценарий: Пока ACK создания удерживается, форма и введённый заголовок остаются; освобождение ответа закрывает именно завершённый редактор.
+
     const { rows, connection, context, frontend, base } = fixture();
     const title = "C2 pending article acknowledgement fixture";
     await ensureArticles(connection);
@@ -692,6 +704,8 @@ export function registerAdminArticleBrowserCases(fixture: () => Fixture) {
     }
   }, 30_000);
   it("C2 creates a draft article, cancels edits, publishes the same ID and confirms deletion", async () => {
+    // Сценарий: Один ID проходит черновик, отмену локальной правки, публикацию и подтверждённое удаление вместе с тизером; dismiss ничего не удаляет.
+
     const { rows, connection, context, frontend, base } = fixture();
     const title = "C2 article editor lifecycle fixture";
     const edited = title + " edited";
@@ -700,6 +714,8 @@ export function registerAdminArticleBrowserCases(fixture: () => Fixture) {
     try {
       const page = await context.newPage();
       const openList = async () => {
+        // Заново открывает каталог статей для проверки данных после reload, а не старого локального состояния формы.
+
         await page.goto(frontend + "admin");
         await page.getByRole("button", { name: "Статьи", exact: true }).click();
       };
@@ -734,7 +750,7 @@ export function registerAdminArticleBrowserCases(fixture: () => Fixture) {
         sections: [{ type: "text", text: body }],
       });
       const card = (name: string) =>
-        page.getByText(name, { exact: true }).locator("..");
+        /* Ограничивает кнопки карточкой конкретной тестовой статьи, не выбирая похожий текст живого редактора. */ page.getByText(name, { exact: true }).locator("..");
       await browserExpect(card(title)).toContainText("черновик");
       await openList();
       await card(title)

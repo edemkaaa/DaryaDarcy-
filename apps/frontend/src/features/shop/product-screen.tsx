@@ -30,11 +30,13 @@ import {
   PRODUCTS,
   SHOP_MISSING_FILES,
 } from "./product-screen.content";
+/** Пропускаем известные отсутствующие legacy-файлы shop, сохраняя остальные адреса каталога без переписывания. */
 function isPublicShopAsset(url: string): boolean {
   if (!url.includes("/app-assets/shop/")) return true;
   const file = url.split("/").pop() || "";
   return !SHOP_MISSING_FILES.has(file);
 }
+/** Показываем статическую карточку и галереи; цифровой заказ открывает только свежий контакт менеджера, а не фиктивную оплату. */
 export default function ProductDetailScreen({ id }: { id: string }) {
   const product = PRODUCTS.find((p) => p.id === id);
   const viewport = useViewport();
@@ -73,9 +75,11 @@ export default function ProductDetailScreen({ id }: { id: string }) {
       : null;
   const zoomImages = zoom?.images ?? [];
   const zoomIndex = zoom?.index ?? 0;
+  /** Фиксируем конкретный набор галереи и допустимый индекс открытия для независимого модального просмотра. */
   const openZoom = (images: readonly string[], index: number) => {
     if (images[index]) setZoom({ images, index });
   };
+  /** Предыдущее фото выбираем внутри сохранённого набора без выхода за начало. */
   const zoomPrev = () => {
     setZoom((current) =>
       current && current.index > 0
@@ -83,6 +87,7 @@ export default function ProductDetailScreen({ id }: { id: string }) {
         : current,
     );
   };
+  /** Следующее фото выбираем только пока индекс остаётся в текущей галерее. */
   const zoomNext = () => {
     setZoom((current) =>
       current && current.index < current.images.length - 1

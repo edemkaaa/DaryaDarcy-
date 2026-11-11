@@ -22,7 +22,11 @@ interface AdminMembershipBrowserFixture {
 export function registerAdminMembershipBrowserCases(
   fixture: () => AdminMembershipBrowserFixture,
 ) {
+  // Проверяет модерацию, продления и очередь писем через общий native lifecycle, отдельно сверяя SQL, аудит и SMTP.
+
   it("C1 lets a moderator block a reported author without deleting content or paid access", async () => {
+    // Сценарий: Блокировка из жалобы отзывает сессию и ставит отмену подписки в ожидание, сохраняя контент и оплаченные записи; dismiss не меняет SQL.
+
     const {
       rows,
       connection,
@@ -72,7 +76,7 @@ export function registerAdminMembershipBrowserCases(
         { sessionVersion: 0 },
       );
       const clubStatus = async () =>
-        (
+        /* Проверяет доступ заблокированной участницы старым токеном независимо от UI модератора. */ (
           await fetch(base + "/api/trpc/club.list", {
             headers: { Authorization: `Bearer ${memberToken}` },
           })
@@ -188,13 +192,15 @@ export function registerAdminMembershipBrowserCases(
     }
   }, 30_000);
   it("C1 lets a moderator delete a reported parent while preserving its reply and author", async () => {
+    // Сценарий: Удаление родительского комментария сохраняет ответ с parentId=null, его лайки и жалобу; аудит относится только к удалённому объекту.
+
     const { rows, connection, context, actorId, memberId, frontend, smtp } =
       fixture();
     await connection.query("UPDATE users SET role='moderator' WHERE id=?", [
       actorId,
     ]);
     // Catches accidental recursive deletion, missing audit, and writes on cancel.
-    const state = async () => ({
+    const state = async () => /* Снимает комментарии, ответы, жалобы, лайки и аудит одним логическим снимком для проверки границ удаления. */ ({
       comments: await rows(
         "SELECT id,parentId,text FROM post_comments WHERE postId=94521 ORDER BY id",
       ),
@@ -297,6 +303,8 @@ export function registerAdminMembershipBrowserCases(
     }
   }, 30_000);
   it("C1 issues first club access from now without counting an unpaid future order", async () => {
+    // Сценарий: Первое продление отсчитывает 31 день от реального времени, не принимая pending заказ с будущим expiresAt за оплаченный доступ.
+
     const {
       rows,
       connection,
@@ -323,7 +331,7 @@ export function registerAdminMembershipBrowserCases(
       sessionVersion: 0,
     });
     const clubStatus = async () =>
-      (
+      /* Доказывает появление доступа после первого административного продления, не учитывая pending оплату. */ (
         await fetch(base + "/api/trpc/club.list", {
           headers: { Authorization: `Bearer ${memberToken}` },
         })
@@ -424,6 +432,8 @@ export function registerAdminMembershipBrowserCases(
     expect(smtp.messages).toHaveLength(0);
   }, 30_000);
   it("C1 lets a moderator dismiss a report without deleting its comment or changing the author", async () => {
+    // Сценарий: Закрытие жалобы удаляет только жалобу и пишет аудит; комментарий, автор и SMTP остаются прежними.
+
     const { rows, connection, context, actorId, memberId, frontend, smtp } =
       fixture();
     await connection.query("UPDATE users SET role='moderator' WHERE id=?", [
@@ -501,6 +511,8 @@ export function registerAdminMembershipBrowserCases(
     }
   }, 30_000);
   it("C1 queues a browser resend and delivers it once over loopback SMTP without changing access or credentials", async () => {
+    // Сценарий: Нажатие ставит одну запись outbox, затем loopback SMTP принимает одно письмо; повтор worker не дублирует отправку и не меняет пароль или доступ.
+
     const { rows, connection, context, actorId, memberId, frontend, smtp } =
       fixture();
     await connection.query(
@@ -621,6 +633,8 @@ export function registerAdminMembershipBrowserCases(
   it.each(["user", "moderator"] as const)(
     "C1 denies owner membership actions to a %s in the browser and native API",
     async (role) => {
+    // Сценарий: Пользователь и модератор не получают owner-действия ни через скрытые кнопки, ни прямым API; SQL и почта не меняются.
+
       const { rows, connection, context, actorId, memberId, frontend, smtp } =
         fixture();
       await connection.query("UPDATE users SET role=? WHERE id=?", [
@@ -673,6 +687,8 @@ export function registerAdminMembershipBrowserCases(
     30_000,
   );
   it("C1 persists browser blocking and unblocking without restoring revoked sessions or changing paid access", async () => {
+    // Сценарий: Блокировка увеличивает sessionVersion; разблокировка убирает запрет, но не оживляет старый JWT и не изменяет оплаченные строки.
+
     const {
       rows,
       connection,
@@ -698,6 +714,8 @@ export function registerAdminMembershipBrowserCases(
       sessionVersion: 0,
     });
     async function memberSessionStatus() {
+      // Проверяет, что разблокировка не оживляет ранее отозванную сессию.
+
       return (
         await fetch(base + "/api/trpc/club.list", {
           headers: { Authorization: `Bearer ${memberToken}` },
@@ -707,6 +725,8 @@ export function registerAdminMembershipBrowserCases(
     expect(await memberSessionStatus()).toBe(200);
     const page = await context.newPage();
     async function members() {
+      // Повторно открывает вкладку участниц для проверки сохранённого состояния после reload.
+
       await page.goto(frontend! + "admin");
       await page
         .getByRole("button", { name: "Участницы", exact: true })
@@ -778,6 +798,8 @@ export function registerAdminMembershipBrowserCases(
     expect(smtp.messages).toHaveLength(0);
   }, 30_000);
   it("C1 grants 31 days through the browser from the existing expiry and preserves the account", async () => {
+    // Сценарий: Продление существующей подписки добавляет ровно 31 день к её текущему сроку и оставляет исходную оплату и аккаунт без изменений.
+
     const { rows, connection, context, actorId, memberId, frontend, smtp } =
       fixture();
     await connection.query(

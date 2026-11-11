@@ -23,6 +23,7 @@ type Ready = { base: string; boot: string; generation: number };
 
 // Тестовый supervisor, не замена Docker/systemd. Он автоматически перезапускает
 // отдельный OS-процесс после exit(1); production entrypoint/инфраструктуру не меняем.
+/** Создаёт тестовый supervisor отдельного API-процесса с ограниченным автоматическим restart после exit(1). */
 async function supervisedReplica(actor: string, restart: boolean) {
   const children: ChildProcess[] = [];
   const exits: { code: number | null; signal: string | null }[] = [];
@@ -31,6 +32,7 @@ async function supervisedReplica(actor: string, restart: boolean) {
   let failure: Error | undefined;
   let current: Ready | undefined;
   let pending: Promise<Ready>;
+  /** Запускает следующее поколение API, отслеживает exit и допускает не более двух аварийных перезапусков. */
   function launch(): Promise<Ready> {
     const child = fork(resolve("tests/helpers/worker-restart-process.ts"), [], {
       execArgv: ["--import", import.meta.resolve("tsx")],
@@ -61,8 +63,11 @@ async function supervisedReplica(actor: string, restart: boolean) {
         () => finish(new Error("Fixture startup timeout")),
         10000,
       );
+      /** Сообщает об exit до readiness ожидающему запуску. */
       const onExit = () => finish(new Error("Fixture exited before readiness"));
+      /** Передаёт IPC-readiness с boot и generation общему завершителю запуска. */
       const onReady = (value: Ready) => finish(undefined, value);
+      /** Удаляет deadline и listeners; при успехе сохраняет новое текущее поколение. */
       function finish(error?: Error, value?: Ready) {
         clearTimeout(timer);
         child.off("exit", onExit);
@@ -77,6 +82,7 @@ async function supervisedReplica(actor: string, restart: boolean) {
       child.once("message", onReady);
     });
   }
+  /** Запрещает дальнейшие restart, завершает только свои живые процессы и дожидается запуска. */
   async function stop() {
     stopping = true;
     await Promise.all(
@@ -99,11 +105,14 @@ async function supervisedReplica(actor: string, restart: boolean) {
     throw error;
   }
   return {
+    /** Сохраняет общий интерфейс с Docker-фикстурой; OS-supervisor обновляет состояние через IPC без отдельного опроса. */
     async refresh() {},
+    /** Возвращает актуальное поколение API либо поднимает сохранённую ошибку restart. */
     get current() {
       if (failure) throw failure;
       return current!;
     },
+    /** Возвращает число выполненных автоматических restart тестовой реплики. */
     get restarts() {
       return restarts;
     },
@@ -112,12 +121,14 @@ async function supervisedReplica(actor: string, restart: boolean) {
   };
 }
 
+/** Проверяет восстановление публикационного worker после аварийного exit и нового API-поколения. */
 describe.skipIf(!testDatabaseUrl)(
   "API worker recovery after automatic process restart",
   () => {
     let conn: Connection;
     let lockName: string;
     let containerFixture: ReturnType<typeof dockerRestartFixture> | undefined;
+    /** Проверяет настоящую HTTP-доступность выбранной реплики с ограниченным временем ожидания. */
     async function health(base: string) {
       const response = await fetch(base + "/api/trpc/auth.me", {
         signal: AbortSignal.timeout(2000),
@@ -125,6 +136,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(response.status).toBe(200);
       await response.arrayBuffer();
     }
+    /** Считает сохранённые события выбранной фазы конкретного boot в собственной таблице. */
     async function phase(boot: string, value: string) {
       const [rows] = await conn.query<RowDataPacket[]>(
         "SELECT COUNT(*) AS n FROM backend_restart_events WHERE boot=? AND phase=?",
@@ -132,6 +144,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       return Number(rows[0].n);
     }
+    /** Выбирает Docker-фикстуру при явном image и создаёт собственные таблицы событий и транзакционной работы. */
     beforeAll(async () => {
       if (process.env.WORKER_RESTART_DOCKER_IMAGE)
         containerFixture = dockerRestartFixture(testDatabaseUrl!);
@@ -158,6 +171,7 @@ describe.skipIf(!testDatabaseUrl)(
         )
         .digest("hex");
     });
+    /** Очищает собственные таблицы и создаёт одну незавершённую единицу работы. */
     beforeEach(async () => {
       for (const table of [
         "backend_restart_events",
@@ -167,6 +181,7 @@ describe.skipIf(!testDatabaseUrl)(
         await conn.query(`DELETE FROM ${table}`);
       await conn.query("INSERT INTO backend_restart_work(id) VALUES(1)");
     });
+    /** Убирает только контейнерную fixture при её наличии, затем собственные таблицы и соединение. */
     afterAll(async () => {
       try {
         containerFixture?.cleanup();
@@ -183,6 +198,7 @@ describe.skipIf(!testDatabaseUrl)(
         }
       }
     });
+    /** После потери fixture-lock проверяет restart первой реплики, rollback старой работы и единственный коммит новым поколением. */
     it.each([false, true])(
       "resumes publication after restart (lock occupied on restart: %s)",
       async (occupied) => {
@@ -226,6 +242,7 @@ describe.skipIf(!testDatabaseUrl)(
             { timeout: 3000 },
           );
         }
+        // Адресно теряем только соединение, владение которым подтверждено своим lock; незавершённая работа должна откатиться.
         await conn.query(`KILL CONNECTION ${id}`);
         if (wait)
           expect(((await wait) as RowDataPacket[][])[0][0].acquired).toBe(1);
@@ -264,6 +281,7 @@ describe.skipIf(!testDatabaseUrl)(
         const [work] = await conn.query<RowDataPacket[]>(
           "SELECT commits,actor,boot FROM backend_restart_work WHERE id=1",
         );
+        // Важен один подтверждённый эффект нового boot, а не только успешный HTTP после restart.
         expect(work).toEqual([{ commits: 1, actor: "a", boot: second.boot }]);
         expect(await phase(first.boot, "completed")).toBe(0);
         await a.refresh();

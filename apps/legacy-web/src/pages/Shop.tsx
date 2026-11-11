@@ -1,6 +1,8 @@
+/** Архивный список Магазина из встроенных данных. */
 import { Link } from "react-router-dom";
 import { PRODUCTS } from "../data";
 
+/** Строит карточки и ссылки товаров; цены берутся из каталога, запросов заказа здесь нет. */
 export default function Shop() {
   return (
     <div className="page">

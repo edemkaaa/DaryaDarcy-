@@ -1,3 +1,4 @@
+/** Разрешение картинок сохраняет original viewer URL и использует public preview только для известных безопасных источников. */
 /// <reference types="next/image-types/global" />
 import { describe, expect, it, vi } from "vitest";
 
@@ -19,7 +20,9 @@ import {
   resolveImageUri,
 } from "@/shared/ui/static-images";
 
+/** Каталог вариантов подменён локально; сетевые картинки не скачиваются. */
 describe("static image previews", () => {
+  /** Открытый feed URL получает optimizer/srcset, original-режим оставляет полный исходник. */
   it("serves public feed photographs as resized previews, retaining original viewer URLs", () => {
     const uri = "https://s3.twcstorage.ru/daryadarcy-s3/feed/post/photo_1.jpg";
     const preview = resolveImageAttributes(uri);
@@ -31,6 +34,7 @@ describe("static image previews", () => {
     expect(resolveImageAttributes(uri, true).src).toBe(uri);
   });
 
+  /** Подписанный, приватный, чужой или SVG URL не попадает в публичный optimizer. */
   it.each([
     "https://s3.twcstorage.ru/daryadarcy-s3/feed/a.jpg?signature=secret",
     "https://s3.twcstorage.ru/daryadarcy-s3/feed/a.jpg#secret",
@@ -48,6 +52,7 @@ describe("static image previews", () => {
     });
   });
 
+  /** Recompression preview не меняет full-size путь. */
   it("can recompress a bundled preview without changing its full-size source", () => {
     const uri = "/assets/responsive/club.w320.hash.webp";
     expect(resolveImageAttributes(uri, false, true).src).toMatch(
@@ -56,6 +61,7 @@ describe("static image previews", () => {
     expect(resolveImageAttributes(uri, true, true).src).toBe(uri);
   });
 
+  /** Карточка получает srcset/sizes, просмотр — исходный bundled URL. */
   it("offers smaller variants while keeping the original available for a viewer", () => {
     expect(resolveImageAttributes("/assets/photo.jpg")).toEqual({
       src: "/assets/responsive/photo.w640.hash.webp",
@@ -70,6 +76,7 @@ describe("static image previews", () => {
     });
   });
 
+  /** Размер карточки влияет лишь на выбор responsive варианта, не на оригинал и закрытую выдачу. */
   it("lets a small card select an existing small variant without shrinking its viewer", () => {
     const thumbnail = resolveImageAttributes(
       "/assets/photo.jpg",
@@ -92,6 +99,7 @@ describe("static image previews", () => {
     ).toBeUndefined();
   });
 
+  /** Непрозрачные URL не переписываются и не лишаются подписи/query. */
   it("preserves signed media URLs, data, blobs and unknown local paths exactly", () => {
     for (const uri of [
       "https://s3.twcstorage.ru/daryadarcy-s3/uploads/photo.webp?X-Amz-Signature=abc&x=1%2F2",
@@ -108,6 +116,7 @@ describe("static image previews", () => {
     }
   });
 
+  /** Prototype names не считаются ключами asset-каталога. */
   it("does not mistake inherited object properties for assets", () => {
     for (const uri of ["toString", "__proto__", "constructor"]) {
       expect(resolveImageUri(uri)).toBe(uri);
@@ -115,6 +124,7 @@ describe("static image previews", () => {
     }
   });
 
+  /** Undefined не превращается в сломанную выдуманную картинку. */
   it("does not manufacture a source when an image is absent", () => {
     expect(resolveImageAttributes(undefined)).toEqual({
       src: undefined,

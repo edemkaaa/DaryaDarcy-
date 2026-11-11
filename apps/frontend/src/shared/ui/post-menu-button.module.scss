@@ -2,10 +2,12 @@
 @use "../styles/layers";
 
 @layer elements {
+  /* Padding расширяет область меню вокруг небольшого значка; скругление относится к нажатию, не к карточке. */
   .action {
     padding: 6px;
     border-radius: 16px;
   }
+  /* Нажатие показывает краткую обратную связь, не изменяя область действия меню. */
   .opacityState {
     opacity: 0.5;
     --action-base-opacity: 0.5;

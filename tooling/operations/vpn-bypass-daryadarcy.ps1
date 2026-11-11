@@ -7,6 +7,7 @@ $targets = @(
   "daryadarcy.com"
 )
 
+# Выбирает активный физический интерфейс с default gateway, исключая известные VPN-адаптеры.
 function Get-PhysicalGateway {
   $vpnPattern = "hidemy|OpenVPN|TAP|TUN|WireGuard|Wintun"
   $if = Get-NetIPConfiguration |
@@ -24,6 +25,7 @@ function Get-PhysicalGateway {
   }
 }
 
+# Возвращает только IPv4 цели; ошибки DNS не подменяются адресом другого хоста.
 function Resolve-TargetHost {
   param([string]$Target)
   if ($Target -match '^\d{1,3}(\.\d{1,3}){3}$') { return @($Target) }
@@ -37,6 +39,7 @@ function Resolve-TargetHost {
   }
 }
 
+# Для изменения маршрутов сценарий повторно запускает себя с правами администратора Windows.
 $needsAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
   [Security.Principal.WindowsBuiltInRole]::Administrator
 )
@@ -56,6 +59,7 @@ foreach ($t in $targets) {
 
 if ($ips.Count -eq 0) { throw "No target IPs resolved." }
 
+# Для каждой цели удаляется и создаётся host-route через физический шлюз; другие приложения к этим IP тоже пойдут в обход VPN.
 foreach ($ip in $ips) {
   route delete $ip 2>$null | Out-Null
   route add $ip mask 255.255.255.255 $($gw.Gateway) metric 1 if $($gw.IfIndex)

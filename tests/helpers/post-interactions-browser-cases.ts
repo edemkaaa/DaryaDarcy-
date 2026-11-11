@@ -22,6 +22,8 @@ interface PostInteractionsBrowserFixture {
 export function registerPostInteractionsBrowserCases(
   fixture: () => PostInteractionsBrowserFixture,
 ) {
+  // Регистрирует браузерные проверки пагинации, поиска и личных реакций с независимой сверкой реальных SQL-строк.
+
   it.each([
     "feed",
     "club",
@@ -31,6 +33,8 @@ export function registerPostInteractionsBrowserCases(
   ] as const)(
     "C3 paginates the native %s without duplicates or ineligible rows",
     async (target) => {
+    // Сценарий: Реальная пагинация Ленты, Клуба и рубрики исключает дубли, чужой target и draft; потеря второй страницы не удаляет первую и исправляется ручным retry.
+
       const section = target === "club section";
       const retry = target === "club retry" || target === "feed retry";
       const route =
@@ -97,9 +101,9 @@ export function registerPostInteractionsBrowserCases(
         );
         const page = await context.newPage();
         const isPage = (url: string) =>
-          url.includes(route === "feed" ? "feed.listPaginated" : "club.list");
+          /* Различает процедуры пагинации открытой Ленты и закрытого Клуба в сетевых событиях. */ url.includes(route === "feed" ? "feed.listPaginated" : "club.list");
         const isNext = (url: string) =>
-          isPage(url) && decodeURIComponent(url).includes('"cursor":12');
+          /* Распознаёт запрос именно второй страницы, чтобы терять её ответ, не затрагивая первую. */ isPage(url) && decodeURIComponent(url).includes('"cursor":12');
         const nextResponses: BrowserResponse[] = [];
         // Short lists may prefetch their second page before the setup dialog closes.
         page.on("response", (response) => {
@@ -137,6 +141,8 @@ export function registerPostInteractionsBrowserCases(
         const first = await firstResponse;
         expect(first.status()).toBe(200);
         const payload = async (response: typeof first) => {
+          // Находит posts внутри tRPC batch независимо от соседнего запроса подписки.
+
           const body = await response.json();
           const entries = Array.isArray(body) ? body : [body];
           return entries
@@ -322,6 +328,8 @@ export function registerPostInteractionsBrowserCases(
   );
 
   it("C3 searches the public feed without exposing club or unpublished posts and clears the query", async () => {
+    // Сценарий: Поиск применяется на сервере к открытому контенту, а очистка восстанавливает исходный список без клубных и неопубликованных строк.
+
     const { rows, connection, context, frontend } = fixture();
     const ids = [94621, 94622, 94623, 94624, 94625];
     // Catches ignored search predicates and search bypassing public-feed gates.
@@ -350,7 +358,7 @@ export function registerPostInteractionsBrowserCases(
       await page.goto(frontend + "feed");
       expect((await tagsResponse).status()).toBe(200);
       const card = (text: string) =>
-        page.locator("article").filter({ hasText: text });
+        /* Ограничивает поиск текстом конкретной карточки Ленты. */ page.locator("article").filter({ hasText: text });
       await browserExpect(card("C3 unrelated feed fixture")).toHaveCount(1);
       const search = page.getByPlaceholder("Поиск...", { exact: true });
       const searched = page.waitForResponse(
@@ -397,6 +405,8 @@ export function registerPostInteractionsBrowserCases(
     }
   }, 30_000);
   it("C3 separates saved feed and club categories and excludes unpublished or expired club content", async () => {
+    // Сценарий: Закладки разделяются по Ленте и Клубу; истечение доступа скрывает клубный материал, но не удаляет сохранённые связи.
+
     const { rows, connection, context, frontend, memberId } = fixture();
     const ids = [94611, 94612, 94613, 94614, 94615];
     // Catches category mixing and saved reads bypassing publication/access gates.
@@ -442,7 +452,7 @@ export function registerPostInteractionsBrowserCases(
       const page = await context.newPage();
       await page.goto(frontend + "profile");
       const savedIds = async () =>
-        page.evaluate(async () => {
+        /* Читает настоящую выдачу сохранённого независимо от выбранной вкладки профиля. */ page.evaluate(async () => {
           const response = await fetch("/api/trpc/feed.savedPosts");
           const body = await response.json();
           return {
@@ -457,7 +467,7 @@ export function registerPostInteractionsBrowserCases(
         ids: [94611, 94612, 94613],
       });
       const card = (text: string) =>
-        page.getByRole("button").filter({ hasText: text });
+        /* Находит конкретную закладку для проверки раздельных категорий Ленты и Клуба. */ page.getByRole("button").filter({ hasText: text });
       await browserExpect(card("C3 saved feed fixture")).toHaveCount(1);
       await browserExpect(card("C3 saved both fixture")).toHaveCount(1);
       await browserExpect(card("C3 saved club fixture")).toHaveCount(0);
@@ -500,6 +510,8 @@ export function registerPostInteractionsBrowserCases(
     }
   }, 30_000);
   it("C3 preserves liked and saved posts across login while isolating the next account", async () => {
+    // Сценарий: Лайк и закладка сохраняются через повторный вход исходного владельца, не переносятся следующему аккаунту; старые сессии после выхода отозваны.
+
     const { rows, connection, context, frontend, base, actorId, memberId } =
       fixture();
     const postId = 94601;
@@ -534,6 +546,8 @@ export function registerPostInteractionsBrowserCases(
       await context.clearCookies();
       const page = await context.newPage();
       const signIn = async (email: string, id: number) => {
+        // Входит через реальную форму и ждёт исходный пост под подтверждённым аккаунтом.
+
         await page.goto(frontend + `login?next=/post/${postId}`);
         await page.getByPlaceholder("Email", { exact: true }).fill(email);
         await page.getByPlaceholder("Пароль", { exact: true }).fill(password);
@@ -553,6 +567,8 @@ export function registerPostInteractionsBrowserCases(
       };
       const revokedSessions: string[] = [];
       const logout = async () => {
+        // Сохраняет только тестовый токен для последующей проверки отзыва и ждёт удаления cookie после выхода.
+
         revokedSessions.push(
           (await context.cookies()).find(
             (cookie) => cookie.name === COOKIE_NAME,
@@ -575,6 +591,8 @@ export function registerPostInteractionsBrowserCases(
         exact: true,
       });
       const assertReactions = async (pressed: boolean) => {
+        // Проверяет доступность кнопок и одинаковое подтверждённое состояние лайка и закладки.
+
         await browserExpect(like).toBeEnabled();
         await browserExpect(save).toBeEnabled();
         await browserExpect(like).toHaveAttribute(
@@ -594,6 +612,8 @@ export function registerPostInteractionsBrowserCases(
       await assertReactions(true);
       const expected = [{ userId: memberId, postId }];
       const assertSql = async () => {
+        // Сверяет обе таблицы связей с единственным владельцем, чтобы UI-кэш не скрыл дубль или перенос между аккаунтами.
+
         expect(
           await rows("SELECT userId,postId FROM likes WHERE postId=?", [
             postId,

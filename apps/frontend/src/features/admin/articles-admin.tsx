@@ -78,14 +78,20 @@ import {
 } from "./articles-admin.content";
 type Access = "public" | "club";
 export function ArticlesAdmin() {
+  // Перемонтирует редактор статей для нового владельца, исключая перенос File и журнала между аккаунтами.
+
   const { user } = useAuth();
   return user ? <ArticleEditor key={user.id} ownerId={user.id} /> : null;
 }
 function ArticleEditor({ ownerId }: { ownerId: number }) {
+  // Координирует каталог, редактируемый черновик, неизменяемую операцию файлов и серверную ревизию раздельно.
+
   const capabilities = useCapabilities();
   const utils = trpc.useUtils();
   const active = useScreenActive();
   const refreshRelatedContent = () => {
+    // Статья связана с тизером Клуба, поэтому обновляются оба каталога и агрегаты после подтверждённой записи.
+
     // Article writes also create, update or remove their club post teasers.
     void utils.admin.postsPage.invalidate();
     void utils.admin.postCounts.invalidate();
@@ -122,6 +128,8 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
   } = useArticleCreationJournal(ownerId);
   const deletion = useConfirmedAction(active && !showForm);
   const readArticles = async (signal: AbortSignal) => {
+    // Сбрасывает окно каталога и проверяет ответ до признания административного действия завершённым.
+
     const result = await list.restart();
     signal.throwIfAborted();
     if (!result.isSuccess || !result.data)
@@ -133,6 +141,8 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     signal: AbortSignal,
     requireAbsent: boolean,
   ) => {
+    // Строгое подтверждение требует null; ручная проверка неизвестного исхода допускает ещё существующую статью без её повторного удаления.
+
     const detail = await utils.client.admin.articleDetail.query(
       { id },
       { signal },
@@ -154,15 +164,19 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
   const remove = {
     isPending: deletion.blocked,
     mutate: (input: { id: number }) =>
-      void deletion.run({
+      /* Передаёт удаление в механизм подтверждения, не снимая блокировку при потере ответа. */ void deletion.run({
         kind: "delete-article",
         label: "Удалить статью",
         read: async (signal) => {
+          // При восстановлении проверяет исходную статью и перечитывает каталог без новой записи.
+
           await inspectArticleDeletion(input.id, signal, false);
           refreshRelatedContent();
         },
         validate: requireOk,
         perform: async (signal) => {
+          // Требует успешную квитанцию удаления и отсутствие статьи при контрольном чтении.
+
           const result = await utils.client.admin.deleteArticle.mutate(input, {
             signal,
           });
@@ -173,6 +187,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
         commit: refreshRelatedContent,
       }),
   };
+  // Файловая операция и редактируемый черновик имеют разных владельцев: неизменяемое отправленное содержимое нельзя заменить новым вводом.
   const operation = useSessionOperation(showForm, editingId);
   const privateFiles = useArticleFiles(showForm, editingId);
   const cover = useArticleCover(ownerId, operation);
@@ -184,13 +199,15 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       >[0],
       signal: AbortSignal,
     ) => {
+      // Проверяет capability приватных файлов перед отправкой исходного payload с ключом.
+
       await requirePrivateUpload("privateContentUploads", signal);
       return utils.client.admin.uploadPrivateContentFile.mutate(input, {
         signal,
       });
     },
     status: (input: { idempotencyKey: string }, signal: AbortSignal) =>
-      utils.client.admin.privateContentFileStatus.query(input, { signal }),
+      /* Читает квитанцию исходной файловой операции для восстановления без слепой загрузки. */ utils.client.admin.privateContentFileStatus.query(input, { signal }),
   };
   const uploading = operation.kind === "photos";
   const [published, setPublished] = useState(true);
@@ -219,6 +236,8 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     privateFiles.files,
   );
   const recoverLocalDrafts = async (key?: string) => {
+    // Перечитывает локальные черновики либо архивирует повреждённый снимок с файлами после явного согласия, не меняя статьи сервера.
+
     if (
       key &&
       !window.confirm(
@@ -249,9 +268,13 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     files: PrivateArticleFile[];
   } | null>(null);
   const notify = (message: string) => {
+    // Показывает ошибку, сохраняя рабочую форму и файлы для повторной проверки.
+
     window.alert(message);
   };
   const reset = () => {
+    // Очищает область формы, превью и признаки сравнения, но durable операции остаются у соответствующих журналов.
+
     operation.cancel();
     cover.detach();
     privateFiles.reset();
@@ -297,6 +320,8 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       },
     });
   useEffect(() => {
+    // После смены editingId подключает File из восстановленного снимка к новой области, не используя адреса прежней формы.
+
     const record = restoreFiles.current;
     if (showForm && record && record.editingId === editingId) {
       restoreFiles.current = null;
@@ -304,10 +329,14 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     }
   }, [creation, showForm, editingId, restorePrivateFiles]);
   const readCurrentArticles = async (task: ScopedOperation) => {
+    // Привязывает обновление каталога к текущей отменяемой операции.
+
     await readArticles(task.signal);
     task.assertCurrent();
   };
   const readUpdatedArticle = async (id: number, task: ScopedOperation) => {
+    // Требует существующую статью с тем же ID и проверяет серверную ревизию до её использования.
+
     const detail = await utils.client.admin.articleDetail.query(
       { id },
       { signal: task.signal },
@@ -356,7 +385,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     setRecoveryMessage,
   });
   const recoverCreation = (replay: boolean) =>
-    recoverArticleCreation(creation, replay, {
+    /* Передаёт восстановление прежнего payload и ключа общему координатору статьи и файлов. */ recoverArticleCreation(creation, replay, {
       operation,
       journal,
       fileApi,
@@ -373,6 +402,8 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     multiple: boolean,
     commit: (urls: string[]) => void,
   ) => {
+    // Принимает подготовленные локальные ссылки только пока операция и владелец формы актуальны.
+
     const task = operation.begin("photos");
     if (!task) return;
     try {
@@ -390,6 +421,8 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     }
   };
   const pickDocument = async (index: number) => {
+    // Прикрепляет выбранный документ к указанному блоку после проверки области; не сохраняет статью отдельно.
+
     const task = operation.begin("photos");
     if (!task) return;
     try {
@@ -407,6 +440,8 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     }
   };
   const insertBlock = (index: number, type: ArticleBlock["type"]) => {
+    // Вставляет новый пустой блок после выбранного, сохраняя порядок остальных блоков.
+
     setBlocks((prev) => {
       const next = [...prev];
       next.splice(index + 1, 0, emptyBlock(type));
@@ -414,6 +449,8 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     });
   };
   const updateBlock = (index: number, patch: Partial<ArticleBlock>) => {
+    // Меняет один блок и освобождает превью, которые больше нигде в статье не используются.
+
     const next = blocks.map((block, i) =>
       i === index ? { ...block, ...patch } : block,
     );
@@ -421,6 +458,8 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     setBlocks(next);
   };
   const moveBlock = (index: number, direction: -1 | 1) => {
+    // Меняет местами соседние блоки лишь в допустимых границах, не изменяя содержимое файлов.
+
     setBlocks((prev) => {
       const to = index + direction;
       if (to < 0 || to >= prev.length) return prev;
@@ -431,6 +470,8 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
   };
   // Выбор ветки зависит от наличия серверного ID и локальных файлов; каждая ветка оставляет своё доказательство для восстановления.
   const save = async () => {
+    // Выбирает путь по наличию ID и новых File; перед сетью сохраняет неизменяемую операцию или маркер неизвестного update.
+
     if (cover.pending) return;
     if (!title.trim()) {
       notify("Напишите название статьи");
@@ -469,6 +510,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       };
       // Не отправляем все когда-либо выбранные файлы: в операцию входят только ссылки актуальных блоков.
       const selected = selectArticleFiles(blocks, privateFiles.files);
+      // Новые File сначала получают durable ключи и квитанции; статья записывается только с подтверждёнными ссылками.
       if (selected.length) {
         await checkPrivateUploadAvailability(fileApi.status, task);
         const prepared = await journal.prepare(
@@ -549,6 +591,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
         await completeCreation(prepared.record, task);
         return;
       }
+      // Update без новых файлов тоже оставляет durable маркер до отправки: после потери ответа доступна сверка, а не слепой повтор.
       await draft.markWriteStarted();
       task.assertCurrent();
       writeStarted = true;
@@ -625,6 +668,8 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     }
   };
   const startEdit = async (id: number) => {
+    // Сначала предлагает существующие локальные черновики и загрузки; иначе строго проверяет полную серверную статью и захватывает базовую ревизию.
+
     if (!draft.loaded || draft.isDamaged(id)) return;
     const saved = draft.records.find(
       (record) => record.snapshot.editingId === id,
@@ -683,6 +728,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
       draft.resume();
       cover.detach();
       uncertainSave.current = false;
+      // Полная серверная запись и её ревизия становятся единой базой редактирования; данные короткой карточки для этого недостаточны.
       setPublished(item.published);
       setEditBase(captureEditBase(item, editableSnapshot(item, "article")));
       setEditConflict(undefined);
@@ -703,7 +749,9 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
     }
   };
   const confirmDelete = (id: number) => {
-    const run = () => remove.mutate({ id });
+    // Отдельное согласие требуется перед удалением статьи; сетевое подтверждение выполняет механизм deletion.
+
+    const run = () => /* Передаёт ID выбранной статьи в подтверждаемую команду удаления. */ remove.mutate({ id });
     {
       if (window.confirm("Удалить статью?")) run();
       return;
@@ -741,7 +789,7 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
           {
             id: "recover-article-draft",
             label: "Восстановить редактор",
-            onClick: () => recoverLocalDrafts(damagedDraft.key),
+            onClick: () => /* Архивирует только выбранный повреждённый локальный черновик, сохраняя его резервную копию на устройстве. */ recoverLocalDrafts(damagedDraft.key),
           },
         ]
       : undefined,

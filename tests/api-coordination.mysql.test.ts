@@ -22,11 +22,13 @@ import {
   verifyApiCoordination,
 } from "../apps/backend/src/database/coordination";
 
+/** Проверяем общие квоты и владение задачами между настоящими отдельными OS-процессами с одноразовой MySQL. */
 describe.skipIf(!testDatabaseUrl)(
   "shared API coordination on owned MySQL",
   () => {
     let conn: Connection;
     const children: ChildProcess[] = [];
+    /** Требуем mysql-координацию двух API, выполняем startup probe и запрещаем запуск на уже занятых тестовых счётчиках. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -40,9 +42,11 @@ describe.skipIf(!testDatabaseUrl)(
       if (occupied.length)
         throw new Error("Coordination fixtures already occupied");
     });
+    /** Сбрасываем только общую таблицу квот выделенной одноразовой БД между сценариями. */
     beforeEach(async () => {
       await conn.query("DELETE FROM api_rate_limits");
     });
+    /** Убиваем оставшиеся дочерние процессы, очищаем свои счётчики, закрываем пул и окружение. */
     afterAll(async () => {
       for (const child of children)
         if (child.exitCode === null && child.signalCode === null)
@@ -52,6 +56,7 @@ describe.skipIf(!testDatabaseUrl)(
       await closeDb();
       vi.unstubAllEnvs();
     });
+    /** Поднимаем независимый тестовый процесс с минимальным окружением и ждём IPC-ready с конечным таймаутом. */
     async function replica() {
       const child = fork(resolve("tests/helpers/coordination-process.ts"), [], {
         execArgv: ["--import", import.meta.resolve("tsx")],
@@ -83,6 +88,7 @@ describe.skipIf(!testDatabaseUrl)(
       return {
         child,
         base: ready.base,
+        /** Отправляем одно действие по IPC и ограниченно ждём его ответ, не подменяя общие SQL-лимиты. */
         ask: (action: string, key = "shared-fixture") =>
           new Promise<unknown>((done, reject) => {
             const timer = setTimeout(
@@ -97,6 +103,7 @@ describe.skipIf(!testDatabaseUrl)(
           }),
       };
     }
+    /** Обе реплики расходуют одно фиксированное окно, а не отдельные локальные остатки. */
     it("shares one fixed-window quota between independent OS processes", async () => {
       const a = await replica(),
         b = await replica();
@@ -109,6 +116,7 @@ describe.skipIf(!testDatabaseUrl)(
         ok: false,
       });
     });
+    /** Чередуем 22 настоящих login-запроса между listener: первые 20 неверных вводов, затем общий IP429 без cookie. */
     it("enforces the original HTTP login IP quota across two real API listeners", async () => {
       const a = await replica(),
         b = await replica();
@@ -126,6 +134,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(results.slice(0, 20)).toEqual(Array(20).fill(400));
       expect(results.slice(20)).toEqual([429, 429]);
     });
+    /** Двенадцать конкурентных резервирований допускают ровно три, не превышая общую квоту. */
     it("atomically admits only the shared quota during a concurrent burst", async () => {
       const results = await Promise.all(
         Array.from({ length: 12 }, () =>
@@ -134,6 +143,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(results.filter((result) => result.ok)).toHaveLength(3);
     });
+    /** Разные реплики и регистр email делят одну задержку аккаунта; таблица содержит только хеш и счётчик. */
     it("shares account cooldown independently of IP/process", async () => {
       const a = await replica(),
         b = await replica();
@@ -152,6 +162,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(rows[0].keyHash).toMatch(/^[a-f0-9]{64}$/);
       expect(rows[0].attempts).toBe(5);
     });
+    /** Поздний успех старой попытки не обнуляет уже увеличенный счётчик. */
     it("does not clear a newer reservation when an earlier login succeeds", async () => {
       const older = await beginSharedLogin("late@example.invalid");
       const newer = await beginSharedLogin("late@example.invalid");
@@ -167,6 +178,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(empty).toEqual([]);
     });
+    /** Поколение отличает новое окно даже при одинаковом номере попытки. */
     it("does not let an old successful login clear a new window with the same attempt number", async () => {
       const older = await beginSharedLogin("window@example.invalid");
       await conn.query("UPDATE api_rate_limits SET expiresAt=0");
@@ -183,6 +195,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       expect(empty).toEqual([]);
     });
+    /** Истёкшее окно обновляется, заполнение до 10 тысяч не вытесняет активную квоту и запрещает новые ключи. */
     it("resets expired windows, retains live quotas and bounds counter growth", async () => {
       await checkSharedRateLimit("expiry-fixture", 1, 60_000);
       await conn.query("UPDATE api_rate_limits SET expiresAt=0");
@@ -203,6 +216,7 @@ describe.skipIf(!testDatabaseUrl)(
         false,
       );
     });
+    /** Вторая реплика пропускает занятое имя задачи и получает исполнение после явного освобождения. */
     it("does not begin a worker on another replica until the holder finishes", async () => {
       const a = await replica(),
         b = await replica();
@@ -211,6 +225,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await a.ask("release")).toEqual({ released: true });
       expect(await b.ask("job")).toEqual({ runs: 1 });
     });
+    /** Убийство владельца и исключение callback освобождают named lock для следующей задачи. */
     it("releases the worker lock when its process dies or callback throws", async () => {
       const a = await replica(),
         b = await replica();
@@ -230,6 +245,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       expect(ran).toBe(true);
     });
+    /** Отсутствие общей таблицы запрещает квоту и readiness; после возврата схемы общий режим восстанавливается. */
     it("fails closed when the common table is missing, then recovers", async () => {
       await conn.query(
         "RENAME TABLE api_rate_limits TO api_rate_limits_fixture_unavailable",

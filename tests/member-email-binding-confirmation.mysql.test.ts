@@ -23,6 +23,7 @@ import { requestMemberEmailBinding } from "../apps/backend/src/identity/email-bi
 import { confirmMemberEmailBinding } from "../apps/backend/src/identity/email-binding-confirmation";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 
+/** Проверяет одноразовое подтверждение email с атомарной сменой только почты и очисткой proof. */
 describe.skipIf(!testDatabaseUrl)(
   "single-use member email confirmation on owned MySQL",
   () => {
@@ -32,9 +33,11 @@ describe.skipIf(!testDatabaseUrl)(
     const actor = { userId: 90901, sessionVersion: 2 };
     const email = "email-binding-confirmation@example.test";
     const key = Buffer.alloc(32, 31);
+    /** Читает identity, intents, outbox и audit для независимой проверки подтверждения. */
     async function rows(query: string, params: unknown[] = []) {
       return (await conn.query<RowDataPacket[]>(query, params))[0];
     }
+    /** Убирает свой fault-trigger, journals, audit, paid-fixture и четыре аккаунта. */
     async function cleanup() {
       await conn.query(
         "DROP TRIGGER IF EXISTS email_binding_confirmation_audit_failure",
@@ -54,6 +57,7 @@ describe.skipIf(!testDatabaseUrl)(
         "DELETE FROM users WHERE id IN (90901,90902,90903,90904) AND (openId LIKE 'email-binding-confirmation-%' OR openId='deleted-email-binding-confirmation-member')",
       );
     }
+    /** Открывает отдельный восьмисоединительный пул одноразовой БД. */
     beforeAll(async () => {
       conn = await openTestDatabase();
       pool = mysql.createPool({
@@ -63,6 +67,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       database = drizzle(pool);
     });
+    /** Восстанавливает инициатора, двух телефонных получателей, соседнего владельца и существующий paid-период. */
     beforeEach(async () => {
       await cleanup();
       await conn.query(`INSERT INTO users (id,openId,email,phone,passwordHash,sessionVersion,role,updatedAt) VALUES
@@ -75,6 +80,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       vi.stubEnv("AUTH_LINK_ENCRYPTION_KEY", key.toString("base64"));
     });
+    /** Удаляет свои данные и закрывает соединения с восстановлением окружения. */
     afterAll(async () => {
       if (conn) {
         await cleanup();
@@ -83,6 +89,7 @@ describe.skipIf(!testDatabaseUrl)(
       if (pool) await pool.end();
       vi.unstubAllEnvs();
     });
+    /** Ждёт реального data-lock wait, сопоставляя blocking transaction с connectionId через innodb_trx. */
     async function waitForBlocker(blockerId: number) {
       const deadline = performance.now() + 3000;
       while (performance.now() < deadline) {
@@ -103,6 +110,7 @@ describe.skipIf(!testDatabaseUrl)(
         "Confirmation did not reach the expected native lock wait",
       );
     }
+    /** Создаёт настоящий intent и расшифровывает synthetic outbox-proof для контролируемого подтверждения. */
     async function queue(userId = 90902) {
       const requestKey = randomUUID();
       await requestMemberEmailBinding(database, actor, {
@@ -130,6 +138,7 @@ describe.skipIf(!testDatabaseUrl)(
       ]).toString("utf8");
       return { token, requestKey };
     }
+    /** Проверяет terminal state, завершение и очистку email, proofHash, cipher и lease с сохранением intent identity. */
     async function expectTerminal(requestKey: string, state: string) {
       const [binding] = await rows(
         "SELECT * FROM member_email_bindings WHERE requestKey=?",
@@ -154,6 +163,7 @@ describe.skipIf(!testDatabaseUrl)(
       });
       expect(mail.discardedAt).toBeInstanceOf(Date);
     }
+    /** Подтверждение меняет только email, потребляет proof, пишет audit и сохраняет credentials и paid-доступ; повтор false. */
     it("binds only email, atomically consumes and scrubs the proof, and never changes credentials or paid access", async () => {
       const proof = await queue();
       const before = await rows(
@@ -195,6 +205,7 @@ describe.skipIf(!testDatabaseUrl)(
         false,
       );
     });
+    /** Неверный или неизвестный proof не меняет pending-intent и не мешает правильному подтверждению. */
     it.each([
       "",
       "short",
@@ -221,6 +232,7 @@ describe.skipIf(!testDatabaseUrl)(
         );
       },
     );
+    /** Из шести конкурентных подтверждений только одно true и один audit. */
     it("has exactly one winner for six concurrent uses of the same proof", async () => {
       const proof = await queue();
       const results = await Promise.all(
@@ -237,6 +249,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).toHaveLength(1);
       await expectTerminal(proof.requestKey, "confirmed");
     });
+    /** Нестроковый proof безопасно отклоняется до запроса или изменения identity. */
     it.each([null, 123, {}])(
       "refuses non-string input before querying or mutating identity (%#)",
       async (token) => {
@@ -245,6 +258,7 @@ describe.skipIf(!testDatabaseUrl)(
         );
       },
     );
+    /** Парольные setup/reset токены не принимаются и не потребляются email-binding подтверждением. */
     it.each(["setup", "reset"])(
       "never accepts or consumes a password %s proof",
       async (purpose) => {
@@ -268,6 +282,7 @@ describe.skipIf(!testDatabaseUrl)(
         );
       },
     );
+    /** Terminal intent не подтверждается повторно даже с оставшимся секретным материалом. */
     it.each(["confirmed", "expired", "cancelled"])(
       "refuses terminal %s state even with residual proof material",
       async (state) => {
@@ -293,6 +308,7 @@ describe.skipIf(!testDatabaseUrl)(
         ).toBeNull();
       },
     );
+    /** Proof на границе expiresAt истекает с очисткой секретов без привязки почты. */
     it("expires and scrubs a valid but expired proof without granting email", async () => {
       const proof = await queue();
       await conn.query(
@@ -307,6 +323,7 @@ describe.skipIf(!testDatabaseUrl)(
         (await rows("SELECT email FROM users WHERE id=90902"))[0].email,
       ).toBeNull();
     });
+    /** Изменившаяся доступность, роль, phone, openId или уже заданный email отменяют proof без перезаписи аккаунта. */
     it.each([
       "role='admin'",
       "role='moderator'",
@@ -333,6 +350,7 @@ describe.skipIf(!testDatabaseUrl)(
         await expectTerminal(proof.requestKey, "cancelled");
       },
     );
+    /** Удалённый получатель завершает proof cancelled и очищает секреты. */
     it("cancels and scrubs an intent if its recipient has been deleted", async () => {
       const proof = await queue();
       await conn.query(
@@ -343,6 +361,7 @@ describe.skipIf(!testDatabaseUrl)(
       );
       await expectTerminal(proof.requestKey, "cancelled");
     });
+    /** Email, занятый после создания intent, не перезаписывает ни нового, ни прежнего владельца. */
     it("refuses normalized email occupied after queueing without changing either identity", async () => {
       const proof = await queue();
       await conn.query("UPDATE users SET email=? WHERE id=90903", [
@@ -359,6 +378,7 @@ describe.skipIf(!testDatabaseUrl)(
       ).toEqual(before);
       await expectTerminal(proof.requestKey, "cancelled");
     });
+    /** Два разных получателя одного email имеют ровно одного победителя, второй intent очищается cancelled. */
     it("arbitrates two distinct pending members for the same email with exactly one owner", async () => {
       const first = await queue();
       const second = await queue(90904);
@@ -380,6 +400,7 @@ describe.skipIf(!testDatabaseUrl)(
           results[index] ? "confirmed" : "cancelled",
         );
     });
+    /** Реальная гонка unique-index после свободного SELECT завершается безопасной отменой proof без утечки или остаточной PII. */
     it("handles a real unique-index race after its occupied-address snapshot without leaking or retaining PII", async () => {
       const proof = await queue();
       const blocker = await pool.getConnection();
@@ -408,6 +429,7 @@ describe.skipIf(!testDatabaseUrl)(
         await confirmation?.catch(() => {});
       }
     });
+    /** Proof, истёкший во время ожидания unique-index, откатывает допустившийся UPDATE identity. */
     it("does not bind if the proof expires while its email update waits on the unique index", async () => {
       const proof = await queue();
       const blocker = await pool.getConnection();
@@ -439,6 +461,7 @@ describe.skipIf(!testDatabaseUrl)(
         clock.mockRestore();
       }
     });
+    /** После recipient-lock wait подтверждение видит новую блокировку и не назначает email. */
     it("observes a recipient revocation committed while waiting on the recipient lock", async () => {
       const proof = await queue();
       const blocker = await pool.getConnection();
@@ -463,6 +486,7 @@ describe.skipIf(!testDatabaseUrl)(
         await confirmation?.catch(() => {});
       }
     });
+    /** Сбой подтверждающего audit откатывает identity, proof и outbox; повтор после снятия сбоя проходит. */
     it("rolls back the identity, proof and outbox together when confirmation audit fails, hiding SQL details", async () => {
       const proof = await queue();
       const before = await rows(
@@ -490,6 +514,7 @@ describe.skipIf(!testDatabaseUrl)(
       await conn.query("DROP TRIGGER email_binding_confirmation_audit_failure");
       expect(await confirmMemberEmailBinding(database, proof.token)).toBe(true);
     });
+    /** Для подтверждения достаточно proofHash после очистки delivery-cipher; исторический sentAt сохраняется. */
     it("allows confirmation after delivery discarded its cipher, preserving historical sent time", async () => {
       const proof = await queue();
       await conn.query(

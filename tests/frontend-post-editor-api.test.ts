@@ -1,3 +1,4 @@
+/** Настоящий post-editor API adapter/coordinator проверяется injected tRPC observable transport без HTTP/БД. */
 import {
   createTRPCClient,
   TRPCClientError,
@@ -19,11 +20,13 @@ vi.mock(
   "../apps/frontend/src/features/admin/media/private-video-upload",
   () => ({ uploadAdminPrivateVideo: uploads.video }),
 );
+/** Сбрасываем capability/video mocks, по умолчанию uploads разрешены синтетически. */
 beforeEach(() => {
   vi.resetAllMocks();
   uploads.available.mockResolvedValue(undefined);
 });
 
+/** Записываем настоящие tRPC Operation и разрешаем управляемый reply/failure с каноническим TRPCClientError. */
 function fixture(
   reply: (operation: Operation) => unknown | Promise<unknown> = () => ({
     state: "notRecorded",
@@ -50,6 +53,7 @@ function fixture(
   });
   return { api: createPostEditorApi(client), calls };
 }
+/** Каждый save/recovery получает своё cancellable operation-владение. */
 const task = () =>
   new OperationScope().begin("save", new AbortController().signal, () => true)!;
 const draft = serializePostDraft({
@@ -64,6 +68,7 @@ const draft = serializePostDraft({
   sortOrder: 0,
 });
 
+/** Lost response после synthetic commit сохраняет key/input; явное recoverCreation отправляет то же намерение с новым текущим signal. */
 it("keeps the creation key and payload after a lost reply until explicit recovery", async () => {
   let stored: unknown;
   const { api, calls } = fixture((op) => {
@@ -89,6 +94,7 @@ it("keeps the creation key and payload after a lost reply until explicit recover
   expect(calls[1].signal).toBe(recovery.signal);
 });
 
+/** 409 и expectedRevision проходят адаптер без обёртки, потери signal и автоматического update retry. */
 it("preserves the revision and conflict without retrying the update", async () => {
   const error = new TRPCClientError<AppRouter>("conflict", {
     result: {
@@ -118,6 +124,7 @@ it("preserves the revision and conflict without retrying the update", async () =
   expect(calls[0].signal).toBe(signal);
 });
 
+/** Photo/attachment/video сначала проверяют соответствующую capability; при отказе transport не вызывается. */
 it.each(["photo", "attachment", "video"] as const)(
   "does not send a %s upload when capabilities reject it",
   async (kind) => {
@@ -155,6 +162,7 @@ it.each(["photo", "attachment", "video"] as const)(
   },
 );
 
+/** Read-only status probes используют разные availability keys и один current operation signal. */
 it("probes content then attachments with the current operation signal", async () => {
   const { api, calls } = fixture();
   const operation = task();
@@ -172,6 +180,7 @@ it("probes content then attachments with the current operation signal", async ()
   expect(calls[0].input).not.toEqual(calls[1].input);
 });
 
+/** Потерявший owner первый probe не запускает следующий и даёт AbortError. */
 it("stops after an account switch while a probe is pending", async () => {
   let release!: (value: unknown) => void;
   const response = new Promise((resolve) => {

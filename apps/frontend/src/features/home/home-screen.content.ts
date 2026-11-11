@@ -87,6 +87,7 @@ export const BROWN_LIGHT = "#8B7355";
 export const ACCENT_GREEN = "#8B7355";
 export const HERO_ASPECT = 1152 / 2048;
 
+/** Рассчитываем высоту hero от ширины, сохраняя размеры общего полотна приложения. */
 export function getHomeScreenContent(viewport: ViewportSize) {
   const { width: SCREEN_WIDTH } = viewport;
   const HERO_HEIGHT = SCREEN_WIDTH * 0.6;

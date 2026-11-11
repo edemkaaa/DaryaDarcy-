@@ -26,6 +26,7 @@ vi.mock("node:child_process", () => ({
       throw new Error("Unexpected callback invocation");
     },
     {
+      /** Подменяет promisified execFile, фиксируя downloader-аргументы и возвращая только synthetic upstream URL. */
       [Symbol.for("nodejs.util.promisify.custom")]: async (
         _file: string,
         args: string[],
@@ -44,11 +45,13 @@ import { createBackendApplication } from "../apps/backend/src/_core/application"
 import { getDb, getVideoByYoutubeId } from "../apps/backend/src/db";
 
 const httpFetch = globalThis.fetch;
+/** Проверяет legacy-плеерные HTTP-границы публикации и Range без настоящего downloader или внешней сети. */
 describe.skipIf(!testDatabaseUrl)(
   "public video HTTP boundaries on disposable MySQL",
   () => {
     let conn: Connection, application: INestApplication, base: string;
     let client: ReturnType<typeof createTRPCProxyClient<AppRouter>>;
+    /** Поднимает локальный API с настоящим HTTP fetch и подменяет только запросы к synthetic upstream. */
     beforeAll(async () => {
       conn = await openVideoTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -84,6 +87,7 @@ describe.skipIf(!testDatabaseUrl)(
         });
       });
     });
+    /** Очищает счётчики внешней работы и восстанавливает опубликованную, скрытую и отзываемую карточки. */
     beforeEach(async () => {
       external.commands = [];
       external.upstream = [];
@@ -93,6 +97,7 @@ describe.skipIf(!testDatabaseUrl)(
       (10902,'audithid001','Hidden title','https://media.example.test/secret-video.mp4',FALSE,1),
       (10903,'auditrev001','Revoked fixture','https://media.example.test/revoked.mp4',TRUE,2)`);
     });
+    /** Возвращает fetch, закрывает API, удаляет свои карточки и закрывает пул. */
     afterAll(async () => {
       vi.unstubAllGlobals();
       await application?.close();
@@ -104,9 +109,11 @@ describe.skipIf(!testDatabaseUrl)(
       )?.$client.end();
       vi.unstubAllEnvs();
     });
+    /** Публичный detail не раскрывает скрытую карточку и её адрес файла. */
     it("does not disclose a hidden video or its media URL by public numeric ID", async () => {
       expect(await client.videos.getById.query({ id: 10902 })).toBeUndefined();
     });
+    /** Опубликованные detail и list доступны с нормализованным названием, скрытые и отсутствующие карточки исключаются. */
     it("keeps published detail and list available, with hidden rows excluded", async () => {
       expect(await client.videos.getById.query({ id: 10901 })).toMatchObject({
         id: 10901,
@@ -119,12 +126,14 @@ describe.skipIf(!testDatabaseUrl)(
       ).toEqual([10901, 10903]);
       expect(await client.videos.getById.query({ id: 10906 })).toBeUndefined();
     });
+    /** Внутренний dedup импорта продолжает находить unpublished-записи. */
     it("keeps unpublished entries available to internal import deduplication", async () => {
       expect(await getVideoByYoutubeId("audithid001")).toMatchObject({
         id: 10902,
         published: false,
       });
     });
+    /** Скрытый или неизвестный legacy videoId отклоняется до запуска downloader и чтения media. */
     it.each(["audithid001", "auditunk001"])(
       "refuses %s before any external downloader or media request",
       async (id) => {
@@ -134,6 +143,7 @@ describe.skipIf(!testDatabaseUrl)(
         expect(external.upstream).toEqual([]);
       },
     );
+    /** Публичное разрешённое видео передаёт upstream Range и возвращает точные 206 и Content-Range. */
     it("streams a published catalog entry with Range semantics preserved", async () => {
       const response = await httpFetch(`${base}/api/yt/auditpub001`, {
         headers: { Range: "bytes=0-3" },
@@ -146,6 +156,7 @@ describe.skipIf(!testDatabaseUrl)(
         "https://www.youtube.com/watch?v=auditpub001",
       );
     });
+    /** Снятие публикации блокирует уже закешированный playback URL до внешних обращений. */
     it("rechecks publication even when playback resolution is cached", async () => {
       const first = await httpFetch(`${base}/api/yt/auditrev001`);
       expect(first.status).toBe(200);
@@ -158,12 +169,14 @@ describe.skipIf(!testDatabaseUrl)(
       expect(external.commands).toEqual([]);
       expect(external.upstream).toEqual([]);
     });
+    /** Некорректный videoId отклоняется с 400 до downloader и upstream. */
     it("rejects malformed YouTube IDs without external work", async () => {
       const response = await httpFetch(`${base}/api/yt/bad!`);
       expect(response.status).toBe(400);
       expect(external.commands).toEqual([]);
       expect(external.upstream).toEqual([]);
     });
+    /** Закрытое клубное видео не выдаётся публичным legacy-плеером независимо от кеша. */
     it("denies a club video before downloader, cached URL, or upstream requests", async () => {
       await conn.query("UPDATE videos SET access='club' WHERE id=10903");
       const response = await httpFetch(`${base}/api/yt/auditrev001`);
@@ -171,6 +184,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(external.commands).toEqual([]);
       expect(external.upstream).toEqual([]);
     });
+    /** Если видео стало клубным во время upstream-запроса, сервер запрещает выдачу уже полученных байтов. */
     it("rechecks club access after an in-flight upstream response before returning bytes", async () => {
       vi.stubGlobal("fetch",async()=>{
         await conn.query("UPDATE videos SET access='club' WHERE id=10903");

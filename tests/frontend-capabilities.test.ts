@@ -1,3 +1,4 @@
+/** Проверяем строгие булевы server capabilities на клиентской границе чтения и записи файла. */
 import { beforeEach, expect, it, vi } from "vitest";
 import { apiCall } from "../apps/frontend/src/shared/api/auth";
 import {
@@ -16,8 +17,10 @@ const disabled = {
   privatePostMediaUploads: false,
   privatePostVideoUploads: false,
 };
+/** Сбрасываем ответ API-заглушки перед каждым сценарием. */
 beforeEach(() => vi.mocked(apiCall).mockReset());
 
+/** Неизвестная форма ответа не должна включать комментарий или загрузку по умолчанию. */
 it.each(
   [
     null,
@@ -40,6 +43,7 @@ it.each(
   },
 );
 
+/** Строка true не заменяет настоящий boolean ни в одном известном поле. */
 it.each(Object.keys(disabled))(
   "rejects an invalid type for %s",
   async (key) => {
@@ -50,16 +54,19 @@ it.each(Object.keys(disabled))(
   },
 );
 
+/** Полный набор false сохраняется как подтверждённое отсутствие возможностей. */
 it("preserves the explicitly disabled legacy contract", async () => {
   vi.mocked(apiCall).mockResolvedValue(disabled);
   await expect(getAppCapabilities()).resolves.toEqual(disabled);
 });
 
+/** Явный обязательный gate позволяет старому ответу не содержать новые необязательные переключатели. */
 it("accepts an explicit comment gate with optional older release fields omitted", async () => {
   vi.mocked(apiCall).mockResolvedValue({ privateContentUploads: false });
   await expect(getAppCapabilities()).resolves.toEqual(disabled);
 });
 
+/** Известные true сохраняются; неизвестное будущее поле не меняет проверенную модель. */
 it("preserves enabled switches and ignores future server fields", async () => {
   const enabled = {
     ...disabled,
@@ -73,6 +80,7 @@ it("preserves enabled switches and ignores future server fields", async () => {
   await expect(getAppCapabilities()).resolves.toEqual(enabled);
 });
 
+/** Перед записью повторно требуется валидная capability-модель, а не только состояние кнопки. */
 it("rejects an invalid response at the file write boundary too", async () => {
   vi.mocked(apiCall).mockResolvedValue(null);
   await expect(

@@ -1,3 +1,4 @@
+# Сравнивает сетевую доступность старых YouTube-хостов с VPS без проверки полного воспроизведения.
 import pathlib
 import paramiko
 
@@ -8,6 +9,7 @@ for line in (root / ".env").read_text(encoding="utf-8").splitlines():
         k, v = line.split("=", 1)
         env[k.strip()] = v.strip()
 
+# Подключение использует историческое автоматическое доверие неизвестному SSH host key; перед новым запуском требуется отдельная сверка хоста.
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 client.connect(
@@ -21,6 +23,7 @@ client.connect(
     look_for_keys=False,
 )
 
+# Следующий текст — удалённая команда; её содержимое сохранено как историческое и не исполняется при чтении исходника.
 cmd = r"""
 echo 'ytimg'
 curl -sI --max-time 10 -o /dev/null -w '%{http_code}\n' https://i.ytimg.com/vi/jNQXAC9IVRw/hqdefault.jpg

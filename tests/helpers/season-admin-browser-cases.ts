@@ -31,6 +31,8 @@ const initial: LaunchConfiguration = {
   },
 };
 async function open(page: Page, frontend: string) {
+  // Открывает реальную форму сезонов и ждёт базовую дату тестовой конфигурации до начала изменений.
+
   await page.goto(frontend + "admin");
   await page.getByRole("button", { name: "Сезоны", exact: true }).click();
   const form = page.getByRole("form", { name: "Настройки сезонов" });
@@ -40,7 +42,11 @@ async function open(page: Page, frontend: string) {
   return form;
 }
 export function registerSeasonAdminBrowserCases(fixture: () => SeasonFixture) {
+  // Проверяет весь контракт сезонов: валидацию, ревизии, потерю ACK, отзыв сессии, fallback картинок и московские границы.
+
   async function withSettings(run: (value: SeasonFixture) => Promise<void>) {
+    // Требует пустой singleton одноразовой БД и удаляет его только при собственной почте-маркере и ожидаемом диапазоне ревизий.
+
     const value = fixture();
     expect(
       await value.rows("SELECT id FROM launch_settings WHERE id=1"),
@@ -59,6 +65,8 @@ export function registerSeasonAdminBrowserCases(fixture: () => SeasonFixture) {
     }
   }
   it("S1 validates annual dates and saves all seasonal fields through native API and SQL", async () => {
+    // Сценарий: Валидация 29 февраля и одинаковых дат не пишет SQL; корректные даты, режим и ссылки сохраняются одной ревизией и аудитом.
+
     await withSettings(async ({ rows, context, frontend, actorId }) => {
       const before = await rows("SELECT * FROM launch_settings WHERE id=1");
       const paymentIds = await rows("SELECT id FROM club_payments ORDER BY id");
@@ -164,6 +172,8 @@ export function registerSeasonAdminBrowserCases(fixture: () => SeasonFixture) {
     });
   }, 30_000);
   it("S1 confirms a committed season save after losing its native HTTP reply without a second write", async () => {
+    // Сценарий: Потеря ответа после commit блокирует PUT до чтения; совпавшая серверная конфигурация подтверждает исходную запись без второго эффекта.
+
     await withSettings(async ({ rows, context, frontend, base, actorId }) => {
       const page = await context.newPage();
       const form = await open(page, frontend);
@@ -238,6 +248,8 @@ export function registerSeasonAdminBrowserCases(fixture: () => SeasonFixture) {
   ])(
     "S1 rejects unsafe seasonal image URL %s before any native write",
     async (url, label) => {
+    // Сценарий: HTTP, javascript и URL с credentials отклоняются до сети, сохраняя ввод и не создавая аудит.
+
       await withSettings(async ({ rows, context, frontend, actorId }) => {
         const before = await rows("SELECT * FROM launch_settings WHERE id=1");
         const page = await context.newPage();
@@ -275,6 +287,8 @@ export function registerSeasonAdminBrowserCases(fixture: () => SeasonFixture) {
     30_000,
   );
   it("S1 discards a committed native season reply released after server session revocation", async () => {
+    // Сценарий: Удержанный закоммиченный ответ после отзыва сессии не возвращает закрытую форму или сообщение успеха.
+
     await withSettings(
       async ({ rows, connection, context, frontend, base, actorId }) => {
         const page = await context.newPage();
@@ -372,6 +386,8 @@ export function registerSeasonAdminBrowserCases(fixture: () => SeasonFixture) {
   it.each(["save", "inspect"] as const)(
     "S1 closes the private season form when a revoked native session attempts %s",
     async (action) => {
+    // Сценарий: Отозванный JWT не читает и не изменяет приватные настройки; форма уходит во вход, конфигурация и аудит сохранены.
+
       await withSettings(
         async ({ rows, connection, context, frontend, actorId }) => {
           const before = await rows("SELECT * FROM launch_settings WHERE id=1");
@@ -438,6 +454,8 @@ export function registerSeasonAdminBrowserCases(fixture: () => SeasonFixture) {
     30_000,
   );
   it("S1 keeps an uncommitted draft blocked through failed inspection until native unchanged settings allow a manual save", async () => {
+    // Сценарий: Потерянный до отправки PUT и отказ проверки удерживают draft заблокированным; неизменённая native база разрешает отдельное ручное сохранение.
+
     await withSettings(async ({ rows, context, frontend, actorId }) => {
       const before = await rows("SELECT * FROM launch_settings WHERE id=1");
       const page = await context.newPage();
@@ -551,6 +569,8 @@ export function registerSeasonAdminBrowserCases(fixture: () => SeasonFixture) {
     });
   }, 30_000);
   it("S1 preserves a stale admin draft until an explicit confirmed load of the winning native revision", async () => {
+    // Сценарий: Проигравшая ревизия сохраняет локальный ввод; загрузка выигравших настроек требует явного согласия, dismiss ничего не меняет.
+
     await withSettings(async ({ rows, context, frontend, actorId }) => {
       const stalePage = await context.newPage();
       const stale = await open(stalePage, frontend);
@@ -637,6 +657,8 @@ export function registerSeasonAdminBrowserCases(fixture: () => SeasonFixture) {
     });
   }, 30_000);
   it("S1 refreshes the subscribed club from native SQL configuration on pageshow", async () => {
+    // Сценарий: Событие pageshow перечитывает native SQL конфигурацию и меняет оформление без новых оплат или изменения настроек из клиента.
+
     await withSettings(
       async ({ rows, connection, context, frontend, memberId }) => {
         const winter = {
@@ -740,6 +762,8 @@ export function registerSeasonAdminBrowserCases(fixture: () => SeasonFixture) {
   ] as const)(
     "S1 renders decoded local fallback images for %s (unavailable configured assets: %s)",
     async (season, unavailable, fallback) => {
+    // Сценарий: Fallback проверяется реальным декодированием локальных WebP и ненулевыми размерами, а не одним присутствием img.
+
       await withSettings(
         async ({ rows, connection, context, frontend, memberId }) => {
           const customBackground =
@@ -897,6 +921,8 @@ export function registerSeasonAdminBrowserCases(fixture: () => SeasonFixture) {
   ])(
     "S1 serves the SQL-configured season at Moscow boundary %s",
     async (instant, season, startsOn) => {
+    // Сценарий: Контролируется только Date API-процесса на московской полуночи каждого сезона; HTTP и SQL таймеры остаются настоящими.
+
       await withSettings(async ({ rows, base }) => {
         const before = await rows("SELECT * FROM launch_settings WHERE id=1");
         // Only the API process Date is controlled; HTTP/SQL timers remain real.

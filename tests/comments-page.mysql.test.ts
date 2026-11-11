@@ -3,14 +3,17 @@ import { testDatabaseUrl } from "./helpers/backend-mysql";
 import { openListPageFixture } from "./helpers/list-page-fixture";
 import { deletePostCommentV2 } from "../apps/backend/src/content/comments";
 
+/** Проверяет ограниченные страницы корней и ответов, counts, связанность cursor и актуальную подписку. */
 describe.skipIf(!testDatabaseUrl)(
   "comment groups over real HTTP/JWT/disposable MySQL",
   () => {
     let fixture: Awaited<ReturnType<typeof openListPageFixture>>;
     const base = 886000,
       postId = base + 100;
+    /** Читает club.commentsPage выбранной сессией, подставляя собственный postId по умолчанию. */
     const read = (input: object = {}, actor: number | null = 0) =>
       fixture.read("club.commentsPage", { postId, ...input }, actor);
+    /** Создаёт комментарий с фиксированными датой и ID, выбранным parentId и постом. */
     const comment = (
       index: number,
       parentId: number | null = null,
@@ -20,16 +23,20 @@ describe.skipIf(!testDatabaseUrl)(
         "INSERT INTO post_comments(id,postId,userId,text,parentId,photos,createdAt) VALUES(?,?,?,'comment',?,JSON_ARRAY(),'2026-01-01')",
         [base + 500 + index, otherPost, base, parentId],
       );
+    /** Поднимает изолированный HTTP/JWT стенд со своим диапазоном ID. */
     beforeAll(async () => {
       fixture = await openListPageFixture("pagination-comments", base);
     });
+    /** Возвращает базовую фикстуру и создаёт открытый пост для обсуждения. */
     beforeEach(async () => {
       await fixture.reset();
       await fixture.post(0);
     });
+    /** Удаляет данные фикстуры и закрывает API и соединения. */
     afterAll(async () => {
       await fixture?.close();
     });
+    /** Обходит все корни при равных датах, проверяя лимит 20, полный totalCount и отсутствие повторов. */
     it.each([0, 20, 21, 50, 51])(
       "pages %i root comments with chronological equal-date tie breaking",
       async (count) => {
@@ -51,6 +58,7 @@ describe.skipIf(!testDatabaseUrl)(
         );
       },
     );
+    /** Ответы родителя выдаются отдельными страницами с точными counts; внуки остаются достижимы своей группой. */
     it("bounds a parent with 51 replies, includes accurate counts and retains grandchildren", async () => {
       await comment(0);
       for (let i = 1; i <= 51; i++) await comment(i, base + 500);
@@ -90,6 +98,7 @@ describe.skipIf(!testDatabaseUrl)(
         (await read({ parentId: base + 501 })).data.items.map((row) => row.id),
       ).toEqual([base + 552]);
     });
+    /** Максимальный лимит 50 сохраняет достижимость последнего 51-го комментария. */
     it("honors a 50-comment group with a reachable final item", async () => {
       for (let i = 0; i < 51; i++) await comment(i);
       const first = await read({ limit: 50 });
@@ -99,6 +108,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect(last.data.items.map((row) => row.id)).toEqual([base + 550]);
       expect(last.data.nextCursor).toBeNull();
     });
+    /** После удаления родителя его прямой ответ становится корнем и сохраняет собственных детей. */
     it("shows promoted replies as roots after the existing delete transaction", async () => {
       await comment(0);
       await comment(1, base + 500);
@@ -118,6 +128,7 @@ describe.skipIf(!testDatabaseUrl)(
         (await read({ parentId: base + 501 })).data.items.map((row) => row.id),
       ).toEqual([base + 502]);
     });
+    /** Ограниченная проекция сохраняет автора, фотографии и персональные лайки без загрузки чужой группы ответов. */
     it("keeps author/photo/like fields without loading another parent's replies", async () => {
       await comment(0);
       await comment(1);
@@ -141,6 +152,7 @@ describe.skipIf(!testDatabaseUrl)(
         replyCount: 0,
       });
     });
+    /** Открытое обсуждение доступно без подписки, а клубные страницы учитывают выдачу и отзыв доступа между запросами. */
     it("retains public-post comments for unpaid users but rechecks club subscription on every page", async () => {
       await comment(0);
       await comment(1);
@@ -159,6 +171,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await read({ cursor: first.data.nextCursor })).status).toBe(403);
       expect((await read({}, 2)).status).toBe(200);
     });
+    /** Отсутствующий пост, скрытая публикация и родитель другого поста дают 404. */
     it("does not read missing, unpublished or other-post parents", async () => {
       await fixture.post(1);
       await comment(0, null, postId + 1);
@@ -170,6 +183,7 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await read()).status).toBe(404);
       expect((await read({ postId: postId + 99 })).status).toBe(404);
     });
+    /** Cursor связан с автором запроса, постом и группой родителя и не переносится между ними. */
     it("rejects a cursor reused for another parent, post or owner", async () => {
       await comment(0);
       await comment(1);
@@ -186,6 +200,7 @@ describe.skipIf(!testDatabaseUrl)(
             .status,
         ).toBe(400);
     });
+    /** Keyset-cursor продолжает группу после удаления граничного комментария, не начиная её заново. */
     it("continues after a deleted cursor comment without restarting the group", async () => {
       for (let i = 0; i < 3; i++) await comment(i);
       const first = await read({ limit: 1 });
@@ -200,6 +215,7 @@ describe.skipIf(!testDatabaseUrl)(
       ]);
       expect(next.data.nextCursor).toBeNull();
     });
+    /** Дробные и выходящие за пределы идентификаторы, лимиты, cursor и лишние поля дают 400. */
     it.each([
       { limit: 0 },
       { limit: 51 },
@@ -212,6 +228,7 @@ describe.skipIf(!testDatabaseUrl)(
     ])("rejects invalid input %j", async (input) => {
       expect((await read(input)).status).toBe(400);
     });
+    /** Даже открытые комментарии требуют действующей сессии. */
     it("requires a session even on public posts", async () => {
       expect((await read({}, null)).status).toBe(401);
     });

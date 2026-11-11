@@ -60,29 +60,30 @@ describe("moderation ID inputs over native HTTP", () => {
     lastSignedIn: new Date(0),
   };
   const client = () =>
-    createTRPCProxyClient<AppRouter>({
+    /* Создаёт настоящий локальный tRPC-клиент с SuperJSON для проверки Nest-маршрутизации. */ createTRPCProxyClient<AppRouter>({
       links: [httpLink({ url: base + "/api/trpc", transformer: superjson })],
     });
+  // Таблица операций отделяет проверяемый target от доверенного actor: одинаковые правила ID и ролей проверяются для удаления, жалоб и блокировок.
   const operations = [
     {
       name: "dismiss report",
       validId: 9811,
       run: (id: number) =>
-        client().moderation.dismissCommentReport.mutate({ reportId: id }),
+        /* Передаёт выбранный ID процедуре отклонения жалобы. */ client().moderation.dismissCommentReport.mutate({ reportId: id }),
       want: [["dismiss", { id: 9810, sessionVersion: 0 }, 9811]],
     },
     {
       name: "delete comment without report",
       validId: 9811,
       run: (id: number) =>
-        client().moderation.deleteReportedComment.mutate({ commentId: id }),
+        /* Передаёт выбранный ID удалению комментария без привязки к жалобе. */ client().moderation.deleteReportedComment.mutate({ commentId: id }),
       want: [["delete", { id: 9810, sessionVersion: 0 }, 9811]],
     },
     {
       name: "delete comment with report",
       validId: 9812,
       run: (id: number) =>
-        client().moderation.deleteReportedComment.mutate({
+        /* Передаёт выбранный ID жалобы вместе с фиксированным комментарием. */ client().moderation.deleteReportedComment.mutate({
           commentId: 9811,
           reportId: id,
         }),
@@ -92,7 +93,7 @@ describe("moderation ID inputs over native HTTP", () => {
       name: "block user",
       validId: 9811,
       run: (id: number) =>
-        client().moderation.blockUser.mutate({
+        /* Передаёт выбранный ID блокировки и проверяемую причину с внешними пробелами. */ client().moderation.blockUser.mutate({
           userId: id,
           reason: "  synthetic reason  ",
         }),
@@ -102,7 +103,7 @@ describe("moderation ID inputs over native HTTP", () => {
       name: "unblock user",
       validId: 9811,
       run: (id: number) =>
-        client().moderation.unblockUser.mutate({ userId: id }),
+        /* Передаёт выбранный ID разблокировки. */ client().moderation.unblockUser.mutate({ userId: id }),
       want: [["unblock", { id: 9810, sessionVersion: 0 }, 9811]],
     },
   ];
@@ -152,8 +153,12 @@ describe("moderation ID inputs over native HTTP", () => {
   ])(
     "$method preserves the explicitly supplied service's refusal",
     async ({ method, want }) => {
+      // Сценарий: Явно переданный сервис модерации определяет результат; роутер не обходит его прямым SQL.
+
       let received: unknown;
       const unexpected = async () => {
+        // Падает при любом обращении не к выбранной подменённой операции модерации.
+
         throw new Error("unexpected moderation operation");
       };
       const moderation = {
@@ -163,6 +168,8 @@ describe("moderation ID inputs over native HTTP", () => {
         blockUser: unexpected,
         unblockUser: unexpected,
         [method]: async (...args: unknown[]) => {
+          // Передаёт произвольные аргументы в выбранный отказующий провайдер, сохраняя их для сверки.
+
           received = args;
           throw new TRPCError({
             code: "CONFLICT",
@@ -191,20 +198,20 @@ describe("moderation ID inputs over native HTTP", () => {
         res: {},
       } as TrpcContext);
       const calls: Record<string, () => Promise<unknown>> = {
-        listCommentReports: () => caller.moderation.listCommentReports(),
+        listCommentReports: () => /* Вызывает чтение жалоб через собранный tRPC-контекст. */ caller.moderation.listCommentReports(),
         dismissCommentReport: () =>
-          caller.moderation.dismissCommentReport({ reportId: 9811 }),
+          /* Вызывает отклонение жалобы через собранный tRPC-контекст. */ caller.moderation.dismissCommentReport({ reportId: 9811 }),
         deleteReportedComment: () =>
-          caller.moderation.deleteReportedComment({
+          /* Вызывает удаление комментария через собранный tRPC-контекст. */ caller.moderation.deleteReportedComment({
             commentId: 9811,
             reportId: 9812,
           }),
         blockUser: () =>
-          caller.moderation.blockUser({
+          /* Вызывает блокировку через собранный tRPC-контекст. */ caller.moderation.blockUser({
             userId: 9811,
             reason: "  synthetic reason  ",
           }),
-        unblockUser: () => caller.moderation.unblockUser({ userId: 9811 }),
+        unblockUser: () => /* Вызывает разблокировку через собранный tRPC-контекст. */ caller.moderation.unblockUser({ userId: 9811 }),
       };
       await expect(calls[method]()).rejects.toMatchObject({
         code: "CONFLICT",
@@ -218,33 +225,35 @@ describe("moderation ID inputs over native HTTP", () => {
   it.each([
     {
       method: "listCommentReports" as const,
-      run: () => client().moderation.listCommentReports.query(),
+      run: () => /* Запускает HTTP-чтение жалоб через фактический Nest-провайдер. */ client().moderation.listCommentReports.query(),
     },
     {
       method: "dismissCommentReport" as const,
       run: () =>
-        client().moderation.dismissCommentReport.mutate({ reportId: 9811 }),
+        /* Запускает HTTP-отклонение жалобы через фактический Nest-провайдер. */ client().moderation.dismissCommentReport.mutate({ reportId: 9811 }),
     },
     {
       method: "deleteReportedComment" as const,
       run: () =>
-        client().moderation.deleteReportedComment.mutate({ commentId: 9811 }),
+        /* Запускает HTTP-удаление комментария через фактический Nest-провайдер. */ client().moderation.deleteReportedComment.mutate({ commentId: 9811 }),
     },
     {
       method: "blockUser" as const,
       run: () =>
-        client().moderation.blockUser.mutate({
+        /* Запускает HTTP-блокировку через фактический Nest-провайдер. */ client().moderation.blockUser.mutate({
           userId: 9811,
           reason: "synthetic reason",
         }),
     },
     {
       method: "unblockUser" as const,
-      run: () => client().moderation.unblockUser.mutate({ userId: 9811 }),
+      run: () => /* Запускает HTTP-разблокировку через фактический Nest-провайдер. */ client().moderation.unblockUser.mutate({ userId: 9811 }),
     },
   ])(
     "$method uses the actual Nest-managed provider",
     async ({ method, run }) => {
+      // Сценарий: HTTP-маршрут использует фактический Nest-managed провайдер и сохраняет доменный отказ.
+
       vi.spyOn(app.get(ModerationService), method).mockRejectedValue(
         new TRPCError({
           code: "CONFLICT",
@@ -262,6 +271,8 @@ describe("moderation ID inputs over native HTTP", () => {
   it.each(["moderator", "admin"] as const)(
     "returns the bounded inbox for %s",
     async (role) => {
+      // Сценарий: Модератор и администратор читают ограниченный inbox с переданным actor.
+
       actor = { ...moderator, role };
       let received: unknown;
       const rows: comments.CommentReportInboxRow[] = [
@@ -310,6 +321,8 @@ describe("moderation ID inputs over native HTTP", () => {
   ])(
     "refuses the inbox to a $name before reading reports",
     async ({ user, code, status }) => {
+      // Сценарий: Гость, участник и заблокированный модератор отклоняются до чтения жалоб.
+
       actor = user;
       let entered = false;
       vi.spyOn(comments, "listCommentReports").mockImplementation(async () => {
@@ -327,24 +340,26 @@ describe("moderation ID inputs over native HTTP", () => {
     {
       helper: "dismissCommentReport" as const,
       reject: () =>
-        vi
+        /* Инъецирует приватную SQL-ошибку на границе отклонения жалобы. */ vi
           .spyOn(platformDb, "dismissCommentReport")
           .mockRejectedValue(new Error("synthetic private SQL detail")),
       run: () =>
-        client().moderation.dismissCommentReport.mutate({ reportId: 9811 }),
+        /* Запускает отклонение жалобы после инъекции отказа хранилища. */ client().moderation.dismissCommentReport.mutate({ reportId: 9811 }),
     },
     {
       helper: "deleteReportedComment" as const,
       reject: () =>
-        vi
+        /* Инъецирует приватную SQL-ошибку на границе удаления комментария. */ vi
           .spyOn(platformDb, "deleteReportedComment")
           .mockRejectedValue(new Error("synthetic private SQL detail")),
       run: () =>
-        client().moderation.deleteReportedComment.mutate({ commentId: 9811 }),
+        /* Запускает удаление комментария после инъекции отказа хранилища. */ client().moderation.deleteReportedComment.mutate({ commentId: 9811 }),
     },
   ])(
     "does not audit or return success when $helper fails",
     async ({ reject, run }) => {
+      // Сценарий: Отказ удаления или отклонения жалобы не превращается в успех и не создаёт аудит.
+
       reject();
       await expect(run()).rejects.toMatchObject({
         message: "Внутренняя ошибка сервера",
@@ -358,16 +373,18 @@ describe("moderation ID inputs over native HTTP", () => {
     {
       helper: "blockUser" as const,
       run: () =>
-        client().moderation.blockUser.mutate({
+        /* Запускает блокировку для проверки отсутствия ложного успеха. */ client().moderation.blockUser.mutate({
           userId: 9811,
           reason: "synthetic reason",
         }),
     },
     {
       helper: "unblockUser" as const,
-      run: () => client().moderation.unblockUser.mutate({ userId: 9811 }),
+      run: () => /* Запускает разблокировку для проверки отсутствия ложного успеха. */ client().moderation.unblockUser.mutate({ userId: 9811 }),
     },
   ])("does not return success when $helper fails", async ({ helper, run }) => {
+    // Сценарий: Отказ блокировки либо разблокировки не возвращает успешный ответ.
+
     vi.spyOn(platformDb, helper).mockRejectedValue(
       new Error("synthetic private SQL detail"),
     );
@@ -378,6 +395,8 @@ describe("moderation ID inputs over native HTTP", () => {
   });
 
   it("uses the session actor, not a client-supplied deletion actor", async () => {
+    // Сценарий: Автор удаления берётся из сессии, а не клиентского actorUserId.
+
     expect(
       await client().moderation.deleteReportedComment.mutate({
         commentId: 9811,
@@ -388,6 +407,8 @@ describe("moderation ID inputs over native HTTP", () => {
   });
 
   it("uses the session actor, not a client-supplied dismissal actor", async () => {
+    // Сценарий: Автор отклонения жалобы берётся из сессии, а не клиентского actorUserId.
+
     expect(
       await client().moderation.dismissCommentReport.mutate({
         reportId: 9811,
@@ -404,6 +425,8 @@ describe("moderation ID inputs over native HTTP", () => {
       { name: "fractional", id: 1.5 },
       { name: "unsafe integer", id: 9007199254740992 },
     ])("rejects a $name ID before any mutation or audit", async ({ id }) => {
+      // Сценарий: Нулевой, отрицательный, дробный и небезопасный ID отклоняется до записи или аудита.
+
       await expect(run(id)).rejects.toMatchObject({
         data: { code: "BAD_REQUEST", httpStatus: 400 },
       });
@@ -413,6 +436,8 @@ describe("moderation ID inputs over native HTTP", () => {
     it.each(["moderator", "admin"] as const)(
       "preserves a valid %s operation's target and actor",
       async (role) => {
+        // Сценарий: Разрешённая операция сохраняет правильные target и actor для обеих административных ролей.
+
         actor = { ...moderator, role };
         expect(await run(validId)).toEqual({ ok: true });
         expect(effects).toEqual(want);
@@ -434,6 +459,8 @@ describe("moderation ID inputs over native HTTP", () => {
         status: 403,
       },
     ])("refuses $name before side effects", async ({ user, code, status }) => {
+      // Сценарий: Проверка доступа предшествует любому побочному эффекту операции.
+
       actor = user;
       await expect(run(validId)).rejects.toMatchObject({
         data: { code, httpStatus: status },

@@ -9,16 +9,21 @@ test.skip(
 
 test.use({ hasTouch: true });
 const expiration = "2040-11-01T10:00:00Z";
+/** Выбираем мутацию отмены отдельно от read-only проверки её результата. */
 const cancelButton = (page: Page) =>
   page.getByRole("button", { name: "Отменить подписку", exact: true });
+/** Проверка отмены перечитывает подписку и не повторяет cancel-write. */
 const checkButton = (page: Page) =>
   page.getByRole("button", { name: "Проверить отмену", exact: true });
+/** Ограничиваем сообщения текущей subscription-карточкой профиля. */
 const card = (page: Page) =>
   page.getByText("Подписка на клуб DARCY", { exact: true }).locator("../..");
+/** Неизвестный исход сохраняется отдельным status, не объявляя автосписание выключенным. */
 const unknownNotice = (page: Page) =>
   card(page)
     .getByRole("status")
     .filter({ hasText: "Отмена ещё не подтверждена" });
+/** Независимо удерживаем cancel или subscription-read для проверки дедупликации и поздних ответов. */
 const deferred = () => {
   let resolve!: () => void;
   const promise = new Promise<void>((done) => {
@@ -27,6 +32,7 @@ const deferred = () => {
   return { promise, resolve };
 };
 
+/** Подписка, личность, cancel-ACK и fresh-read задаются отдельно: серверное pending и подтверждённый cancelAtPeriodEnd не выводятся только из HTTP200. */
 async function fixture(page: Page) {
   await layoutApi(page, true);
   const state = {
@@ -111,15 +117,18 @@ async function fixture(page: Page) {
   });
   return state;
 }
+/** Открываем подтверждённо активную fixture-подписку до изменения исхода cancel. */
 async function open(page: Page) {
   await gotoWithSession(page, "/profile");
   await expect(card(page).getByText("Активна", { exact: true })).toBeVisible();
 }
+/** Подтверждаем действие настоящим confirm и нажимаем кнопку один раз. */
 async function cancel(page: Page) {
   page.once("dialog", (dialog) => dialog.accept());
   await cancelButton(page).click();
 }
 
+/** Pending переживает reload даже при истёкшем/частично обновлённом доступе; дальнейшая проверка только читает. */
 for (const kind of ["active", "expired", "partial"] as const) {
   test(`server pending state survives reload and uses read-only checks: ${kind}`, async ({
     page,
@@ -157,6 +166,7 @@ for (const kind of ["active", "expired", "partial"] as const) {
   });
 }
 
+/** На трёх размерах отмена confirm не пишет, pending блокирует дубли, подтверждённое отключение сохраняет оплаченный период. */
 for (const width of [320, 390, 1440]) {
   test(`confirmation, single write and preserved access at ${width}px`, async ({
     page,
@@ -229,6 +239,7 @@ for (const width of [320, 390, 1440]) {
   });
 }
 
+/** 400/500 после отправки считаются неизвестным исходом до свежего subscription-read, а не поводом слепо повторять cancel. */
 for (const status of [400, 500]) {
   test(`HTTP ${status} keeps cancellation uncertain and only reads on retry`, async ({
     page,
@@ -278,6 +289,7 @@ test("transport failure can be checked without sending another cancellation", as
   expect(state.writes).toBe(1);
 });
 
+/** Deadline не отменяет возможный серверный эффект и оставляет повтор write заблокированным до проверки. */
 test("a timed-out cancellation blocks another write until status is checked", async ({
   page,
 }) => {
@@ -313,6 +325,7 @@ test("a timed-out cancellation blocks another write until status is checked", as
   expect(state.writes).toBe(1);
 });
 
+/** Ожидающий status-read дедуплицируется и не превращается в отмену при повторном click. */
 test("a pending status check cannot be duplicated or turn into another write", async ({
   page,
 }) => {
@@ -369,6 +382,7 @@ test("unauthorized cancellation rechecks the session and hides private UI", asyn
   expect(state.writes).toBe(1);
 });
 
+/** Неполный или некорректный cancel-response не подтверждает отключение автосписания. */
 for (const result of [
   { ok: false, expiresAt: expiration },
   { ok: true, expiresAt: "invalid" },
@@ -413,6 +427,7 @@ test("an ok response still needs confirmation from subscription", async ({
   expect(state.writes).toBe(1);
 });
 
+/** Ошибочный fresh-read сохраняет прежний подтверждённый доступ, не снимая неизвестность отмены. */
 for (const readResult of [
   failure(500),
   failure(429),
@@ -465,6 +480,7 @@ for (const readResult of [
   });
 }
 
+/** Известный rate-limit отказ разрешает только новое явное действие после сообщения. */
 test("rate limiting allows an explicit retry after a known refusal", async ({
   page,
 }) => {
@@ -484,6 +500,7 @@ test("rate limiting allows an explicit retry after a known refusal", async ({
   expect(state.writes).toBe(2);
 });
 
+/** Уход прерывает continuation UI, но сохраняет неизвестный исход уже отправленного cancel. */
 test("leaving the profile aborts verification and retains the uncertain write", async ({
   page,
 }) => {
@@ -521,6 +538,7 @@ test("leaving the profile aborts verification and retains the uncertain write", 
   expect(state.writes).toBe(1);
 });
 
+/** Поздний ACK старого owner не меняет subscription-state нового аккаунта. */
 test("a late response cannot change another account's subscription", async ({
   page,
 }) => {
@@ -567,6 +585,7 @@ test("a late response cannot change another account's subscription", async ({
   expect(state.writes).toBe(1);
 });
 
+/** Фоновая подтверждённая отмена закрывает unknown-intent; следующий оплаченный период не наследует старую локальную блокировку. */
 test("background confirmation clears uncertainty before a later subscription period", async ({
   page,
 }) => {
@@ -575,6 +594,7 @@ test("background confirmation clears uncertainty before a later subscription per
   await open(page);
   await cancel(page);
   await expect(checkButton(page)).toBeEnabled();
+  /** Создаём реальный переход offline→online и дожидаемся subscription-response, не подменяя state провайдера напрямую. */
   const reconnect = async () => {
     await page.evaluate(() => window.dispatchEvent(new Event("offline")));
     await Promise.all([
@@ -600,6 +620,7 @@ test("background confirmation clears uncertainty before a later subscription per
   expect(state.writes).toBe(1);
 });
 
+/** Подтверждённо истёкший период не продлевается локально, даже если cancel-ACK успешен. */
 test("confirmed expiration closes private access without extending its period", async ({
   page,
 }) => {
@@ -633,6 +654,7 @@ test("confirmed expiration closes private access without extending its period", 
   expect(state.writes).toBe(1);
 });
 
+/** Владелице, уже отменённой/неактивной подписке и гостю не предлагаются неподходящие cancellation-actions. */
 for (const kind of ["owner", "canceled", "inactive", "guest"]) {
   test(`cancellation is unavailable for ${kind}`, async ({ page }) => {
     const state = await fixture(page);
