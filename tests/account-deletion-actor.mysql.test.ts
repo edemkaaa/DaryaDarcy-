@@ -27,8 +27,10 @@ describe.skipIf(!testDatabaseUrl)(
       app: Awaited<ReturnType<typeof createBackendApplication>>,
       base: string,
       token: string;
-    const cleanup = () =>
-      conn.query("DELETE FROM users WHERE id IN (?,?)", [owner, neighbor]);
+    const cleanup = async () => {
+      await conn.query("DELETE FROM billing_profiles WHERE userId IN (?,?)", [owner, neighbor]);
+      await conn.query("DELETE FROM users WHERE id IN (?,?)", [owner, neighbor]);
+    };
     beforeAll(async () => {
       conn = await openTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
@@ -189,6 +191,35 @@ describe.skipIf(!testDatabaseUrl)(
         { ...before[0], accountDeletionRequestedAt: expect.any(Date) },
         before[1],
       ]);
+    });
+    it("queues only the owner's active billing profile and preserves the retry schedule", async () => {
+      await conn.query(`INSERT INTO billing_profiles
+        (profileKey,userId,domain,subscriptionId,profileId,email,amountMinor,cancelledAt)
+        VALUES ('deletion-active',?,'fixture.payform.ru','123','1','deletion-owner@example.test',79000,NULL),
+        ('deletion-closed',?,'fixture.payform.ru','123','2','deletion-owner@example.test',79000,NOW()),
+        ('deletion-neighbor',?,'fixture.payform.ru','123','3','deletion-neighbor@example.test',79000,NULL)`,
+        [owner, owner, neighbor]);
+      expect((await request()).status).toBe(200);
+      const [profiles] = await conn.query<RowDataPacket[]>(
+        "SELECT profileKey,cancelRequestedAt,cancelledAt FROM billing_profiles WHERE userId IN (?,?) ORDER BY profileKey",
+        [owner, neighbor],
+      );
+      expect(profiles).toEqual([
+        { profileKey: "deletion-active", cancelRequestedAt: expect.any(Date), cancelledAt: null },
+        { profileKey: "deletion-closed", cancelRequestedAt: null, cancelledAt: expect.any(Date) },
+        { profileKey: "deletion-neighbor", cancelRequestedAt: null, cancelledAt: null },
+      ]);
+      await conn.query("UPDATE billing_profiles SET nextAttemptAt='2026-11-30 10:00:00' WHERE profileKey='deletion-active'");
+      const before = await read();
+      expect((await request()).status).toBe(200);
+      expect(await read()).toEqual(before);
+      const [[retry]] = await conn.query<RowDataPacket[]>(
+        "SELECT cancelRequestedAt,nextAttemptAt FROM billing_profiles WHERE profileKey='deletion-active'",
+      );
+      expect(retry).toEqual({
+        cancelRequestedAt: profiles[0].cancelRequestedAt,
+        nextAttemptAt: new Date("2026-11-30T10:00:00Z"),
+      });
     });
     it("rejects a guest without changing either account", async () => {
       const before = await read();

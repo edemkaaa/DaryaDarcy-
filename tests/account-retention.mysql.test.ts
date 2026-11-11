@@ -8,7 +8,7 @@ import { openContentTestDatabase } from "./helpers/content-mysql";
 import { getDb, getUserByOpenId } from "../apps/backend/src/db";
 import { appRouter } from "../apps/backend/src/routers";
 import type { TrpcContext } from "../apps/backend/src/_core/context";
-import { processScheduledAccountDeletions } from "../apps/backend/src/platform-db";
+import { processScheduledAccountDeletions, runDataRetentionMaintenance } from "../apps/backend/src/platform-db";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { sdk } from "../apps/backend/src/_core/sdk";
 import type { AppRouter } from "../apps/backend/src/routers";
@@ -29,22 +29,6 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
     vi.stubEnv("JWT_SECRET", "retention-http-synthetic-secret-32");
     await conn.query("CREATE TABLE IF NOT EXISTS articles (id INT AUTO_INCREMENT PRIMARY KEY,title VARCHAR(255) NOT NULL,coverUrl TEXT,access ENUM('public','club') NOT NULL DEFAULT 'public',published BOOLEAN NOT NULL DEFAULT TRUE,sortOrder INT NOT NULL DEFAULT 0,sections JSON NOT NULL,createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP) ENGINE=InnoDB");
-    await conn.query(`CREATE TABLE IF NOT EXISTS pen_pal_profiles (
-      id INT AUTO_INCREMENT PRIMARY KEY,userId INT NOT NULL UNIQUE,fullName VARCHAR(128),
-      city VARCHAR(128) NOT NULL,interests JSON NOT NULL,address TEXT NOT NULL,
-      adultConsentAt TIMESTAMP NULL,consentVersion VARCHAR(32),active BOOLEAN DEFAULT TRUE,
-      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB`);
-    await conn.query(`CREATE TABLE IF NOT EXISTS pen_pal_matches (
-      id INT AUTO_INCREMENT PRIMARY KEY,userLowId INT NOT NULL,userHighId INT NOT NULL,
-      initiatedBy INT NOT NULL,userLowConfirmed BOOLEAN DEFAULT FALSE,userHighConfirmed BOOLEAN DEFAULT FALSE,
-      mutualConfirmedAt TIMESTAMP NULL,confirmDeadline TIMESTAMP NOT NULL,
-      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,UNIQUE(userLowId,userHighId)
-    ) ENGINE=InnoDB`);
-    await conn.query(`CREATE TABLE IF NOT EXISTS pen_pal_shown (
-      id INT AUTO_INCREMENT PRIMARY KEY,userId INT NOT NULL,matchUserId INT NOT NULL,
-      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,UNIQUE(userId,matchUserId)
-    ) ENGINE=InnoDB`);
     await conn.query(`CREATE TABLE IF NOT EXISTS push_tokens (
       id INT AUTO_INCREMENT PRIMARY KEY,token VARCHAR(256) NOT NULL UNIQUE,userId INT NULL,
       platform VARCHAR(16),enabled BOOLEAN DEFAULT TRUE,
@@ -54,7 +38,9 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
   beforeEach(async () => {
     await cleanupRecoveryContent();
     await cleanupBindings();
-    await conn.query("DELETE FROM pen_pal_matches WHERE userLowId=92101");
+    await conn.query("DELETE FROM pen_pal_matches WHERE userLowId IN (92101,92103)");
+    for (const table of ["billing_profiles", "password_tokens", "access_email_outbox"])
+      await conn.query(`DELETE FROM ${table} WHERE userId BETWEEN 92101 AND 92104`);
     await conn.query("DELETE FROM pen_pal_shown WHERE userId=92101 OR matchUserId=92101");
     for (const table of ["club_payments", "pen_pal_profiles", "post_comments", "likes", "saved_posts", "push_tokens"])
       await conn.query(`DELETE FROM ${table} WHERE userId BETWEEN 92101 AND 92104`);
@@ -82,7 +68,11 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     if (conn) await cleanupBindings();
     await conn?.query("DELETE FROM push_tokens WHERE token='retention-fixture-token'");
     await conn?.query("UPDATE users SET accountDeletionRequestedAt=NULL WHERE id BETWEEN 92101 AND 92104");
-    await conn?.query("DELETE FROM club_payments WHERE userId BETWEEN 92101 AND 92104");
+    if (conn) {
+      await conn.query("DELETE FROM pen_pal_matches WHERE userLowId=92103");
+      for (const table of ["club_payments", "billing_profiles", "password_tokens", "access_email_outbox"])
+        await conn.query(`DELETE FROM ${table} WHERE userId BETWEEN 92101 AND 92104`);
+    }
     await conn?.end();
     const database = await getDb();
     await (database as unknown as { $client: { end(): Promise<void> } })?.$client.end();
@@ -319,6 +309,58 @@ describe.skipIf(!testDatabaseUrl)("account retention on disposable MySQL", () =>
     expect(await processScheduledAccountDeletions()).toBe(0);
     const [again] = await conn.query<RowDataPacket[]>("SELECT sessionVersion FROM users WHERE id=92101");
     expect(again).toEqual([{sessionVersion:8}]);
+  });
+  it("scrubs password proofs and fences queued access mail without erasing billing evidence", async () => {
+    await conn.query(`INSERT INTO password_tokens(userId,email,tokenHash,purpose,expiresAt)
+      VALUES (92101,'retention@example.test',REPEAT('a',64),'reset',DATE_ADD(NOW(),INTERVAL 1 HOUR)),
+      (92102,'neighbor@example.test',REPEAT('b',64),'setup',DATE_ADD(NOW(),INTERVAL 1 HOUR))`);
+    await conn.query(`INSERT INTO access_email_outbox(eventKey,userId,email,kind,payload,sentAt,leaseId,leaseUntil)
+      VALUES ('retention-reset',92101,'retention@example.test','password-reset',JSON_OBJECT('tokenCipher','fixture'),NULL,'retention-lease',DATE_ADD(NOW(),INTERVAL 1 MINUTE)),
+      ('retention-payment',92101,'retention@example.test','club-access',JSON_OBJECT('orderId','retention-order','tokenCipher','fixture'),NOW(),NULL,NULL),
+      ('retention-neighbor',92102,'neighbor@example.test','password-setup',JSON_OBJECT('tokenCipher','neighbor'),NULL,NULL,NULL)`);
+    expect(await processScheduledAccountDeletions()).toBe(1);
+    const [proofs] = await conn.query<RowDataPacket[]>("SELECT userId FROM password_tokens WHERE userId IN (92101,92102)");
+    expect(proofs).toEqual([{ userId: 92102 }]);
+    const [mail] = await conn.query<RowDataPacket[]>(`SELECT eventKey,email,payload,sentAt IS NOT NULL AS sent,
+      discardedAt IS NOT NULL AS discarded,leaseId,leaseUntil
+      FROM access_email_outbox WHERE userId IN (92101,92102) ORDER BY eventKey`);
+    expect(mail).toEqual([
+      { eventKey: "retention-neighbor", email: "neighbor@example.test", payload: { tokenCipher: "neighbor" }, sent: 0, discarded: 0, leaseId: null, leaseUntil: null },
+      { eventKey: "retention-payment", email: "", payload: { orderId: "retention-order" }, sent: 1, discarded: 0, leaseId: null, leaseUntil: null },
+      { eventKey: "retention-reset", email: "", payload: {}, sent: 0, discarded: 1, leaseId: null, leaseUntil: null },
+    ]);
+  });
+  it("queues cancellation for an existing deletion request before the paid period ends", async () => {
+    await conn.query(`INSERT INTO club_payments (userId,orderId,status,expiresAt)
+      VALUES (92101,'retention-fixture-active','paid',DATE_ADD(NOW(),INTERVAL 1 DAY))`);
+    await conn.query(`INSERT INTO billing_profiles (profileKey,userId,domain,subscriptionId,profileId,email,amountMinor)
+      VALUES ('retention-fixture-active',92101,'fixture.payform.ru','123','1','retention@example.test',79000)`);
+    const before = await snapshot();
+    expect(await processScheduledAccountDeletions()).toBe(0);
+    const [[profile]] = await conn.query<RowDataPacket[]>(
+      "SELECT cancelRequestedAt,cancelledAt FROM billing_profiles WHERE profileKey='retention-fixture-active'",
+    );
+    expect(profile).toEqual({ cancelRequestedAt: expect.any(Date), cancelledAt: null });
+    expect(await snapshot()).toEqual(before);
+  });
+  it("continues with a healthy deletion and expired Pen Pals after a separate account fails", async () => {
+    await conn.query("UPDATE users SET accountDeletionRequestedAt=DATE_SUB(NOW(),INTERVAL 31 DAY) WHERE id=92102");
+    await conn.query(`INSERT INTO pen_pal_matches(userLowId,userHighId,initiatedBy,confirmDeadline)
+      VALUES (92103,92104,92103,DATE_SUB(NOW(),INTERVAL 1 DAY))`);
+    await conn.query(`CREATE TRIGGER backend_test_retention_failure BEFORE UPDATE ON users FOR EACH ROW
+      BEGIN IF OLD.id=92101 AND NEW.email IS NULL THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Fixture isolated cleanup failure'; END IF; END`);
+    try {
+      await expect(runDataRetentionMaintenance()).rejects.toThrow();
+      const [[neighbor]] = await conn.query<RowDataPacket[]>("SELECT email FROM users WHERE id=92102");
+      expect(neighbor.email).toBeNull();
+      const [expired] = await conn.query<RowDataPacket[]>("SELECT id FROM pen_pal_matches WHERE userLowId=92103");
+      expect(expired).toEqual([]);
+      expect((await snapshot()).user[0].email).toBe("retention@example.test");
+    } finally {
+      await conn.query("DROP TRIGGER backend_test_retention_failure");
+    }
+    expect(await processScheduledAccountDeletions()).toBe(1);
   });
   it("clears the unverified checkout contact when an eligible account is anonymized", async () => {
     await conn.query("UPDATE users SET contactPhone='+79991234567' WHERE id=92101");

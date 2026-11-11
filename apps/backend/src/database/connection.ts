@@ -23,11 +23,10 @@ export async function getDb() {
       charset: "utf8mb4_unicode_ci",
       timezone: "Z",
       connectionLimit: 10,
-      // Одна очередь размером с пул сглаживает короткие всплески. mysql2 не
-      // отменяет getConnection после таймаута вызывающего кода, поэтому нулевой
-      // (неограниченный) предел удерживал ожидания уже отклонённых запросов.
+      // Профиль двух API допускает проверенную короткую волну. Очередь остаётся
+      // конечной: mysql2 не отменяет getConnection после таймаута вызывающего кода.
       waitForConnections: true,
-      queueLimit: 10,
+      queueLimit: process.env.API_DB_BURST_QUEUE_ENABLED === "true" ? 40 : 10,
     });
     pool.on("connection", (connection) => {
       // mysql2 queues this before the first command on each new connection.

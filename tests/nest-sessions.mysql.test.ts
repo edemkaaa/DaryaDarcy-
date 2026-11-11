@@ -19,6 +19,7 @@ import { sdk } from "../apps/backend/src/_core/sdk";
 import { COOKIE_NAME } from "../packages/shared/src/const";
 import type { Request } from "express";
 import { SessionService } from "../apps/backend/src/identity/session.service";
+import { ENV } from "../apps/backend/src/_core/env";
 
 describe.skipIf(!testDatabaseUrl)(
   "native Nest sessions with real JWT/MySQL/passwords",
@@ -42,6 +43,12 @@ describe.skipIf(!testDatabaseUrl)(
     };
     beforeAll(async () => {
       conn = await openTestDatabase();
+      // Выход отвязывает устройства, поэтому таблица нужна и при отдельном запуске.
+      await conn.query(`CREATE TABLE IF NOT EXISTS push_tokens (
+        id INT AUTO_INCREMENT PRIMARY KEY,token VARCHAR(256) NOT NULL UNIQUE,userId INT NULL,
+        platform VARCHAR(16),enabled BOOLEAN NOT NULL DEFAULT TRUE,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB`);
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
       vi.stubEnv("JWT_SECRET", "native-sessions-fixture-secret-32-characters");
       vi.stubEnv("PUBLIC_APP_URL", "https://club.example.test");
@@ -286,6 +293,41 @@ describe.skipIf(!testDatabaseUrl)(
       expect(response.headers.get("set-cookie")).toContain("HttpOnly");
       expect(response.headers.get("set-cookie")).not.toContain("Domain=");
       expect(response.headers.get("cache-control")).toBe("no-store");
+    });
+    it("keeps a long stored display name out of the login cookie", async () => {
+      const name = "Ж".repeat(2048);
+      await conn.query("UPDATE users SET name=? WHERE id=8940", [name]);
+      try {
+        const response = await post("/api/auth/login", {
+          email: memberEmail,
+          password,
+        });
+        expect(response.status).toBe(200);
+        expect((await response.json()).user.name).toBe(name);
+        const cookie = response.headers.getSetCookie().find(value =>
+          value.startsWith(`${COOKIE_NAME}=`),
+        )!;
+        expect(Buffer.byteLength(cookie, "utf8")).toBeLessThan(4096);
+        const me = await fetch(`${base}/api/auth/me`, {
+          headers: { Cookie: cookie.split(";")[0] },
+        });
+        expect((await me.json()).user).toMatchObject({ id: 8940, name });
+      } finally {
+        await conn.query("UPDATE users SET name=NULL WHERE id=8940");
+      }
+    });
+    it("accepts an earlier signed session containing the display name", async () => {
+      const legacy = await sdk.signSession({
+        openId: "native-session-member",
+        appId: ENV.appId,
+        name: "Earlier display name",
+        sessionVersion: 0,
+      });
+      const response = await fetch(`${base}/api/auth/me`, {
+        headers: { Cookie: `${COOKIE_NAME}=${encodeURIComponent(legacy)}` },
+      });
+      expect(response.status).toBe(200);
+      expect((await response.json()).user.id).toBe(8940);
     });
     it("reads a valid real JWT from the host-only cookie without exposing a hash", async () => {
       const response = await fetch(base + "/api/auth/me", {

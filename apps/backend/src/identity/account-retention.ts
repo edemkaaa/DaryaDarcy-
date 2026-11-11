@@ -24,8 +24,10 @@ import {
   pushTokens,
   savedPosts,
 } from "../../../../packages/database/src/schema";
+import { queueCancellationForUser } from "../billing/cancellation";
 import { getDb } from "../database/connection";
 import { purgeOldPostComments } from "../content/comments";
+import { scrubAccessEmailData } from "./access-email-retention";
 import { cancelDeletedUserEmailBindings } from "./email-binding-retention";
 import { retireContentRecovery } from "../content/recovery-retirement";
 import { retirePublicPhotoReceipts } from "../media/public-photo-receipts";
@@ -54,11 +56,12 @@ export async function requestAccountDeletion(
     )
       throw new TRPCError({ code: "UNAUTHORIZED" });
     if (current.blockedAt) throw new TRPCError({ code: "FORBIDDEN" });
-    if (current.accountDeletionRequestedAt) return;
-    await tx
-      .update(users)
-      .set({ accountDeletionRequestedAt: new Date() })
-      .where(eq(users.id, actor.id));
+    if (!current.accountDeletionRequestedAt)
+      await tx
+        .update(users)
+        .set({ accountDeletionRequestedAt: new Date() })
+        .where(eq(users.id, actor.id));
+    await queueCancellationForUser(tx, actor.id);
   });
 }
 
@@ -124,6 +127,7 @@ export async function processScheduledAccountDeletions(): Promise<number> {
     .from(users)
     .where(isNotNull(users.accountDeletionRequestedAt));
   let processed = 0;
+  let failure: { error: unknown } | undefined;
   const cutoffAfterClubMs = 30 * MS_DAY;
 
   for (const candidate of candidates) {
@@ -136,6 +140,8 @@ export async function processScheduledAccountDeletions(): Promise<number> {
         .where(eq(users.id, candidate.id))
         .for("update");
       if (!user?.accountDeletionRequestedAt) return false;
+      // Include requests accepted before cancellation was wired to deletion.
+      await queueCancellationForUser(tx, user.id);
       const [latest] = await tx
         .select({ expiresAt: clubPayments.expiresAt })
         .from(clubPayments)
@@ -156,6 +162,7 @@ export async function processScheduledAccountDeletions(): Promise<number> {
       await scrubPenPalProfilePii(tx, user.id);
       await scrubUserComments(tx, user.id);
       await purgeUserActivity(tx, user.id);
+      await scrubAccessEmailData(tx, user.id);
       await cancelDeletedUserEmailBindings(tx, user.id);
       await retireContentRecovery(tx, user.id);
       await retirePublicPhotoReceipts(tx, user.id);
@@ -182,9 +189,14 @@ export async function processScheduledAccountDeletions(): Promise<number> {
         })
         .where(eq(users.id, user.id));
       return true;
+    }).catch((error: unknown) => {
+      // This account rolled back. Finish the batch, then surface the failure.
+      failure ??= { error };
+      return false;
     });
     if (deleted) processed += 1;
   }
+  if (failure) throw failure.error;
   return processed;
 }
 
@@ -308,8 +320,13 @@ export async function purgeStalePenPalData(): Promise<{
 
 export async function runDataRetentionMaintenance(): Promise<void> {
   const comments = await purgeOldPostComments();
-  const deleted = await processScheduledAccountDeletions();
-  const penPals = await purgeStalePenPalData();
+  let deleted;
+  let penPals;
+  try {
+    deleted = await processScheduledAccountDeletions();
+  } finally {
+    penPals = await purgeStalePenPalData();
+  }
   if (comments || deleted || penPals.profiles || penPals.matches) {
     console.log(
       `[maintenance] comments=${comments} accounts=${deleted} penPalProfiles=${penPals.profiles} penPalMatches=${penPals.matches}`,

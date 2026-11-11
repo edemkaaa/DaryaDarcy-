@@ -33,6 +33,40 @@ export async function openTestDatabase() {
   ) ENGINE=InnoDB`);
   await conn.query("SELECT GET_LOCK('backend_test_schema',30)");
   try {
+    // Общие таблицы берём из миграций: порядок запуска файлов не задаёт схему БД.
+    for (const [migration, table] of [
+      ["0002_salty_odin", "push_tokens"],
+      ["0010_payments", "shop_purchases"],
+      ["0008_pen_pals", "pen_pal_profiles"],
+      ["0008_pen_pals", "pen_pal_shown"],
+      ["0016_platform_features", "pen_pal_matches"],
+      ["0016_platform_features", "user_consent_events"],
+    ]) {
+      const source = await readFile(new URL(`../../packages/database/drizzle/${migration}.sql`, import.meta.url), "utf8");
+      const declaration = source.match(new RegExp(`CREATE TABLE (?:IF NOT EXISTS )?\`${table}\``))?.[0];
+      const start = declaration ? source.indexOf(declaration) : -1;
+      const end = source.indexOf(";", start);
+      if (start < 0 || end < 0) throw new Error("Missing disposable table migration");
+      await conn.query(source.slice(start, end + 1).replace(/^CREATE TABLE (?!IF NOT EXISTS)/, "CREATE TABLE IF NOT EXISTS "));
+    }
+    const [profileColumns] = await conn.query<mysql.RowDataPacket[]>(
+      "SELECT COLUMN_NAME,EXTRA FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='pen_pal_profiles' AND COLUMN_NAME IN ('fullName','updatedAt')",
+    );
+    if (!profileColumns.some((column) => column.COLUMN_NAME === "fullName")) {
+      const source = await readFile(new URL("../../packages/database/drizzle/0016_platform_features.sql", import.meta.url), "utf8");
+      const start = source.indexOf("ALTER TABLE `pen_pal_profiles`");
+      const end = source.indexOf(";", start);
+      if (start < 0 || end < 0) throw new Error("Missing disposable profile migration");
+      await conn.query(source.slice(start, end + 1));
+    }
+    // Обновляем только старую тестовую DDL, у которой отсутствовал ON UPDATE.
+    if (!String(profileColumns.find((column) => column.COLUMN_NAME === "updatedAt")?.EXTRA).toLowerCase().includes("on update"))
+      await conn.query("ALTER TABLE pen_pal_profiles MODIFY updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+    const [consentColumns] = await conn.query<mysql.RowDataPacket[]>(
+      "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='user_consent_events' AND COLUMN_NAME='consentText'",
+    );
+    if (!consentColumns.length)
+      await conn.query(await readFile(new URL("../../packages/database/drizzle/0017_consent_text.sql", import.meta.url), "utf8"));
     // Upgrade only the disposable fixture created by earlier test iterations.
     // Production schema already has AUTO_INCREMENT; authentication upserts need it.
     const [idColumns] = await conn.query<mysql.RowDataPacket[]>("SELECT EXTRA FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users' AND COLUMN_NAME='id'");

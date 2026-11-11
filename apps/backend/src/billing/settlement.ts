@@ -8,6 +8,7 @@ import {
 } from "../../../../packages/database/src/schema";
 import { normalizeContactPhone } from "../../../../packages/shared/src/checkout-contact";
 import { queueAccessEmail } from "../identity/access";
+import { queueCancellationForUser } from "./cancellation";
 import { moneyMinor, profileKey } from "./protocol";
 import {
   prepareClubSettlement,
@@ -106,6 +107,8 @@ export async function settleClubOrder(
           amountMinor: amount,
         });
     }
+    if (user.accountDeletionRequestedAt && proof.profileId)
+      await queueCancellationForUser(tx, user.id);
     const [latest] = await tx
       .select({ expiresAt: clubPayments.expiresAt })
       .from(clubPayments)

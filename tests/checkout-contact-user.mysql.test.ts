@@ -115,7 +115,7 @@ describe.skipIf(!testDatabaseUrl)(
       vi.stubEnv("PRODAMUS_SUBSCRIPTION_ID", "123");
     }
     it.each(["TEST", "LIVE"])(
-      "saves the normalized contact beside the new guest email, without an auth phone (%s)",
+      "stores a new guest contact only on the unpaid order (%s)",
       async (mode) => {
         if (mode === "LIVE") liveCheckout();
         const result = await create(undefined, "8 (999) 123-45-67", freshEmail);
@@ -128,7 +128,7 @@ describe.skipIf(!testDatabaseUrl)(
         ).toEqual([
           {
             email: freshEmail,
-            contactPhone: phone,
+            contactPhone: null,
             phone: null,
             passwordHash: null,
           },
@@ -230,24 +230,26 @@ describe.skipIf(!testDatabaseUrl)(
         await rows("SELECT orderId FROM club_payments WHERE userId=989701"),
       ).toEqual([]);
     });
-    it("allows the same unverified contact on distinct accounts", async () => {
+    it("allows a guest order to use the same unverified contact as another account", async () => {
       await create(token);
       await create(undefined, phone, freshEmail);
       expect(
-        await rows("SELECT id FROM users WHERE contactPhone=?", [phone]),
-      ).toHaveLength(2);
+        await rows("SELECT email FROM users WHERE contactPhone=?", [phone]),
+      ).toEqual([{ email }]);
+      expect(
+        await rows("SELECT contactPhone FROM club_payments WHERE email=?", [freshEmail]),
+      ).toEqual([{ contactPhone: phone }]);
     });
-    it("never overwrites an established contact during guest account creation/retry", async () => {
+    it("creates one recipient for concurrent email resolution without a contact", async () => {
       await Promise.all([
-        ensureUserByEmail(freshEmail, phone),
-        ensureUserByEmail(freshEmail, phone),
+        ensureUserByEmail(freshEmail),
+        ensureUserByEmail(freshEmail),
       ]);
-      await ensureUserByEmail(freshEmail, original);
       expect(
         await rows("SELECT contactPhone FROM users WHERE email=?", [
           freshEmail,
         ]),
-      ).toEqual([{ contactPhone: phone }]);
+      ).toEqual([{ contactPhone: null }]);
     });
     it.each([
       "blockedAt=CURRENT_TIMESTAMP",

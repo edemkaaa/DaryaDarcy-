@@ -73,17 +73,18 @@ export class SessionService {
     const existing = await getUserByEmail(email);
     const database = await getDb();
     if (!database) return "unavailable";
+    const openId = emailToOpenId(email);
     if (existing)
-      return (await retryEmailRegistration(database, email))
+      return (await retryEmailRegistration(database, email, openId))
         ? "pending"
         : "duplicate";
     const user = await createEmailAccount(database, {
-      openId: emailToOpenId(email),
+      openId,
       email,
       name: name || null,
     });
     if (user) return "created";
-    return (await retryEmailRegistration(database, email))
+    return (await retryEmailRegistration(database, email, openId))
       ? "pending"
       : "duplicate";
   }
@@ -103,7 +104,7 @@ export class SessionService {
   async issueSession(user: User) {
     if (user.blockedAt) throw new Error("Account unavailable");
     const sessionToken = await sdk.createSessionToken(user.openId, {
-      name: user.name || user.email || user.phone || "",
+      // Полное имя возвращается в профиле. Размер cookie не зависит от него.
       expiresInMs: ONE_YEAR_MS,
       sessionVersion: user.sessionVersion,
     });

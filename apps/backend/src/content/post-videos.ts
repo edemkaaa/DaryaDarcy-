@@ -66,9 +66,18 @@ export async function replacePostVideoRows(
     if (video) retained.add(video.id);
     // Decode only new filenames, before mutating rows; retained metadata is
     // authoritative, including filenames that cannot be derived from the URL.
-    const filename = video
-      ? null
-      : decodeURIComponent(url.split("/").pop()?.split("?")[0] || "") || null;
+    let filename: string | null = null;
+    if (!video) {
+      try {
+        filename =
+          decodeURIComponent(url.split("/").pop()?.split("?")[0] || "") || null;
+      } catch {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Некорректный адрес видео",
+        });
+      }
+    }
     changes.push({ url, sortOrder, video, filename });
   }
   const removedIds = existing

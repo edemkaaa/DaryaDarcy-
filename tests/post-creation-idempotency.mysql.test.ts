@@ -412,7 +412,7 @@ describe.skipIf(!testDatabaseUrl)(
             "https://assets.example.test/%ZZ.mp4",
           ],
         }),
-      ).rejects.toThrow();
+      ).rejects.toMatchObject({ data: { code: "BAD_REQUEST", httpStatus: 400 } });
       expect(await created()).toEqual([]);
       const [requests] = await conn.query<RowDataPacket[]>(
         "SELECT requestKey FROM post_creation_requests WHERE actorUserId=97401",

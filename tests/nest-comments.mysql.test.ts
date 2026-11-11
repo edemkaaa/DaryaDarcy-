@@ -59,6 +59,7 @@ describe.skipIf(!testDatabaseUrl)(
       }
     }
     beforeAll(async () => {
+      vi.stubEnv("API_DB_BURST_QUEUE_ENABLED", "true");
       conn = await openContentTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
       vi.stubEnv("JWT_SECRET", "native-comment-fixture-secret-32-characters");

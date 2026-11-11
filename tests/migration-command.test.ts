@@ -163,6 +163,19 @@ describe("actual read-only preflight CLI", () => {
     });
     expect(result.stdout + result.stderr).not.toContain("application-secret");
   });
+  it("requires an explicit inspection connection for the Feed index gate", async () => {
+    const run = await fixture();
+    const result = await run(["--require-feed-index"], {
+      DATABASE_URL: "mysql://application-secret@invalid.test/app",
+    });
+    expect(result.status).toBe(1);
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      databaseChecked: false,
+      issues: ["database-connection-required"],
+      releaseApproval: false,
+    });
+    expect(result.stdout + result.stderr).not.toContain("application-secret");
+  });
   it.each(["", "   "])(
     "requires an explicit application connection for the apply gate (%j)",
     async (uri) => {

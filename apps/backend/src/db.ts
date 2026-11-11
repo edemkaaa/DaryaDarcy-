@@ -166,8 +166,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     };
 
     textFields.forEach(assignNullable);
-    // Guest checkout may capture a contact on INSERT, never replace an
-    // existing identity's contact through a duplicate email/openId.
+    // The generic upsert only accepts a contact for a new identity.
     if (user.contactPhone !== undefined) values.contactPhone = user.contactPhone;
     if (user.name !== undefined) updateSet.profileRevision = sql`${users.profileRevision}+1`;
 
@@ -249,21 +248,23 @@ export async function getUserByPhone(phone: string): Promise<User | undefined> {
   return result.length > 0 ? result[0] : undefined;
 }
 
-export async function ensureUserByEmail(email: string, contactPhone?: string): Promise<User> {
+export async function ensureUserByEmail(email: string): Promise<User> {
   const normalized = normalizeEmail(email);
   const existing = await getUserByEmail(normalized);
   if (existing) return existing;
-  const openId = emailToOpenId(normalized);
-  await upsertUser({
-    openId,
+
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  // A registration can win after the lookup. Preserve its row on duplicate.
+  await db.insert(users).values({
+    openId: emailToOpenId(normalized),
     email: normalized,
-    contactPhone,
-    name: null,
     loginMethod: "email",
-    lastSignedIn: new Date(),
-  });
-  const created = await getUserByOpenId(openId);
-  if (!created) throw new Error("Не удалось создать аккаунт");
+  }).onDuplicateKeyUpdate({ set: { openId: sql`${users.openId}` } });
+
+  const created = await getUserByEmail(normalized);
+  if (!created || normalizeEmail(created.email || "") !== normalized)
+    throw new Error("Не удалось создать аккаунт");
   return created;
 }
 

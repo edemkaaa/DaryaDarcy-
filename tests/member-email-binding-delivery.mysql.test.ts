@@ -222,6 +222,90 @@ describe.skipIf(!testDatabaseUrl)(
         tokenCipher: null,
       });
     });
+    it.each(["expired", "replaced", "cancelled"] as const)(
+      "does not send a paused claim after it becomes %s",
+      async (change) => {
+        const key = await queue();
+        let claimed!: () => void, resume!: () => void;
+        const ready = new Promise<void>((resolve) => {
+          claimed = resolve;
+        });
+        const gate = new Promise<void>((resolve) => {
+          resume = resolve;
+        });
+        let paused = false;
+        // Pause after the real claim commits; a second worker uses real SQL/SMTP.
+        const slow = new Proxy(database, {
+          get(target, property) {
+            if (property === "transaction")
+              return async (
+                ...args: Parameters<typeof database.transaction>
+              ) => {
+                const result = await Reflect.apply(
+                  target.transaction,
+                  target,
+                  args,
+                );
+                if (
+                  !paused &&
+                  result &&
+                  typeof result === "object" &&
+                  "binding" in result
+                ) {
+                  paused = true;
+                  claimed();
+                  await gate;
+                }
+                return result;
+              };
+            const value = Reflect.get(target, property);
+            return typeof value === "function" ? value.bind(target) : value;
+          },
+        });
+        const pending = processMemberEmailBindingEmails(
+          slow,
+          sendTransactionalEmail,
+        );
+        try {
+          await Promise.race([
+            ready,
+            pending.then(() => {
+              throw Error("Claim was not paused");
+            }),
+          ]);
+          if (change === "cancelled") {
+            await conn.query(
+              "UPDATE member_email_bindings SET state='cancelled' WHERE requestKey=?",
+              [key],
+            );
+          } else {
+            await conn.query(
+              "UPDATE member_email_binding_outbox SET leaseUntil=DATE_SUB(NOW(),INTERVAL 1 SECOND) WHERE requestKey=?",
+              [key],
+            );
+            if (change === "replaced")
+              await processMemberEmailBindingEmails(
+                database,
+                sendTransactionalEmail,
+              );
+          }
+          resume();
+          await pending;
+          expect(smtp.messages).toHaveLength(change === "replaced" ? 1 : 0);
+          if (change === "expired") {
+            expect(await status(key)).toMatchObject({ sentAt: null });
+            await processMemberEmailBindingEmails(
+              database,
+              sendTransactionalEmail,
+            );
+            expect(smtp.messages).toHaveLength(1);
+          }
+        } finally {
+          resume();
+          await pending.catch(() => {});
+        }
+      },
+    );
     it("recovers a crashed lease only after expiry", async () => {
       const key = await queue();
       await conn.query(

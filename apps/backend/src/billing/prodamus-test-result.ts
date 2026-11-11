@@ -8,10 +8,9 @@ import {
 } from "../../../../packages/database/src/schema";
 import { getDb } from "../db";
 import { normalizeEmail } from "../_core/password";
-import { moneyMinor } from "./protocol";
+import { moneyMinor, prodamusTestOrderPattern } from "./protocol";
 
-export const prodamusTestOrderPattern =
-  /^club-test-[1-9]\d*-[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
+export { prodamusTestOrderPattern } from "./protocol";
 const purpose = "prodamus-test-return:v1:";
 const lifetimeSeconds = 86400;
 export type ProdamusTestResult =

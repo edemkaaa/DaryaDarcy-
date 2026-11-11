@@ -135,7 +135,7 @@ export const createClubRouter = (
       billing.subscriptions.claimPending(ctx.user.id),
     ),
     cancel: protectedProcedure.mutation(({ ctx }) =>
-      billing.subscriptions.cancel(ctx.user.id),
+      billing.subscriptions.cancel(ctx.user),
     ),
     comments: protectedProcedure
       .input(z.object({ postId: z.number() }))

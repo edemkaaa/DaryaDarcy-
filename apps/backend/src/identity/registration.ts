@@ -1,9 +1,15 @@
-import { and, eq, or } from "drizzle-orm";
+import { and, desc, eq, like, or } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
-import { queueAccessEmail, queuePasswordSetupRetry } from "./access";
+import {
+  queueAccessEmail,
+  queuePasswordSetupRetry,
+  type Transaction,
+} from "./access";
+import { normalizeEmail } from "../_core/password";
 import {
   users,
   accessEmailOutbox,
+  clubPayments,
   userConsentEvents,
   type User,
 } from "../../../../packages/database/src/schema";
@@ -27,10 +33,21 @@ function isDuplicateAccount(error: unknown): boolean {
   return false;
 }
 
-/** A retry may resend setup, never claim an unrelated or active account. */
+async function recordRegistrationConsent(tx: Transaction, userId: number) {
+  await tx.insert(userConsentEvents).values({
+    userId,
+    consentKey: EMAIL_REGISTER_CONSENT_KEY,
+    status: "granted",
+    consentVersion: EMAIL_REGISTER_CONSENT_VERSION,
+    consentText: EMAIL_REGISTER_CONSENT_TEXT,
+  });
+}
+
+/** Resume proof by email, including identities created by a recorded checkout. */
 export async function retryEmailRegistration(
   database: MySql2Database,
   email: string,
+  openId: string,
 ): Promise<boolean> {
   return database.transaction(async (tx) => {
     const [user] = await tx
@@ -38,7 +55,14 @@ export async function retryEmailRegistration(
       .from(users)
       .where(eq(users.email, email))
       .for("update");
-    if (!user || user.passwordHash || user.blockedAt || user.role !== "user")
+    if (
+      !user ||
+      user.passwordHash ||
+      user.blockedAt ||
+      user.accountDeletionRequestedAt ||
+      user.role !== "user" ||
+      normalizeEmail(user.email || "") !== email
+    )
       return false;
     const [registration] = await tx
       .select({ id: accessEmailOutbox.id })
@@ -51,7 +75,43 @@ export async function retryEmailRegistration(
           eq(accessEmailOutbox.kind, "password-setup"),
         ),
       );
-    if (!registration) return false;
+    if (registration) {
+      await queuePasswordSetupRetry(tx, user.id, email);
+      return true;
+    }
+
+    if (user.openId !== openId || user.loginMethod !== "email" || user.phone)
+      return false;
+    const [checkout] = await tx
+      .select({ email: clubPayments.email })
+      .from(clubPayments)
+      .where(
+        and(
+          eq(clubPayments.userId, user.id),
+          eq(clubPayments.email, email),
+          or(
+            like(clubPayments.orderId, "club-%"),
+            like(clubPayments.orderId, "club6m-%"),
+            like(clubPayments.orderId, "yk-club-%"),
+          ),
+        ),
+      )
+      .limit(1);
+    if (normalizeEmail(checkout?.email || "") !== email) return false;
+
+    // A previous recovery may already have queued a usable link. Record
+    // consent once and share the existing recipient budget for setup mail.
+    const [consent] = await tx
+      .select({ status: userConsentEvents.status })
+      .from(userConsentEvents)
+      .where(and(
+        eq(userConsentEvents.userId, user.id),
+        eq(userConsentEvents.consentKey, EMAIL_REGISTER_CONSENT_KEY),
+      ))
+      .orderBy(desc(userConsentEvents.id))
+      .limit(1);
+    if (consent?.status !== "granted")
+      await recordRegistrationConsent(tx, user.id);
     await queuePasswordSetupRetry(tx, user.id, email);
     return true;
   });
@@ -84,13 +144,7 @@ export async function createEmailAccount(
           lastSignedIn: new Date(),
         })
         .$returningId();
-      await tx.insert(userConsentEvents).values({
-        userId: inserted.id,
-        consentKey: EMAIL_REGISTER_CONSENT_KEY,
-        status: "granted",
-        consentVersion: EMAIL_REGISTER_CONSENT_VERSION,
-        consentText: EMAIL_REGISTER_CONSENT_TEXT,
-      });
+      await recordRegistrationConsent(tx, inserted.id);
       await queueAccessEmail(
         tx,
         inserted.id,

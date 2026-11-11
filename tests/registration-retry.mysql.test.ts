@@ -117,6 +117,7 @@ describe.skipIf(!testDatabaseUrl)("pending public registration retry", () => {
     ).map((row) => row.id);
     if (!ids.length) return;
     for (const table of [
+      "club_payments",
       "access_email_outbox",
       "password_tokens",
       "user_consent_events",
@@ -393,6 +394,46 @@ describe.skipIf(!testDatabaseUrl)("pending public registration retry", () => {
     expect(await user()).toEqual(original);
     expect(await mails()).toEqual([]);
     expect(await tokens()).toEqual([]);
+  });
+  async function pendingCheckoutUser() {
+    await conn.query(
+      "INSERT INTO users (openId,email,loginMethod) VALUES (?,?,'email')",
+      [emailToOpenId(email()), email()],
+    );
+    const account = await user();
+    await conn.query(
+      "INSERT INTO club_payments (userId,orderId,email,sum) VALUES (?,?,?,'790')",
+      [account.id, `club-${account.id}-registration-fixture`, email()],
+    );
+    return account;
+  }
+  it("queues one registration link and records consent for a pending checkout account", async () => {
+    const original = await pendingCheckoutUser();
+    await accepted(await register());
+    await accepted(await register("Untrusted replacement"));
+    expect(await user()).toEqual(original);
+    expect(await mails()).toEqual([
+      expect.objectContaining({ kind: "password-setup" }),
+    ]);
+    expect(await tokens()).toHaveLength(1);
+    expect(await rows(
+      "SELECT status,consentVersion FROM user_consent_events WHERE userId=?",
+      [original.id],
+    )).toEqual([{ status: "granted", consentVersion: EMAIL_REGISTER_CONSENT_VERSION }]);
+    await deliver();
+    expect(messages).toHaveLength(1);
+    await complete(receivedToken());
+    expect((await user()).passwordHash).toBeTruthy();
+  });
+  it("keeps a usable setup link already queued by password recovery", async () => {
+    await pendingCheckoutUser();
+    await accepted(await post("/api/auth/password/request", { email: email() }));
+    const originalMails = await mails();
+    const originalTokens = await tokens();
+    expect(originalMails).toHaveLength(1);
+    await accepted(await register());
+    expect(await mails()).toEqual(originalMails);
+    expect(await tokens()).toEqual(originalTokens);
   });
   it("still requires current consent on a pending retry", async () => {
     await accepted(await register());

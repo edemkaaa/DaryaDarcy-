@@ -17,9 +17,11 @@ const member: User = {
   openId: "subscription-fixture",
   email: "member@example.test",
   name: null,
-  phone: null, contactPhone: null,
+  phone: null,
+  contactPhone: null,
   passwordHash: null,
-  sessionVersion: 0, profileRevision: 0,
+  sessionVersion: 0,
+  profileRevision: 0,
   loginMethod: "email",
   gender: null,
   avatarUrl: null,
@@ -92,8 +94,8 @@ it("HTTP claim uses the verified session ID and Nest provider", async () => {
 });
 it("HTTP cancellation retains paid expiry via the Nest provider", async () => {
   vi.spyOn(sessions, "optionalUser").mockResolvedValue(member);
-  vi.spyOn(subscriptions, "cancel").mockImplementation(async (id) => {
-    expect(id).toBe(7);
+  vi.spyOn(subscriptions, "cancel").mockImplementation(async (actor) => {
+    expect(actor).toEqual(member);
     return {
       ok: true as const,
       cancellationStatus: "confirmed" as const,
@@ -152,8 +154,8 @@ it("real service exposes a queued cancellation over HTTP without masking it as 5
   const handle = {} as NonNullable<Awaited<ReturnType<typeof db.getDb>>>;
   vi.spyOn(db, "getDb").mockResolvedValue(handle);
   vi.spyOn(cancellation, "requestClubCancellation").mockImplementation(
-    async (database, userId) => {
-      if (database !== handle || userId !== member.id)
+    async (database, actor) => {
+      if (database !== handle || actor !== member)
         throw new Error("Wrong cancellation owner");
       return { confirmed: false, expiresAt: paidUntil };
     },

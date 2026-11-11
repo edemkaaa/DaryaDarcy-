@@ -99,7 +99,7 @@ export class ProdamusTestClubService {
         code: "PRECONDITION_FAILED",
         message: unavailable,
       });
-    const user = existing || (await db.ensureUserByEmail(email, contactPhone));
+    const user = existing || (await db.ensureUserByEmail(email));
     const orderId = `club-test-${user.id}-${randomUUID()}`;
     const payload = {
       do: "pay",

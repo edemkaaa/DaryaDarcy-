@@ -5,11 +5,16 @@ import { z } from "zod";
 const service = z.object({
   environment: z.record(z.string(), z.unknown()).optional(),
   deploy: z
-    .object({ replicas: z.number().int().positive().optional() })
+    .object({
+      replicas: z.number().int().positive().optional(),
+      restart_policy: z.record(z.string(), z.unknown()).optional(),
+    })
     .optional(),
   scale: z.number().int().positive().optional(),
   mem_limit: z.union([z.string(), z.number()]).optional(),
+  network_mode: z.string().optional(),
   ports: z.array(z.unknown()).optional(),
+  restart: z.string().optional(),
   stop_grace_period: z.string().optional(),
 });
 const model = z.object({ services: z.record(z.string(), service) });
@@ -76,6 +81,20 @@ export function inspectMultiApiDeployment(
     if (typeof expected[name] !== "string" || !String(expected[name]).trim())
       issues.add("shared-api-identity-required");
   }
+  const jwtSecret = expected.JWT_SECRET;
+  if (
+    typeof jwtSecret === "string" &&
+    Buffer.byteLength(jwtSecret.replace(/\r/g, "").trim(), "utf8") < 32
+  )
+    issues.add("invalid-api-jwt-secret");
+  const linkSecret = expected.AUTH_LINK_ENCRYPTION_KEY;
+  if (typeof linkSecret === "string") {
+    const key = Buffer.from(linkSecret, "base64");
+    if (key.length !== 32 || key.toString("base64") !== linkSecret)
+      issues.add("invalid-api-link-encryption-key");
+  }
+  if (expected.API_DB_BURST_QUEUE_ENABLED !== "true")
+    issues.add("api-burst-queue-required");
   for (const [name, value] of Object.entries(services)) {
     const instances = replicas(value);
     const bytes = Number(value.mem_limit);
@@ -99,6 +118,15 @@ export function inspectMultiApiDeployment(
     )
       issues.add("shared-api-identity-mismatch");
     if (value.ports?.length) issues.add("api-published-port");
+    if (value.network_mode !== undefined)
+      issues.add("api-network-mode-override");
+    // Этот Compose-профиль использует restart сервиса. Deploy override может
+    // переопределить политику, от которой зависит возврат API после аварии.
+    if (
+      (value.restart !== "unless-stopped" && value.restart !== "always") ||
+      value.deploy?.restart_policy !== undefined
+    )
+      issues.add("api-automatic-restart-required");
     if (seconds(value.stop_grace_period) < 10)
       issues.add("api-drain-grace-too-short");
   }

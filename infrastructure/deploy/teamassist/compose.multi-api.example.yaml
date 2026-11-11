@@ -5,7 +5,10 @@
 services:
   api:
     deploy: { replicas: 2 }
-    environment: { API_REPLICA_COUNT: "2", API_COORDINATION_MODE: mysql }
+    environment:
+      API_REPLICA_COUNT: "2"
+      API_COORDINATION_MODE: mysql
+      API_DB_BURST_QUEUE_ENABLED: "true"
     mem_limit: 1536m
     cpus: 1.5
     stop_grace_period: 15s
@@ -14,6 +17,7 @@ services:
     cpus: 2.0
   mysql:
     mem_limit: 2048m
-    cpus: 1.0
+    # Один CPU в локальном прогоне задерживал запросы и заполнял очереди обоих API.
+    cpus: 2.0
     command:
       ["--innodb-buffer-pool-size=128M", "--max-connections=50", "--performance-schema=OFF", "--temptable-max-ram=64M", "--temptable-max-mmap=0"]

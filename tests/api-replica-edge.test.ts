@@ -105,7 +105,7 @@ describe.skipIf(process.env.API_EDGE_DOCKER_ACCEPTANCE !== "true")(
       docker("network", "rm", network);
     });
     it.each(["edge.conf", "edge.video.conf"])(
-      "balances, preserves writes and follows a changed API address with %s",
+      "balances, preserves writes and recovers API routing with %s",
       async (filename) => {
         const a = backend("api-a", ["api"]);
         const b = backend("api-b", ["api"]);
@@ -195,6 +195,18 @@ describe.skipIf(process.env.API_EDGE_DOCKER_ACCEPTANCE !== "true")(
           0,
         );
         expect(total).toBe(1);
+        // The peer that closed the response still serves GET on the same address.
+        // It should rejoin before the default 10-second exclusion expires.
+        const recovered = new Set<string>();
+        await expect
+          .poll(
+            async () => {
+              recovered.add((await read()).instance);
+              return recovered.size;
+            },
+            { timeout: 5000, interval: 150 },
+          )
+          .toBe(2);
         const oldAddress =
           inspect(a).NetworkSettings.Networks[network].IPAddress;
         remove(a);

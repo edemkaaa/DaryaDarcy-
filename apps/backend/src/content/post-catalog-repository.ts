@@ -139,7 +139,9 @@ export async function getPostsPaginated(
     const offset = options.cursor ?? 0;
     const rows = await tx
       .select(postListColumns)
-      .from(posts)
+      // MySQL может выбрать этот индекс для фильтра и всё равно сортировать
+      // весь результат. Читаем по индексу в порядке страницы и останавливаемся на LIMIT.
+      .from(posts, { forceIndex: "posts_feed_listing_idx" })
       .where(and(...feedFilterConditions(options)))
       .orderBy(...postListOrder)
       .limit(options.limit + 1)

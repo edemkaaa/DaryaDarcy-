@@ -105,7 +105,7 @@ export class ClubCheckoutService {
     assertClubCheckoutConfigured(plan);
     // An email names the billing recipient, not a proven authenticated identity.
     const user =
-      actor || existing || (await db.ensureUserByEmail(email, contactPhone));
+      actor || existing || (await db.ensureUserByEmail(email));
     const orderId =
       plan === "semiannual"
         ? `club6m-${user.id}-${randomUUID()}`

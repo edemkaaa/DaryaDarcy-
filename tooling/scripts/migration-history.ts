@@ -1,13 +1,28 @@
-import mysql from "mysql2/promise";
+import mysql, { type Connection } from "mysql2/promise";
 
-/** Fixed metadata queries only; no creation of Drizzle's migration table. */
-export async function readMigrationHistory(uri: string) {
+async function withReadOnlyConnection<T>(
+  uri: string,
+  read: (conn: Connection) => Promise<T>,
+) {
   const url = new URL(uri);
   if (url.protocol !== "mysql:" || !url.pathname || url.pathname === "/")
     throw new Error("Invalid preflight connection");
   const conn = await mysql.createConnection({ uri, connectTimeout: 5000 });
   try {
     await conn.query("START TRANSACTION READ ONLY");
+    return await read(conn);
+  } finally {
+    try {
+      await conn.rollback();
+    } finally {
+      await conn.end();
+    }
+  }
+}
+
+/** Fixed metadata queries only; no creation of Drizzle's migration table. */
+export async function readMigrationHistory(uri: string) {
+  return withReadOnlyConnection(uri, async (conn) => {
     const [tables] = await conn.query<mysql.RowDataPacket[]>({
       sql: "SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='__drizzle_migrations'",
       timeout: 10000,
@@ -23,11 +38,16 @@ export async function readMigrationHistory(uri: string) {
       hash: row.hash as unknown,
       created_at: row.created_at as unknown,
     }));
-  } finally {
-    try {
-      await conn.rollback();
-    } finally {
-      await conn.end();
-    }
-  }
+  });
+}
+
+export async function readFeedListingIndexAvailable(uri: string) {
+  return withReadOnlyConnection(uri, async (conn) => {
+    // MySQL rejects FORCE INDEX for a missing or invisible index.
+    const [rows] = await conn.query<mysql.RowDataPacket[]>({
+      sql: "SELECT 1 FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='posts' AND INDEX_NAME='posts_feed_listing_idx' AND IS_VISIBLE='YES' LIMIT 1",
+      timeout: 10000,
+    });
+    return rows.length > 0;
+  });
 }

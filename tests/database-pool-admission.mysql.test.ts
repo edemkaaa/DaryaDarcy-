@@ -12,6 +12,7 @@ describe.skipIf(!testDatabaseUrl)(
       const fixture = await openTestDatabase();
       await fixture.end();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
+      vi.stubEnv("API_DB_BURST_QUEUE_ENABLED", "");
       pool = ((await getDb()) as unknown as { $client: Pool }).$client;
     });
     afterAll(async () => {
@@ -90,5 +91,35 @@ describe.skipIf(!testDatabaseUrl)(
       ).toEqual([{ value: 42 }]);
       expect(runs).toBe(0);
     }, 15000);
+
+    it("admits exactly 40 waiters with the burst queue enabled", async () => {
+      await closeDb();
+      vi.stubEnv("API_DB_BURST_QUEUE_ENABLED", "true");
+      pool = ((await getDb()) as unknown as { $client: Pool }).$client;
+      const held = await occupy();
+      const acquire = () =>
+        pool.getConnection().then(
+          (connection) => {
+            connection.release();
+            return true;
+          },
+          (error: Error) => error.message,
+        );
+      const waiting = Array.from({ length: 40 }, acquire);
+      let overflowResult: boolean | string | undefined;
+      const overflow = acquire().then((result) => {
+        overflowResult = result;
+      });
+      try {
+        await vi.waitFor(
+          () => expect(overflowResult).toBe("Queue limit reached."),
+          { timeout: 1000 },
+        );
+      } finally {
+        held.forEach((connection) => connection.release());
+        await overflow;
+      }
+      expect(await Promise.all(waiting)).toEqual(Array(40).fill(true));
+    });
   },
 );

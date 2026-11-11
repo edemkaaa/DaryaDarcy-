@@ -300,6 +300,41 @@ describe.skipIf(!testDatabaseUrl)("VK catalog boundaries", () => {
       ]),
     ).toEqual([{ thumbnailUrl: "/assets/responsive/owned-cover.webp" }]);
   });
+  it.each([
+    "https://s3.twcstorage.ru/daryadarcy-s3/covers/public-v1/12345678-1234-4234-8234-123456789abc.webp",
+    "https://s3.twcstorage.ru/daryadarcy-s3/covers/12345678-1234-4234-8234-123456789abc.webp",
+    `https://s3.twcstorage.ru/daryadarcy-s3/covers/vk-v1/${"a".repeat(64)}/${"b".repeat(64)}.webp`,
+  ])(
+    "keeps a server-owned public cover through HTTP save and catalog: %s",
+    async (thumbnailUrl) => {
+      const saved = await request(
+        "admin.upsertVkVideo",
+        { ...input, thumbnailUrl },
+        admin,
+        true,
+      );
+      expect(saved.code).toBe(200);
+      expect(
+        await rows("SELECT thumbnailUrl FROM videos WHERE id=?", [
+          saved.data.id,
+        ]),
+      ).toEqual([{ thumbnailUrl }]);
+      const catalog = await request(
+        "videos.catalog",
+        { includeThumbnails: true },
+        null,
+      );
+      expect(catalog.code).toBe(200);
+      expect(catalog.data.items).toEqual([
+        expect.objectContaining({
+          id: saved.data.id,
+          thumbnailUrl,
+          canWatch: false,
+        }),
+      ]);
+      expect(catalog.data.items[0]).not.toHaveProperty("embedUrl");
+    },
+  );
   it("preserves omitted VK cover on update and clears only explicit null", async () => {
     const saved = await request(
       "admin.upsertVkVideo",

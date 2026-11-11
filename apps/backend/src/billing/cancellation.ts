@@ -6,26 +6,24 @@ import {
   gt,
   isNotNull,
   isNull,
-  like,
   lte,
   or,
   sql,
 } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import {
-  billingCheckoutIntents,
   billingProfiles,
-  billingReceipts,
   clubPayments,
   users,
+  type ClubPayment,
+  type User,
 } from "../../../../packages/database/src/schema";
 import type { Transaction } from "../identity/access";
 import {
-  billingKey,
-  moneyMinor,
-  profileKey,
-  type PaymentProof,
-} from "./protocol";
+  hasUnboundMonthlyPayment,
+  supportsCancellationPayment,
+} from "./cancellation-evidence";
+import { profileKey, type PaymentProof } from "./protocol";
 export type Profile = typeof billingProfiles.$inferSelect & {
   manager?: boolean;
 };
@@ -33,13 +31,20 @@ export type Profile = typeof billingProfiles.$inferSelect & {
 /** Expected pre-effect refusal; SQL/worker failures must remain server errors. */
 export class CancellationUnavailableError extends Error {}
 
+export type CancellationActor = Pick<User, "id" | "openId" | "sessionVersion">;
+export class CancellationActorError extends Error {
+  constructor(readonly code: "UNAUTHORIZED" | "FORBIDDEN") {
+    super(code);
+  }
+}
+
 /** Read-only recovery after an unknown/lost cancellation response. A stored
  * request is not proof that the provider has disabled future charges.
  */
 export async function readClubCancellationStatus(
   database: Pick<MySql2Database, "select">,
   userId: number,
-  cancelAtPeriodEnd: boolean,
+  paid: ClubPayment | undefined,
 ): Promise<"none" | "pending" | "confirmed"> {
   const pending = await database
     .select({ profileKey: billingProfiles.profileKey })
@@ -53,7 +58,16 @@ export async function readClubCancellationStatus(
     )
     .limit(1);
   if (pending.length) return "pending";
-  return cancelAtPeriodEnd ? "confirmed" : "none";
+  if (!paid?.cancelAtPeriodEnd) return "none";
+  const profiles = await database
+    .select()
+    .from(billingProfiles)
+    .where(eq(billingProfiles.userId, userId));
+  return !profiles.some((profile) => !profile.cancelledAt) &&
+    (await supportsCancellationPayment(database, paid)) &&
+    !(await hasUnboundMonthlyPayment(database, userId, profiles))
+    ? "confirmed"
+    : "none";
 }
 
 export async function queueCancellationForUser(
@@ -75,35 +89,52 @@ export async function queueCancellationForUser(
     );
 }
 async function markConfirmed(tx: Transaction, userId: number) {
-  const remaining = await tx
+  const profiles = await tx
     .select()
     .from(billingProfiles)
+    .where(eq(billingProfiles.userId, userId));
+  if (
+    profiles.some((profile) => !profile.cancelledAt) ||
+    (await hasUnboundMonthlyPayment(tx, userId, profiles))
+  )
+    return;
+  await markPaidPeriodConfirmed(tx, userId);
+}
+
+async function markPaidPeriodConfirmed(tx: Transaction, userId: number) {
+  await tx
+    .update(clubPayments)
+    .set({ cancelAtPeriodEnd: true, cancelledAt: new Date() })
     .where(
       and(
-        eq(billingProfiles.userId, userId),
-        isNull(billingProfiles.cancelledAt),
+        eq(clubPayments.userId, userId),
+        eq(clubPayments.status, "paid"),
+        eq(clubPayments.cancelAtPeriodEnd, false),
       ),
-    )
-    .limit(1);
-  if (!remaining.length)
-    await tx
-      .update(clubPayments)
-      .set({ cancelAtPeriodEnd: true, cancelledAt: new Date() })
-      .where(
-        and(eq(clubPayments.userId, userId), eq(clubPayments.status, "paid")),
-      );
+    );
 }
+
 export async function requestClubCancellation(
   database: MySql2Database,
-  userId: number,
+  owner: number | CancellationActor,
   send: (profile: Profile) => Promise<boolean>,
 ): Promise<{ confirmed: boolean; expiresAt: Date | null }> {
-  const expiresAt = await database.transaction(async (tx) => {
+  const userId = typeof owner === "number" ? owner : owner.id;
+  const paid = await database.transaction(async (tx) => {
     const [user] = await tx
       .select()
       .from(users)
       .where(eq(users.id, userId))
       .for("update");
+    if (typeof owner !== "number") {
+      if (
+        !user ||
+        user.openId !== owner.openId ||
+        user.sessionVersion !== owner.sessionVersion
+      )
+        throw new CancellationActorError("UNAUTHORIZED");
+      if (user.blockedAt) throw new CancellationActorError("FORBIDDEN");
+    }
     if (!user || user.blockedAt)
       throw new CancellationUnavailableError("Account unavailable");
     const [paid] = await tx
@@ -120,83 +151,40 @@ export async function requestClubCancellation(
       .from(billingProfiles)
       .where(eq(billingProfiles.userId, userId))
       .for("update");
-    if (!profiles.length) {
-      let verifiedOneOff = false;
-      if (paid.orderId.startsWith("yk-club-")) {
-        const [intent] = await tx
-          .select()
-          .from(billingCheckoutIntents)
-          .where(
-            and(
-              eq(billingCheckoutIntents.userId, userId),
-              eq(billingCheckoutIntents.orderId, paid.orderId),
-            ),
-          )
-          .limit(1);
-        if (intent?.providerPaymentId) {
-          const [receipt] = await tx
-            .select()
-            .from(billingReceipts)
-            .where(
-              and(
-                eq(
-                  billingReceipts.paymentKey,
-                  billingKey([
-                    `yookassa:test:${intent.shopId}`,
-                    intent.providerPaymentId,
-                  ]),
-                ),
-                eq(billingReceipts.userId, userId),
-                eq(billingReceipts.orderId, paid.orderId),
-              ),
-            )
-            .limit(1);
-          verifiedOneOff = Boolean(
-            receipt &&
-            receipt.amountMinor === intent.amountMinor &&
-            moneyMinor(paid.sum) === intent.amountMinor,
-          );
-        }
-      }
-      const [unboundMonthly] = await tx
-        .select({ id: clubPayments.id })
+    if (
+      !(await supportsCancellationPayment(tx, paid)) ||
+      (await hasUnboundMonthlyPayment(tx, userId, profiles))
+    )
+      throw new CancellationUnavailableError(
+        "Verified billing profile required; contact support",
+      );
+    if (profiles.some((profile) => !profile.cancelledAt))
+      await queueCancellationForUser(tx, userId);
+    else await markPaidPeriodConfirmed(tx, userId);
+    return paid;
+  });
+  await processCancellations(database, send, userId);
+  const confirmed = await database.transaction(
+    async (tx) => {
+      const [current] = await tx
+        .select()
         .from(clubPayments)
         .where(
           and(
+            eq(clubPayments.id, paid.id),
             eq(clubPayments.userId, userId),
             eq(clubPayments.status, "paid"),
-            like(clubPayments.orderId, "club-%"),
           ),
-        )
-        .limit(1);
-      // Verified one-off payments have no future charges; an order prefix alone
-      // is not evidence. Never hide an older unbound monthly subscription.
-      if (
-        unboundMonthly ||
-        (!paid.orderId.startsWith("club6m-") &&
-          !paid.orderId.startsWith("admin-grant-") &&
-          !verifiedOneOff)
-      )
-        throw new CancellationUnavailableError(
-          "Verified billing profile required; contact support",
         );
-      await markConfirmed(tx, userId);
-    } else await queueCancellationForUser(tx, userId);
-    return paid.expiresAt;
-  });
-  await processCancellations(database, send, userId);
-  const remaining = await database
-    .select()
-    .from(billingProfiles)
-    .where(
-      and(
-        eq(billingProfiles.userId, userId),
-        isNull(billingProfiles.cancelledAt),
-      ),
-    )
-    .limit(1);
-  return { confirmed: !remaining.length, expiresAt };
+      return (
+        (await readClubCancellationStatus(tx, userId, current)) === "confirmed"
+      );
+    },
+    { isolationLevel: "repeatable read", accessMode: "read only" },
+  );
+  return { confirmed, expiresAt: paid.expiresAt };
 }
+
 export async function confirmProviderCancellation(
   database: MySql2Database,
   proof: Pick<PaymentProof, "domain" | "subscriptionId" | "profileId">,

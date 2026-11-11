@@ -1,6 +1,8 @@
 import mysql, { type Connection, type RowDataPacket } from "mysql2/promise";
 import { beforeAll, afterAll, describe, it, expect } from "vitest";
+import { drizzle } from "drizzle-orm/mysql2";
 import { assertTestDatabase } from "../tooling/scripts/test-database-policy";
+import { getPostsPaginated } from "../apps/backend/src/content/post-catalog-repository";
 
 const uri = process.env.POST_LIST_INDEX_DATABASE_URL;
 describe.skipIf(!uri)("post listing indexes on a dedicated canonical database", () => {
@@ -21,8 +23,7 @@ describe.skipIf(!uri)("post listing indexes on a dedicated canonical database", 
     const query = `SELECT * FROM posts WHERE published=1 AND status='published' AND target IN ('${target}','both') ORDER BY ${order} LIMIT 12`;
     const [plan] = await conn.query<RowDataPacket[]>(`EXPLAIN ${query}`);
     expect(plan[0].key).toBe(`posts_${target}_listing_idx`);
-    // Cost-based selection may prefer a filesort. Prove ordered index access is
-    // available, but do not force this access path in product queries.
+    // Cost-based selection may prefer a filesort even with the ordering index.
     const forced = query.replace("FROM posts", `FROM posts FORCE INDEX (posts_${target}_listing_idx)`);
     const [orderedPlan] = await conn.query<RowDataPacket[]>(`EXPLAIN ${forced}`);
     expect(orderedPlan[0].Extra).not.toContain("filesort");
@@ -36,6 +37,26 @@ describe.skipIf(!uri)("post listing indexes on a dedicated canonical database", 
       return (performance.now() - start) / 10;
     };
     console.info("listing measurement", JSON.stringify({ target, plan: plan[0].Extra, baselineMs: await measure(baseline), indexedMs: await measure(query), orderedMs: await measure(forced) }));
+  });
+  it("reads a deep feed page in index order and preserves its IDs and offset", async () => {
+    const queries: { sql: string; params: unknown[] }[] = [];
+    const database = drizzle({
+      client: conn,
+      logger: { logQuery: (sql, params) => queries.push({ sql, params }) },
+    });
+    const page = await getPostsPaginated(database, { limit: 12, cursor: 2400 });
+    const statement = queries.find(({ sql }) => /from `posts`/.test(sql))!;
+    expect(statement.sql).toMatch(/force index \(`?posts_feed_listing_idx`?\)/i);
+    const [plan] = await conn.query<RowDataPacket[]>(`EXPLAIN ${statement.sql}`, statement.params);
+    expect(plan[0].key).toBe("posts_feed_listing_idx");
+    expect(plan[0].Extra).not.toContain("filesort");
+    const [reference] = await conn.query<RowDataPacket[]>(`
+      SELECT id FROM posts WHERE published=1 AND status='published' AND target IN ('feed','both')
+      ORDER BY sortOrder ASC, CAST(COALESCE(publishedAt,createdAt) AS DATETIME) DESC, id ASC
+      LIMIT 12 OFFSET 2400
+    `);
+    expect(page.posts.map(({ id }) => id)).toEqual(reference.map(({ id }) => id));
+    expect(page.nextCursor).toBe(2412);
   });
   it("retains implicit current timestamps, nullable/backdated dates and updates in both session timezones", async () => {
     for (const tz of ["SYSTEM", "+00:00"]) {

@@ -48,8 +48,8 @@ const subscriptions = {
     expect(userId).toBe(7);
     return { granted: true as const, orderId: "club-7-confirmed" };
   },
-  async cancel(userId: number) {
-    expect(userId).toBe(7);
+  async cancel(actor: User) {
+    expect(actor).toEqual(member);
     return {
       ok: true as const,
       cancellationStatus: "confirmed" as const,

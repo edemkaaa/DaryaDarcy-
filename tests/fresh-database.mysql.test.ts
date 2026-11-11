@@ -26,12 +26,13 @@ describe.skipIf(!uri || !container)(
     async function run(
       mode = "--initialize-empty-local",
       extra: NodeJS.ProcessEnv = {},
+      script = "fresh-database",
     ) {
       return new Promise<{ code: number | null; output: string }>(
         (resolve, reject) => {
           const child = spawn(
             process.execPath,
-            ["--import", "tsx", "tooling/scripts/fresh-database.ts", mode],
+            ["--import", "tsx", `tooling/scripts/${script}.ts`, mode],
             {
               cwd: root,
               env: {
@@ -115,6 +116,49 @@ describe.skipIf(!uri || !container)(
         releaseApproval: false,
       });
     });
+    it("blocks a missing or invisible Feed index even with complete migration history", async () => {
+      const owned = await run("--check-local");
+      expect(owned.code, owned.output).toBe(0);
+      const inspect = () =>
+        run(
+          "--require-feed-index",
+          { MIGRATION_PREFLIGHT_DATABASE_URL: uri },
+          "migration-preflight",
+        );
+      const healthy = await inspect();
+      expect(healthy.code, healthy.output).toBe(0);
+      expect(JSON.parse(healthy.output)).toMatchObject({
+        databaseChecked: true,
+        issues: [],
+        pending: [],
+        releaseApproval: false,
+      });
+      for (const [change, restore] of [
+        [
+          "ALTER INDEX posts_feed_listing_idx INVISIBLE",
+          "ALTER INDEX posts_feed_listing_idx VISIBLE",
+        ],
+        [
+          "RENAME INDEX posts_feed_listing_idx TO fresh_fixture_feed_idx",
+          "RENAME INDEX fresh_fixture_feed_idx TO posts_feed_listing_idx",
+        ],
+      ]) {
+        await conn.query(`ALTER TABLE posts ${change}`);
+        try {
+          const invalid = await inspect();
+          expect(invalid.code, invalid.output).toBe(1);
+          expect(JSON.parse(invalid.output)).toMatchObject({
+            databaseChecked: true,
+            issues: ["feed-listing-index-unavailable"],
+            pending: [],
+            releaseApproval: false,
+          });
+        } finally {
+          await conn.query(`ALTER TABLE posts ${restore}`);
+        }
+      }
+      expect((await inspect()).code).toBe(0);
+    }, 10000);
     it("backfills distinct UUIDs and preserves publication dates on an existing posts table", async () => {
       const sql = await readFile(new URL("../packages/database/drizzle/0051_post_public_id.sql", import.meta.url), "utf8");
       await conn.query("CREATE TABLE posts_uuid_upgrade_fixture LIKE posts");

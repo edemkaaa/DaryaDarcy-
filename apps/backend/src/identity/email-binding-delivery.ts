@@ -1,5 +1,5 @@
 import type { MySql2Database } from "drizzle-orm/mysql2";
-import { and, asc, eq, isNull, lte, or, sql } from "drizzle-orm";
+import { and, asc, eq, gt, isNull, lte, or, sql } from "drizzle-orm";
 import { createDecipheriv, createHash, randomUUID } from "node:crypto";
 import {
   memberEmailBindings,
@@ -157,6 +157,30 @@ export async function processMemberEmailBindingEmails(
         // Reuse the existing trusted-origin policy, never caller Host/Origin.
         const url = publicAccessUrl(token);
         url.pathname = "/api/auth/email-binding";
+        // Старый процесс мог продолжить работу после отзыва заявки или смены lease.
+        const [owned] = await database
+          .select({ requestKey: memberEmailBindingOutbox.requestKey })
+          .from(memberEmailBindingOutbox)
+          .innerJoin(
+            memberEmailBindings,
+            eq(
+              memberEmailBindings.requestKey,
+              memberEmailBindingOutbox.requestKey,
+            ),
+          )
+          .where(
+            and(
+              eq(memberEmailBindingOutbox.requestKey, claim.binding.requestKey),
+              eq(memberEmailBindingOutbox.leaseId, leaseId),
+              gt(memberEmailBindingOutbox.leaseUntil, sql`CURRENT_TIMESTAMP`),
+              isNull(memberEmailBindingOutbox.sentAt),
+              isNull(memberEmailBindingOutbox.discardedAt),
+              eq(memberEmailBindings.state, "pending"),
+              gt(memberEmailBindings.expiresAt, sql`CURRENT_TIMESTAMP`),
+            ),
+          )
+          .limit(1);
+        if (!owned) continue;
         success = await send({
           to: claim.email,
           subject: "Подтверждение почты DARYADARCY",

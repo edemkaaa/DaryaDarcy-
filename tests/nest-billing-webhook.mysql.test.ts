@@ -542,6 +542,19 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await cancelNotification()).status).toBe(200);
       expect(await cancellationState()).toEqual(confirmed);
     });
+    it("does not mark a new unbound order cancelled when an older profile closes", async () => {
+      expect((await notify()).status).toBe(200);
+      await conn.query(
+        "INSERT INTO club_payments (userId,orderId,email,sum,status,expiresAt) VALUES (94301,'club-94301-unbound',?,'790','paid','2026-12-08')",
+        [payment.customer_email],
+      );
+      expect((await cancelNotification()).status).toBe(200);
+      const [unbound] = await conn.query<RowDataPacket[]>(
+        "SELECT cancelAtPeriodEnd FROM club_payments WHERE orderId='club-94301-unbound'",
+      );
+      expect(unbound).toEqual([{ cancelAtPeriodEnd: 0 }]);
+      expect((await cancellationState()).profiles[0].cancelledAt).toBeInstanceOf(Date);
+    });
     it.each([
       {
         name: "unrecognized durable profile",

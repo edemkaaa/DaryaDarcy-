@@ -12,13 +12,14 @@ import { createHmac } from "node:crypto";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import type { INestApplication } from "@nestjs/common";
-import type { Connection, RowDataPacket } from "mysql2/promise";
+import mysql, { type Connection, type RowDataPacket } from "mysql2/promise";
 import { createTRPCProxyClient, httpLink } from "@trpc/client";
 import superjson from "superjson";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
 import { sdk } from "../apps/backend/src/_core/sdk";
 import * as db from "../apps/backend/src/db";
+import { billingKey } from "../apps/backend/src/billing/protocol";
 import { processCancellations } from "../apps/backend/src/billing/cancellation";
 import { cancelProdamusSubscription } from "../apps/backend/src/prodamus";
 import type { AppRouter } from "../apps/backend/src/routers";
@@ -172,7 +173,12 @@ describe.skipIf(!testDatabaseUrl)(
       calls = [];
       protocolErrors = 0;
       mode = "failure";
-      for (const table of ["billing_profiles", "club_payments"])
+      for (const table of [
+        "access_email_outbox",
+        "billing_receipts",
+        "billing_profiles",
+        "club_payments",
+      ])
         await conn.query(`DELETE FROM ${table} WHERE userId IN (?,?)`, [
           actorId,
           otherId,
@@ -186,12 +192,29 @@ describe.skipIf(!testDatabaseUrl)(
         [actorId, otherId],
       );
       await conn.query(
-        "INSERT INTO club_payments(userId,orderId,status,expiresAt,sum) VALUES (?,'club-98710-synthetic','paid',?,'790')",
+        "INSERT INTO club_payments(userId,orderId,status,expiresAt,sum,email) VALUES (?,'club-98710-synthetic','paid',?,'790','synthetic@example.test')",
         [actorId, expiresAt],
       );
       await conn.query(
         "INSERT INTO billing_profiles(profileKey,userId,domain,subscriptionId,profileId,email,amountMinor) VALUES ('cancellation-status-one',?,'127.0.0.1','123','456','synthetic@example.test',79000)",
         [actorId],
+      );
+      const paymentKey = billingKey(["127.0.0.1", "98710-payment"]);
+      const payloadHash = billingKey([
+        "club-98710-synthetic",
+        "79000",
+        "synthetic@example.test",
+        "rub",
+        "123",
+        "456",
+      ]);
+      await conn.query(
+        "INSERT INTO billing_receipts(paymentKey,userId,orderId,payloadHash,amountMinor) VALUES (?,?,'club-98710-synthetic',?,79000)",
+        [paymentKey, actorId, payloadHash],
+      );
+      await conn.query(
+        "INSERT INTO access_email_outbox(eventKey,userId,email,kind,payload) VALUES (?,?,'synthetic@example.test','club-access',JSON_OBJECT('orderId','club-98710-synthetic'))",
+        [`club-access:${paymentKey}`, actorId],
       );
     });
     afterEach(async () => {
@@ -204,7 +227,12 @@ describe.skipIf(!testDatabaseUrl)(
       await app?.close();
       await close(merchant);
       if (conn) {
-        for (const table of ["billing_profiles", "club_payments"])
+        for (const table of [
+          "access_email_outbox",
+          "billing_receipts",
+          "billing_profiles",
+          "club_payments",
+        ])
           await conn.query(`DELETE FROM ${table} WHERE userId IN (?,?)`, [
             actorId,
             otherId,
@@ -270,7 +298,9 @@ describe.skipIf(!testDatabaseUrl)(
       },
     );
     it("an unverified legacy billing profile remains a safe client refusal", async () => {
-      await conn.query("DELETE FROM billing_profiles WHERE userId=?", [actorId]);
+      await conn.query("DELETE FROM billing_profiles WHERE userId=?", [
+        actorId,
+      ]);
       const before = await state();
       await expect(client(actorId).club.cancel.mutate()).rejects.toMatchObject({
         message: "Не удалось определить подписку. Обратитесь в поддержку.",
@@ -391,6 +421,93 @@ describe.skipIf(!testDatabaseUrl)(
         expiresAt,
       });
       expect(calls).toEqual(["456", "457", "457"]);
+    });
+    it("rejects cancellation after session revocation while waiting for the user lock", async () => {
+      const control = await mysql.createConnection({
+        uri: testDatabaseUrl!,
+        timezone: "Z",
+      });
+      const before = await state();
+      let pending: Promise<unknown> | undefined;
+      try {
+        await control.beginTransaction();
+        await control.query("UPDATE users SET sessionVersion=1 WHERE id=?", [
+          actorId,
+        ]);
+        const request = client(actorId)
+          .club.cancel.mutate()
+          .then(
+            (result) => ({ result }),
+            (error) => ({ error }),
+          );
+        pending = request;
+        await vi.waitFor(
+          async () => {
+            const waiting = await rows(
+              "SELECT COUNT(*) n FROM performance_schema.data_lock_waits w JOIN performance_schema.threads blocker ON blocker.THREAD_ID=w.BLOCKING_THREAD_ID WHERE blocker.PROCESSLIST_ID=?",
+              [control.threadId],
+            );
+            expect(waiting[0].n).toBeGreaterThan(0);
+          },
+          { timeout: 3000, interval: 20 },
+        );
+        await control.commit();
+        expect(await request).toMatchObject({
+          error: { data: { code: "UNAUTHORIZED", httpStatus: 401 } },
+        });
+        expect(await state()).toEqual(before);
+        expect(calls).toEqual([]);
+      } finally {
+        await control.rollback();
+        await pending;
+        await control.end();
+      }
+    });
+    it("refuses an unbound new order despite an older cancelled profile", async () => {
+      await conn.query(
+        "UPDATE billing_profiles SET cancelRequestedAt=NOW(),cancelledAt=NOW() WHERE userId=?",
+        [actorId],
+      );
+      await conn.query(
+        "INSERT INTO club_payments(userId,orderId,status,email,expiresAt,sum) VALUES (?,'club-new-unbound','paid','synthetic@example.test',DATE_ADD(?, INTERVAL 30 DAY),'790')",
+        [actorId, expiresAt],
+      );
+      const before = await state();
+      await expect(client(actorId).club.cancel.mutate()).rejects.toMatchObject({
+        data: { code: "BAD_REQUEST", httpStatus: 400 },
+      });
+      expect(await state()).toEqual(before);
+      expect(calls).toEqual([]);
+      // Old versions could persist this flag for an unrelated order.
+      await conn.query(
+        "UPDATE club_payments SET cancelAtPeriodEnd=1 WHERE orderId='club-new-unbound'",
+      );
+      expect(await client(actorId).club.subscription.query()).toMatchObject({
+        cancellationStatus: "none",
+        cancelAtPeriodEnd: false,
+        hasClubAccess: true,
+      });
+    });
+    it("refuses a receipt whose profile is different even when amount and email match", async () => {
+      await conn.query(
+        "UPDATE billing_receipts SET payloadHash=? WHERE userId=?",
+        [
+          billingKey([
+            "club-98710-synthetic",
+            "79000",
+            "synthetic@example.test",
+            "rub",
+            "123",
+            "457",
+          ]),
+          actorId,
+        ],
+      );
+      await expect(client(actorId).club.cancel.mutate()).rejects.toMatchObject({
+        data: { code: "BAD_REQUEST" },
+      });
+      expect((await state()).profiles[0].cancelRequestedAt).toBeNull();
+      expect(calls).toEqual([]);
     });
     it("does not leak or cancel another account's pending request", async () => {
       await client(actorId).club.cancel.mutate();

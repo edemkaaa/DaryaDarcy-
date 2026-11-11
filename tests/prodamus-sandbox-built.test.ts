@@ -45,6 +45,7 @@ it("compiled ESM keeps diagnostic signature verification separate from live sett
       stdio: ["ignore", "pipe", "pipe"],
       env: {
         NODE_ENV: "production",
+        JWT_SECRET: "compiled-sandbox-session-fixture-32-bytes",
         DATABASE_URL: "",
         PUBLIC_APP_URL: "https://daryadarcy.dev.reeskeen.ru",
         PRODAMUS_SECRET: "a".repeat(64),

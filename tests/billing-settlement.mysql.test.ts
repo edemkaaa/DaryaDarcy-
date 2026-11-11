@@ -148,6 +148,18 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await pay("club-777-a")).toBe("club");
       expect((await contact()).contactPhone).toBeNull();
     });
+    it("queues cancellation for a new billing profile from a late payment", async () => {
+      await conn.query("UPDATE users SET accountDeletionRequestedAt=NOW() WHERE id=777");
+      expect(await fulfillPaidOrder("club-777-a", {
+        sum: "790",
+        proof: { ...proof("late-first-payment"), subscriptionId: "123", profileId: "456" },
+      })).toBe("club");
+      const [[profile]] = await conn.query<import("mysql2").RowDataPacket[]>(
+        "SELECT cancelRequestedAt,cancelledAt FROM billing_profiles WHERE userId=777",
+      );
+      expect(profile).toEqual({ cancelRequestedAt: expect.any(Date), cancelledAt: null });
+      expect(await latestExpiry()).toBe("2026-11-01T00:00:00.000Z");
+    });
     it("concurrent payments fill once without replacing the first committed contact", async () => {
       await conn.query(
         "UPDATE club_payments SET contactPhone=IF(orderId='club-777-a','+79991234567','+447700900123') WHERE userId=777",

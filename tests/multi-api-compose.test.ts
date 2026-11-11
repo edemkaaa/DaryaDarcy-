@@ -31,7 +31,7 @@ describe.skipIf(process.env.API_MULTI_COMPOSE_ACCEPTANCE !== "true")(
             { mode: 0o600 },
           );
           writeFileSync(join(dir, "test.mjs"), "export {};", { mode: 0o600 });
-          const envText = `DATABASE_URL=mysql://fixture:private-db-secret@mysql/backend_test\nJWT_SECRET=private-jwt-secret\nAUTH_LINK_ENCRYPTION_KEY=${Buffer.alloc(32, 1).toString("base64")}\nAPI_COORDINATION_MODE=mysql\nAPI_REPLICA_COUNT=2\nPRIVATE_CONTENT_FILES_ENABLED=false\nPRIVATE_LIBRARY_FILES_ENABLED=false\nENABLE_SMS_LOGIN=false\n`;
+          const envText = `DATABASE_URL=mysql://fixture:private-db-secret@mysql/backend_test\nJWT_SECRET=${"private-jwt-secret".padEnd(32, "!")}\nAUTH_LINK_ENCRYPTION_KEY=${Buffer.alloc(32, 1).toString("base64")}\nAPI_COORDINATION_MODE=mysql\nAPI_REPLICA_COUNT=2\nPRIVATE_CONTENT_FILES_ENABLED=false\nPRIVATE_LIBRARY_FILES_ENABLED=false\nENABLE_SMS_LOGIN=false\n`;
           writeFileSync(join(dir, "api.env"), envText, { mode: 0o600 });
           const config = () =>
             JSON.parse(
@@ -62,6 +62,10 @@ describe.skipIf(process.env.API_MULTI_COMPOSE_ACCEPTANCE !== "true")(
               ),
             );
           const merged = config();
+          expect(merged.services.mysql.cpus).toBe(2);
+          expect(
+            merged.services.api.environment.API_DB_BURST_QUEUE_ENABLED,
+          ).toBe("true");
           expect(
             inspectMultiApiDeployment(merged, {
               hostMemoryMiB: 16384,

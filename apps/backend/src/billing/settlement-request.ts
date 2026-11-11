@@ -46,7 +46,19 @@ export function prepareClubSettlement(
   const orderId = input.recurring
     ? `club-renew-${paymentKey.slice(0, 40)}`
     : input.orderId;
-  const payloadHash = billingKey([
+  const payloadHash = clubSettlementPayloadHash(orderId, amount, proof);
+  return { proof, amount, paymentKey, orderId, payloadHash };
+}
+
+export function clubSettlementPayloadHash(
+  orderId: string,
+  amount: number,
+  proof: Pick<
+    PaymentProof,
+    "email" | "currency" | "subscriptionId" | "profileId" | "testForeignPayment"
+  >,
+): string {
+  return billingKey([
     orderId,
     String(amount),
     proof.email,
@@ -54,9 +66,12 @@ export function prepareClubSettlement(
     proof.subscriptionId || "",
     proof.profileId || "",
     // Conditional extension preserves every existing live/RUB receipt hash.
-    ...(foreign
-      ? ["test-fx-v1", foreign.currency, String(foreign.amountMinor)]
+    ...(proof.testForeignPayment
+      ? [
+          "test-fx-v1",
+          proof.testForeignPayment.currency,
+          String(proof.testForeignPayment.amountMinor),
+        ]
       : []),
   ]);
-  return { proof, amount, paymentKey, orderId, payloadHash };
 }

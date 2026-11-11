@@ -73,8 +73,8 @@ it("compiled ESM wires Nest billing providers and retains fail-closed configurat
               if (id !== 7) throw Error("Wrong claim actor");
               return { granted: true, orderId: "club-7-confirmed" };
             };
-            subscriptions.cancel = async (id) => {
-              if (id !== 7) throw Error("Wrong cancellation actor");
+            subscriptions.cancel = async (actor) => {
+              if (actor !== member) throw Error("Wrong cancellation actor");
               return { ok: true, cancellationStatus: "confirmed", expiresAt: new Date("2026-11-01T00:00:00Z"), message: "synthetic supplied cancellation confirmation" };
             };
             const claimed = await client.club.claimPending.mutate();
@@ -129,6 +129,7 @@ it("compiled ESM wires Nest billing providers and retains fail-closed configurat
       cwd: tmpdir(),
       env: {
         NODE_ENV: "production",
+        JWT_SECRET: "compiled-billing-session-fixture-32-bytes",
         DATABASE_URL: "",
         PRODAMUS_SECRET: "",
         PUBLIC_APP_URL: "https://club.example.test",

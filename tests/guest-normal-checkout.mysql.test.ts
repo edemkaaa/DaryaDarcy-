@@ -7,11 +7,11 @@ import {
   it,
   vi,
 } from "vitest";
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { createHash, createHmac, randomBytes, randomUUID } from "node:crypto";
 import { createServer, request as httpRequest } from "node:http";
 import type { AddressInfo } from "node:net";
 import type { INestApplication } from "@nestjs/common";
-import type { Connection, RowDataPacket } from "mysql2/promise";
+import { createConnection, type Connection, type RowDataPacket } from "mysql2/promise";
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -20,7 +20,7 @@ import { build } from "esbuild";
 import superjson from "superjson";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
 import { createBackendApplication } from "../apps/backend/src/_core/application";
-import { getDb } from "../apps/backend/src/db";
+import { emailToOpenId, getDb } from "../apps/backend/src/db";
 import { sdk } from "../apps/backend/src/_core/sdk";
 
 describe.skipIf(!testDatabaseUrl)(
@@ -53,7 +53,8 @@ describe.skipIf(!testDatabaseUrl)(
           "DELETE FROM normal_checkout_requests WHERE actorUserId=?",
           [id],
         );
-        await conn.query("DELETE FROM billing_receipts WHERE userId=?", [id]);
+        for (const table of ["billing_receipts", "billing_profiles", "access_email_outbox", "password_tokens"])
+          await conn.query(`DELETE FROM ${table} WHERE userId=?`, [id]);
         await conn.query("DELETE FROM club_payments WHERE userId=?", [id]);
         await conn.query("DELETE FROM users WHERE id=?", [id]);
       }
@@ -233,12 +234,79 @@ describe.skipIf(!testDatabaseUrl)(
         await rows("SELECT id FROM users WHERE email=?", [emails[2]]),
       ).toHaveLength(1);
       expect(await rows("SELECT email,contactPhone,phone FROM users WHERE email=?", [emails[2]]))
-        .toEqual([{ email: emails[2], contactPhone: input.contactPhone, phone: null }]);
+        .toEqual([{ email: emails[2], contactPhone: null, phone: null }]);
       expect(
         await rows("SELECT orderId FROM club_payments WHERE email=?", [
           emails[2],
         ]),
       ).toHaveLength(1);
+    });
+    it("fills a new guest card only from the order that was paid", async () => {
+      const email = emails[2];
+      vi.stubEnv("AUTH_LINK_ENCRYPTION_KEY", Buffer.alloc(32, 8).toString("base64"));
+      const first = await create({ ...input, email });
+      const paidPhone = "+447700900123";
+      const second = await create({
+        ...input,
+        email,
+        idempotencyKey: randomUUID(),
+        contactPhone: paidPhone,
+      });
+      expect([first.code, second.code]).toEqual([200, 200]);
+      expect(second.data.orderId).not.toBe(first.data.orderId);
+      expect(await rows("SELECT contactPhone FROM users WHERE email=?", [email]))
+        .toEqual([{ contactPhone: null }]);
+      const body = JSON.stringify({
+        currency: "rub",
+        customer_email: email,
+        domain: "fixture.payform.ru",
+        order_id: "98140901",
+        order_num: second.data.orderId,
+        payment_status: "success",
+        subscription: { id: "123", profile_id: "981409" },
+        sum: "790.00",
+      });
+      const paid = await fetch(base + "/api/prodamus/webhook", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Sign: createHmac("sha256", "synthetic-merchant-key").update(body).digest("hex"),
+        },
+        body,
+      });
+      expect([paid.status, await paid.text()]).toEqual([200, "success"]);
+      expect(await rows("SELECT contactPhone,phone FROM users WHERE email=?", [email]))
+        .toEqual([{ contactPhone: paidPhone, phone: null }]);
+    });
+    it("preserves an account created while guest checkout waits on the same email", async () => {
+      const email = emails[2];
+      const registration = await createConnection(testDatabaseUrl!);
+      try {
+        await registration.beginTransaction();
+        await registration.query(
+          "INSERT INTO users(openId,email,name,loginMethod) VALUES (?,?,'Registration name','email')",
+          [emailToOpenId(email), email],
+        );
+        const checkout = create({ ...input, email });
+        try {
+          await vi.waitFor(async () => {
+            const queries = await rows("SHOW FULL PROCESSLIST");
+            expect(queries.some(({ Info }) =>
+              /insert into `users`/i.test(String(Info)) &&
+              String(Info).includes(email),
+            )).toBe(true);
+          }, { timeout: 3000, interval: 25 });
+          await registration.commit();
+        } finally {
+          await registration.rollback();
+          await checkout;
+        }
+        expect((await checkout).code).toBe(200);
+        expect(await rows("SELECT name,profileRevision,contactPhone FROM users WHERE email=?", [email]))
+          .toEqual([{ name: "Registration name", profileRevision: 0, contactPhone: null }]);
+      } finally {
+        await registration.end();
+      }
     });
     it("does not recover someone else's operation with only UUID or email", async () => {
       const first = await create();

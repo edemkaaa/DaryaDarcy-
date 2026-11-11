@@ -13,6 +13,13 @@ export async function openContentTestDatabase() {
       target ENUM('feed','club','both') DEFAULT 'feed', scheduledAt TIMESTAMP NULL, publishedAt TIMESTAMP NULL,
       richText JSON, createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB`);
+    const [feedListingIndex] = await conn.query<RowDataPacket[]>(
+      "SHOW INDEX FROM posts WHERE Key_name='posts_feed_listing_idx'",
+    );
+    if (!feedListingIndex.length) {
+      const migration = new URL("../../packages/database/drizzle/0044_post_listing_indexes.sql", import.meta.url);
+      await conn.query(await readFile(migration, "utf8"));
+    }
     const [publicIdMigration] = await conn.query<RowDataPacket[]>(
       "SELECT name FROM backend_test_migrations WHERE name='0051_post_public_id'",
     );

@@ -34,6 +34,7 @@ describe.skipIf(!testDatabaseUrl)(
       return { promise, resolve };
     };
     beforeAll(async () => {
+      vi.stubEnv("API_DB_BURST_QUEUE_ENABLED", "false");
       conn = await openContentTestDatabase();
       vi.stubEnv("DATABASE_URL", testDatabaseUrl!);
       vi.stubEnv("JWT_SECRET", "owned-pool-pressure-session-secret-32-chars");

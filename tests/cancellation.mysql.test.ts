@@ -2,6 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import mysql from "mysql2/promise";
 import { drizzle, type MySql2Database } from "drizzle-orm/mysql2";
 import { openTestDatabase, testDatabaseUrl } from "./helpers/backend-mysql";
+import { billingKey } from "../apps/backend/src/billing/protocol";
 import {
   requestClubCancellation,
   processCancellations,
@@ -17,20 +18,54 @@ describe.skipIf(!testDatabaseUrl)("durable subscription cancellation", () => {
     );
   });
   beforeEach(async () => {
-    await conn.query("DELETE FROM billing_profiles WHERE userId=779");
-    await conn.query("DELETE FROM club_payments WHERE userId=779");
+    for (const table of [
+      "access_email_outbox",
+      "billing_receipts",
+      "billing_profiles",
+      "club_payments",
+    ])
+      await conn.query(`DELETE FROM ${table} WHERE userId=779`);
     await conn.query(
       "INSERT INTO billing_profiles (profileKey,userId,domain,subscriptionId,profileId,email,amountMinor) VALUES ('cancel-fixture',779,'daryadarcy-club.payform.ru','123','456','cancel@example.test',79000)",
     );
     await conn.query(
-      "INSERT INTO club_payments (userId,orderId,status,expiresAt) VALUES (779,'club-779-test','paid','2026-12-01 00:00:00')",
+      "INSERT INTO club_payments (userId,orderId,status,expiresAt,sum,email) VALUES (779,'club-779-test','paid','2026-12-01 00:00:00','790','cancel@example.test')",
+    );
+    const paymentKey = billingKey([
+      "daryadarcy-club.payform.ru",
+      "779-payment",
+    ]);
+    await conn.query(
+      "INSERT INTO billing_receipts(paymentKey,userId,orderId,payloadHash,amountMinor) VALUES (?,779,'club-779-test',?,79000)",
+      [
+        paymentKey,
+        billingKey([
+          "club-779-test",
+          "79000",
+          "cancel@example.test",
+          "rub",
+          "123",
+          "456",
+        ]),
+      ],
+    );
+    await conn.query(
+      "INSERT INTO access_email_outbox(eventKey,userId,email,kind,payload) VALUES (?,779,'cancel@example.test','club-access',JSON_OBJECT('orderId','club-779-test'))",
+      [`club-access:${paymentKey}`],
     );
   });
   afterAll(async () => {
     await pool?.end();
-    await conn?.query("DELETE FROM billing_profiles WHERE userId=779");
-    await conn?.query("DELETE FROM club_payments WHERE userId=779");
-    await conn?.query("DELETE FROM users WHERE id=779 AND openId='cancel-test'");
+    for (const table of [
+      "access_email_outbox",
+      "billing_receipts",
+      "billing_profiles",
+      "club_payments",
+    ])
+      await conn?.query(`DELETE FROM ${table} WHERE userId=779`);
+    await conn?.query(
+      "DELETE FROM users WHERE id=779 AND openId='cancel-test'",
+    );
     await conn?.end();
   });
   async function flags() {

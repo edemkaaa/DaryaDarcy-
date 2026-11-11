@@ -29,6 +29,7 @@ it("compiled test process fails closed without configuration and exposes only th
       stdio: ["ignore", "pipe", "pipe"],
       env: {
         NODE_ENV: "production",
+        JWT_SECRET: "compiled-prodamus-session-fixture-32-bytes",
         PORT: "0",
         DATABASE_URL: "",
         PUBLIC_APP_URL: "https://daryadarcy.dev.reeskeen.ru",

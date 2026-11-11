@@ -101,6 +101,7 @@ it.each(["user", "moderator", "admin"] as const)(
 );
 it("paid status preserves the expiry and confirmed cancellation flag", async () => {
   vi.spyOn(db, "getActiveClubSubscription").mockResolvedValue(paid);
+  vi.spyOn(cancellation, "readClubCancellationStatus").mockResolvedValue("confirmed");
   expect(await service.subscription(member)).toEqual({
     hasClubAccess: true,
     subscribed: true,
@@ -152,7 +153,7 @@ it.each(["subscription", "claimPending"] as const)(
 it("cancellation fails closed without a database", async () => {
   vi.spyOn(db, "getDb").mockResolvedValue(null);
   const request = vi.spyOn(cancellation, "requestClubCancellation");
-  await expect(service.cancel(7)).rejects.toMatchObject({
+  await expect(service.cancel(member)).rejects.toMatchObject({
     code: "INTERNAL_SERVER_ERROR",
   });
   expect(request).not.toHaveBeenCalled();
@@ -162,7 +163,7 @@ it("a business cancellation refusal has a safe public client error", async () =>
   vi.spyOn(cancellation, "requestClubCancellation").mockRejectedValue(
     new cancellation.CancellationUnavailableError("PRIVATE_LOOKUP_DETAIL"),
   );
-  await expect(service.cancel(7)).rejects.toMatchObject({
+  await expect(service.cancel(member)).rejects.toMatchObject({
     code: "BAD_REQUEST",
     message: "Не удалось определить подписку. Обратитесь в поддержку.",
   });
@@ -171,7 +172,7 @@ it("unexpected cancellation failures remain server errors without private detail
   vi.spyOn(cancellation, "requestClubCancellation").mockRejectedValue(
     new Error("PRIVATE_SQL_DETAIL"),
   );
-  await expect(service.cancel(7)).rejects.toMatchObject({
+  await expect(service.cancel(member)).rejects.toMatchObject({
     code: "INTERNAL_SERVER_ERROR",
     message: expect.not.stringContaining("PRIVATE_SQL_DETAIL"),
   });
@@ -182,7 +183,7 @@ it("an accepted cancellation reports pending instead of a server error", async (
     confirmed: false,
     expiresAt: paidUntil,
   });
-  await expect(service.cancel(7)).resolves.toMatchObject({
+  await expect(service.cancel(member)).resolves.toMatchObject({
     ok: true,
     cancellationStatus: "pending",
     expiresAt: paidUntil,
@@ -220,14 +221,14 @@ it.each([paidUntil, null])(
   async (expiresAt) => {
     vi.spyOn(db, "getDb").mockResolvedValue(database);
     vi.spyOn(cancellation, "requestClubCancellation").mockImplementation(
-      async (handle, userId, send) => {
+      async (handle, actor, send) => {
         expect(handle).toBe(database);
-        expect(userId).toBe(7);
+        expect(actor).toEqual(member);
         expect(send).toBe(cancelProdamusSubscription);
         return { confirmed: true, expiresAt };
       },
     );
-    expect(await service.cancel(7)).toMatchObject({
+    expect(await service.cancel(member)).toMatchObject({
       ok: true,
       cancellationStatus: "confirmed",
       expiresAt,

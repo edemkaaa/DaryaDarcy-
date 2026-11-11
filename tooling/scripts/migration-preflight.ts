@@ -4,12 +4,20 @@ import {
   inspectMigrationHistory,
   inspectMigrationManifest,
 } from "./migration-policy";
-import { readMigrationHistory } from "./migration-history";
+import {
+  readFeedListingIndexAvailable,
+  readMigrationHistory,
+} from "./migration-history";
 import { readEmailIdentityIssues } from "./email-identity-preflight";
 
 async function main() {
   const args = process.argv.slice(2);
-  if (args.length > 1 || args.some((arg) => arg !== "--require-database")) {
+  if (
+    args.length > 1 ||
+    args.some(
+      (arg) => arg !== "--require-database" && arg !== "--require-feed-index",
+    )
+  ) {
     console.error(
       "Unsupported preflight arguments; no database checked or changed.",
     );
@@ -17,6 +25,7 @@ async function main() {
     return;
   }
   const requireDatabase = args.includes("--require-database");
+  const requireFeedIndex = args.includes("--require-feed-index");
   const folder = new URL("../../packages/database/drizzle/", import.meta.url);
   const journal = JSON.parse(
     await readFile(new URL("meta/_journal.json", folder), "utf8"),
@@ -38,7 +47,7 @@ async function main() {
   const inspectionUri = process.env.MIGRATION_PREFLIGHT_DATABASE_URL;
   const uri = requireDatabase ? process.env.DATABASE_URL : inspectionUri;
   const issues = [...manifest.issues];
-  if (requireDatabase && !uri?.trim())
+  if ((requireDatabase || requireFeedIndex) && !uri?.trim())
     issues.push("database-connection-required");
   if (requireDatabase && inspectionUri && inspectionUri !== uri)
     issues.push("database-connection-mismatch");
@@ -54,6 +63,12 @@ async function main() {
     databaseChecked = true;
     issues.push(...history.issues);
     pending = history.pending;
+    if (!issues.length && requireFeedIndex) {
+      if (pending.includes("0044_post_listing_indexes"))
+        issues.push("feed-listing-index-migration-pending");
+      else if (!(await readFeedListingIndexAvailable(uri)))
+        issues.push("feed-listing-index-unavailable");
+    }
     if (!issues.length && pending.includes("0027_user_email_identity"))
       issues.push(...(await readEmailIdentityIssues(uri)));
   }

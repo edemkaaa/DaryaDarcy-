@@ -5,12 +5,14 @@ import * as db from "../db";
 import { userHasClubAccess } from "../identity/club-access";
 import { cancelProdamusSubscription, CLUB_PRICE } from "../prodamus";
 import {
+  CancellationActorError,
   CancellationUnavailableError,
+  type CancellationActor,
   readClubCancellationStatus,
   requestClubCancellation,
 } from "./cancellation";
 
-/** Protected adapters supply a verified user ID; helpers own durable state. */
+/** Protected adapters supply the actor; helpers own durable state. */
 @Injectable()
 export class ClubSubscriptionService {
   async subscription(actor: User | null) {
@@ -38,7 +40,7 @@ export class ClubSubscriptionService {
           cancellationStatus: await readClubCancellationStatus(
             tx,
             actor.id,
-            Boolean(paid?.cancelAtPeriodEnd),
+            paid,
           ),
         };
       },
@@ -48,7 +50,7 @@ export class ClubSubscriptionService {
       hasClubAccess: await userHasClubAccess(actor, async () => paid),
       subscribed: owner || Boolean(paid),
       expiresAt: paid?.expiresAt ?? null,
-      cancelAtPeriodEnd: Boolean(paid?.cancelAtPeriodEnd),
+      cancelAtPeriodEnd: cancellationStatus === "confirmed",
       cancellationStatus,
       isOwner: owner,
       monthlyPrice: CLUB_PRICE,
@@ -64,7 +66,7 @@ export class ClubSubscriptionService {
     return { granted: false as const, orderId: null };
   }
 
-  async cancel(userId: number): Promise<{
+  async cancel(actor: CancellationActor): Promise<{
     ok: true;
     cancellationStatus: "pending" | "confirmed";
     expiresAt: Date | null;
@@ -76,10 +78,12 @@ export class ClubSubscriptionService {
     try {
       result = await requestClubCancellation(
         database,
-        userId,
+        actor,
         cancelProdamusSubscription,
       );
     } catch (error) {
+      if (error instanceof CancellationActorError)
+        throw new TRPCError({ code: error.code });
       // A request may already be committed when a worker/SQL failure occurs.
       // Do not turn an unknown result into a terminal client-side rejection.
       if (!(error instanceof CancellationUnavailableError))
