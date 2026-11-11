@@ -1,3 +1,4 @@
+// Читает ограниченные ответы каталога и обложек с фиксированных источников. Ошибки не превращаются в разрешённую публикацию или бесконечный кеш.
 async function boundedBody(response, maxBytes) {
   const chunks = [];
   let size = 0;
@@ -26,6 +27,7 @@ export async function readPublicCatalog(url, signal) {
   const payload = JSON.parse(
     (await boundedBody(response, 2 * 1024 ** 2)).toString("utf8"),
   );
+  // Совместимый пакетный путь ограничен целиком: частичный список нельзя принимать за разрешающий каталог.
   const rows = payload?.result?.data?.json;
   if (
     !Array.isArray(rows) ||
@@ -59,6 +61,7 @@ export async function readPublicYoutubeState(url, id, signal) {
     signal: AbortSignal.any([AbortSignal.timeout(5000), ...(signal ? [signal] : [])]),
   });
   const payload = JSON.parse((await boundedBody(response, 4096)).toString("utf8"));
+  // Рабочий entrypoint использует точечное состояние, чтобы не загружать весь каталог на каждый просмотр.
   const state = payload?.result?.data?.json;
   if (!state || typeof state !== "object" || Array.isArray(state) ||
       Object.keys(state).length !== 1 || typeof state.published !== "boolean")

@@ -1,3 +1,4 @@
+// Дополняет пустые подписи через внешние данные Instagram oEmbed. Отсутствие подписи и сетевой отказ источника нельзя приравнивать к разрешению затереть текст.
 /**
  * Backfill empty Instagram feed post captions via oEmbed API.
  *

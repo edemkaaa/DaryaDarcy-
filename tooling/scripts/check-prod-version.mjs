@@ -1,3 +1,4 @@
+// Делает внешний запрос к прежнему production-домену, обходя клиентский кеш. Это сетевой операторский инструмент, а не локальная проверка исходников.
 const html = await fetch(`https://daryadarcy.com/?t=${Date.now()}`, {
   headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
 }).then((r) => r.text());

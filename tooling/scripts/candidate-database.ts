@@ -1,3 +1,4 @@
+// Инициализирует только согласованную пустую БД-кандидат либо проверяет её API-композицию. Совпадение плана и server UUID проверяется до DDL; переключения приложения здесь нет.
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import {

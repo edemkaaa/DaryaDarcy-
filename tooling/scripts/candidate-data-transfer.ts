@@ -1,3 +1,4 @@
+// Переносит только совместимые столбцы между заранее проверенными соединениями. Проверку контейнеров и прав делает вызывающий оператор; история миграций не копируется как обычные данные.
 // Data-only operator helpers; never imported by the application executable.
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
@@ -23,6 +24,7 @@ export function transferIdentifier(value: string): string {
   assert.match(value, /^[A-Za-z_][A-Za-z0-9_]*$/);
   return `\`${value}\``;
 }
+// Нельзя молча потерять старый столбец или ужесточить nullable: такой перенос требует отдельного решения.
 export function transferColumnPlan(
   source: TransferColumn[],
   target: TransferColumn[],

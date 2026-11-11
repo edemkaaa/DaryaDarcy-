@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Извлекает шрифт Woolen в публичные каталоги прежних клиентов; операция меняет локальные ресурсы, не настройки браузерного кеша.
 /** Extract Woolen webfont into the Expo and legacy Vite font directories. */
 import { execSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync } from "node:fs";

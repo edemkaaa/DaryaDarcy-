@@ -1,3 +1,4 @@
+# Подставляет отдельные образ и env БД-кандидата только для API. Замена списка env через !override не должна незаметно наследовать старое подключение.
 # Offline preparation only. Applying this requires separate switch approval.
 # Keep STAGING_IMAGE at the recorded baseline: it still controls the web image.
 # Requires Docker Compose >=2.24.4 for !override (otherwise refuse, do not merge env files).

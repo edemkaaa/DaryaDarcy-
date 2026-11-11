@@ -1,3 +1,4 @@
+// Проверяет TTL, размер и ошибки кеша обложек; ошибочный ответ источника не должен становиться сохранённой картинкой.
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import * as thumbnails from "../upstream.mjs";

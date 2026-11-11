@@ -1,3 +1,4 @@
+# Отдельный TEST ingress использует принятый runtime и versioned bundle. Наличие этого сервиса не разрешает реальные списания или автоматическое включение на боевом хосте.
 # Append to existing dev overlays; never enable this service on a live-money host.
 services:
   prodamus-test:

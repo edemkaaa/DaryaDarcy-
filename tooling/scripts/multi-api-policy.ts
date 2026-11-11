@@ -1,3 +1,4 @@
+// Проверяет уже разрешённый Compose и суммарные бюджеты реплик/пулов. Отчёт содержит коды проблем, но не раскрывает секретные значения конфигурации.
 import { z } from "zod";
 
 // Accept resolved `docker compose config --format json`, never raw env files.

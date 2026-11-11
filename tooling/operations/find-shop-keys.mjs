@@ -1,3 +1,4 @@
+// Ищет конкретные прежние ключи иллюстраций Магазина в списке S3. Ничего не загружает, но обращается к рабочему хранилищу с выданным доступом.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

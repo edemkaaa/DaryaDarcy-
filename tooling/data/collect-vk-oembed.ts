@@ -1,3 +1,4 @@
+// Собирает player URL и метаданные только для валидированных VK-ссылок. Неполный ответ oEmbed отмечается отдельно, не подменяется выдуманной обложкой.
 import { z } from "zod";
 import { fileURLToPath } from "node:url";
 import { basename, dirname, join, resolve, sep } from "node:path";

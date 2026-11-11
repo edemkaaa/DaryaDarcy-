@@ -1,4 +1,5 @@
 #!/bin/bash
+# Исторически добавляет дополнительный SSH-порт на сервере. Изменение доступных портов требует проверки firewall и согласования доступа.
 # Timeweb web console (root): SSH on port 2222 in addition to 22 (VPN often blocks 22 only).
 set -e
 CFG=/etc/ssh/sshd_config

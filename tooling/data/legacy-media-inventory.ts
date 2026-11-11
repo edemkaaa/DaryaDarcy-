@@ -1,3 +1,4 @@
+// Инвентаризирует локальные старые вложения по типу, размеру и отпечатку. Отчёт сам не загружает объекты и не меняет их доступность.
 import { createHash } from "node:crypto";
 import { open } from "node:fs/promises";
 import { resolve } from "node:path";

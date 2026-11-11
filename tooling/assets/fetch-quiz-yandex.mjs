@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Сопоставляет каталоги публичного Яндекс Диска с иллюстрациями теста. Перед записью нужно сверить наборы эстетик; доступность источника зависит от сети.
 /**
  * Download quiz images from Darya's public Yandex Disk folder.
  * Maps folders: Лес -> landscapes, Портреты -> outfits, Кто ты сказоч? -> shelters

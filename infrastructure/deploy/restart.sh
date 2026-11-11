@@ -1,4 +1,5 @@
 #!/bin/bash
+# Перезапускает прежний серверный процесс. Не заменяет проверку image digest, миграций и готовности реплик в Compose.
 # Restart after reboot. Run as root:
 #   bash /var/www/daryadarcy/infrastructure/deploy/restart.sh
 set -euo pipefail

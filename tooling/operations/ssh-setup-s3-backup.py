@@ -1,3 +1,4 @@
+# Старый установщик меняет серверные файлы, S3-политику и cron резервирования. Исторические пути и область действия ключей нужно проверить до любых внешних изменений.
 """Deploy S3 media backup scripts to VPS, create keys file, run setup + initial backup + cron."""
 import json
 import pathlib

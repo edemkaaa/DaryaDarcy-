@@ -1,3 +1,4 @@
+// Восстанавливает подписи ленты из обработанного Instagram-экспорта. Это запись в выбранную БД, а не безопасная проверка без изменений.
 /**
  * Restore Instagram feed captions from ig_posts_processed.json.
  *

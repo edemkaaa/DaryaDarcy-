@@ -1,3 +1,4 @@
+// Готовит уменьшенные варианты публичной статики для экранов. Полноразмерные загрузки и объекты S3 не переписывает.
 /** Offline static assets only. Resize previews; never alter uploads or S3 objects. */
 import fs from "node:fs/promises";
 import path from "node:path";

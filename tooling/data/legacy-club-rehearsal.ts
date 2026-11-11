@@ -1,3 +1,4 @@
+// Репетирует объединение клубного контента на собственной локальной fixture. Общий merge принимает уже проверенное соединение, а не произвольный production URL.
 // Rehearsal entry points always inspect an owned local fixture. The shared merge
 // accepts an already guarded connection; the separate staging operator owns its guard.
 import assert from "node:assert/strict";

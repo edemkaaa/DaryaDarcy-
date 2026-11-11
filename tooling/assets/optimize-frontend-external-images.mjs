@@ -1,3 +1,4 @@
+// Сверяет внешние публичные картинки и при явном разрешении сохраняет проверенные локальные копии меньшего размера. В S3 не записывает.
 /** Audit public frontend images. --write vendors only verified lossless savings. No S3 writes. */
 import fs from "node:fs/promises";
 import path from "node:path";

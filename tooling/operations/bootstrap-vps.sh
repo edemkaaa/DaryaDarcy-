@@ -1,4 +1,5 @@
 #!/bin/bash
+# Исторически настраивает системные службы и доступ VPS. Требует прав администратора; это не локальная проверка и не нынешний Docker-порядок выпуска.
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 

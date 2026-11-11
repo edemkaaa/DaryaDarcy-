@@ -1,3 +1,4 @@
+// Прежний оптимизатор может перезаписывать JPEG по тому же S3-ключу и создавать WebP-соседей. Перед применением нужны оригиналы, карта ссылок и отдельное разрешение.
 /**
  * Optimize heavy S3 images referenced in the codebase.
  * JPG/JPEG: re-upload optimized in-place (same key).

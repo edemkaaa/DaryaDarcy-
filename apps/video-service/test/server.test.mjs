@@ -1,3 +1,4 @@
+// Проверяет HTTP-границы выдачи, публикацию и byte range на управляемых источниках, а не на рабочем каталоге.
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";

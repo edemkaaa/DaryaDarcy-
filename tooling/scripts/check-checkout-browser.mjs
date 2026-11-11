@@ -1,3 +1,4 @@
+// Собирает независимые варианты TEST и гостевой LIVE-формы и проверяет обязательные браузерные сценарии. Пропуски или flaky-результаты не считаются успешной приёмкой.
 // Two separate build-time variants; runtime flags cannot reconfigure Next output.
 import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync } from "node:fs";

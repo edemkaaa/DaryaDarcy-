@@ -1,3 +1,4 @@
+// Исследует доступность прежнего YouTube-источника. Не является синхронизацией нынешнего VK-каталога.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

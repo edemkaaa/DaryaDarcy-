@@ -1,3 +1,4 @@
+// Обходит исходники и применяет правила зависимостей слоёв. Код приложений при проверке не исполняется.
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { inspectBoundary } from "./check-boundaries";

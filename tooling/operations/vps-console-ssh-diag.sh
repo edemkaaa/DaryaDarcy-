@@ -1,4 +1,5 @@
 #!/bin/bash
+# Выводит сетевую и SSH-диагностику из консоли выбранного VPS. Подсказки изменения firewall только печатаются; вывод системных журналов может быть приватным.
 # Paste into Timeweb VPS web console (root). Diagnose why SSH from outside fails.
 set -u
 

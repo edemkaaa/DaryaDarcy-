@@ -1,3 +1,4 @@
+// Строит воспроизводимый план переноса по инвентарю и хешам. План не является разрешением выполнить запись на рабочем хранилище.
 import { createHash } from "node:crypto";
 import type { inventoryLegacyMedia } from "./legacy-media-inventory";
 

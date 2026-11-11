@@ -1,3 +1,4 @@
+// Сверяет размещение модулей в собранных клиентских чанках; результаты зависят от конкретного артефакта сборки.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

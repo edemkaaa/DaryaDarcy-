@@ -1,3 +1,4 @@
+// Прежнее append-only резервирование копирует медиа в backup-бакет без удаления исходников. Setup меняет политики; актуальность путей и восстановление проверяются отдельно.
 /**
  * Append-only media backup: copy objects from source bucket to backup bucket.
  * Never deletes objects in the backup bucket (not a mirror/sync).

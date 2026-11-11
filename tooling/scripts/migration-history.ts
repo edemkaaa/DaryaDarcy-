@@ -1,3 +1,4 @@
+// Читает историю миграций и наличие индекса через ограниченное соединение. Проверка истории отделена от применения DDL.
 import mysql, { type Connection } from "mysql2/promise";
 
 async function withReadOnlyConnection<T>(

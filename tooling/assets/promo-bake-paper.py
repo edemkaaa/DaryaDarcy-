@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Собирает промо-картинки поверх бумажной текстуры, чтобы прозрачность совпадала с фоном экрана. Это создание новых локальных вариантов.
 """Composite transparent promo PNGs onto the same paper texture as the home screen."""
 from __future__ import annotations
 

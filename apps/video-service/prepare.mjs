@@ -1,3 +1,4 @@
+// Подготавливает совместимый MP4 без перекодирования, ограничивая время, размер и дочерние процессы. URL выводится из проверенного ID, cookies и плагины загрузчика не используются.
 import { spawn } from "node:child_process";
 import { lstat, readdir, unlink } from "node:fs/promises";
 import { join } from "node:path";
@@ -19,6 +20,7 @@ export function runCommand(binary, args, cwd, signal) {
     let stdout = "";
     let failure;
     let killTimer;
+    // Останавливаем всю группу, включая потомков FFmpeg, а не только процесс загрузчика.
     const killGroup = (kind) => {
       if (child.pid) {
         try {
@@ -63,6 +65,7 @@ export async function prepareVideo(
   if (!/^[\w-]{11}$/.test(id)) throw new Error("invalid video id");
   const budget = new AbortController();
   const workSignal = AbortSignal.any([signal, budget.signal]);
+  // Лимит готового MP4 не ограничивает сумму промежуточных дорожек; рабочий каталог контролируется отдельно.
   const monitor = setInterval(async () => {
     try {
       let bytes = 0;

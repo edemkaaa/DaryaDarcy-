@@ -1,3 +1,4 @@
+// Перефильтровывает и перепаковывает PNG без изменения образцов и дополнительных chunks. Это сохраняет 16-битный цвет и профили, которые теряются при неосторожной конвертации.
 // Refilter/repack non-interlaced PNG without changing samples or ancillary chunks.
 // In particular this preserves 16-bit colour and ICC, unlike conversion to WebP.
 import { deflateSync, inflateSync, crc32, constants } from "node:zlib";

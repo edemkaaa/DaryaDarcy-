@@ -1,3 +1,4 @@
+// Загружает прежние архив и установочные файлы в deploy-префикс S3. Объекты выпуска не должны содержать env, пользовательские данные или секреты.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

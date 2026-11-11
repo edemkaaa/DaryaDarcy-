@@ -1,3 +1,4 @@
+// Готовит сжатые копии статической legacy-сборки после проверки необходимых ресурсов. Это не обработка пользовательских загрузок и не пересоздание Next-кеша.
 import { gzipSync } from "node:zlib";
 import { readdirSync, readFileSync, statSync, writeFileSync, unlinkSync, copyFileSync, existsSync } from "node:fs";
 import { basename, extname, join } from "node:path";

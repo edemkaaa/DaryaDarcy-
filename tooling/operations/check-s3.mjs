@@ -1,3 +1,4 @@
+// Выполняет подписанные запросы списка к выбранному S3. Использует внешнее хранилище и локальное окружение, поэтому не запускается как unit-тест.
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";

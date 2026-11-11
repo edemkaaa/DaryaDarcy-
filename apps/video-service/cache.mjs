@@ -1,3 +1,4 @@
+// Хранит только временные подготовленные публичные ролики. Активные читатели удерживают файл от вытеснения, а последняя отмена зрителя прекращает общую подготовку.
 import { lstat, mkdtemp, realpath, rm } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -34,6 +35,7 @@ export async function createVideoCache({
     await rm(entry.directory, { recursive: true, force: true });
   }
 
+  // Заранее резервируем максимальный готовый файл: иначе параллельные читатели съедят место для новой подготовки.
   async function prepareEntry(id, signal) {
     let directory;
     try {
@@ -102,6 +104,7 @@ export async function createVideoCache({
           },
         );
       }
+      // У общей подготовки несколько зрителей; отмена одного не должна прервать остальных.
       const current = job;
       current.users++;
       let onAbort;

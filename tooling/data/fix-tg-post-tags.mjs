@@ -1,3 +1,4 @@
+// Приводит текст, richText и теги уже импортированных клубных постов к данным экспорта. Запуск изменяет выбранную БД.
 /**
  * Fix tags/text/richText for already-imported Telegram club posts.
  */

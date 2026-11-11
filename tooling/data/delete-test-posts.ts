@@ -1,3 +1,4 @@
+// Историческая эвристика считает посты без instagramId тестовыми. Она может затронуть вручную созданный контент, поэтому не подходит для очистки рабочей БД.
 import { getDb } from '../../apps/backend/src/db';
 import { posts } from '../../packages/database/src/schema';
 import { isNull, eq } from 'drizzle-orm';

@@ -1,3 +1,4 @@
+// Переносит только публичный снимок в строго ограниченную пустую staging-БД. Идентификаторы и даты сохраняются; повторный запуск не должен перезаписывать существующий контент.
 import { z } from "zod";
 import { readFile, writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";

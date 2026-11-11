@@ -1,3 +1,4 @@
+// Ожидает доступность только разрешённого тестового MySQL перед CI-прогоном. Повторные подключения ограничены временем ожидания.
 import mysql from "mysql2/promise";
 import { setTimeout } from "node:timers/promises";
 import { assertTestDatabase } from "./test-database-policy";

@@ -1,3 +1,4 @@
+// Переносит обложки старого YouTube-каталога в S3 и меняет thumbnailUrl. Для VK используется отдельный механизм метаданных.
 /**
  * Download YouTube thumbnails on the VPS (YouTube is reachable there),
  * store them on Timeweb S3, and point videos.thumbnailUrl at S3.

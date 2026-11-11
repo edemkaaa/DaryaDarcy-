@@ -1,3 +1,4 @@
+// Проверяет WebP и повторное чтение публичных превью отдельным клиентом на разрешённом локальном стенде. Закрытые источники должны получать отказ, а не попадать в кеш.
 import assert from "node:assert/strict";
 
 // Run from a separate client container, never inside the memory-limited web.

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Сохраняет QR-код для выбранного адреса в локальный временный каталог. Сам QR не публикует приложение и не проверяет доступность адреса.
 import QRCode from "qrcode";
 import fs from "node:fs";
 import path from "node:path";

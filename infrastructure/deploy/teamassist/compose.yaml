@@ -1,3 +1,4 @@
+# Базовый staging-стек разделяет API, Next, MySQL и edge по сетям. Локальные egress/кеш/секретные overlays добавляются отдельно и не восстанавливаются одним этим файлом.
 name: daryadarcy-staging
 services:
   mysql:

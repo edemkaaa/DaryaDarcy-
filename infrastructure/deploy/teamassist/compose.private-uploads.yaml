@@ -1,3 +1,4 @@
+# Добавляет ограниченный выход API к S3 через внутренний alias. Флаги загрузок остаются отдельным решением после проверки схемы, прав и TLS.
 # Reviewed opt-in overlay. Keep flags false in private-uploads.env until the
 # same-DB/schema/policy/identity/TLS preflight has passed. Never publish ports.
 services:

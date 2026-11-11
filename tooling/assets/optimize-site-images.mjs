@@ -1,3 +1,4 @@
+// Скачивает выбранные публичные картинки S3 и готовит локальные варианты сайта. Уменьшение размеров и quality здесь не являются lossless-операцией.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

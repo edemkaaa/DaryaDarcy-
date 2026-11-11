@@ -1,3 +1,4 @@
+// Собирает изолированный стенд редакторов и запускает выбранный сквозной сценарий. Созданные процессы и временные ресурсы принадлежат только этому прогону.
 import { spawn, execFileSync } from "node:child_process";
 import { once } from "node:events";
 import {

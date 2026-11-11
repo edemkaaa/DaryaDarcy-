@@ -1,3 +1,4 @@
+// Применяет проверенные совместимые аудиокопии к точным прежним привязкам. Receipt связывает результат с исходником и не разрешает перезаписывать посторонние вложения.
 import assert from "node:assert/strict";
 import { isDeepStrictEqual } from "node:util";
 import type { Connection, RowDataPacket } from "mysql2/promise";

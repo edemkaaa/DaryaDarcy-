@@ -1,3 +1,4 @@
+// Прежний пакетный оптимизатор локальных assets допускает перекодирование. Его нельзя считать доказательством lossless-качества для всех изображений.
 /**
  * Optimize bundled assets/ images (quiz, home, results).
  * PNG → WebP when >40% smaller; JPG recompressed in-place.

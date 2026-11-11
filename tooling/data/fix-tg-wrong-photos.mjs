@@ -1,3 +1,4 @@
+// Сопоставляет Telegram-фотографии по точному имени с датой, чтобы не прикрепить другой файл с тем же числовым ID.
 /**
  * Re-attach correct Telegram photos using exact filename match (id + date from export).
  * Fixes backfill that matched photo_{id}@* without verifying the date suffix.

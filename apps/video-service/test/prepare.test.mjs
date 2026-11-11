@@ -1,3 +1,4 @@
+// Проверяет аргументы и остановку дочерних процессов подготовки без загрузки настоящего YouTube-ролика.
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";

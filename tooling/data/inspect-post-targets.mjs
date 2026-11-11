@@ -1,3 +1,4 @@
+// Сверяет target постов с историческими клубными тегами. С --apply меняет target в БД; эвристика тегов не заменяет проверку согласованной области переноса.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

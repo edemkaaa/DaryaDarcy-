@@ -1,3 +1,4 @@
+// Выдаёт только опубликованные ролики и проверенные обложки с поддержкой Range. Повторная проверка публикации после подготовки не даёт кешу обойти снятие доступа.
 import { createServer } from "node:http";
 import { open } from "node:fs/promises";
 import { pipeline } from "node:stream/promises";

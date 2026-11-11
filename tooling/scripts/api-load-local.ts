@@ -1,3 +1,4 @@
+// Нагрузочный прогон запускается только с явным разрешением и собственной fixture. Результаты описывают этот стенд, а не ёмкость рабочего сервера.
 /** Explicit opt-in. No production boot, env files, providers, frontend or S3. */
 import { writeFile, mkdtemp } from "node:fs/promises";
 import { tmpdir, cpus, totalmem, loadavg } from "node:os";

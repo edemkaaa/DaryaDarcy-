@@ -1,3 +1,4 @@
+// Нормализует только локальные статические изображения и сохраняет отчёт. Удалённые S3-объекты и медиа API не являются целями операции.
 /** Normalize local static assets; API media and remote objects are never changed. */
 import fs from "node:fs/promises";
 import path from "node:path";

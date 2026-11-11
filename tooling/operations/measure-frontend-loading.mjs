@@ -1,3 +1,4 @@
+// Измеряет гостевую загрузку через браузер и сравнивает опубликованный baseline с локальной сборкой. Замер не меняет данные, но создаёт реальный сетевой трафик.
 /** Read-only guest benchmark: deployed baseline versus a local production build. */
 import { chromium } from "@playwright/test";
 import http from "node:http";

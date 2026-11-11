@@ -1,3 +1,4 @@
+# Разрешает только отдельный TEST-выход к платёжному API. Сетевой доступ сам не включает checkout и не подтверждает боевые настройки.
 # Opt-in TEST-only payment egress, not permission to enable checkout.
 # Append to ALL existing SMTP/video/image overlays; do not replace them.
 services:

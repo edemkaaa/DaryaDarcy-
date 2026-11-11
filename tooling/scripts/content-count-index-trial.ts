@@ -1,3 +1,4 @@
+// Сравнивает подсчёты до и после индекса только на охраняемой синтетической БД. Измерение не разрешает автоматически применять индекс к рабочей схеме.
 // Opt-in causal A/B experiment: only the guarded, synthetic load fixture.
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";

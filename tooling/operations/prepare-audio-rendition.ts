@@ -1,3 +1,4 @@
+// Готовит отдельную совместимую аудиокопию с проверкой исходника и результата. Оригинал сохраняется; обновление привязки выполняется отдельным оператором.
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";

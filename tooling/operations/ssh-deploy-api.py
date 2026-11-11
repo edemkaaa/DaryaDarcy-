@@ -1,3 +1,4 @@
+# Исторически загружает API-bundle и пересоздаёт PM2-процесс на фиксированном серверном пути. Windows-корень и доверие SSH не подходят как универсальный новый deploy.
 import pathlib
 import socket
 import time

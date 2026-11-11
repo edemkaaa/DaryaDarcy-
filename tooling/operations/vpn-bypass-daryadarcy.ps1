@@ -1,3 +1,4 @@
+# Меняет маршруты Windows для обхода прежнего VPN к VPS. Требует административных прав и не влияет на маршрутизацию телефонов пользователей.
 # Route daryadarcy VPS around hidemy.name VPN (run after VPN connects).
 # Requires Administrator.
 $ErrorActionPreference = "Stop"

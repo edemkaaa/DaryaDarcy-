@@ -1,3 +1,4 @@
+// Упаковывает и загружает прежнюю статическую сборку в S3. Не использовать вместо выпуска серверного Next-приложения.
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";

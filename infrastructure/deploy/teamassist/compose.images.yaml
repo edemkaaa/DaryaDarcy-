@@ -1,3 +1,4 @@
+# Даёт Next доступ к публичным источникам и отдельному image-cache. Сеть не открывает исходящий доступ API и не меняет защиту закрытых файлов.
 # Opt-in: public S3 previews require outbound HTTPS from web, never from api.
 # Use together with the SMTP/video overlays, not instead of them.
 services:

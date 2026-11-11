@@ -1,3 +1,4 @@
+// Читает маршруты из заданного legacy-bundle; имя старого файла по умолчанию не является указанием актуального production-артефакта.
 import fs from "node:fs";
 
 const file = process.argv[2] || "web-dist2/_expo/static/js/web/entry-b62fcfeab093001ef911bcb70681f67e.js";

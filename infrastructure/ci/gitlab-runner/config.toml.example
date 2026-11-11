@@ -1,3 +1,4 @@
+# Ограничивает runner одним заданием и тестовым MySQL-service. Placeholder заменяется вне Git; production env и пользовательские токены jobs не нужны.
 # Copy outside Git, replace the placeholder privately, and chmod 600.
 # The example cannot authenticate until a project runner token is supplied.
 concurrent = 1

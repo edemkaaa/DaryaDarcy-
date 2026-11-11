@@ -1,3 +1,4 @@
+// Обновляет локальный список роликов прежнего YouTube-канала через внешний загрузчик; не является синхронизацией VK.
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";

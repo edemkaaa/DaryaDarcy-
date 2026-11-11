@@ -1,3 +1,4 @@
+// Связывает HTTP-сервер с временным кешем и точечной проверкой публикации через edge. У worker нет SQL-доступа и пользовательских сессий.
 import { createVideoCache } from "./cache.mjs";
 import { prepareVideo } from "./prepare.mjs";
 import { createVideoServer } from "./server.mjs";

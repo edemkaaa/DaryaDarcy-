@@ -1,3 +1,4 @@
+// Собирает отдельный клиентский вариант гостевой оплаты и проверяет встроенные флаги. Переменные окружения запущенного Next не могут заменить эти build-time значения.
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import {

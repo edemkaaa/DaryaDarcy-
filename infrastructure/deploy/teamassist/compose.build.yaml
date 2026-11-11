@@ -1,3 +1,4 @@
+# Только описание сборки образов с обязательной ревизией. Не объединять с runtime-стеком для up: базы и рабочие env при сборке не нужны.
 # BUILD ONLY. Never merge this file into the runtime Compose or run `up` with it.
 # Build from a clean git archive; this file does not load any deployment secrets.
 name: daryadarcy-build

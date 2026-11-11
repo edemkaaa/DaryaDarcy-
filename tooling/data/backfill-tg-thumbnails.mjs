@@ -1,3 +1,4 @@
+// Восстанавливает обложки импортированных Telegram-видео, скачивая исходники и создавая объекты S3. Требует отдельного плана и резервной копии привязок.
 /**
  * Backfill video thumbnails for already-imported Telegram club posts.
  */

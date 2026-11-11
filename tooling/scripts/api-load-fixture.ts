@@ -1,3 +1,4 @@
+// Готовит синтетические записи и API-процесс для локальной нагрузки; проверка владельца контейнера предшествует работе с тестовой БД.
 import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import { mkdtemp, symlink, rm } from "node:fs/promises";

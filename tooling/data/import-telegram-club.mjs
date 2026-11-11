@@ -1,3 +1,4 @@
+// Импортирует сообщения Telegram и вложения из экспорта с журналом прогресса. Внешние загрузки и запись в БД требуют согласованного запуска.
 /**
  * Import Telegram club posts from result.json + Yandex Disk media.
  *

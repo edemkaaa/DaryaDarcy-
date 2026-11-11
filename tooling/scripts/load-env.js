@@ -1,3 +1,4 @@
+// Загружает локальное окружение, сохраняя приоритет уже заданных системных переменных. CommonJS нужен прежним потребителям конфигурации Expo.
 /**
  * Custom environment loader that prioritizes system environment variables
  * over .env file values. CommonJS so Expo can load it from app.config.ts.

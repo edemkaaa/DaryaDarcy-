@@ -1,3 +1,4 @@
+// Сверяет прежние ссылки Магазина с S3. Флаг --acl меняет доступ найденных объектов на public-read и требует отдельного согласования.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

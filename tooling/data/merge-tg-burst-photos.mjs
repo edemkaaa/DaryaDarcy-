@@ -1,3 +1,4 @@
+// Объединяет соседние фото Telegram-серии с опорным постом. Применение изменяет записи и требует сверки конкретной группы сообщений.
 /**
  * Merge photo-only sibling messages (same TG burst) into the anchor post with text/video.
  * Example: tg-3005 video + tg-3006/3007 album photos → one post.

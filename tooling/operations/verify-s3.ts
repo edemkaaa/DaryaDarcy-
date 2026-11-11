@@ -1,3 +1,4 @@
+// Сверяет ссылки фотографий постов в выбранной БД. Наличие URL в записи не является проверкой выдачи закрытого файла пользователю.
 import { getDb } from '../../apps/backend/src/db';
 import { posts } from '../../packages/database/src/schema';
 

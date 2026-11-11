@@ -1,3 +1,4 @@
+// Формирует точный manifest старых платных копий для маршрутизации. Сам не удаляет оригиналы и не закрывает объекты в хранилище.
 /** Inventory exact paid copies. Preserve originals; this only writes a routing manifest. */
 import fs from "node:fs/promises";
 import path from "node:path";

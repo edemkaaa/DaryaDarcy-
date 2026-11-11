@@ -1,3 +1,4 @@
+// Меняет локальные require-ссылки после конвертации PNG в WebP. Запускать только вместе с проверкой реально созданных файлов.
 /** Fix require() paths after PNG → WebP conversion in assets/ */
 import fs from "node:fs";
 import path from "node:path";

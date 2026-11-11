@@ -1,3 +1,4 @@
+// Применяет подготовленный клубный импорт только после проверки точного staging-подключения и схемы. Наличие старого экспорта не даёт права заменять пользователей или оплаты.
 import assert from "node:assert/strict";
 import { readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";

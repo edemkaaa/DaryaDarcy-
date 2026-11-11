@@ -1,3 +1,4 @@
+# Меняет только закреплённые API/web-образы поверх полного прежнего стека. Остальные env, volume и overlays должны быть сохранены отдельно.
 # Image pins only. Append to the COMPLETE accepted runtime stack after its overlays.
 # Preserve the current database, private manifests, egress/SMTP and image-cache mounts.
 services:

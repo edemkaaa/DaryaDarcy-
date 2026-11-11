@@ -1,3 +1,4 @@
+# Изолирует прежний YouTube-worker от БД и пользовательских секретов. Временные файлы живут в ограниченном tmpfs, VK iframe этот сервис не требует.
 # Opt-in staging-only overlay. Preserve the existing SMTP/local override too.
 services:
   video:

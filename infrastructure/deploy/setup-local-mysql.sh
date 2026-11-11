@@ -1,4 +1,5 @@
 #!/bin/bash
+# Подготавливает системный локальный MySQL прежнего VPS. Не запускать на машине с существующими БД вместо создания одноразового контейнера.
 # Install MariaDB on the VPS and apply drizzle schema migrations.
 # Safe to re-run: skips CREATE errors, keeps existing data.
 set -euo pipefail

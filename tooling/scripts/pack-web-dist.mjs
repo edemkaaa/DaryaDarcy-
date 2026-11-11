@@ -1,3 +1,4 @@
+// Упаковывает готовый статический web-dist; запуск не собирает Next-приложение и не обновляет сервер.
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";

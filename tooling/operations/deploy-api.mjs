@@ -1,3 +1,4 @@
+// Старый путь выпуска через SSH/PM2, оставленный для прежнего окружения. Тесты перед запуском не исправляют Windows-пути и не заменяют проверку Docker-релиза.
 /**
  * Build API bundle and upload to VPS via SSH.
  * Usage: node tooling/operations/deploy-api.mjs

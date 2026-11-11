@@ -1,3 +1,4 @@
+// Формирует ссылку из явно переданного sandbox-окружения. Не подгружает ключи автоматически и не подтверждает успешность платежа.
 import { ProdamusSandboxService } from "../../apps/backend/src/billing/prodamus-sandbox.service";
 
 // Environment is supplied explicitly by the operator; never auto-load secrets.

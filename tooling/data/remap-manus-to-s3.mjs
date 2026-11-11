@@ -1,3 +1,4 @@
+// Сопоставляет прежние CDN-ресурсы с ключами S3 и меняет локальные ссылки. Совпадение имени не подтверждает правильность файла без проверки результата.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

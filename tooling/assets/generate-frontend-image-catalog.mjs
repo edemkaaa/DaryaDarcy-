@@ -1,3 +1,4 @@
+// Создаёт отпечатки используемых локальных изображений для статических импортов Next, не перекодируя пиксели.
 /** Fingerprint referenced local images using Next static imports; no re-encoding. */
 import fs from "node:fs/promises";
 import path from "node:path";

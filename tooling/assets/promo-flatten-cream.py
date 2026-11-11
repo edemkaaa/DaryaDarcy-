@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Формирует непрозрачный WebP на кремовом фоне приложения, устраняя чёрные ореолы от неверной обработки прозрачности.
 """Build flat promo WebP on app cream background — no PNG alpha / black halos."""
 from __future__ import annotations
 

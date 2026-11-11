@@ -1,3 +1,4 @@
+// Применяет заранее подготовленную карту замен URL к локальным исходникам. Не проверяет права доступа удалённых объектов вместо оператора.
 /** Apply URL replacements from tooling/data/.s3-url-map.json */
 import fs from "node:fs";
 import path from "node:path";

@@ -1,3 +1,4 @@
+# Читает настройки Prodamus через прежнее SSH-окружение с маскированием отчёта. Windows-пути и целевой сервер проверяются до запуска.
 import pathlib
 import socket
 import paramiko

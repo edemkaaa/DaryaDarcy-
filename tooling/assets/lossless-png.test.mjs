@@ -1,3 +1,4 @@
+// Проверяет сохранение образцов и структуры PNG при перепаковке, включая случаи, где меньший размер не должен покупаться изменением цвета.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { deflateSync, crc32 } from "node:zlib";

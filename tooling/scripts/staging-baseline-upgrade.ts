@@ -1,3 +1,4 @@
+// Выполняет узкий согласованный baseline-переход после проверки закрытых файлов доказательств. Исторический профиль не предназначен для произвольной актуальной БД.
 import mysql from "mysql2/promise";
 import { createHash } from "node:crypto";
 import { constants } from "node:fs";

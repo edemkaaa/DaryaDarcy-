@@ -1,3 +1,4 @@
+// Упаковывает прежний статический выпуск с API-bundle и установочными сценариями. Не заменяет нынешнюю сборку проверенных Docker-образов.
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";

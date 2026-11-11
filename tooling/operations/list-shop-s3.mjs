@@ -1,3 +1,4 @@
+// Перечисляет объекты Магазина; с --acl дополнительно делает их public-read. Режим изменения доступа не следует включать для закрытого контента.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

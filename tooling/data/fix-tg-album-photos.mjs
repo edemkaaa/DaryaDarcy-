@@ -1,3 +1,4 @@
+// Восстанавливает альбомы импортированных Telegram-постов через исходный экспорт и Яндекс Диск; меняет медиа и их привязки.
 /**
  * Backfill multi-photo albums for imported Telegram club posts.
  */

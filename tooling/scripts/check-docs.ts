@@ -1,3 +1,4 @@
+// Проверяет локальные ссылки документов из Git-инвентаря. Внешние сайты не открывает, исторические снимки не переоценивает как текущую документацию.
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";

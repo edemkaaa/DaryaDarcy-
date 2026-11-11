@@ -1,3 +1,4 @@
+// Дополняет имена видео в выбранной БД по сохранённым данным. Переменная подключения должна быть проверена до ручного запуска.
 import mysql from "mysql2/promise";
 
 const url = process.env.DATABASE_URL || process.env.NEW_DATABASE_URL;

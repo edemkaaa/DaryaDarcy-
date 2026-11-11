@@ -1,4 +1,5 @@
 #!/bin/bash
+# Историческая установка на новый VPS меняет системные пакеты и службы. Перед новым размещением нужен актуальный Docker-пакет и проверенный план восстановления данных.
 # Wipe the previous app and install a fresh IP-only build.
 # Run as root. Keeps /root/daryadarcy.env.bak
 set -euo pipefail

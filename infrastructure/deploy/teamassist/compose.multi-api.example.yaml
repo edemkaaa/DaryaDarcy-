@@ -1,3 +1,4 @@
+# Пример двух API требует общей SQL-координации и суммарного бюджета памяти/соединений. Не применять масштабирование без отдельного preflight целевого хоста.
 # Reviewed candidate profile, not a command to scale the existing shared host.
 # Append after all runtime overlays; run multi-api-preflight against the final
 # private resolved config and actual host/SQL capacity before using it.

@@ -1,3 +1,4 @@
+// Ограничивает SQL-тесты одноразовой backend_test на разрешённых адресах. Параметры URI не должны обходить ограничение через Unix socket.
 /** Safety guard shared by local tests and isolated CI service readiness. */
 export function assertTestDatabase(uri: string): URL {
   const url = new URL(uri);

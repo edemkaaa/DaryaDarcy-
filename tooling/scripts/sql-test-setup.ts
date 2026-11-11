@@ -1,3 +1,4 @@
+// Даёт тестам временный loopback-маршрут к разрешённому CI MySQL. Защита production maintenance от произвольных удалённых адресов при этом не ослабляется.
 import net from "node:net";
 import type { TestProject } from "vitest/node";
 import { assertTestDatabase } from "./test-database-policy";
@@ -54,6 +55,7 @@ export default async function setup(project: TestProject) {
   local.port = String(address.port);
   project.config.env.BACKEND_TEST_DATABASE_URL = local.href;
 
+  // Дожидаемся закрытия своих сокетов, чтобы следующий SQL-прогон не унаследовал активный туннель.
   return async () => {
     for (const socket of sockets) socket.destroy();
     await new Promise<void>((resolve, reject) =>

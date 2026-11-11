@@ -1,3 +1,4 @@
+# Профиль верхних лимитов для выделенного хоста; CPU-лимиты не резервируют ядра. Это не разрешение применить их к малому общему серверу.
 # Resource ceilings only, for a dedicated host with at least 4 vCPU and 8 GiB RAM.
 # Append AFTER all existing overlays. This is not a complete production config.
 # Do not apply to the current shared 2-vCPU/4-GB staging host.

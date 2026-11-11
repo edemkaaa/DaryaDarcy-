@@ -1,4 +1,5 @@
 #!/bin/bash
+# Исторически настраивает Nginx для доступа по IP. Не применять поверх актуального доменного Docker-стека без сверки конфигурации.
 set -euo pipefail
 APP=/var/www/daryadarcy
 cp "$APP/infrastructure/deploy/nginx-daryadarcy.conf" /etc/nginx/sites-available/daryadarcy

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Убирает только близкий к чистому чёрному фон промо-картинок; консервативный порог нужен, чтобы сохранить тени внутри фотографий.
 """Convert promo JPG (black background) to PNG with conservative alpha."""
 from __future__ import annotations
 

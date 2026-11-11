@@ -1,3 +1,4 @@
+// Нормализует управляющие символы и richText в сохранённых постах. Одноразовую очистку данных не следует путать с валидацией каждого нового запроса.
 /**
  * One-time cleanup: strip control chars from posts.text and normalize richText JSON.
  * Usage: node tooling/data/sanitize-post-text.mjs

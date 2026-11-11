@@ -1,3 +1,4 @@
+// Извлекает выходные типы tRPC средствами TypeScript, не запуская сервер. Поэтому неполный серверный тип воспроизводится в контракте и требует исправления в источнике.
 // Extracts the compiler's inferred wire types; never executes server code.
 const fs = require("fs"),
   path = require("path");

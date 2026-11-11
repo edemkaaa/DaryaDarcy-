@@ -1,4 +1,5 @@
 #!/bin/bash
+# Запускает прежний API по серверным путям. Для нынешнего Compose порядок запуска и образ задаются отдельно.
 set -euo pipefail
 cd /var/www/daryadarcy
 test -f dist/index.mjs

@@ -1,3 +1,4 @@
+// Считает видео в локальных данных экспорта; такой отчёт не подтверждает опубликованный каталог или запуск плееров.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

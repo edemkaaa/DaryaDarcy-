@@ -1,3 +1,4 @@
+// Описывает типы автономного импортёра публичного staging-снимка для TypeScript-потребителей JavaScript-модуля. Наличие этих типов не обходит runtime-проверки назначения и пустой БД.
 export interface PublicSnapshot {
   posts: Array<{
     id: number;

@@ -1,3 +1,4 @@
+// Загружает конкретные публичные ролик и постер главной в S3. Пишет по заданным ключам и не предназначен для клубных файлов.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

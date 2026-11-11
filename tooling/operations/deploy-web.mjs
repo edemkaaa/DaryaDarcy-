@@ -1,3 +1,4 @@
+// Сохраняет прежний статический pipeline, но останавливается при обнаружении Next. Новый серверный frontend нельзя публиковать как Expo web-dist.
 /**
  * Safe web deploy: verify → build → upload tarball → SSH deploy → smoke.
  * Usage: node tooling/operations/deploy-web.mjs

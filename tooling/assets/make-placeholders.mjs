@@ -1,3 +1,4 @@
+// Создаёт отсутствующие локальные заглушки; наличие заглушки не означает, что исходный пользовательский файл восстановлен.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

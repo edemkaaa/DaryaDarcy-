@@ -1,3 +1,4 @@
+// Проверяет комплект миграций, а при явном требовании — историю выбранной БД. Успешный отчёт сам не применяет изменения схемы.
 import { readFile, readdir } from "node:fs/promises";
 import { URL } from "node:url";
 import {

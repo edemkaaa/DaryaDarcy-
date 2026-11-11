@@ -1,3 +1,4 @@
+// Принимает только подтверждённое уменьшение без изменения декодированных пикселей; запись включается отдельно от анализа.
 /** Lossless only. Preview by default; --write applies verified smaller files. */
 import fs from "node:fs/promises";
 import path from "node:path";

@@ -1,3 +1,4 @@
+// Исторически наполняет таблицу YouTube-каталога. Для нынешнего VK-каталога это не штатный источник данных.
 /**
  * Seed YouTube videos into the database.
  * Run with: npx tsx tooling/data/seed-videos.ts

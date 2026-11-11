@@ -1,3 +1,4 @@
+# Исторически меняет локальную маршрутизацию hidemy.name для VPS. Это настройка сети компьютера, а не исправление приложения.
 """Add daryadarcy VPS to hidemy.name OpenVPN routing (bypass VPN)."""
 from __future__ import annotations
 

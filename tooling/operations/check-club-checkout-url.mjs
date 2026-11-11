@@ -1,3 +1,4 @@
+// Собирает диагностический подписанный payload из настроек Prodamus, не выполняя оплату. Пример ссылки не подтверждает боевой тариф или автопродление.
 import { createHmac } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";

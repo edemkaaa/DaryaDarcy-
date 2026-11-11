@@ -1,3 +1,4 @@
+// Выбирает битрейт совместимой аудиокопии в пределах прежней квоты 32 МиБ, оставляя запас на контейнер и дрейф среднего битрейта.
 import assert from "node:assert/strict";
 
 /** Offline copies must fit the existing 32 MiB audio quota, not bypass it.

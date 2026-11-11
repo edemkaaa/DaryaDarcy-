@@ -1,3 +1,4 @@
+// Читает приватный снимок Compose и сверяет его с ресурсами хоста и MySQL. Ошибки разбора намеренно не выводят входной файл с паролями.
 import { readFile, stat } from "node:fs/promises";
 import { inspectMultiApiDeployment } from "./multi-api-policy";
 

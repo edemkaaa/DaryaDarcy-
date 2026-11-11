@@ -1,3 +1,4 @@
+// Создаёт и выводит новый TOTP-секрет для ручной настройки. Вывод является секретом; наличие генератора не означает, что 2FA включена в приложении.
 /**
  * Generate a base32 TOTP secret for ADMIN_TOTP_SECRET.
  * Add to production .env, then scan in Google Authenticator / 1Password.

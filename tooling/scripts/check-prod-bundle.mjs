@@ -1,3 +1,4 @@
+// Сравнивает локальный legacy-bundle с реальными ответами прежнего production-домена. Наличие строки в сборке не доказывает работу пользовательского сценария.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

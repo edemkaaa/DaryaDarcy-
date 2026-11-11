@@ -1,3 +1,4 @@
+// Задаёт и проверяет публичные флаги отдельной сборки гостевого восстановления оплаты; настройки платёжного провайдера здесь не хранятся.
 /** Explicit build-time profile; no provider credentials or server configuration. */
 export const normalGuestFlags = Object.freeze({
   NEXT_PUBLIC_CLUB_TEST_CHECKOUT: "false",

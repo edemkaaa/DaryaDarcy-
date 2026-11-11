@@ -1,3 +1,4 @@
+// Создаёт или проверяет схему только на точно определённой пустой локальной БД. Рабочее подключение не подставляется вместо одноразового по умолчанию.
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { promisify } from "node:util";

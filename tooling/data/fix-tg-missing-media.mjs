@@ -1,3 +1,4 @@
+// Ищет пропущенные Telegram-вложения в файловом экспорте и создаёт недостающие привязки. Совпадение исходного сообщения важнее похожего имени файла.
 /**
  * Backfill missing photos/video/audio for imported Telegram posts.
  * Handles export rows where file paths were omitted but files exist on Yandex Disk.

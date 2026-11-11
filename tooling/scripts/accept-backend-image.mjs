@@ -1,3 +1,4 @@
+// Принимает уже собранный API-образ на собственной одноразовой БД. Не загружает рабочее окружение и не заменяет проверку на целевом сервере.
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { mkdir, open, writeFile } from "node:fs/promises";

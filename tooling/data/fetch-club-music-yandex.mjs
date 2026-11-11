@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Переносит согласованную музыку из Яндекс Диска в S3. Лицензия и целевой ключ проверяются оператором до внешней записи.
 /** Download licensed club music from Yandex Disk and upload to S3. */
 import fs from "node:fs";
 import path from "node:path";

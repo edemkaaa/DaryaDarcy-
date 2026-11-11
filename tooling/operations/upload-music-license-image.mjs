@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Публикует согласованную иллюстрацию лицензии музыки по выбранному S3-ключу. Это ручная внешняя запись, не часть проигрывания аудио.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

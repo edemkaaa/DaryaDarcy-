@@ -1,3 +1,4 @@
+// Разбирает локальные Markdown-ссылки с учётом блоков кода и относительных путей. Не пытается подтверждать доступность внешних URL.
 import path from "node:path";
 
 export type BrokenDocumentationLink = {

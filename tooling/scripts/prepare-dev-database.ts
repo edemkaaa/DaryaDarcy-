@@ -1,3 +1,4 @@
+// Подготавливает схему локальной разработки с явной проверкой целевого подключения. Загрузка env не даёт разрешения заменять рабочую БД.
 import "dotenv/config";
 import { config } from "dotenv";
 import { createConnection } from "mysql2/promise";

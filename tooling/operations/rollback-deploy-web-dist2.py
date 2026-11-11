@@ -1,3 +1,4 @@
+# Исторически выкладывает сохранённый сентябрьский web-dist2. Такой откат статического клиента не подходит для нынешнего Next runtime.
 """Deploy the saved web-dist2 snapshot (Sep 2 stable build) to production."""
 import pathlib
 import re

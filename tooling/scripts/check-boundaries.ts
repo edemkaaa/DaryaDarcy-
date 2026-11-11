@@ -1,3 +1,4 @@
+// Определяет слой по пути импорта и проверяет допустимость зависимости. Это проверка архитектурных границ, а не выполнение импортируемых модулей.
 import ts from "typescript";
 import { builtinModules } from "node:module";
 import { dirname, relative, resolve, sep } from "node:path";

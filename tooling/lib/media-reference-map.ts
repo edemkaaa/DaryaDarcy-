@@ -1,3 +1,4 @@
+// Строит карту точных ссылок из снимков постов и статей, различая общие и закрытые объекты. URL хешируются без нормализации, чтобы не смешать разные подписанные адреса и не раскрыть их в отчёте.
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { parseArticleInlines } from "../../packages/shared/src/article-blocks";
@@ -47,6 +48,7 @@ function referenceReport() {
       issues.push(location + ".invalid-url");
       return;
     }
+    // Подпись или fragment требуют проверки объекта: автоматическое отбрасывание параметров меняет смысл ссылки.
     if (url.search || url.hash)
       issues.push(location + ".query-or-fragment-needs-object-resolution");
     // Exact bytes: stripping signatures, decoding paths or normalizing aliases

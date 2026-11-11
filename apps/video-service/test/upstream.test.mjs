@@ -1,3 +1,4 @@
+// Проверяет ограничение и разбор ответов внешних источников без доверия произвольному JSON или клиентскому URL.
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 import { createServer } from "node:http";

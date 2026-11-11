@@ -1,3 +1,4 @@
+// Создаёт тестовые копии внутри backup-бакета и читает их байты. Прежние пути требуют ремонта; запуск не является операцией только чтения.
 /**
  * Test restore: copy 2–3 files from backup bucket to restore-test/ prefix and verify.
  * Usage: S3_BACKUP_ENV=/etc/daryadarcy/s3-backup.env node tooling/operations/s3-backup-restore-test.mjs

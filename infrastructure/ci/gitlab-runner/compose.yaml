@@ -1,3 +1,4 @@
+# Запускает только manager отдельного CI-runner. Docker socket даёт ему контроль выделенного хоста; рабочим job-контейнерам socket не передаётся.
 name: daryadarcy-ci
 
 services:
