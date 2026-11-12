@@ -11,6 +11,7 @@ type StatusNoticeProps = {
   children: ReactNode;
   tone?: Tone;
   actions?: ReactNode;
+  onDismiss?: () => void;
   compact?: boolean;
   role?: "alert" | "status";
   className?: string;
@@ -22,6 +23,7 @@ export const StatusNotice = forwardRef<HTMLDivElement, StatusNoticeProps>(
       children,
       tone = "info",
       actions,
+      onDismiss,
       compact = false,
       role = tone === "error" ? "alert" : "status",
       className = "",
@@ -59,6 +61,19 @@ export const StatusNotice = forwardRef<HTMLDivElement, StatusNoticeProps>(
             />
           </span>
           <div className={`ui-stack ${classes.message}`}>{children}</div>
+          {onDismiss ? (
+            <Action
+              type="button"
+              aria-label="Закрыть уведомление"
+              title="Закрыть"
+              className={classes.dismiss}
+              hitArea={7}
+              activeOpacity={1}
+              onClick={onDismiss}
+            >
+              <MaterialIcons name="close" size={20} color="currentColor" />
+            </Action>
+          ) : null}
         </div>
         {actions ? (
           <div className={`ui-stack ${classes.actions}`}>{actions}</div>
@@ -69,15 +84,33 @@ export const StatusNotice = forwardRef<HTMLDivElement, StatusNoticeProps>(
 );
 
 /** Оформляем обычное действие в стиле сообщения, сохраняя его обработчики и состояние disabled. */
-export function StatusNoticeAction(
-  props: Omit<ComponentProps<typeof Action>, "className" | "style">,
-) {
+export function StatusNoticeAction({
+  icon,
+  children,
+  ...props
+}: Omit<ComponentProps<typeof Action>, "className" | "style"> & {
+  icon?: string;
+}) {
   return (
     <Action
       {...props}
       activeOpacity={props.activeOpacity ?? 1}
-      className={classes.action}
-    />
+      hitArea={props.hitArea ?? 7}
+      title={
+        props.title ??
+        (icon && typeof children === "string" ? children : undefined)
+      }
+      className={`${classes.action} ${icon ? classes.iconAction : ""}`}
+    >
+      {icon ? (
+        <>
+          <MaterialIcons name={icon} size={20} color="currentColor" />
+          <span className="ui-sr-only">{children}</span>
+        </>
+      ) : (
+        children
+      )}
+    </Action>
   );
 }
 

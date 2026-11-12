@@ -3,6 +3,7 @@
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { parentRoute } from "@/shared/navigation/parent-route";
+import { resetSectionScroll } from "@/shared/navigation/section-scroll";
 import { BottomTabIcon } from "./bottom-tab-icon";
 import styles from "./bottom-tabs.module.scss";
 
@@ -56,6 +57,7 @@ export function BottomTabs() {
           <Link
             href={href}
             prefetch={false}
+            onNavigate={() => resetSectionScroll(href)}
             key={href}
             aria-label={label}
             className={styles.tab}

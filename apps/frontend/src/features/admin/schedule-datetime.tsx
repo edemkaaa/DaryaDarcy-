@@ -2,7 +2,8 @@
 /** Выбор отложенного времени преобразует локальные поля даты в значение редактора и показывает состояние планирования. */
 import classes from "./schedule-datetime.module.scss";
 import { Action, Typography } from "@/shared/ui/elements";
-import { createElement, useState } from "react";
+import { createElement, useId, useState } from "react";
+import { scheduleDateError } from "@/domain/post/draft";
 import { BROWN } from "./schedule-datetime.content";
 function pad(value: number) {
   // Дополняет компоненты локальной даты до формата datetime-local.
@@ -38,6 +39,8 @@ export function ScheduleDatetime({
     atHour(new Date(Date.now() + (allowPast ? 0 : 24 * 60 * 60 * 1000)), 10),
   );
   const selected = value || defaultDate;
+  const error = !allowPast && value ? scheduleDateError(value) : null;
+  const errorId = useId();
   const setPreset = (daysAhead: number) => {
     // Считает календарные дни в локальной зоне и выбирает 10:00, а не фиксированную длительность в миллисекундах.
 
@@ -49,6 +52,8 @@ export function ScheduleDatetime({
     <div className="ui-stack ">
       {createElement("input", {
         type: "datetime-local",
+        "aria-invalid": error ? true : undefined,
+        "aria-describedby": error ? errorId : undefined,
         value: toDatetimeLocalValue(selected),
         ...(allowPast ? {} : { min: toDatetimeLocalValue(new Date()) }),
         onChange: (event: {
@@ -68,6 +73,15 @@ export function ScheduleDatetime({
         },
         className: classes.dateInput,
       })}
+      {!allowPast ? (
+        <div
+          id={errorId}
+          className={classes.validationMessage}
+          aria-live="polite"
+        >
+          {error ? <span role="alert">{error}</span> : null}
+        </div>
+      ) : null}
       {!allowPast ? (
         <div
           className={["ui-stack ", classes.presets].filter(Boolean).join(" ")}

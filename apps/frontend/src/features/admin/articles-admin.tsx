@@ -30,7 +30,7 @@ import { Picture } from "@/shared/media/image";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { StatusNotice, StatusNoticeAction } from "@/shared/ui/status-notice";
-import { useBackgroundNotice } from "@/shared/ui/background-notice";
+import { BackgroundNotice, useBackgroundNotice } from "@/shared/ui/background-notice";
 import { trpc } from "@/shared/api/trpc";
 import { requireCursorPage } from "@/shared/api/use-cursor-pages";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
@@ -822,13 +822,11 @@ function ArticleEditor({ ownerId }: { ownerId: number }) {
             }
           />
         ) : null}
-        {!draft.error && (
-          <StatusNotice>
-            {draft.saving
-              ? "Сохраняем черновик на устройстве…"
-              : "Черновик статьи сохраняется на этом устройстве."}
-          </StatusNotice>
-        )}
+        <BackgroundNotice
+          when={!draft.error}
+          message={draft.saving ? "Сохраняем черновик на устройстве…" : "Черновик статьи сохраняется на этом устройстве."}
+          priority={-1}
+        />
         {pendingCreation ? (
           <div>
             <Typography className={classes.hint}>

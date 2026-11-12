@@ -202,7 +202,7 @@ CDP-замер сетевого кэша в WebKit и создание стар�
 Восстановление нового байтового формата и отсутствие повторной загрузки вложений
 прошли в обоих движках.
 
-Команда воспроизведения: `CI=1 pnpm --filter @daryadarcy/frontend exec playwright test --config=playwright.acceptance.config.ts --workers=2`.
+Команда воспроизведения: `CI=1 pnpm --filter @daryadarcy/frontend exec playwright test --config=e2e/config/playwright.acceptance.config.ts --workers=2`.
 При нестандартном размещении браузеров задать `PLAYWRIGHT_EXECUTABLE_PATH` и
 `PLAYWRIGHT_WEBKIT_EXECUTABLE_PATH`. В этой среде Chromium — `/usr/bin/chromium`,
 WebKit — временная обёртка библиотек `/tmp/daryadarcy-webkit-run.sh`; для другой

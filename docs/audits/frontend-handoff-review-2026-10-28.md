@@ -130,8 +130,8 @@ pnpm build:web
 pnpm check:api
 pnpm --filter @daryadarcy/frontend exec tsc --noEmit -p tsconfig.e2e.json
 # После соответствующей build-time сборки, с доступным Chromium:
-pnpm --filter @daryadarcy/frontend exec playwright test --config playwright.guest-checkout.config.ts
-VIDEO_THUMBNAILS_UI_ENABLED=true pnpm --filter @daryadarcy/frontend exec playwright test --config playwright.catalog.config.ts
+pnpm --filter @daryadarcy/frontend exec playwright test --config e2e/config/playwright.guest-checkout.config.ts
+VIDEO_THUMBNAILS_UI_ENABLED=true pnpm --filter @daryadarcy/frontend exec playwright test --config e2e/config/playwright.catalog.config.ts
 ```
 
 Все browser-изменения данных выполняются в синтетических fixtures. Сервер, рабочая БД, настоящие S3-объекты, платежи и письма этой проверкой не менялись. Продуктовые исходники и существующие тесты не изменялись; добавлен только этот отчёт. Локальные диагностические spec вынесены в /tmp. В конце восстановлена сборка с исходными настройками .env.local без изменения самого файла. Профильная анкета проверена статически в части потери версии; конкретный browser-probe выполнялся для редактора имени. Тесты Chromium не доказывают поведение физического iPhone/Safari. Required mode контента, guest/LIVE и retirement на сервере не включались.

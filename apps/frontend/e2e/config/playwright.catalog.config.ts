@@ -1,6 +1,6 @@
 /** Тестовые ожидания каталога должны совпадать со сборочными VK/thumbnail-флагами; конфигурация сама frontend не пересобирает. */
 import { defineConfig } from "@playwright/test";
-import base from "./playwright.config";
+import base from "../../playwright.config";
 
 // Focused catalog suite: use a build with NEXT_PUBLIC_VK_CATALOG_ENABLED=true.
 // Pass VIDEO_THUMBNAILS_UI_ENABLED to match that build's optional cover flag.
@@ -18,5 +18,5 @@ export default defineConfig({
     "media-failure-lifecycle.spec.ts",
     "status-notice-layout.spec.ts",
   ],
-  outputDir: "test-results/catalog",
+  outputDir: "../../test-results/catalog",
 });

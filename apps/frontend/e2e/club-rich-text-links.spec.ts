@@ -117,7 +117,7 @@ for (const article of [false, true]) {
       }
     }
     /** Только отдельная кнопка чтения переводит к материалу и вызывает соответствующую процедуру. */
-    const read = page.getByRole("button", {
+    const read = page.getByRole(article ? "button" : "link", {
       name: article ? "читать →" : "Открыть публикацию",
       exact: true,
     });

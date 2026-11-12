@@ -1,7 +1,8 @@
 import { test, expect } from "@playwright/test";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
+import { ok } from "./editor-fixtures";
 
-/** Профили мобильных браузеров и desktop проверяют настоящую прокрутку до последней карточки, закреплённую шапку Видео и сохранение позиции при возврате. */
+/** Профили мобильных браузеров и desktop проверяют настоящую прокрутку до последней карточки, закреплённую шапку Видео и возврат к началу через меню. */
 for (const device of [
   { name: "iPhone", viewport: { width: 375, height: 812 }, isMobile: true },
   { name: "Android", viewport: { width: 412, height: 915 }, isMobile: true },
@@ -14,37 +15,39 @@ for (const device of [
       hasTouch: device.isMobile,
     });
 
-    test("videos scroll to the last card and retain their position on return", async ({
+    test("videos scroll to the last card and open at the top from the menu", async ({
       page,
       browserName,
     }) => {
-      await layoutApi(page);
-      await page.route("**/api/trpc/videos.list**", (route) =>
-        route.fulfill({
-          json: [
-            {
-              result: {
-                data: {
-                  json: Array.from({ length: 8 }, (_, index) => ({
-                    id: index + 1,
-                    youtubeId: "fixture",
-                    title: `Материал ${index + 1}`,
-                    thumbnailUrl: "/assets/interactive/quiz-cover.jpg",
-                    videoUrl: null,
-                    views: "1200",
-                    publishedText: "2026",
-                    duration: "12:30",
-                    sortOrder: index + 1,
-                    published: true,
-                    createdAt: "2026-10-01T12:00:00Z",
-                    updatedAt: "2026-10-01T12:00:00Z",
-                  })),
-                },
-              },
-            },
-          ],
-        }),
-      );
+      const items = Array.from({ length: 8 }, (_, index) => ({
+        id: index + 1,
+        youtubeId: "fixture",
+        title: `Материал ${index + 1}`,
+        thumbnailUrl: "/assets/interactive/quiz-cover.jpg",
+        videoUrl: null,
+        views: "1200",
+        publishedText: "2026",
+        duration: "12:30",
+        sortOrder: index + 1,
+        published: true,
+        createdAt: "2026-10-01T12:00:00Z",
+        updatedAt: "2026-10-01T12:00:00Z",
+      }));
+      await layoutApi(page, false, (name) => {
+        if (name === "videos.list") return ok(items);
+        if (name === "videos.catalog")
+          return ok({
+            items: items.map((item) => ({
+              id: item.id,
+              title: item.title,
+              duration: null,
+              thumbnailUrl: item.thumbnailUrl,
+              access: "public",
+              canWatch: true,
+            })),
+            nextCursor: null,
+          });
+      });
       await gotoWithSession(page, "/");
       await page.locator('nav a[href="/videos"]').click();
       const panel = page.locator('[data-tab-screen="/videos"]');
@@ -104,16 +107,15 @@ for (const device of [
       ]);
       expect(card!.y + card!.height).toBeLessThanOrEqual(bottomMenu!.y);
       expect(bottomMenu).toEqual(menuBefore);
-      const position = await scroll.evaluate((node) => node.scrollTop);
       await page.locator('nav a[href="/interactive"]').click();
       await expect(page.getByText("ИНТЕРАКТИВ", { exact: true })).toBeVisible();
       await page.locator('nav a[href="/videos"]').click();
       await expect
         .poll(() => scroll.evaluate((node) => node.scrollTop))
-        .toBe(position);
-      await expect(last).toBeInViewport();
+        .toBe(0);
+      await expect(panel.getByText("ВИДЕО", { exact: true })).toBeInViewport();
       // A section with a sliding header still slides; returning to Videos
-      // resets it even when that section's scroll position was retained.
+      // reveals it and opens the selected section at the top.
       await page.locator('nav a[href="/feed"]').click();
       const feedScroll = page.locator(
         '[data-tab-screen="/feed"] .ui-scroll:not(.ui-scroll-horizontal)',
@@ -128,8 +130,8 @@ for (const device of [
       await expect(header).not.toHaveAttribute("inert");
       await expect
         .poll(() => scroll.evaluate((node) => node.scrollTop))
-        .toBe(position);
-      await expect(last).toBeInViewport();
+        .toBe(0);
+      await expect(panel.getByText("ВИДЕО", { exact: true })).toBeInViewport();
     });
   });
 }

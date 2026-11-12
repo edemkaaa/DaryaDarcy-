@@ -1,6 +1,6 @@
 /** Выбираем только guest/NORMAL recovery и отключаем TEST-ожидания; нужны соответствующие флаги уже собранного клиента. */
 import { defineConfig } from "@playwright/test";
-import base from "./playwright.config";
+import base from "../../playwright.config";
 
 // Match a build with NEXT_PUBLIC_GUEST_CHECKOUT_RECOVERY_ENABLED=true,
 // NEXT_PUBLIC_NORMAL_CHECKOUT_RECOVERY_ENABLED=true and both TEST flags=false.
@@ -13,5 +13,5 @@ export default defineConfig({
     "guest-checkout-recovery.spec.ts",
     "normal-checkout-recovery.spec.ts",
   ],
-  outputDir: "test-results/guest-checkout",
+  outputDir: "../../test-results/guest-checkout",
 });

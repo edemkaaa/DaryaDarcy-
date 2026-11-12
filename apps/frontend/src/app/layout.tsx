@@ -24,6 +24,7 @@ export const viewport: Viewport = {
   viewportFit: "cover",
   interactiveWidget: "resizes-content",
   themeColor: "#FDF8F0",
+  colorScheme: "light",
 };
 /** Дожидаемся request-time рендера ради nonce, затем отдаём общий документ; интерактивные провайдеры подключают вложенные layout. */
 export default async function RootLayout({
@@ -34,7 +35,7 @@ export default async function RootLayout({
   // Nonces must be attached at request time, including to previously static pages.
   await connection();
   return (
-    <html lang="ru">
+    <html lang="ru" data-theme="light">
       <head>
         <link
           rel="preload"

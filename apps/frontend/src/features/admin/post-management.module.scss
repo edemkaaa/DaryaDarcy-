@@ -75,6 +75,10 @@
     background-color: var(--paper);
   }
 
+  .recoveryActions {
+    padding: 0 12px 12px;
+  }
+
   .modalHeader {
     flex-direction: row;
     align-items: center;
@@ -115,7 +119,7 @@
   .formContent {
     padding: 16px;
     gap: 20px;
-    padding-bottom: 40px;
+    padding-bottom: calc(40px + var(--background-notice-clearance, 0px));
   }
 
   .tagHint {

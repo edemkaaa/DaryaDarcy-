@@ -15,7 +15,6 @@ import { Gesture, GestureDetector } from "@/shared/browser/gestures";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withTiming,
 } from "@/shared/browser/motion";
 import * as ImageManipulator from "@/shared/media/canvas-image";
 
@@ -66,31 +65,40 @@ export function AvatarCropper({
     aspectRatio >= 1 ? CIRCLE_SIZE * aspectRatio : CIRCLE_SIZE;
   const displayHeight =
     aspectRatio >= 1 ? CIRCLE_SIZE : CIRCLE_SIZE / aspectRatio;
+  // Предпросмотр не выходит за те же границы исходника, которые применяются при сохранении.
+  const setPosition = (x: number, y: number) => {
+    const limitX = Math.max(0, (displayWidth * scale.value - CIRCLE_SIZE) / 2);
+    const limitY = Math.max(0, (displayHeight * scale.value - CIRCLE_SIZE) / 2);
+    translateX.value = Math.max(-limitX, Math.min(x, limitX));
+    translateY.value = Math.max(-limitY, Math.min(y, limitY));
+  };
+  const savePosition = () => {
+    savedTranslateX.value = translateX.value;
+    savedTranslateY.value = translateY.value;
+  };
   const pinchGesture = Gesture.Pinch()
-    // Во время обработки жесты не меняют выбранный crop; после уменьшения ниже 1 масштаб возвращается к заполнению круга.
+    .onStart(() => {
+      savedScale.value = scale.value;
+    })
     .onUpdate((e) => {
       if (cropping) return;
-      scale.value = Math.max(0.5, Math.min(savedScale.value * e.scale, 4));
+      scale.value = Math.max(1, Math.min(savedScale.value * e.scale, 4));
+      setPosition(translateX.value, translateY.value);
     })
     .onEnd(() => {
-      if (scale.value < 1) {
-        scale.value = withTiming(1);
-        savedScale.value = 1;
-      } else {
-        savedScale.value = scale.value;
-      }
+      savedScale.value = scale.value;
+      savePosition();
     });
   const panGesture = Gesture.Pan()
-    // Панорамирование накапливается относительно конца предыдущего жеста; выход за исходник ограничивается при расчёте crop.
+    .onStart(savePosition)
     .onUpdate((e) => {
-      if (cropping) return;
-      translateX.value = savedTranslateX.value + e.translationX;
-      translateY.value = savedTranslateY.value + e.translationY;
+      if (!cropping)
+        setPosition(
+          savedTranslateX.value + e.translationX,
+          savedTranslateY.value + e.translationY,
+        );
     })
-    .onEnd(() => {
-      savedTranslateX.value = translateX.value;
-      savedTranslateY.value = translateY.value;
-    });
+    .onEnd(savePosition);
   const composed = Gesture.Simultaneous(pinchGesture, panGesture);
   const animatedStyle = useAnimatedStyle(() => ({
     transform: cssTransform([

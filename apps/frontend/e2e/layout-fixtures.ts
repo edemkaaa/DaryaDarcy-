@@ -116,6 +116,8 @@ export async function layoutApi(
             return { granted: false, orderId: null };
           case "feed.listPaginated":
             return { posts, nextCursor: null };
+          case "videos.catalog":
+            return { items: [], nextCursor: null };
           case "admin.postsPage":
             return { posts: [], nextCursor: null };
           case "admin.articlesPage":

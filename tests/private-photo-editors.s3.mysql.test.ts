@@ -844,7 +844,7 @@ describe.skipIf(!enabled)(
         await lostUpdate.reached;
         await ui(
           form.getByRole("button", {
-            name: "Проверил список — удалить локальную копию",
+            name: "Удалить локальную копию",
             exact: true,
           }),
         ).toBeVisible();
@@ -874,7 +874,7 @@ describe.skipIf(!enabled)(
         ).toEqual(expected);
         await form
           .getByRole("button", {
-            name: "Проверил список — удалить локальную копию",
+            name: "Удалить локальную копию",
             exact: true,
           })
           .click();

@@ -35,69 +35,13 @@ import { LinearGradient } from "@/shared/ui/gradient";
 import { LegalDocumentsFooter } from "@/features/legal/legal-documents-footer";
 import { GardenTourSection } from "@/features/home/garden-tour-video";
 import { HomePromoCarousel } from "@/features/home/home-promo-carousel";
-import {
-  CROSSFADE_DURATION,
-  SLIDE_INTERVAL,
-  SECTION_BANNERS,
-} from "./home-screen.content";
+import { SECTION_BANNERS } from "./home-screen.content";
 import { getHomeScreenContent } from "./home-screen.content";
-const heroImage = { src: "/assets/images/home/hero_header.webp", width: 1400, height: 875 };
-type SeasonData = {
-  name: string;
-  nameRu: string;
-  emoji: string;
-  heroImages: string[];
+const heroImage = {
+  src: "/assets/images/home/hero_header.webp",
+  width: 1400,
+  height: 875,
 };
-/** Выбираем клиентский сезон главной по номеру месяца; это отдельная модель от серверного календаря оформления Клуба. */
-function getCurrentSeason(month: number): SeasonData {
-  if (month >= 2 && month <= 4)
-    return {
-      name: "Spring",
-      nameRu: "Весна",
-      emoji: "🌿",
-      heroImages: [
-        "/assets/responsive/51246f8b81ec-vfwFbFYydFwyNDgc.w1280.38fad6143a4d8e13.webp",
-        "/assets/responsive/43aa6a138c7a-vMZdQbHoxLvCLaHZ.w1280.576d748fc40373ea.webp",
-        "/assets/responsive/f6dc8eaf6752-ilmNGaCKWJLSYlVp.w1280.f238e531e0aa98e8.webp",
-        "/assets/responsive/e933a044db55-gMwUitXnrfSEIunK.w1280.40c131c8c9f723a9.webp",
-      ],
-    };
-  if (month >= 5 && month <= 7)
-    return {
-      name: "Summer",
-      nameRu: "Лето",
-      emoji: "☀️",
-      heroImages: [
-        "/assets/responsive/51246f8b81ec-vfwFbFYydFwyNDgc.w1280.38fad6143a4d8e13.webp",
-        "/assets/responsive/43aa6a138c7a-vMZdQbHoxLvCLaHZ.w1280.576d748fc40373ea.webp",
-        "/assets/responsive/f6dc8eaf6752-ilmNGaCKWJLSYlVp.w1280.f238e531e0aa98e8.webp",
-        "/assets/responsive/e933a044db55-gMwUitXnrfSEIunK.w1280.40c131c8c9f723a9.webp",
-      ],
-    };
-  if (month >= 8 && month <= 10)
-    return {
-      name: "Autumn",
-      nameRu: "Осень",
-      emoji: "🍂",
-      heroImages: [
-        "/assets/responsive/51246f8b81ec-vfwFbFYydFwyNDgc.w1280.38fad6143a4d8e13.webp",
-        "/assets/responsive/43aa6a138c7a-vMZdQbHoxLvCLaHZ.w1280.576d748fc40373ea.webp",
-        "/assets/responsive/f6dc8eaf6752-ilmNGaCKWJLSYlVp.w1280.f238e531e0aa98e8.webp",
-        "/assets/responsive/e933a044db55-gMwUitXnrfSEIunK.w1280.40c131c8c9f723a9.webp",
-      ],
-    };
-  return {
-    name: "Winter",
-    nameRu: "Зима",
-    emoji: "❄️",
-    heroImages: [
-      "/assets/responsive/51246f8b81ec-vfwFbFYydFwyNDgc.w1280.38fad6143a4d8e13.webp",
-      "/assets/responsive/43aa6a138c7a-vMZdQbHoxLvCLaHZ.w1280.576d748fc40373ea.webp",
-      "/assets/responsive/f6dc8eaf6752-ilmNGaCKWJLSYlVp.w1280.f238e531e0aa98e8.webp",
-      "/assets/responsive/e933a044db55-gMwUitXnrfSEIunK.w1280.40c131c8c9f723a9.webp",
-    ],
-  };
-}
 /** Проверяем статическую редакционную дату для значка «Новое»; это не серверный счётчик непрочитанных публикаций. */
 function isSectionNew(
   banner: (typeof SECTION_BANNERS)[number],
@@ -108,65 +52,20 @@ function isSectionNew(
   const twoDaysMs = 2 * 24 * 60 * 60 * 1000;
   return now - updated <= twoDaysMs;
 }
-/** Инициализируем дату от сервера для SSR, затем обновляем локальный сезон при активации; фоновые анимации сохранённой вкладки приостанавливаются. */
+/** Инициализируем дату от сервера для SSR, затем обновляем значки при активации; фоновые анимации сохранённой вкладки приостанавливаются. */
 export default function HomeScreen({ initialDate }: { initialDate: string }) {
   const active = useScreenActive();
-  const [season, setSeason] = useState(() =>
-    getCurrentSeason(new Date(initialDate).getUTCMonth()),
-  );
   const [calendarTime, setCalendarTime] = useState(() =>
     new Date(initialDate).getTime(),
   );
   useEffect(() => {
     if (!active) return;
-    setSeason(getCurrentSeason(new Date().getMonth()));
     setCalendarTime(Date.now());
   }, [initialDate, active]);
   const viewport = useViewport();
   const { stylesLayout } = getHomeScreenLayout(viewport);
   const { SCREEN_WIDTH, HERO_HEIGHT } = getHomeScreenContent(viewport);
   const router = useRouter();
-  // ── Crossfade slideshow state ──
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const fadeAnim = useSharedValue(1);
-  const nextFadeAnim = useSharedValue(0);
-  const [, setNextSlide] = useState(1);
-  const slideCount = season.heroImages.length;
-  useEffect(() => {
-    if (!active) return;
-    let transitionTimer: ReturnType<typeof setTimeout> | undefined;
-    const interval = setInterval(() => {
-      if (document.hidden) return;
-      setNextSlide(() => (currentSlide + 1) % slideCount);
-      fadeAnim.value = withTiming(0, {
-        duration: CROSSFADE_DURATION,
-        easing: Easing.inOut(Easing.cubic),
-      });
-      nextFadeAnim.value = withTiming(
-        1,
-        { duration: CROSSFADE_DURATION, easing: Easing.inOut(Easing.cubic) },
-        () => {},
-      );
-      transitionTimer = setTimeout(() => {
-        setCurrentSlide((prev) => (prev + 1) % slideCount);
-        fadeAnim.value = 1;
-        nextFadeAnim.value = 0;
-        setNextSlide(() => (currentSlide + 2) % slideCount);
-      }, CROSSFADE_DURATION + 50);
-    }, SLIDE_INTERVAL);
-    return () => {
-      clearInterval(interval);
-      clearTimeout(transitionTimer);
-      fadeAnim.value = 1;
-      nextFadeAnim.value = 0;
-    };
-  }, [currentSlide, slideCount, fadeAnim, nextFadeAnim, active]);
-  const currentSlideStyle = useAnimatedStyle(() => ({
-    opacity: fadeAnim.value,
-  }));
-  const nextSlideStyle = useAnimatedStyle(() => ({
-    opacity: nextFadeAnim.value,
-  }));
   // ── Scroll ──
   const scrollY = useSharedValue(0);
   const scrollHandler = useAnimatedScrollHandler({
@@ -397,8 +296,7 @@ with DARYADARCY logo overlay
             ]}
             className={classes.div2}
           >
-            {/* Current slide */}
-            <Animated.div style={currentSlideStyle} className={classes.div3}>
+            <div className={classes.div3}>
               <Picture
                 source={{
                   uri: heroImage.src,
@@ -412,23 +310,7 @@ with DARYADARCY logo overlay
                 transition={0}
                 className={classes.div3}
               />
-            </Animated.div>
-            {/* Второй слой существующего crossfade использует тот же heroImage; массив сезонных фото сюда сейчас не подставляется. */}
-            <Animated.div style={nextSlideStyle} className={classes.div3}>
-              <Picture
-                source={{
-                  uri: heroImage.src,
-                  width: heroImage.width,
-                  height: heroImage.height,
-                }}
-                style={{ width: "100%", height: "100%" }}
-                loading="eager"
-                fetchPriority="high"
-                contentFit="cover"
-                transition={0}
-                className={classes.div3}
-              />
-            </Animated.div>
+            </div>
             {/* Subtle overlay for depth */}
             <div
               className={["ui-stack ", classes.slideshowOverlay]

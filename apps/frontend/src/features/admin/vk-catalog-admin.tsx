@@ -13,6 +13,7 @@ import {
   invalidResponse,
 } from "@/shared/api/errors";
 import { Action, Field, ScrollArea, Typography } from "@/shared/ui/elements";
+import { BackgroundNotice } from "@/shared/ui/background-notice";
 import { StatusNotice, StatusNoticeAction } from "@/shared/ui/status-notice";
 import {
   isVideoThumbnailsEnabled,
@@ -51,6 +52,7 @@ function Editor({ ownerId }: { ownerId: number }) {
   const [loaded, setLoaded] = useState(false);
   const [storageError, setStorageError] = useState("");
   const [error, setError] = useState("");
+  const [fieldError, setFieldError] = useState("");
   const thumbnailsEnabled = isVideoThumbnailsEnabled();
   const restore = () => {
     // Повторяет чтение tab-local черновика; ошибка storage блокирует новую отправку вместо сброса введённых данных.
@@ -145,9 +147,10 @@ function Editor({ ownerId }: { ownerId: number }) {
       id <= 0 ||
       (!savedId && !/^[1-9]\d*$/.test(draft.id))
     ) {
-      setError("Укажите корректный ID видео VK.");
+      setFieldError("Укажите корректный ID видео VK.");
       return;
     }
+    setFieldError("");
     const task = operation.begin("read-vk-video");
     if (!task) return;
     setError("");
@@ -184,11 +187,12 @@ function Editor({ ownerId }: { ownerId: number }) {
     try {
       payload = vkEditorPayload(draft, thumbnailsEnabled);
     } catch (cause) {
-      setError(
+      setFieldError(
         cause instanceof Error ? cause.message : getRequestErrorMessage(cause),
       );
       return;
     }
+    setFieldError("");
     const task = operation.begin("save-vk-video");
     if (!task) return;
     const started = {
@@ -412,7 +416,8 @@ function Editor({ ownerId }: { ownerId: number }) {
         />{" "}
         Опубликовано
       </label>
-      {error ? <StatusNotice tone="error">{error}</StatusNotice> : null}
+      {fieldError ? <StatusNotice tone="error">{fieldError}</StatusNotice> : null}
+      <BackgroundNotice when={Boolean(error)} message={error} tone="error" priority={3} />
       {draft.state === "uncertain" || draft.state === "conflict" ? (
         <StatusNotice>
           Результат сохранения не подтверждён. Ваш ввод и исходная версия
@@ -476,9 +481,7 @@ function Editor({ ownerId }: { ownerId: number }) {
       ) : null}
       {draft.state === "saved" ? (
         <>
-          <StatusNotice tone="success">
-            Видео сохранено. ID: {draft.savedId}
-          </StatusNotice>
+          <BackgroundNotice when message={`Видео сохранено. ID: ${draft.savedId}`} tone="success" priority={1} />
           <Action
             className={classes.btn}
             disabled={operation.busy}

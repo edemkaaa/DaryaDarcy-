@@ -2,6 +2,10 @@
 /** Диалоги координируют фокус, стек и недоступность фоновых элементов; скрытый сохранённый экран не должен владеть открытым окном. */
 import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import {
+  BackgroundNoticeProvider,
+  BackgroundNoticeSlot,
+} from "./background-notice";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
 const dialogStack: HTMLElement[] = [];
 const originalInert = new Map<HTMLElement, boolean>();
@@ -132,16 +136,19 @@ export function Dialog({
   }, [visible]);
   if (!visible || typeof document === "undefined") return null;
   return createPortal(
-    <div
-      className={`ui-dialog ui-dialog-${motion} ${className}`}
-      role="dialog"
-      aria-label={label}
-      aria-modal="true"
-      tabIndex={-1}
-      ref={node}
-    >
-      {children}
-    </div>,
+    <BackgroundNoticeProvider>
+      <div
+        className={`ui-dialog ui-dialog-${motion} ${className}`}
+        role="dialog"
+        aria-label={label}
+        aria-modal="true"
+        tabIndex={-1}
+        ref={node}
+      >
+        {children}
+        <BackgroundNoticeSlot />
+      </div>
+    </BackgroundNoticeProvider>,
     document.body,
   );
 }

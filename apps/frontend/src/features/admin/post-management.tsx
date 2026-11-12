@@ -3,6 +3,7 @@
 import classes from "./post-management.module.scss";
 import { Dialog, Action, Typography, ScrollArea } from "@/shared/ui/elements";
 import { StatusNotice, StatusNoticeAction } from "@/shared/ui/status-notice";
+import { BackgroundNotice } from "@/shared/ui/background-notice";
 import { useState, useCallback, useEffect, type ReactNode } from "react";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { trpc } from "@/shared/api/trpc";
@@ -479,11 +480,10 @@ export function usePostManagement(onRefresh: () => void) {
     refreshPosts(id);
   };
   const inspectDeletion = async (id: number, signal: AbortSignal) => {
-    // Подтверждает удаление по null полной детализации, не по исчезновению карточки из текущей страницы.
-
-    if ((await readPost(id, signal)) !== null) throw invalidResponse();
+    // Явная сверка разрешает выход и при существующем посте; DELETE не повторяем.
+    const post = await readPost(id, signal);
     assertReadCurrent(signal);
-    closePost();
+    if (post === null) closePost();
     refreshPosts(id);
   };
   // Теги сохраняются с ревизией; после таймаута читаем тот же пост и сравниваем набор, не повторяя update.
@@ -674,9 +674,18 @@ export function usePostManagement(onRefresh: () => void) {
             : "Сохраняем изменения…"}
         </StatusNotice>
       ) : null}
-      {actions.error ? (
-        <StatusNotice tone="error">{actions.error}</StatusNotice>
-      ) : null}
+      {actions.unknown ? (
+        actions.error ? (
+          <StatusNotice tone="error">{actions.error}</StatusNotice>
+        ) : null
+      ) : (
+        <BackgroundNotice
+          when={Boolean(actions.error)}
+          message={actions.error ?? ""}
+          tone="error"
+          priority={3}
+        />
+      )}
       {tagModalVisible && tagConflict ? (
         <EditComparison
           current={{
@@ -723,33 +732,31 @@ export function usePostManagement(onRefresh: () => void) {
         />
       ) : null}
       {actions.unknown && !actions.operation.busy ? (
-        <StatusNoticeAction onClick={() => void actions.check()}>
-          Обновить публикации
-        </StatusNoticeAction>
+        <div className={classes.recoveryActions}>
+          <StatusNoticeAction onClick={() => void actions.check()}>
+            Обновить публикации
+          </StatusNoticeAction>
+        </div>
       ) : null}
     </>
   );
   // Render stable component types: action-state changes must not remount the editor.
   const ManagementModals = (
     <>
-      {!tagModalVisible && (actions.error || actions.unknown) ? (
-        <Dialog
-          label="Результат действия с публикацией"
-          open
-          onClose={() => {
-            if (!actions.unknown) actions.setError(null);
-          }}
-        >
-          <div className={classes.modalContainer}>
-            {status}
-            {!actions.unknown ? (
-              <StatusNoticeAction onClick={() => actions.setError(null)}>
-                Закрыть
-              </StatusNoticeAction>
-            ) : null}
-          </div>
-        </Dialog>
-      ) : null}
+      <BackgroundNotice
+        when={!tagModalVisible && Boolean(actions.error)}
+        tone="error"
+        message={actions.operation.kind === "check" ? "Проверяем публикации…" : actions.error ?? ""}
+        priority={actions.unknown ? 10 : 3}
+        busy={actions.operation.busy}
+        onDismiss={actions.unknown ? undefined : () => actions.setError(null)}
+        actions={actions.unknown ? [{
+          id: "check-post-result",
+          icon: "refresh",
+          label: actions.operation.busy ? "Проверяем…" : "Обновить публикации",
+          onClick: () => actions.check(),
+        }] : undefined}
+      />
       <ActionSheet
         visible={actionSheetVisible}
         onClose={closeMenu}

@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { Ref } from "react";
 import classes from "./tab-header.module.scss";
 import { useRouter } from "@/shared/navigation/router";
+import { resetSectionScroll } from "@/shared/navigation/section-scroll";
 import { TabMusicToggle } from "@/shared/ui/tab-music-toggle";
 
 // Material Icons, Google (Apache-2.0): glyphs/material-icons-LICENSE.txt.
@@ -44,6 +45,7 @@ export function TabHeader({
           href="/"
           prefetch={false}
           aria-label="На главную"
+          onNavigate={() => resetSectionScroll("/")}
           className={classes.action}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">

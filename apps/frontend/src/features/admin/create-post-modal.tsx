@@ -46,7 +46,11 @@ import {
   type RichTextFieldHandle,
 } from "@/features/admin/rich-text-field";
 import type { RichTextBlock } from "@/domain/content/types";
-import { serializePostDraft, postDraftSnapshot } from "@/domain/post/draft";
+import {
+  serializePostDraft,
+  postDraftSnapshot,
+  scheduleDateError,
+} from "@/domain/post/draft";
 import {
   CREAM_BG,
   BROWN_DARK,
@@ -158,6 +162,10 @@ function CreatePostModalBody({
   );
   const resetUploads = uploadSelection.reset;
   const seeded = useRef<string | null>(null);
+  const initialDates = useRef<{
+    scheduledAt: number | null;
+    publishedAt: number;
+  } | null>(null);
   useEffect(() => {
     // Начальное заполнение выполняется один раз для слота: повторный refetch исходного поста не должен затирать введённый текст.
 
@@ -207,6 +215,12 @@ function CreatePostModalBody({
         : undefined,
       editingPost ? readEditRevision(editingPost) : undefined,
     );
+    initialDates.current = {
+      scheduledAt: editingPost?.scheduledAt
+        ? new Date(editingPost.scheduledAt).getTime()
+        : null,
+      publishedAt: date.getTime(),
+    };
     setPublishedAt(date);
     setRichTextSeed(editingPost?.richText ?? null);
     setRichText(editingPost?.richText ?? undefined);
@@ -399,6 +413,8 @@ function CreatePostModalBody({
             .map((m) => m.url) ?? [],
         ) ||
       JSON.stringify(tags) !== JSON.stringify(editingPost?.tags ?? []) ||
+      (scheduledAt?.getTime() ?? null) !== initialDates.current?.scheduledAt ||
+      publishedAt.getTime() !== initialDates.current?.publishedAt ||
       status !== (editingPost?.status ?? "published") ||
       target !== (editingPost?.target ?? defaultTarget);
     if (
@@ -523,11 +539,10 @@ function CreatePostModalBody({
       notifyError("Добавьте текст, фото, видео, аудио или документ");
       return;
     }
-    if (
-      status === "scheduled" &&
-      (!scheduledAt || Number.isNaN(scheduledAt.getTime()))
-    ) {
-      notifyError("Выберите дату и время публикации");
+    const scheduleError =
+      status === "scheduled" ? scheduleDateError(scheduledAt) : null;
+    if (scheduleError) {
+      notifyError(scheduleError);
       return;
     }
     if (status !== "scheduled" && Number.isNaN(publishedAt.getTime())) {

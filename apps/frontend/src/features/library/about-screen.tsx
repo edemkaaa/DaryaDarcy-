@@ -11,7 +11,6 @@ import {
   ScrollArea,
   Typography,
   Collection,
-  MeasuredBox,
 } from "@/shared/ui/elements";
 import { useRef, useState, useCallback, useEffect } from "react";
 import { useScreenActive } from "@/shared/navigation/screen-activity";
@@ -42,19 +41,20 @@ export default function AboutMeScreen() {
   const [viewerInitialIndex, setViewerInitialIndex] = useState(0);
   const [tocExpanded, setTocExpanded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const sectionPositions = useRef<Record<number, number>>({});
+  const sectionHeadings = useRef<(HTMLSpanElement | null)[]>([]);
   /** Запоминаем выбранную группу и индекс до открытия просмотрщика, чтобы карусель и одиночные снимки не смешивались. */
   const openViewer = (photos: string[], index: number) => {
     setViewerPhotos(photos);
     setViewerInitialIndex(index);
     setViewerVisible(true);
   };
-  /** Используем последнюю измеренную позицию главы внутри ScrollArea с небольшим отступом сверху. */
+  /** Переходим к текущему DOM-заголовку: раскрытие оглавления не оставляет устаревших координат. */
   const scrollToSection = (index: number) => {
-    const y = sectionPositions.current[index];
-    if (y !== undefined && scrollRef.current) {
-      scrollRef.current.scrollTo({ top: y - 20, behavior: "smooth" });
-    }
+    sectionHeadings.current[index]?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+      inline: "nearest",
+    });
   };
   /** Возвращаем внутреннюю область чтения к началу, не прокручивая оболочку вкладок. */
   const scrollToTop = () => {
@@ -186,15 +186,17 @@ export default function AboutMeScreen() {
 
           {/* Parts */}
           {PART_TEXTS.map((text, index) => (
-            <MeasuredBox
+            <div
               key={`part-${index}`}
-              onResize={(e) => {
-                sectionPositions.current[index] = e.y;
-              }}
-              className={classes.partContainer}
+              className={`ui-stack ${classes.partContainer}`}
             >
               {/* Part heading */}
-              <Typography className={classes.partHeading}>
+              <Typography
+                ref={(heading) => {
+                  sectionHeadings.current[index] = heading;
+                }}
+                className={classes.partHeading}
+              >
                 {PART_TITLES[index]}
               </Typography>
               <Typography className={classes.partSubtitle}>
@@ -222,7 +224,7 @@ export default function AboutMeScreen() {
 
               {/* Part text */}
               <Typography className={classes.partText}>{text}</Typography>
-            </MeasuredBox>
+            </div>
           ))}
 
           {/* End */}

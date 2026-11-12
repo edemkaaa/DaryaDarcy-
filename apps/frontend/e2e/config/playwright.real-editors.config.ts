@@ -1,7 +1,7 @@
 /** Изолированный runner передаёт адрес настоящего временного API/frontend через fixture; конфигурация не использует рабочий стенд по умолчанию. */
 import { readFileSync } from "node:fs";
 import { defineConfig } from "@playwright/test";
-import base from "./playwright.config";
+import base from "../../playwright.config";
 
 const file = process.env.DARYADARCY_EDITOR_FIXTURE_FILE;
 if (!file)
@@ -15,7 +15,7 @@ export default defineConfig({
   timeout: 45_000,
   expect: { timeout: 10_000 },
   reporter: [["list"], ["json"]],
-  outputDir: "test-results/real-editors/artifacts",
+  outputDir: "../../test-results/real-editors/artifacts",
   use: { ...base.use, baseURL: fixture.origin },
   webServer: undefined,
 });

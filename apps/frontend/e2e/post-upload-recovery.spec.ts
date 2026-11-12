@@ -83,14 +83,14 @@ for (const mode of ["full", "quick"] as const) {
       exact: true,
     });
     await expect(retry).toBeDisabled();
-    await expect(form.getByText(/Повтор через 2 с/)).toBeVisible();
+    await expect(form.getByText(/Повтор доступен через 2 сек\./)).toBeVisible();
     await expect
       .poll(() =>
         messages.some((message) => message.includes("другую видеозагрузку")),
       )
       .toBe(true);
     await page.clock.setFixedTime(now + 1999);
-    await expect(form.getByText(/Повтор через 1 с/)).toBeVisible();
+    await expect(form.getByText(/Повтор доступен через 1 сек\./)).toBeVisible();
     await expect(retry).toBeDisabled();
     expect(uploads).toHaveLength(1);
     expect(statusReads).toBe(0);
@@ -267,7 +267,7 @@ for (const mode of ["full", "quick"] as const) {
     expect(creates).toEqual([]);
     await form
       .getByRole("button", {
-        name: "Проверил список — удалить локальную копию",
+        name: "Удалить локальную копию",
         exact: true,
       })
       .click();

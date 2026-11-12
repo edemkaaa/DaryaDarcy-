@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { QUESTIONS } from "../src/domain/quiz/quiz-data";
 import { serializeQuizProgress } from "../src/domain/quiz/quiz-progress";
+import { join } from "node:path";
 import { editorApi } from "./editor-fixtures";
 import { gotoWithSession } from "./layout-fixtures";
 
@@ -69,6 +70,18 @@ test("an old result cannot restart over another tab's new progress", async ({
     other.getByRole("button", { name: "Выбрать изображение 1", exact: true }),
   ).toBeVisible();
   const before = await stored(other);
+  if (process.env.STAGE_ONE_SCREENSHOTS) {
+    await expect(continueSaved(page)).toBeVisible();
+    await page
+      .getByRole("button", { name: "Пройти ещё раз", exact: true })
+      .scrollIntoViewIfNeeded();
+    await page.screenshot({
+      path: join(
+        process.env.STAGE_ONE_SCREENSHOTS,
+        "F20-quiz-restart-with-notice.png",
+      ),
+    });
+  }
   await page
     .getByRole("button", { name: "Пройти ещё раз", exact: true })
     .click();

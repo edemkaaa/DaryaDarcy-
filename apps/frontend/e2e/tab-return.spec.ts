@@ -104,9 +104,9 @@ async function observeEntrances(page: Page) {
   });
 }
 
-/** Шесть retained-вкладок сохраняют scroll/search и не повторяют анимации; detail-навигация также возвращает тот же поиск. */
+/** Меню открывает вкладки сверху, сохраняя поиск, DOM и первое появление; detail-навигация возвращает прежний поиск. */
 for (const width of [390, 1440]) {
-  test(`all six tabs preserve scroll and search and only animate on first entry (${width}px)`, async ({
+  test(`all six tabs reset scroll, preserve search and only animate on first entry (${width}px)`, async ({
     page,
   }) => {
     await page.setViewportSize({ width, height: 844 });
@@ -155,9 +155,7 @@ for (const width of [390, 1440]) {
     await tab(page, "/shop").click();
     await expect(page.getByText("МАГАЗИН", { exact: true })).toBeVisible();
     await tab(page, "/club").click();
-    await expect
-      .poll(() => scroll(page).evaluate((n) => n.scrollTop))
-      .toBe(600);
+    await expect.poll(() => scroll(page).evaluate((n) => n.scrollTop)).toBe(0);
     expect(
       await page.evaluate(
         () =>
@@ -206,7 +204,7 @@ test("video heading and static library cards stay in place while API requests fi
   });
   await page.route("**/api/trpc/**", async (route) => {
     if (
-      /videos\.list|articles\.list/.test(
+      /videos\.(?:list|catalog)|articles\.list/.test(
         decodeURIComponent(route.request().url()),
       )
     )

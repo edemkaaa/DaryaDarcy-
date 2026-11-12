@@ -18,7 +18,7 @@ export interface Answer {
   id: string;
   text: string;
   /** Local image require() — only for visual questions */
-  image?: { uri: string };
+  image?: { uri: string; alt: string };
   scores: ScoreEntry[];
 }
 export interface Question {
@@ -27,7 +27,7 @@ export interface Question {
   narrative: string;
   type: QuestionType;
   /** Optional header image (e.g. chest for Q5) */
-  headerImage?: { uri: string };
+  headerImage?: { uri: string; alt: string };
   /** Custom grid layout: array of row sizes, e.g. [3,1,3] */
   gridLayout?: number[];
   answers: Answer[];
@@ -58,60 +58,189 @@ export interface QuizResult {
 /** Статические адреса бесплатного теста сгруппированы по визуальным вопросам; соответствие ключей баллам задаётся ниже в answers. */
 const IMAGES = {
   landscapes: {
-    cottagecore: { uri: "/assets/quiz/landscapes/cottagecore.webp" },
-    goblincore: { uri: "/assets/quiz/landscapes/goblincore.webp" },
-    witchcore: { uri: "/assets/quiz/landscapes/witchcore.webp" },
-    castlecore: { uri: "/assets/quiz/landscapes/castlecore.webp" },
-    fairycore: { uri: "/assets/quiz/landscapes/fairycore.webp" },
-    darkAcademia: { uri: "/assets/quiz/landscapes/dark-academia.webp" },
-    lightAcademia: { uri: "/assets/quiz/landscapes/light-academia.webp" },
+    cottagecore: {
+      uri: "/assets/quiz/landscapes/cottagecore.webp",
+      alt: "Тропинка среди цветущих лугов и холмов в утреннем солнце",
+    },
+    goblincore: {
+      uri: "/assets/quiz/landscapes/goblincore.webp",
+      alt: "Мшистая лесная поляна с грибами и старыми пнями",
+    },
+    witchcore: {
+      uri: "/assets/quiz/landscapes/witchcore.webp",
+      alt: "Каменистая тропа между скалами и папоротниками в тёмном лесу",
+    },
+    castlecore: {
+      uri: "/assets/quiz/landscapes/castlecore.webp",
+      alt: "Солнечная поляна под деревьями и силуэт замка вдали",
+    },
+    fairycore: {
+      uri: "/assets/quiz/landscapes/fairycore.webp",
+      alt: "Заросший цветами сад в мягком тумане",
+    },
+    darkAcademia: {
+      uri: "/assets/quiz/landscapes/dark-academia.webp",
+      alt: "Узкая улочка между старинными каменными домами",
+    },
+    lightAcademia: {
+      uri: "/assets/quiz/landscapes/light-academia.webp",
+      alt: "Светлый фасад старого дома с большими окнами и вьющимися растениями",
+    },
   },
   shelters: {
-    cottagecore: { uri: "/assets/quiz/shelters/cottagecore.webp" },
-    goblincore: { uri: "/assets/quiz/shelters/goblincore.webp" },
-    witchcore: { uri: "/assets/quiz/shelters/witchcore.webp" },
-    castlecore: { uri: "/assets/quiz/shelters/castlecore.webp" },
-    fairycore: { uri: "/assets/quiz/shelters/fairycore.webp" },
-    darkAcademia: { uri: "/assets/quiz/shelters/dark-academia.webp" },
-    lightAcademia: { uri: "/assets/quiz/shelters/light-academia.webp" },
+    cottagecore: {
+      uri: "/assets/quiz/shelters/cottagecore.webp",
+      alt: "Стеклянная теплица с деревянными рамами среди садовых цветов",
+    },
+    goblincore: {
+      uri: "/assets/quiz/shelters/goblincore.webp",
+      alt: "Освещённая дверь в дупле большого дерева среди мшистых корней",
+    },
+    witchcore: {
+      uri: "/assets/quiz/shelters/witchcore.webp",
+      alt: "Тёмный шкаф с банками трав и лесных находок у окна",
+    },
+    castlecore: {
+      uri: "/assets/quiz/shelters/castlecore.webp",
+      alt: "Каменная комната с горящим камином, деревянным столом и свечами",
+    },
+    fairycore: {
+      uri: "/assets/quiz/shelters/fairycore.webp",
+      alt: "Высокая стеклянная оранжерея, заросшая зеленью в лесу",
+    },
+    darkAcademia: {
+      uri: "/assets/quiz/shelters/dark-academia.webp",
+      alt: "Библиотека с высокими книжными стеллажами и узким освещённым окном",
+    },
+    lightAcademia: {
+      uri: "/assets/quiz/shelters/light-academia.webp",
+      alt: "Светлая мастерская с большим арочным окном, столами и картинами",
+    },
   },
   outfits: {
-    cottagecore: { uri: "/assets/quiz/outfits/cottagecore.webp" },
-    goblincore: { uri: "/assets/quiz/outfits/goblincore.webp" },
-    witchcore: { uri: "/assets/quiz/outfits/witchcore.webp" },
-    castlecore: { uri: "/assets/quiz/outfits/castlecore.webp" },
-    fairycore: { uri: "/assets/quiz/outfits/fairycore.webp" },
-    darkAcademia: { uri: "/assets/quiz/outfits/dark-academia.webp" },
-    lightAcademia: { uri: "/assets/quiz/outfits/light-academia.webp" },
+    cottagecore: {
+      uri: "/assets/quiz/outfits/cottagecore.webp",
+      alt: "Светлый сарафан с цветочным узором, соломенная шляпа и зелёные сапоги",
+    },
+    goblincore: {
+      uri: "/assets/quiz/outfits/goblincore.webp",
+      alt: "Тёмный жакет, коричневые брюки, полосатый шарф и сумка",
+    },
+    witchcore: {
+      uri: "/assets/quiz/outfits/witchcore.webp",
+      alt: "Белая блузка, корсет, длинная зелёная юбка и плетёная корзина",
+    },
+    castlecore: {
+      uri: "/assets/quiz/outfits/castlecore.webp",
+      alt: "Длинное тёмное платье с цветочным узором и бордовыми лентами",
+    },
+    fairycore: {
+      uri: "/assets/quiz/outfits/fairycore.webp",
+      alt: "Лёгкое цветочное платье с неровным подолом и подвески в форме листьев",
+    },
+    darkAcademia: {
+      uri: "/assets/quiz/outfits/dark-academia.webp",
+      alt: "Оливковый жилет, коричневая клетчатая юбка, туфли и сумка через плечо",
+    },
+    lightAcademia: {
+      uri: "/assets/quiz/outfits/light-academia.webp",
+      alt: "Белое длинное платье, коричневые ботинки и книги",
+    },
   },
   animals: {
-    cottagecore: { uri: "/assets/quiz/animals/cottagecore.webp" },
-    goblincore: { uri: "/assets/quiz/animals/goblincore.webp" },
-    witchcore: { uri: "/assets/quiz/animals/witchcore.webp" },
-    castlecore: { uri: "/assets/quiz/animals/castlecore.webp" },
-    fairycore: { uri: "/assets/quiz/animals/fairycore.webp" },
-    darkAcademia: { uri: "/assets/quiz/animals/dark-academia.webp" },
-    lightAcademia: { uri: "/assets/quiz/animals/light-academia.webp" },
+    cottagecore: {
+      uri: "/assets/quiz/animals/cottagecore.webp",
+      alt: "Рыжий пушистый кот с поднятым хвостом",
+    },
+    goblincore: {
+      uri: "/assets/quiz/animals/goblincore.webp",
+      alt: "Барсук с чёрно-белой мордой",
+    },
+    witchcore: {
+      uri: "/assets/quiz/animals/witchcore.webp",
+      alt: "Чёрный ворон",
+    },
+    castlecore: {
+      uri: "/assets/quiz/animals/castlecore.webp",
+      alt: "Гнедая лошадь с белыми отметинами на морде и ногах",
+    },
+    fairycore: {
+      uri: "/assets/quiz/animals/fairycore.webp",
+      alt: "Оленёнок с белыми пятнами на спине",
+    },
+    darkAcademia: {
+      uri: "/assets/quiz/animals/dark-academia.webp",
+      alt: "Коричневая сова",
+    },
+    lightAcademia: {
+      uri: "/assets/quiz/animals/light-academia.webp",
+      alt: "Светлая длинношёрстная собака с узкой мордой",
+    },
   },
   artifacts: {
-    cottagecore: { uri: "/assets/quiz/artifacts/cottagecore.webp" },
-    goblincore: { uri: "/assets/quiz/artifacts/goblincore.webp" },
-    witchcore: { uri: "/assets/quiz/artifacts/witchcore.webp" },
-    castlecore: { uri: "/assets/quiz/artifacts/castlecore.webp" },
-    fairycore: { uri: "/assets/quiz/artifacts/fairycore.webp" },
-    darkAcademia: { uri: "/assets/quiz/artifacts/dark-academia.webp" },
-    lightAcademia: { uri: "/assets/quiz/artifacts/light-academia.webp" },
+    cottagecore: {
+      uri: "/assets/quiz/artifacts/cottagecore.webp",
+      alt: "Книга рецептов, цветочные жестяные коробки и кулон-сердечко",
+    },
+    goblincore: {
+      uri: "/assets/quiz/artifacts/goblincore.webp",
+      alt: "Раскрытая книга, керамическая банка и разноцветные камни",
+    },
+    witchcore: {
+      uri: "/assets/quiz/artifacts/witchcore.webp",
+      alt: "Чёрный котелок, рисунки растений и маленькие мешочки",
+    },
+    castlecore: {
+      uri: "/assets/quiz/artifacts/castlecore.webp",
+      alt: "Раскрытая рукописная книга, перо и золотистая щётка",
+    },
+    fairycore: {
+      uri: "/assets/quiz/artifacts/fairycore.webp",
+      alt: "Гербарий с засушенными листьями, сачок и цветные камни",
+    },
+    darkAcademia: {
+      uri: "/assets/quiz/artifacts/dark-academia.webp",
+      alt: "Старинная книга, чашка чая и связка ключей",
+    },
+    lightAcademia: {
+      uri: "/assets/quiz/artifacts/light-academia.webp",
+      alt: "Книга стихов, палитра с красками и карманное зеркальце",
+    },
   },
   houses: {
-    cottagecore: { uri: "/assets/quiz/houses/cottagecore.webp" },
-    goblincore: { uri: "/assets/quiz/houses/goblincore.webp" },
-    witchcore: { uri: "/assets/quiz/houses/witchcore.webp" },
-    castlecore: { uri: "/assets/quiz/houses/castlecore.webp" },
-    fairycore: { uri: "/assets/quiz/houses/fairycore.webp" },
-    darkAcademia: { uri: "/assets/quiz/houses/dark-academia.webp" },
-    lightAcademia: { uri: "/assets/quiz/houses/light-academia.webp" },
+    cottagecore: {
+      uri: "/assets/quiz/houses/cottagecore.webp",
+      alt: "Белый деревенский дом с соломенной крышей, цветами и деревянным забором",
+    },
+    goblincore: {
+      uri: "/assets/quiz/houses/goblincore.webp",
+      alt: "Круглая красная дверь в холме под травяной крышей",
+    },
+    witchcore: {
+      uri: "/assets/quiz/houses/witchcore.webp",
+      alt: "Тёмный деревянный дом с острой крышей среди папоротников",
+    },
+    castlecore: {
+      uri: "/assets/quiz/houses/castlecore.webp",
+      alt: "Каменный замок с круглой башней и вьющимися растениями",
+    },
+    fairycore: {
+      uri: "/assets/quiz/houses/fairycore.webp",
+      alt: "Небольшой фахверковый дом с высокими остроконечными крышами среди цветов",
+    },
+    darkAcademia: {
+      uri: "/assets/quiz/houses/dark-academia.webp",
+      alt: "Тёмное кирпичное здание с башнями среди осенних деревьев",
+    },
+    lightAcademia: {
+      uri: "/assets/quiz/houses/light-academia.webp",
+      alt: "Светлый особняк с симметричным фасадом и дорожкой через газон",
+    },
   },
-  chest: { uri: "/assets/quiz/chest.webp" },
+  chest: {
+    uri: "/assets/quiz/chest.webp",
+    alt: "Закрытый деревянный сундук с цветочной росписью и металлической застёжкой",
+  },
 };
 // ─── Questions ───────────────────────────────────────────────────────────────
 /** Порядок вопросов и ID ответов входят в fingerprint сохранённого прогресса; последний вопрос имеет повышенный вес 3 вместо 2. */

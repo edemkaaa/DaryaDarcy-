@@ -102,11 +102,20 @@ Telegram/iPhone требуют своей проверки на соответс
 ### Какие проверки выбирать
 
 Обычный UI-прогон, каталог VK и два платежных профиля разделены конфигурациями
-`playwright*.config.ts`. Их переключатели описывают ожидаемую сборку, но не
+`playwright.config.ts` и `e2e/config/playwright.*.config.ts`. Их переключатели описывают ожидаемую сборку, но не
 изменяют уже собранный клиент. Настоящие API-сценарии требуют fixture от
 изолированного runner; отсутствие такого файла останавливает запуск, а не
 подставляет адрес рабочего сайта. Аудит HTTP-кеша использует отдельный локальный
 прокси и не должен смешиваться с перехватами `page.route`, отключающими кеш.
+
+Отдельная CI-job `catalog-browser` собирает клиент с включёнными
+`NEXT_PUBLIC_VK_CATALOG_ENABLED` и `NEXT_PUBLIC_VIDEO_THUMBNAILS_ENABLED`,
+затем запускает `pnpm --filter @daryadarcy/frontend test:e2e:catalog`.
+Прогон использует один browser worker и синтетические API-ответы;
+настоящий VK, Safari/Android и физические устройства требуют отдельной приёмки.
+Автоматические сравнения скриншотов и визуальные эталоны по решению владельца
+не добавляем. Снимки «было/стало» сохраняются только во внешней папке Загрузок
+для ручного просмотра владельцем.
 
 Для чтения больших экранов сначала найдите владельца состояния и журнал
 операции, затем обработчик отправки и ветку восстановления. JSX ниже лишь
@@ -265,8 +274,8 @@ build-time флагами; Next build и Playwright используют по о
 `NEXT_PUBLIC_CLUB_TEST_CHECKOUT`, `NEXT_PUBLIC_NORMAL_CHECKOUT_RECOVERY_ENABLED`
 и `NEXT_PUBLIC_GUEST_CHECKOUT_RECOVERY_ENABLED`. В TEST-сборке recovery включён
 намеренно: проверяется приоритет TEST над гостевым путём.
-[TEST-конфигурация](playwright.prodamus-test.config.ts) и
-[guest/NORMAL-конфигурация](playwright.guest-checkout.config.ts) явно выбирают
+[TEST-конфигурация](e2e/config/playwright.prodamus-test.config.ts) и
+[guest/NORMAL-конфигурация](e2e/config/playwright.guest-checkout.config.ts) явно выбирают
 нужные suites и тестовые переключатели. Все ответы платежей синтетические;
 эти сборки не включают LIVE на стенде и не подтверждают удалённый CI-прогон
 до его фактического запуска. Лимит heap каждого CI build — 1536 МиБ.

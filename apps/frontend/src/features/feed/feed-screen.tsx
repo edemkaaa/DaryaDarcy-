@@ -131,7 +131,10 @@ export default function FeedScreen() {
   const listRef = useRef<HTMLDivElement>(null);
   // Debounce search input (300ms)
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    const timer = setTimeout(
+      () => setDebouncedSearch(searchQuery.trim().toLowerCase()),
+      300,
+    );
     return () => clearTimeout(timer);
   }, [searchQuery]);
   const utils = trpc.useUtils();
@@ -396,9 +399,7 @@ export default function FeedScreen() {
       item={item}
       isVideo={isVideoPost(item)}
       href={
-        item.articleId
-          ? `/library/article/${item.articleId}`
-          : postHref(item)
+        item.articleId ? `/library/article/${item.articleId}` : postHref(item)
       }
     />
   );

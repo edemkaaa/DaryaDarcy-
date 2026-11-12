@@ -179,6 +179,13 @@
     padding: clamp(8px, 3dvh, 24px) 24px;
   }
 
+  .emptyText {
+    font-family: var(--font-body);
+    font-size: 16px;
+    color: var(--muted);
+    text-align: center;
+  }
+
   /* Состояние запроса заполняет остаток viewport при той же шапке; технический spacer убирается из высоты. */
   .collectioncontent {
     padding-top: 4px;

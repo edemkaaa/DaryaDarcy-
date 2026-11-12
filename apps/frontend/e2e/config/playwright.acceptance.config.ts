@@ -1,11 +1,11 @@
 /** Проверяем выбранные сценарии в мобильных профилях Chromium/WebKit; эмуляция не подтверждает работу физического iPhone или установленной PWA. */
 import { defineConfig, devices } from "@playwright/test";
-import base from "./playwright.config";
+import base from "../../playwright.config";
 
 // Mobile browser profiles. These do not certify physical devices or installed PWA.
 export default defineConfig({
   ...base,
-  outputDir: "test-results/acceptance",
+  outputDir: "../../test-results/acceptance",
   testMatch: [
     "article-request-states.spec.ts",
     "vk-editor.spec.ts",

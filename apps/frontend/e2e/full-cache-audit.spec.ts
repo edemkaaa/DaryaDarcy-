@@ -22,7 +22,7 @@ declare global {
 test.skip(
   ({ baseURL, browserName }) =>
     browserName !== "chromium" || !baseURL?.endsWith(":19092"),
-  "Use playwright.cache-audit.config.ts: the local HTTP fixture keeps browser caching enabled.",
+  "Use e2e/config/playwright.cache-audit.config.ts: the local HTTP fixture keeps browser caching enabled.",
 );
 
 type RouteCase = {

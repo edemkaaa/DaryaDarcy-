@@ -1,8 +1,6 @@
 /** Ресурсы и подписи главной страницы отделены от компонентов; изменение этих данных входит в клиентскую сборку. */
 import type { ViewportSize } from "@/shared/browser/viewport";
 
-export const CROSSFADE_DURATION = 2000;
-export const SLIDE_INTERVAL = 5000;
 export const SECTION_CONTENT_COUNTS: Record<string, number> = {
   feed: 8,
   club: 5,

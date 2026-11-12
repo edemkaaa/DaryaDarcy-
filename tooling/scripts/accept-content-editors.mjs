@@ -348,7 +348,7 @@ try {
       join(root, "node_modules/@playwright/test/cli.js"),
       "test",
       "--config",
-      `playwright.real-${profile}.config.ts`,
+      `e2e/config/playwright.real-${profile}.config.ts`,
       ...(process.env.DARYADARCY_EDITOR_GREP
         ? ["--grep", process.env.DARYADARCY_EDITOR_GREP]
         : []),

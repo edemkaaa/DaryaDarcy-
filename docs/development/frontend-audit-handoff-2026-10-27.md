@@ -214,7 +214,7 @@ GitHub Actions и GitLab CI теперь последовательно соби
 Prodamus TEST и guest/NORMAL перед соответствующими browser-прогонами.
 Каждая сборка явно задаёт оба TEST-флага и оба recovery-флага. TEST-сборка
 оставляет recovery=true, чтобы проверить приоритет TEST над гостевым путём.
-Добавлены playwright.prodamus-test.config.ts и test:e2e:prodamus;
+Добавлены e2e/config/playwright.prodamus-test.config.ts и test:e2e:prodamus;
 guest-конфигурация явно выключает PRODAMUS_RETURN_UI_ENABLED.
 
 Свежие feature-сборки прошли; Chromium TEST15/15 без пропусков,

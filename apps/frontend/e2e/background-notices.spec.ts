@@ -20,7 +20,7 @@ const post = (id: number, target = "feed") => ({
 });
 /** Все фоновые причины читаем из общего status-слота, не смешивая их с начальной блокирующей ошибкой. */
 const notice = (page: Page) =>
-  page.locator("[data-background-notice] [role=status]");
+  page.locator("main > [data-background-notice] [role=status]");
 /** Продвигаем период обновления и ожидаемые автоматические retries через управляемые часы. */
 async function tick(page: Page) {
   await page.clock.fastForward(61_000);

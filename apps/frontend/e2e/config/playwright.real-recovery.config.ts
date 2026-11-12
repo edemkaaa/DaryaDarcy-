@@ -1,7 +1,7 @@
 /** Проверки восстановления работают только с явно подготовленной временной средой; результат и trace отделены от обычного UI-прогона. */
 import { readFileSync } from "node:fs";
 import { defineConfig } from "@playwright/test";
-import base from "./playwright.config";
+import base from "../../playwright.config";
 
 const file = process.env.DARYADARCY_EDITOR_FIXTURE_FILE;
 if (!file)
@@ -14,7 +14,7 @@ export default defineConfig({
   timeout: 45_000,
   expect: { timeout: 10_000 },
   reporter: [["list"], ["json"]],
-  outputDir: "test-results/real-recovery/artifacts",
+  outputDir: "../../test-results/real-recovery/artifacts",
   use: { ...base.use, baseURL: fixture.origin },
   webServer: undefined,
 });

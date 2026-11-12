@@ -42,7 +42,7 @@ async function open(page: Page, mode: Mode, editing = false) {
 /** Проверяем видимое завершение checkpoint, а в чувствительных случаях ниже отдельно читаем конкретные durable-поля. */
 async function saved(form: Locator) {
   await expect(
-    form.getByText("Черновик сохранён на этом устройстве", { exact: true }),
+    form.getByRole("status").filter({ hasText: "Черновик сохранён на этом устройстве" }),
   ).toBeVisible();
 }
 /** Передаём синтетический audio/document через filechooser; реальное чтение байтов проверяется при upload после восстановления. */
@@ -152,15 +152,13 @@ for (const mode of ["full", "quick"] as const) {
           .click();
       };
       await requestEdit();
-      const result = page.getByRole("dialog", {
-        name: "Результат действия с публикацией",
-      });
+      const result = page.locator("[data-background-notice]");
       await expect(result).toContainText("Некорректный ответ сервера");
       await expect(editor(page)).toHaveCount(0);
       expect(detailReads).toBe(1);
       expect(writes).toEqual([]);
       await result
-        .getByRole("button", { name: "Закрыть", exact: true })
+        .getByRole("button", { name: "Закрыть уведомление", exact: true })
         .click();
       availableMedia = existing.media;
       await requestEdit();
@@ -700,7 +698,7 @@ test("a corrupt draft is not overwritten or submitted and can be explicitly disc
   expect(creates).toBe(0);
   await form
     .getByRole("button", {
-      name: "Проверил список — удалить локальную копию",
+      name: "Удалить локальную копию",
       exact: true,
     })
     .click();

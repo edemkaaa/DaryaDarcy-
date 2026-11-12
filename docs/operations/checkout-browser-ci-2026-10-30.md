@@ -23,7 +23,7 @@ checkout-browser в GitLab и GitHub, каждый со своим checkout/work
 | Профиль       | TEST  | NORMAL recovery | Guest recovery | Что запускается                                                                         |
 | ------------- | ----- | --------------- | -------------- | --------------------------------------------------------------------------------------- |
 | prodamus-test | true  | true            | true           | prodamus-return.spec.ts и guest-contact-fields.spec.ts                                  |
-| guest-normal  | false | true            | true           | playwright.guest-checkout.config.ts: guest-checkout-recovery и normal-checkout-recovery |
+| guest-normal  | false | true            | true           | e2e/config/playwright.guest-checkout.config.ts: guest-checkout-recovery и normal-checkout-recovery |
 
 CLUB_TEST_CHECKOUT=false в обоих; VK/обложки/private-library public flags=false
 для минимального checkout-набора. TEST с guest=true намеренно проверяет

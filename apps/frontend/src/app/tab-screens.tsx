@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { ScreenActivity } from "@/shared/navigation/screen-activity";
+import { finishSectionScrollReset } from "@/shared/navigation/section-scroll";
 import TabLoading from "./tab-loading";
 import styles from "./tab-shell.module.scss";
 import RouteError from "./error";
@@ -81,6 +82,9 @@ export default function TabScreens({
   // Сохранённые DOM-панели удерживают положение и декодированные фото, но скрытая панель не должна продолжать медиа.
   const panels = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
+    panels.current
+      ?.querySelectorAll<HTMLElement>("[data-section-scroll-reset]")
+      .forEach(finishSectionScrollReset);
     // Retained media must not keep playing after its section becomes hidden.
     panels.current
       ?.querySelectorAll<HTMLMediaElement>("[hidden] video, [hidden] audio")

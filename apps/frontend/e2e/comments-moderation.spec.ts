@@ -612,7 +612,9 @@ for (const status of [400, 503]) {
     });
     await gotoWithSession(page, "/admin");
     await page.getByRole("button", { name: "Жалобы", exact: true }).click();
-    const close = page.getByRole("button", { name: "Закрыть", exact: true });
+    const close = page.getByText("REPORTED_COMMENT", { exact: true })
+      .locator("..")
+      .getByRole("button", { name: "Закрыть", exact: true });
     await close.click();
     await expect(
       page.getByRole("alert").filter({
@@ -791,9 +793,7 @@ test("a void post deletion response is not confirmed while the post still exists
     .getByRole("button", { name: "Действия с постом", exact: true })
     .click();
   await page.getByRole("button", { name: "Удалить пост", exact: true }).click();
-  const result = page.getByRole("dialog", {
-    name: "Результат действия с публикацией",
-  });
+  const result = page.locator("[data-background-notice]");
   await expect(result.getByRole("alert")).toContainText("не подтверждён");
   await expect(page.getByText("MANAGED_POST", { exact: true })).toBeVisible();
   exists = false;
@@ -803,8 +803,8 @@ test("a void post deletion response is not confirmed while the post still exists
   await expect(
     result.getByRole("button", { name: "Обновить публикации", exact: true }),
   ).toHaveCount(0);
-  await result.getByRole("button", { name: "Закрыть", exact: true }).click();
-  await expect(result).toHaveCount(0);
+  await expect(result).toContainText("Список обновлён");
+  await page.locator("[data-background-notice]").getByRole("button", { name: "Закрыть уведомление", exact: true }).click();
   await expect(page.getByText("MANAGED_POST", { exact: true })).toHaveCount(0);
   expect(deletes).toBe(1);
 });

@@ -14,13 +14,21 @@ export type PostDraft = {
   sortOrder: number;
   richText?: RichTextBlock[] | null;
 };
+/** Планирование требует будущего момента; архивная дата публикации проверяется отдельно. */
+export function scheduleDateError(
+  date: Date | null,
+  now = Date.now(),
+): string | null {
+  if (!date || !Number.isFinite(date.getTime()))
+    return "Выберите дату и время публикации";
+  return date.getTime() <= now ? "Выберите дату и время в будущем" : null;
+}
 /** В общей точке сохранения проверяем выбранную дату и размер текста; оба редактора отправляют один нормализованный payload. */
 export function serializePostDraft(draft: PostDraft) {
-  if (
-    draft.status === "scheduled" &&
-    (!draft.scheduledAt || Number.isNaN(draft.scheduledAt.getTime()))
-  )
-    throw new Error("Выберите дату и время публикации");
+  if (draft.status === "scheduled") {
+    const error = scheduleDateError(draft.scheduledAt);
+    if (error) throw new Error(error);
+  }
   if (draft.status !== "scheduled" && Number.isNaN(draft.publishedAt.getTime()))
     throw new Error("Выберите дату публикации");
   const payload = postDraftSnapshot(draft);

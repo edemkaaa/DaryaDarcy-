@@ -1,6 +1,6 @@
 "use client";
 /** Карточки используют одно представление ошибок отметок и повторного чтения подтверждённого состояния. */
-import { StatusNotice, StatusNoticeAction } from "@/shared/ui/status-notice";
+import { useBackgroundNotice } from "@/shared/ui/background-notice";
 /** Сообщаем ошибку отметок с действием читающего восстановления; кнопка не повторяет toggle. */
 export function PostInteractionStatus({
   error,
@@ -9,17 +9,19 @@ export function PostInteractionStatus({
   error: string | null;
   retry: () => Promise<void>;
 }) {
-  if (!error) return null;
-  return (
-    <StatusNotice
-      tone="error"
-      actions={
-        <StatusNoticeAction onClick={() => void retry()}>
-          Обновить отметки
-        </StatusNoticeAction>
-      }
-    >
-      {error}
-    </StatusNotice>
-  );
+  useBackgroundNotice({
+    when: Boolean(error),
+    message: error ?? "",
+    tone: "error",
+    priority: 3,
+    actions: [
+      {
+        id: "refresh-post-interactions",
+        icon: "refresh",
+        label: "Обновить отметки",
+        onClick: retry,
+      },
+    ],
+  });
+  return null;
 }

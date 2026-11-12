@@ -518,7 +518,7 @@ describe.skipIf(!enabled)(
         // Explicitly discard only this local journal after independent SQL confirmation.
         await form
           .getByRole("button", {
-            name: "Проверил список — удалить локальную копию",
+            name: "Удалить локальную копию",
             exact: true,
           })
           .click();

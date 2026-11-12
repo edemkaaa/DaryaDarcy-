@@ -21,6 +21,7 @@ export function videoCatalogInput(limit: number, cursor?: number) {
 }
 /** При редактировании допускаем документированные публичные местоположения обложек без query и неоднозначных кодировок; это не общий парсер просмотра. */
 export function normalizeVkThumbnailUrl(value: string): string | null {
+  if (value.length > 2048) return null;
   const raw = value.trim();
   if (!raw || /[\u0000-\u0020\u007f\\]/.test(raw)) return null;
   try {
@@ -29,18 +30,15 @@ export function normalizeVkThumbnailUrl(value: string): string | null {
       return null;
     // Reject ambiguous encodings and dot-segment traversal before normalization.
     if (/%|(?:^|\/)\.{1,2}(?:\/|$)/.test(raw)) return null;
-    if (
-      raw.startsWith("/assets/responsive/") &&
-      url.origin === "https://thumbnail.invalid"
-    )
-      return url.pathname.length > "/assets/responsive/".length
-        ? url.pathname
-        : null;
+    if (/^\/assets\/responsive\/[\w.-]+\.(?:webp|png|jpe?g|avif)$/i.test(raw))
+      return raw;
     if (
       /^https:\/\//i.test(raw) &&
       url.protocol === "https:" &&
       url.hostname === "s3.twcstorage.ru" &&
-      (/^\/daryadarcy-s3\/(?:feed|app-assets)\/.+/.test(url.pathname) ||
+      (/^\/daryadarcy-s3\/(?:feed|app-assets)\/[\w/.-]+\.(?:webp|png|jpe?g|avif)$/i.test(
+        url.pathname,
+      ) ||
         /^\/daryadarcy-s3\/covers\/(?:public-v1\/)?[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}\.webp$/i.test(
           url.pathname,
         ) ||

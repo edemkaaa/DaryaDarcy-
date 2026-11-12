@@ -1,9 +1,15 @@
 /** Проверяем сериализацию статуса, дат и форматирования локального черновика поста. */
-import { expect, it } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
   serializePostDraft,
   type PostDraft,
 } from "../apps/frontend/src/domain/post/draft";
+
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-10-03T09:00:00Z"));
+});
+afterEach(() => vi.useRealTimers());
 
 const draft: PostDraft = {
   text: "Тестовая публикация",
@@ -75,4 +81,38 @@ it("preserves two independent links and combined bold/italic formatting through 
     serializePostDraft({ ...draft, text: saved.text, richText: saved.richText })
       .richText,
   ).toEqual(richText);
+});
+
+/** Даже корректная дата не разрешает отложенную публикацию в прошлом или прямо сейчас. */
+it.each(["2026-10-03T08:59:59.999Z", "2026-10-03T09:00:00Z"])(
+  "rejects a non-future schedule %s without changing the draft",
+  (date) => {
+    const scheduled = {
+      ...draft,
+      status: "scheduled" as const,
+      scheduledAt: new Date(date),
+    };
+    expect(() => serializePostDraft(scheduled)).toThrow(
+      "Выберите дату и время в будущем",
+    );
+    expect(scheduled.scheduledAt.toISOString()).toBe(
+      new Date(date).toISOString(),
+    );
+  },
+);
+it("accepts the next future instant and keeps archive publication dates valid", () => {
+  expect(
+    serializePostDraft({
+      ...draft,
+      status: "scheduled",
+      scheduledAt: new Date(Date.now() + 1),
+    }).scheduledAt,
+  ).toBe("2026-10-03T09:00:00.001Z");
+  expect(
+    serializePostDraft({
+      ...draft,
+      status: "published",
+      publishedAt: new Date("2020-01-01T10:00:00Z"),
+    }).publishedAt,
+  ).toBe("2020-01-01T10:00:00.000Z");
 });

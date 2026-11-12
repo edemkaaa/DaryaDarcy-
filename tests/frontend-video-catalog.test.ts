@@ -14,6 +14,7 @@ import {
   normalizeVkThumbnailUrl,
 } from "../apps/frontend/src/features/videos/catalog-api";
 import { PlaybackLifecycle } from "../apps/frontend/src/features/videos/playback-lifecycle";
+import { publicCatalogThumbnail } from "../apps/backend/src/content/video-thumbnail";
 
 const embed = "https://vkvideo.ru/video_ext.php?oid=-1&id=2&hash=abcdefgh";
 const card = {
@@ -53,6 +54,9 @@ describe("catalog contracts", () => {
   /** Разрешены конкретные публичные asset/S3-префиксы с удалением внешних пробелов. */
   it.each([
     "/assets/responsive/cover.webp",
+    "/assets/responsive/COVER.AVIF",
+    "/assets/responsive/cover.png",
+    "/assets/responsive/cover.jpeg",
     "https://s3.twcstorage.ru/daryadarcy-s3/feed/cover.jpg",
     "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/videos/cover.png",
     "https://s3.twcstorage.ru/daryadarcy-s3/covers/public-v1/12345678-1234-4234-8234-123456789abc.webp",
@@ -60,6 +64,7 @@ describe("catalog contracts", () => {
     `https://s3.twcstorage.ru/daryadarcy-s3/covers/vk-v1/${"a".repeat(64)}/${"b".repeat(64)}.webp`,
   ])("accepts documented public cover location %s", (value) => {
     expect(normalizeVkThumbnailUrl(`  ${value}  `)).toBe(value);
+    expect(normalizeVkThumbnailUrl(value)).toBe(publicCatalogThumbnail(value));
   });
   /** Адрес приватного файла, активная схема, traversal, подпись, credentials или произвольный CDN не принимаются как публичная обложка. */
   it.each([
@@ -69,6 +74,12 @@ describe("catalog contracts", () => {
     "data:image/png;base64,abc",
     "/api/media/content-files/1",
     "/assets/responsive/",
+    "/assets/responsive/cover.svg",
+    "/assets/responsive/cover.html",
+    "/assets/responsive/cover.mp4",
+    "/assets/responsive/cover",
+    "/assets/responsive/nested/cover.webp",
+    `/assets/responsive/${"a".repeat(2048)}.webp`,
     "/assets/responsive/../private.jpg",
     "/assets/responsive/%2e%2e/private.jpg",
     "/assets/responsive/a.webp?signature=secret",
@@ -78,6 +89,10 @@ describe("catalog contracts", () => {
     "https://s3.twcstorage.ru/daryadarcy-s3/private/cover.jpg",
     "https://s3.twcstorage.ru/daryadarcy-s3/feed/cover.jpg?X-Amz-Signature=secret",
     "https://s3.twcstorage.ru/daryadarcy-s3/feed/cover.jpg#private",
+    "https://s3.twcstorage.ru/daryadarcy-s3/feed/cover.svg",
+    "https://s3.twcstorage.ru/daryadarcy-s3/feed/cover.mp4",
+    "https://s3.twcstorage.ru/daryadarcy-s3/app-assets/cover.html",
+    "https://s3.twcstorage.ru/daryadarcy-s3/feed/cover",
     "https://user:password@s3.twcstorage.ru/daryadarcy-s3/feed/cover.jpg",
     "//s3.twcstorage.ru/daryadarcy-s3/covers/public-v1/12345678-1234-4234-8234-123456789abc.webp",
     "https://s3.twcstorage.ru:8443/daryadarcy-s3/covers/public-v1/12345678-1234-4234-8234-123456789abc.webp",
@@ -99,6 +114,7 @@ describe("catalog contracts", () => {
     "https://s3.twcstorage.ru/daryadarcy-s3/covers/public-v1/12345678-1234-4234-8234-123456789abc.webp#private",
   ])("rejects private or ambiguous cover input %s", (value) => {
     expect(normalizeVkThumbnailUrl(value)).toBeNull();
+    expect(normalizeVkThumbnailUrl(value)).toBe(publicCatalogThumbnail(value));
   });
   /** Универсальный reader обложки не открывает закрытые API, iframe и активные схемы как изображение. */
   it.each([

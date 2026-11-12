@@ -9,6 +9,7 @@
   }
   /* Safe-area вынесена в общие CSS-переменные для шапок, меню и WebView. */
   html {
+    color-scheme: only light;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
     background-color: #cbbba6;

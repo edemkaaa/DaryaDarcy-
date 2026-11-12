@@ -65,7 +65,7 @@ try {
     "playwright",
     "test",
     ...(profile === "guest-normal"
-      ? ["--config", "playwright.guest-checkout.config.ts"]
+      ? ["--config", "e2e/config/playwright.guest-checkout.config.ts"]
       : files),
     "--reporter=list,json",
   ]);

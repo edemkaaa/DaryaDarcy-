@@ -56,16 +56,16 @@
     font-weight: 600;
   }
 
-  /* Нативный pan-x сохраняет горизонтальное листание; вертикальный жест закрытия остаётся владельцу viewer. */
+  /* Локальные pinch/pan согласуют увеличение фото, листание и закрытие без масштабирования страницы. */
   .scroll {
     flex: 1;
     width: 100%;
-    // Keep vertical dismissal in the viewer; native horizontal paging remains.
-    touch-action: pan-x;
+    touch-action: none;
   }
 
   /* Каждый кадр центрирует фото в своей области, не принуждая исходник к размерам соседнего изображения. */
   .div4 {
+    overflow: hidden;
     justify-content: center;
     align-items: center;
   }

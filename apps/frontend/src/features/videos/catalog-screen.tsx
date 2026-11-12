@@ -145,7 +145,16 @@ function Catalog({ owner }: { owner: string }) {
               onRetry={retry}
               message="Не удалось загрузить видео"
               className={classes.loadingContainer}
-            />
+            >
+              <div
+                className={`ui-stack ${classes.loadingContainer}`}
+                role="status"
+              >
+                <Typography className={classes.emptyText}>
+                  Видео пока нет
+                </Typography>
+              </div>
+            </QueryRetryState>
           }
           footer={
             rows.length ? (

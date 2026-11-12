@@ -152,8 +152,8 @@ for (const screen of ["feed", "club"] as const) {
           .getByRole("button", { name: "Закрыть редактор тегов" })
           .click();
         await page
-          .getByRole("dialog", { name: "Результат действия с публикацией" })
-          .getByRole("button", { name: "Закрыть", exact: true })
+          .locator("[data-background-notice]")
+          .getByRole("button", { name: "Закрыть уведомление", exact: true })
           .click();
       } else {
         await expect(tags).toHaveCount(0);
@@ -167,9 +167,7 @@ for (const screen of ["feed", "club"] as const) {
       }
       await menu(page, "Удалить пост");
       if (lost) {
-        const result = page.getByRole("dialog", {
-          name: "Результат действия с публикацией",
-        });
+        const result = page.locator("[data-background-notice]");
         await expect(result.getByRole("alert")).toContainText("не подтверждён");
         await result
           .getByRole("button", { name: "Обновить публикации", exact: true })
@@ -180,9 +178,9 @@ for (const screen of ["feed", "club"] as const) {
             exact: true,
           }),
         ).toHaveCount(0);
-        await result
-          .getByRole("button", { name: "Закрыть", exact: true })
-          .click();
+        await expect(result).toContainText("Список обновлён");
+        await page.locator("[data-background-notice]")
+          .getByRole("button", { name: "Закрыть уведомление", exact: true }).click();
       }
       await expect(page.getByText(current.text, { exact: true })).toHaveCount(
         0,
@@ -235,9 +233,7 @@ for (const detail of [{}, { id: 78, tags: [] }, { id: 77, tags: [2] }]) {
     page.on("dialog", (dialog) => dialog.accept());
     await gotoWithSession(page, "/feed");
     await menu(page, "Удалить пост");
-    const result = page.getByRole("dialog", {
-      name: "Результат действия с публикацией",
-    });
+    const result = page.locator("[data-background-notice]");
     await expect(result.getByRole("alert")).toContainText("не подтверждён");
     const check = result.getByRole("button", {
       name: "Обновить публикации",

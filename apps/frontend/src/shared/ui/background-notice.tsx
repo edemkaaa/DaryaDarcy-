@@ -18,13 +18,16 @@ import classes from "./background-notice.module.scss";
 type NoticeAction = {
   id: string;
   label: string;
+  icon?: string;
   onClick: () => unknown | Promise<unknown>;
   disabled?: boolean;
 };
 type Notice = {
   message: string;
+  tone?: "info" | "error" | "success";
   priority?: number;
   onRetry?: () => unknown | Promise<unknown>;
+  onDismiss?: () => void;
   actions?: NoticeAction[];
   busy?: boolean;
 };
@@ -62,8 +65,10 @@ export function BackgroundNoticeProvider({
 export function useBackgroundNotice({
   when,
   message,
+  tone = "info",
   priority = 0,
   onRetry,
+  onDismiss,
   actions,
   busy = false,
 }: Notice & { when: boolean }) {
@@ -71,34 +76,47 @@ export function useBackgroundNotice({
   const registry = useContext(Registry);
   const register = registry?.register;
   const id = useId();
-  const callbacks = useRef({ onRetry, actions });
+  const callbacks = useRef({ onRetry, onDismiss, actions });
   useLayoutEffect(() => {
-    callbacks.current = { onRetry, actions };
+    callbacks.current = { onRetry, onDismiss, actions };
     // Храним актуальные обработчики без перерегистрации сообщения на каждый render.
   });
   const hasRetry = Boolean(onRetry);
+  const hasDismiss = Boolean(onDismiss);
   // Only presentation changes update the registry. Handlers use their current
   // versions, and stable action IDs prevent an old button invoking a new action.
   const actionKey = JSON.stringify(
-    actions?.map(({ id, label, disabled }) => [id, label, !!disabled]) ?? [],
+    actions?.map(({ id, label, icon, disabled }) => [
+      id,
+      label,
+      icon,
+      !!disabled,
+    ]) ?? [],
   );
   useEffect(() => {
     if (active && when && register)
-    // Регистрация живёт ровно пока сообщение относится к видимому экрану; возврат register удаляет запись при cleanup.
+      // Регистрация живёт ровно пока сообщение относится к видимому экрану; возврат register удаляет запись при cleanup.
       return register(id, {
         message,
+        tone,
         priority,
         busy,
         onRetry: hasRetry ? () => callbacks.current.onRetry?.() : undefined,
-        actions: callbacks.current.actions?.map(({ id, label, disabled }) => ({
-          id,
-          label,
-          disabled,
-          onClick: () =>
-            callbacks.current.actions
-              ?.find((action) => action.id === id)
-              ?.onClick(),
-        })),
+        onDismiss: hasDismiss
+          ? () => callbacks.current.onDismiss?.()
+          : undefined,
+        actions: callbacks.current.actions?.map(
+          ({ id, label, icon, disabled }) => ({
+            id,
+            label,
+            icon,
+            disabled,
+            onClick: () =>
+              callbacks.current.actions
+                ?.find((action) => action.id === id)
+                ?.onClick(),
+          }),
+        ),
       });
   }, [
     active,
@@ -106,11 +124,19 @@ export function useBackgroundNotice({
     register,
     id,
     message,
+    tone,
     priority,
     hasRetry,
+    hasDismiss,
     actionKey,
     busy,
   ]);
+}
+
+/** JSX-вариант регистрирует сообщение в ближайшем слое, в том числе внутри портала диалога. */
+export function BackgroundNotice(props: Notice & { when: boolean }) {
+  useBackgroundNotice(props);
+  return null;
 }
 
 /** Показываем одно сообщение с наибольшим приоритетом, но общий повтор запускает все доступные восстановления. */
@@ -181,12 +207,15 @@ export function BackgroundNoticeSlot() {
       <StatusNotice
         ref={card}
         className={classes.notice}
-        role="status"
+        tone={notice.tone}
+        onDismiss={notice.onDismiss}
+        role={notice.tone === "error" ? "alert" : "status"}
         actions={
           canRetry || notice.actions?.length ? (
             <>
               {canRetry && (
                 <StatusNoticeAction
+                  icon="refresh"
                   disabled={retrying || notice.busy}
                   aria-busy={retrying}
                   onClick={async () => {
@@ -211,6 +240,7 @@ export function BackgroundNoticeSlot() {
               {notice.actions?.map((action) => (
                 <StatusNoticeAction
                   key={action.id}
+                  icon={action.icon}
                   disabled={retrying || notice.busy || action.disabled}
                   onClick={() => void action.onClick()}
                 >

@@ -32,6 +32,7 @@ import { CLUB_APPEARANCE_KEY } from "@/domain/launch/use-club-appearance";
 import { Action, Field, ScrollArea, Typography } from "@/shared/ui/elements";
 import { QueryRetryState } from "@/shared/ui/query-retry-state";
 import { StatusNotice } from "@/shared/ui/status-notice";
+import { useBackgroundNotice } from "@/shared/ui/background-notice";
 import classes from "./admin-screen.module.scss";
 
 const readSettings = async (signal: AbortSignal) =>
@@ -76,6 +77,7 @@ function SeasonEditor({
   const [base, setBase] = useState(snapshot);
   const [draft, setDraft] = useState(() => structuredClone(snapshot.config));
   const [error, setError] = useState<string | null>(null);
+  const [fieldError, setFieldError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [unknown, setUnknown] = useState(false);
   const unknownRef = useRef(false);
@@ -99,6 +101,7 @@ function SeasonEditor({
     setConflict(null);
     rememberUnknown(false);
     setError(null);
+    setFieldError(null);
     setNotice(message);
     cache.setQueryData(["launch-settings", ownerId], next);
     void cache.invalidateQueries({ queryKey: CLUB_APPEARANCE_KEY });
@@ -110,9 +113,10 @@ function SeasonEditor({
     if (unknownRef.current) return;
     const invalid = validationMessage(draft);
     if (invalid) {
-      setError(invalid);
+      setFieldError(invalid);
       return;
     }
+    setFieldError(null);
     if (base.revision >= 2147483647) {
       setError(
         "Нельзя сохранить настройки с этой ревизией. Обратитесь к разработчику.",
@@ -223,6 +227,17 @@ function SeasonEditor({
     }));
     setNotice(null);
   };
+  useBackgroundNotice({
+    when: Boolean(error || notice || operation.busy),
+    message: operation.busy
+      ? operation.kind === "save"
+        ? "Сохраняем настройки…"
+        : "Проверяем настройки…"
+      : (error ?? notice ?? ""),
+    tone: error && !operation.busy ? "error" : notice ? "success" : "info",
+    priority: 2,
+    busy: operation.busy,
+  });
   return (
     <ScrollArea
       className={classes.formScroll}
@@ -243,14 +258,8 @@ function SeasonEditor({
           ссылки используют готовое оформление: осеннее для осени, зимнее для
           остальных сезонов.
         </Typography>
-        {error ? <StatusNotice tone="error">{error}</StatusNotice> : null}
-        {notice ? <StatusNotice tone="success">{notice}</StatusNotice> : null}
-        {operation.busy ? (
-          <StatusNotice>
-            {operation.kind === "save"
-              ? "Сохраняем настройки…"
-              : "Проверяем настройки…"}
-          </StatusNotice>
+        {fieldError ? (
+          <StatusNotice tone="error">{fieldError}</StatusNotice>
         ) : null}
         <div
           className="ui-stack"
@@ -407,7 +416,10 @@ export function SeasonSettings() {
   const { isOwner, user } = useAuth();
   const query = useQuery({
     queryKey: ["launch-settings", user?.id],
-    queryFn: ({ signal }) => /* Читает снимок с сигналом query, не отправляя изменений при открытии вкладки. */ readSettings(signal),
+    queryFn: ({ signal }) =>
+      /* Читает снимок с сигналом query, не отправляя изменений при открытии вкладки. */ readSettings(
+        signal,
+      ),
     enabled: isOwner,
     retry: false,
   });

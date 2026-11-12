@@ -105,7 +105,7 @@ export default function LibraryScreen() {
   }, [articlesQuery.data]);
   const filteredMaterials = useMemo(() => {
     if (!searchQuery.trim()) return allMaterials;
-    const query = searchQuery.toLowerCase();
+    const query = searchQuery.trim().toLowerCase();
     return allMaterials.filter((item) =>
       item.title.toLowerCase().includes(query),
     );

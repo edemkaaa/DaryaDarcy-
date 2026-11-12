@@ -1478,6 +1478,8 @@ test.describe("documented thumbnail save contract", () => {
     for (const value of [
       "https://vk.ru/video_ext.php?oid=-1&id=2&hash=abcdefgh",
       "   ",
+      "/assets/responsive/cover.svg",
+      "https://s3.twcstorage.ru/daryadarcy-s3/feed/movie.mp4",
     ]) {
       await input.fill(value);
       await page

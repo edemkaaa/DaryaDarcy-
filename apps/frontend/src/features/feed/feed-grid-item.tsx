@@ -7,6 +7,10 @@ import classes from "./feed-grid-item.module.scss";
 import Link from "next/link";
 import { Picture } from "@/shared/media/image";
 import { imageSlotSizes } from "@/shared/media/image-sizes";
+import {
+  isVideoMediaUrl,
+  resolvePostVideo,
+} from "@/domain/post/resolve-post-video";
 import { MaterialIcons } from "@/shared/ui/icons";
 import { sanitizePlainPostText } from "@/domain/content/post-text-sanitize";
 import { truncateSelectionPreview } from "@shared/rich-text-edit";
@@ -23,6 +27,9 @@ export function GridItem({
 }) {
   const viewport = useViewport();
   const { stylesLayout } = getFeedScreenLayout(viewport);
+  const cover =
+    item.photos?.find((photo) => !isVideoMediaUrl(photo)) ??
+    resolvePostVideo(item.photos, item.media).posterUrl;
   const preview = truncateSelectionPreview(
     sanitizePlainPostText(item.text) ||
       sanitizePlainPostText(
@@ -50,9 +57,9 @@ export function GridItem({
       className={`ui-action ui-navigation-card ${classes.gridItem}`}
     >
       <div className={`ui-stack ${classes.div}`}>
-        {item.photos?.[0] ? (
+        {cover ? (
           <Picture
-            source={{ uri: item.photos[0] }}
+            source={{ uri: cover }}
             sizes={imageSlotSizes(3)}
             contentFit="cover"
             transition={200}

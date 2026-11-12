@@ -60,7 +60,7 @@ const banner = (page: Page) =>
 const form = (page: Page) =>
   page.getByRole("form", { name: "Настройки сезонов" });
 /** Ошибки edit/revision относятся только к owner-форме. */
-const alert = (page: Page) => form(page).getByRole("alert");
+const alert = (page: Page) => page.getByRole("main").getByRole("alert");
 /** Даём каждому configured URL декодируемый SVG без внешних источников. */
 async function images(page: Page) {
   await page.route("https://seasons.example.test/**", (route) =>
@@ -562,7 +562,7 @@ test("owner settings save all four seasons once, preserve manager email and surv
     node.click();
     node.click();
   });
-  await expect(form(page).getByRole("status")).toContainText(
+  await expect(page.locator("[data-background-notice]").getByRole("status")).toContainText(
     "Настройки сезонов сохранены",
   );
   expect(writes).toEqual([{ expectedRevision: 7, config: saved.config }]);
@@ -708,7 +708,7 @@ test("a lost save reply is resolved by reading the matching revision without ano
   await form(page)
     .getByRole("button", { name: "Проверить настройки", exact: true })
     .click();
-  await expect(form(page).getByRole("status")).toContainText(
+  await expect(page.locator("[data-background-notice]").getByRole("status")).toContainText(
     "Актуальные настройки совпадают",
   );
   await expect(

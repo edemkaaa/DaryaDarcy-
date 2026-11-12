@@ -67,6 +67,43 @@ jobs:
       - name: Browser regression tests
         run: pnpm test:frontend
 
+  catalog-browser:
+    name: VK catalog browser
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CIRCLE_NODE_TOTAL: "2"
+      NODE_OPTIONS: --max-old-space-size=2048
+      NEXT_PUBLIC_VK_CATALOG_ENABLED: "true"
+      NEXT_PUBLIC_VIDEO_THUMBNAILS_ENABLED: "true"
+      VK_CATALOG_UI_ENABLED: "true"
+      VIDEO_THUMBNAILS_UI_ENABLED: "true"
+      NEXT_PUBLIC_PRODAMUS_TEST_ENABLED: "false"
+      NEXT_PUBLIC_CLUB_TEST_CHECKOUT: "false"
+      NEXT_PUBLIC_NORMAL_CHECKOUT_RECOVERY_ENABLED: "false"
+      NEXT_PUBLIC_GUEST_CHECKOUT_RECOVERY_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm --filter @daryadarcy/frontend exec playwright install --with-deps chromium --only-shell
+      - run: pnpm build:frontend
+      - run: pnpm --filter @daryadarcy/frontend test:e2e:catalog
+      - name: Catalog browser reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: catalog-browser
+          path: apps/frontend/test-results/
+          if-no-files-found: warn
+          retention-days: 7
+
   checkout-browser:
     name: Checkout browser (${{ matrix.profile }})
     runs-on: ubuntu-latest

@@ -3,6 +3,13 @@
 
 @layer components {
   /* Быстрые варианты времени переносятся на узком экране; ручной ввод остаётся отдельным полем. */
+  .validationMessage {
+    min-height: 36px;
+    margin-top: 8px;
+    color: var(--brown);
+    font: 13px/18px var(--font-body);
+  }
+
   .presets {
     flex-direction: row;
     flex-wrap: wrap;

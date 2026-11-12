@@ -58,7 +58,11 @@ import {
   PostAttachmentsList,
 } from "./post-attachments-field";
 import { MAX_VIDEO_BYTES } from "@/shared/browser/file-operations";
-import { serializePostDraft, postDraftSnapshot } from "@/domain/post/draft";
+import {
+  serializePostDraft,
+  postDraftSnapshot,
+  scheduleDateError,
+} from "@/domain/post/draft";
 import {
   CREAM_BG,
   BROWN_DARK,
@@ -281,11 +285,10 @@ function AdminPostEditorBody({
       notifyAdminError("Добавьте текст, фото, видео, аудио или документ");
       return;
     }
-    if (
-      form.status === "scheduled" &&
-      (!form.scheduledAt || Number.isNaN(form.scheduledAt.getTime()))
-    ) {
-      notifyAdminError("Выберите дату и время публикации");
+    const scheduleError =
+      form.status === "scheduled" ? scheduleDateError(form.scheduledAt) : null;
+    if (scheduleError) {
+      notifyAdminError(scheduleError);
       return;
     }
     if (

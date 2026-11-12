@@ -52,6 +52,7 @@ import { SessionStatus } from "@/domain/session/session-status";
 import { useConfirmedAction } from "@/domain/session/use-confirmed-action";
 import { requireOk, requireIdList } from "@/shared/api/action-result";
 import { invalidResponse } from "@/shared/api/errors";
+import { useBackgroundNotice } from "@/shared/ui/background-notice";
 
 import {
   CREAM_BG,
@@ -237,6 +238,22 @@ export default function AdminScreen() {
       void utils.admin.paymentsPage.invalidate();
     },
   );
+  useBackgroundNotice({
+    when: Boolean(adminActions.error) && !showForm,
+    message: adminActions.operation.kind === "check"
+      ? "Проверяем результат действия…"
+      : adminActions.error ?? "",
+    tone: "error",
+    priority: adminActions.unknown ? 10 : 3,
+    busy: adminActions.operation.busy,
+    onDismiss: adminActions.unknown ? undefined : () => adminActions.setError(null),
+    actions: adminActions.unknown ? [{
+      id: "check-admin-result",
+      icon: "refresh",
+      label: adminActions.operation.busy ? "Проверяем…" : "Обновить список",
+      onClick: () => adminActions.check(),
+    }] : undefined,
+  });
   const accessEmail = useAccessEmailResend(memberActions);
   const deleteMutation = mutation(
     "delete-post",
@@ -253,7 +270,16 @@ export default function AdminScreen() {
       const detail = await utils.client.admin.postDetail.query(input, {
         signal,
       });
-      if (detail !== null) throw invalidResponse();
+      signal.throwIfAborted();
+      if (
+        detail !== null &&
+        (!detail ||
+          detail.id !== input.id ||
+          !Array.isArray(detail.media) ||
+          !Array.isArray(detail.tags) ||
+          detail.tags.some((tag) => typeof tag !== "string"))
+      )
+        throw invalidResponse();
       const result = await postsQuery.refetch();
       if (!result.isSuccess || !result.data)
         throw result.error ?? invalidResponse();
@@ -616,11 +642,6 @@ export default function AdminScreen() {
       edges={["top", "bottom", "left", "right"]}
       scrollable={listFailed}
     >
-      {adminActions.error ? (
-        <Typography role="alert" className={classes.loadingText}>
-          {adminActions.error}
-        </Typography>
-      ) : null}
       {isOwner && viewTab === "members" && listFailed ? (
         <AdminActionRecoveryNotice recovery={memberActions} />
       ) : null}
@@ -630,14 +651,6 @@ export default function AdminScreen() {
           className={classes.formHint}
         >
           Повторить счётчики
-        </Action>
-      ) : null}
-      {adminActions.unknown && !adminActions.operation.busy ? (
-        <Action
-          onClick={() => void adminActions.check()}
-          className={classes.newPostBtn}
-        >
-          Обновить список
         </Action>
       ) : null}
       {isOwner ? (

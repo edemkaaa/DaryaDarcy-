@@ -1,15 +1,17 @@
 /** Две локальные точки запуска разделяют Next и wire-прокси аудита; запрет внешнего DNS не позволяет проверке незаметно скачать настоящие медиа. */
 import { defineConfig } from "@playwright/test";
 import { resolve } from "node:path";
-import base from "./playwright.config";
+import base from "../../playwright.config";
 
-const root = resolve(__dirname, "../..");
+const root = resolve(__dirname, "../../../..");
 const buildRoot = process.env.CACHE_AUDIT_WORKSPACE ?? root;
 export default defineConfig({
   ...base,
   testMatch: ["full-cache-audit.spec.ts"],
   timeout: 45_000,
-  outputDir: process.env.CACHE_AUDIT_OUTPUT ?? "../../tmp/cache-audit-results",
+  outputDir: process.env.CACHE_AUDIT_OUTPUT
+    ? resolve(__dirname, "../..", process.env.CACHE_AUDIT_OUTPUT)
+    : "../../../../tmp/cache-audit-results",
   reporter: [
     ["list"],
     [

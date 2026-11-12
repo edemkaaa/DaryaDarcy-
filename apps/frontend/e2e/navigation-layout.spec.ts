@@ -179,8 +179,8 @@ for (const [width, height] of [
   });
 }
 
-/** Даже отказ API не должен убрать безопасный выход из детали, входа, теста, документов или 404. */
-test("details, login, quiz, documents and missing pages all have an exit even when the API fails", async ({
+/** Даже отказ API не должен убрать безопасный выход из экранов с общей навигацией. */
+test("details, login, quiz and documents all have an exit even when the API fails", async ({
   page,
 }) => {
   await layoutApi(page);
@@ -190,7 +190,6 @@ test("details, login, quiz, documents and missing pages all have an exit even wh
   for (const path of [
     "/post/1",
     "/video/1",
-    "/shop/1",
     "/library/about-me",
     "/library/aesthetics-guide",
     "/library/patterns",
@@ -201,7 +200,6 @@ test("details, login, quiz, documents and missing pages all have an exit even wh
     "/legal",
     "/legal/offer",
     "/privacy",
-    "/missing-page",
   ]) {
     await gotoWithSession(page, path);
     await checkChrome(page);
@@ -223,7 +221,6 @@ test("details, login, quiz, documents and missing pages all have an exit even wh
 for (const [path, parent] of [
   ["/post/invalid", "/feed"],
   ["/video/invalid", "/videos"],
-  ["/shop/invalid", "/shop"],
   ["/library/article/invalid", "/library"],
   ["/quiz", "/interactive"],
   ["/legal/offer", "/legal"],
@@ -239,6 +236,35 @@ for (const [path, parent] of [
       .getByRole("button", { name: "Вернуться назад" })
       .click();
     await expect(page).toHaveURL(new RegExp(`${parent}/?$`));
+    await checkChrome(page);
+  });
+}
+
+/** Отсутствующий товар, включая старую сохранённую ссылку, использует согласованный общий 404. */
+for (const path of ["/shop/1", "/shop/invalid", "/missing-page"]) {
+  test(`missing route ${path} shows 404 with a working exit home`, async ({
+    page,
+  }) => {
+    await layoutApi(page);
+    const response = await page.goto(path);
+    // После начала streaming Next сохраняет 200, но обязан показать not-found и поставить noindex.
+    if (path.startsWith("/shop/"))
+      expect([200, 404]).toContain(response?.status());
+    else expect(response?.status()).toBe(404);
+    await expect(page.locator('meta[name="robots"]').first()).toHaveAttribute(
+      "content",
+      /noindex/,
+    );
+    await expect(
+      page.getByText("Страница не найдена.", { exact: true }),
+    ).toBeVisible();
+    const home = page.getByRole("link", {
+      name: "Вернуться на главную →",
+      exact: true,
+    });
+    await expect(home).toBeInViewport();
+    await home.click();
+    await expect(page).toHaveURL(/\/$/);
     await checkChrome(page);
   });
 }

@@ -302,7 +302,7 @@
   .formContent {
     padding: 16px;
     gap: 20px;
-    padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px) + var(--background-notice-clearance, 0px));
   }
 
   .formGroup {
@@ -541,7 +541,7 @@
   }
 
   .scrollAreacontent {
-    padding-bottom: 40px;
+    padding-bottom: calc(40px + var(--background-notice-clearance, 0px));
   }
 
   /* Нижние отступы списков резервируют доступ к последним действиям; отдельный posts-профиль уменьшает лишний запас. */
@@ -549,12 +549,12 @@
     padding-left: 16px;
     padding-right: 16px;
     padding-top: 8px;
-    padding-bottom: 100px;
+    padding-bottom: calc(100px + var(--background-notice-clearance, 0px));
   }
 
   .postsListContent {
     padding-top: 0;
-    padding-bottom: 24px;
+    padding-bottom: calc(24px + var(--background-notice-clearance, 0px));
   }
 
   .postsFooter {

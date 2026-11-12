@@ -197,6 +197,7 @@ export function QuizQuestion() {
               >
                 <Picture
                   source={question.headerImage}
+                  aria-label={question.headerImage.alt}
                   style={{
                     width: stylesLayout.headerImage.width,
                     height: stylesLayout.headerImage.height,
@@ -239,6 +240,7 @@ export function QuizQuestion() {
                         }}
                         onClick={() => handleSelect(answer.id)}
                         aria-label={`Выбрать изображение ${i + 1}`}
+                        aria-describedby={`quiz-image-${answer.id}`}
                         aria-pressed={selectedAnswer === answer.id}
                         activeOpacity={0.9}
                         className={[
@@ -258,6 +260,8 @@ export function QuizQuestion() {
                       >
                         <Picture
                           source={answer.image}
+                          id={`quiz-image-${answer.id}`}
+                          aria-label={answer.image?.alt}
                           style={{
                             width: stylesLayout.carouselImage.width,
                             height: stylesLayout.carouselImage.height,
@@ -347,6 +351,7 @@ export function QuizQuestion() {
                         }}
                         onClick={() => handleSelect(answer.id)}
                         aria-label={`Выбрать изображение ${question.answers.indexOf(answer) + 1}`}
+                        aria-describedby={`quiz-image-${answer.id}`}
                         aria-pressed={selectedAnswer === answer.id}
                         activeOpacity={0.8}
                         className={[
@@ -371,6 +376,8 @@ export function QuizQuestion() {
                       >
                         <Picture
                           source={answer.image}
+                          id={`quiz-image-${answer.id}`}
+                          aria-label={answer.image?.alt}
                           contentFit={row.length === 1 ? "cover" : "cover"}
                           className={classes.visualImage}
                         />

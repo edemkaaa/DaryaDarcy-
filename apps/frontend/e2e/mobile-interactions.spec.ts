@@ -16,6 +16,8 @@ const video = {
   videoUrl: null,
   description: "Проверка жестов",
   duration: "10:00",
+  views: null,
+  publishedText: null,
   published: true,
 };
 /** Создаём синтетические карточки видео, фотоальбом и клубный доступ; жесты работают по настоящему интерфейсу без внешних медиа. */
@@ -42,6 +44,8 @@ async function fixtures(page: Page) {
           {
             id: 1,
             text: "GESTURE_ALBUM",
+            richText: null,
+            publishedAt: null,
             photos,
             media: [],
             tags: [],

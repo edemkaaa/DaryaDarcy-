@@ -194,8 +194,11 @@ export function PhotoEditor({
         })
         .onEnd(() => {
           runOnJS(finishDrag)();
+        })
+        .onCancel(() => {
+          runOnJS(resetDrag)();
         }),
-    [finishDrag, startDrag, updateDragPosition],
+    [finishDrag, resetDrag, startDrag, updateDragPosition],
   );
   if (photos.length === 0) return null;
   const renderDraggableImage = (
@@ -262,8 +265,12 @@ export function PhotoEditor({
         : null,
     ];
   };
-  const renderThumbStrip = () => /* Даёт отдельные измеряемые цели для длинной карусели, где большие слайды неудобны для drag. */ (
-    <ScrollArea horizontal hideScrollbar className={classes.thumbStrip}>
+  const renderThumbStrip = () => (
+    /* Даёт отдельные измеряемые цели для длинной карусели, где большие слайды неудобны для drag. */ <ScrollArea
+      horizontal
+      hideScrollbar
+      className={classes.thumbStrip}
+    >
       {photos.map((uri, i) => (
         <MeasuredBox
           key={`${uri}-${i}`}

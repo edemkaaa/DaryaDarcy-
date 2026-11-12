@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { gotoWithSession, layoutApi } from "./layout-fixtures";
+import { ok } from "./editor-fixtures";
 
 type Role = "user" | "admin" | "moderator" | "manager";
 /** Создаём одну синтетическую личность с изменяемой ролью, отделяя доступ к интерфейсу от настоящих полномочий сервера. */
@@ -18,8 +19,9 @@ async function fixtures(
   page: Page,
   role: Role | null = null,
   subscribed = false,
+  answer?: Parameters<typeof layoutApi>[2],
 ) {
-  await layoutApi(page, subscribed);
+  await layoutApi(page, subscribed, answer);
   let user = role ? actor(role) : null;
   const staffRequests: string[] = [];
   page.on("request", (request) => {
@@ -183,54 +185,54 @@ test("login destinations remain independent between two tabs", async ({
   await expect(page).toHaveURL(/\/admin$/);
 });
 
-/** Проверяем возврат к конкретному числовому маршруту поста после гостевого сохранения и reload формы входа. */
-test("a post save entry returns to that exact post after login", async ({
-  page,
-}) => {
-  await fixtures(page);
-  await page.route("**/api/trpc/**", (route) => {
-    const url = new URL(route.request().url());
-    const names = decodeURIComponent(url.pathname.split("/api/trpc/")[1]).split(
-      ",",
-    );
-    if (!names.includes("feed.getById")) return route.fallback();
-    const results = names.map((name) => ({
-      result: {
-        data: {
-          json:
-            name === "feed.getById"
-              ? {
-                  id: 123,
-                  text: "EXACT_POST_RETURN",
-                  target: "feed",
-                  photos: [],
-                  tags: [],
-                  media: [],
-                  richText: null,
-                  likeCount: 0,
-                  createdAt: "2026-10-01T12:00:00Z",
-                  publishedAt: null,
-                }
-              : [],
-        },
-      },
-    }));
-    return route.fulfill({
-      json: url.searchParams.get("batch") === "1" ? results : results[0],
+/** Гостевые сохранение и лайк возвращают к числовому или UUID-посту после reload входа, не выполняя действие автоматически. */
+for (const publicId of [undefined, "c22db58f-698b-41ea-8e12-524d8323b034"]) {
+  for (const action of ["Сохранить пост", "Нравится"]) {
+    const address = publicId ?? "123";
+    test(`${action}: login reload returns to post ${address}`, async ({
+      page,
+    }) => {
+      const mutations: string[] = [];
+      await fixtures(page, null, false, (name) => {
+        if (name === "feed.toggleLike" || name === "feed.toggleSave")
+          mutations.push(name);
+        if (name === "feed.getById")
+          return ok({
+            id: 123,
+            ...(publicId ? { publicId } : {}),
+            text: "EXACT_POST_RETURN",
+            target: "feed",
+            photos: [],
+            tags: [],
+            media: [],
+            richText: null,
+            likeCount: 0,
+            commentCount: 0,
+            createdAt: "2026-10-01T12:00:00Z",
+            publishedAt: null,
+          });
+      });
+      await gotoWithSession(page, `/post/${address}`);
+      await expect(
+        page.getByText("EXACT_POST_RETURN", { exact: true }),
+      ).toBeVisible();
+      await page.getByRole("button", { name: action, exact: true }).click();
+      await expect(page).toHaveURL(/\/login$/);
+      await page.reload();
+      await enter(page);
+      await expect(page).toHaveURL(new RegExp(`/post/${address}$`));
+      await expect(
+        page.getByText("EXACT_POST_RETURN", { exact: true }),
+      ).toBeVisible();
+      expect(
+        await page.evaluate(() =>
+          sessionStorage.getItem("darcy:login-return:v1"),
+        ),
+      ).toBeNull();
+      expect(mutations).toEqual([]);
     });
-  });
-  await gotoWithSession(page, "/post/123");
-  await page
-    .getByRole("button", { name: "Сохранить пост", exact: true })
-    .click();
-  await expect(page).toHaveURL(/\/login$/);
-  await page.reload();
-  await enter(page);
-  await expect(page).toHaveURL(/\/post\/123$/);
-  await expect(
-    page.getByText("EXACT_POST_RETURN", { exact: true }),
-  ).toBeVisible();
-});
+  }
+}
 
 /** Намерение продления переживает reload текущей истории, но не переносится на последующий обычный вход в клуб. */
 test("renewal uses a clean club URL, survives reload and does not affect normal club entry", async ({

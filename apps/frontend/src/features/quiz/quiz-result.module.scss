@@ -7,7 +7,7 @@
   }
 
   .scrollContent {
-    padding-bottom: 60px;
+    padding-bottom: calc(60px + var(--background-notice-clearance, 0px));
   }
 
   /* Вкладки смешанного результата равномерно делят строку, активность отмечается нижней границей без сдвига высоты. */

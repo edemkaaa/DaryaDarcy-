@@ -4,6 +4,7 @@ import classes from "./gestures.module.scss";
 import { mergeStyles, type StyleInput } from "@/shared/ui/css";
 import {
   useRef,
+  useEffect,
   cloneElement,
   isValidElement,
   type ReactNode,
@@ -107,11 +108,14 @@ export function GestureDetector({
     startTime: 0,
     distance: 0,
     active: false,
+    pinching: false,
+    multiple: false,
     failed: false,
     taps: 0,
     tapTime: 0,
     timer: 0,
   });
+  useEffect(() => () => clearTimeout(state.current.timer), []);
   const gestures = Array.isArray(gesture) ? gesture : [gesture];
   const pan = gestures.find((g) => g.kind === "pan"),
     pinch = gestures.find((g) => g.kind === "pinch"),
@@ -144,18 +148,28 @@ export function GestureDetector({
           s.startY = s.lastY = e.clientY;
           s.startTime = s.lastTime = performance.now();
           s.active = false;
+          s.pinching = false;
+          s.multiple = false;
           s.failed = false;
           if (pan?.longPress)
             s.timer = window.setTimeout(() => {
               s.active = true;
               pan.start?.(event(e));
             }, pan.longPress);
-          else if (pan && !pan.offsetY) {
+          else if (pan && !pan.offsetY && !tap) {
             s.active = true;
             pan.start?.(event(e));
           }
         }
         if (s.points.size === 2) {
+          clearTimeout(s.timer);
+          if (s.active) pan?.cancel?.(event(e));
+          s.active = false;
+          s.multiple = true;
+          s.taps = 0;
+          s.failed = !pinch;
+          s.pinching = Boolean(pinch);
+          pinch?.start?.(event(e));
           const [a, b] = [...s.points.values()];
           s.distance = Math.hypot(a.x - b.x, a.y - b.y);
         }
@@ -188,11 +202,15 @@ export function GestureDetector({
         if (
           !s.failed &&
           !s.active &&
-          pan?.offsetY &&
-          (data.translationY < pan.offsetY[0] ||
-            data.translationY > pan.offsetY[1])
+          pan &&
+          !pan.longPress &&
+          (pan.offsetY
+            ? data.translationY < pan.offsetY[0] ||
+              data.translationY > pan.offsetY[1]
+            : Math.hypot(data.translationX, data.translationY) >= 12)
         ) {
           s.active = true;
+          s.taps = 0;
           pan.start?.(data);
         }
         if (s.active && !s.failed) pan?.update?.(data);
@@ -208,14 +226,42 @@ export function GestureDetector({
         s.lastTime = performance.now();
       }}
       onPointerUp={(e) => {
-        // Штатный конец выбирается по активному виду жеста; короткий неподвижный pointer может накопить taps.
         const s = state.current;
         if (!s.points.has(e.pointerId)) return;
         clearTimeout(s.timer);
-        if (s.points.size > 1) pinch?.end?.(event(e));
-        else if (s.active && !s.failed) pan?.end?.(event(e));
+        if (s.pinching) {
+          pinch?.end?.(event(e));
+          s.pinching = false;
+          s.points.delete(e.pointerId);
+          // Оставшийся палец начинает pan из текущей точки, без скачка к началу pinch.
+          const point = [...s.points.values()][0];
+          if (point) {
+            s.startX = s.lastX = point.x;
+            s.startY = s.lastY = point.y;
+            s.startTime = s.lastTime = performance.now();
+            s.active = false;
+            s.failed = false;
+            if (pan && !pan.longPress && !pan.offsetY) {
+              s.active = true;
+              pan.start?.({
+                ...event(e),
+                translationX: 0,
+                translationY: 0,
+                velocityX: 0,
+                velocityY: 0,
+                x: point.x,
+                y: point.y,
+                absoluteX: point.x,
+                absoluteY: point.y,
+              });
+            }
+          }
+          return;
+        }
+        if (s.active && !s.failed) pan?.end?.(event(e));
         else if (
           tap &&
+          !s.multiple &&
           !s.failed &&
           performance.now() - s.startTime < 400 &&
           Math.hypot(e.clientX - s.startX, e.clientY - s.startY) < 12
@@ -228,12 +274,17 @@ export function GestureDetector({
           }
         }
         s.points.delete(e.pointerId);
+        s.active = false;
       }}
       onPointerCancel={(e) => {
         // Системная отмена снимает long-press и активность, не вызывая штатный end для перестановки.
         if (!state.current.points.has(e.pointerId)) return;
         if (state.current.active && !state.current.failed)
           pan?.cancel?.(event(e));
+        if (state.current.pinching) (pinch?.cancel ?? pinch?.end)?.(event(e));
+        state.current.pinching = false;
+        state.current.failed = true;
+        state.current.taps = 0;
         clearTimeout(state.current.timer);
         state.current.points.delete(e.pointerId);
         state.current.active = false;
@@ -243,6 +294,10 @@ export function GestureDetector({
         if (!state.current.points.has(e.pointerId)) return;
         if (state.current.active && !state.current.failed)
           pan?.cancel?.(event(e));
+        if (state.current.pinching) (pinch?.cancel ?? pinch?.end)?.(event(e));
+        state.current.pinching = false;
+        state.current.failed = true;
+        state.current.taps = 0;
         clearTimeout(state.current.timer);
         state.current.points.delete(e.pointerId);
         state.current.active = false;

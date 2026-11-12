@@ -4,6 +4,16 @@
 
 [Общая карта](index.md)
 
+## [apps/frontend/e2e/about-toc.spec.ts](../../../apps/frontend/e2e/about-toc.spec.ts)
+
+Модуль about-toc.spec.ts; объявления и смысловые границы перечислены ниже.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `waitForScroll` | 5 | Ждём завершения плавной прокрутки, включая вложенные области и окно. |
+| `returnToContents` | 35 | Возвращаемся к оглавлению, не затрагивая фотокарусель и оболочку вкладок. |
+| `expectChapter` | 46 | Проверяем видимый заголовок и отсутствие прокрутки внешних контейнеров. |
+
 ## [apps/frontend/e2e/accessibility-actions.spec.ts](../../../apps/frontend/e2e/accessibility-actions.spec.ts)
 
 Модуль accessibility-actions.spec.ts; объявления и смысловые границы перечислены ниже.
@@ -291,18 +301,17 @@
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `Role` | 4 | Контракт типов. Подробности и ограничения — в исходнике. |
-| `actor` | 6 | Создаём одну синтетическую личность с изменяемой ролью, отделяя доступ к интерфейсу от настоящих полномочий сервера. |
-| `fixtures` | 17 | Перехватываем сессию и вход и считаем staff-запросы: отказ интерфейса не должен предварительно читать административные данные. |
-| `enter` | 41 | Проходим реальную форму входа с тестовыми credentials, не подменяя состояние провайдера напрямую. |
-| `test: guest admin entry uses a clean login and retains its destination across reload` | 50 | Прямой вход гостя в /admin сохраняет проверенное назначение после reload, затем обычный пользователь получает отказ без staff-запросов. |
-| `test: a failed session check does not redirect or request staff data` | 111 | Временный сбой сессии оставляет возможность повтора на исходном URL, а не превращает посетителя в гостя. |
-| `test: a legacy login link is cleaned and still returns an administrator correctly` | 125 | Старый next переносится в безопасное состояние, а лишние query/fragment-секреты не попадают в sessionStorage. |
-| `test: an unsafe legacy return falls back to the profile` | 142 | Внешний return-target отвергается и после входа используется безопасный профиль. |
-| `test: profile entry uses a clean login and consumes its return after success` | 154 | Назначение возврата после успешного входа расходуется один раз. |
-| `test: login destinations remain independent between two tabs` | 169 | Две вкладки сохраняют собственные назначения входа и не перезаписывают друг друга. |
-| `test: a post save entry returns to that exact post after login` | 187 | Проверяем возврат к конкретному числовому маршруту поста после гостевого сохранения и reload формы входа. |
-| `test: renewal uses a clean club URL, survives reload and does not affect normal club entry` | 236 | Намерение продления переживает reload текущей истории, но не переносится на последующий обычный вход в клуб. |
+| `Role` | 5 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `actor` | 7 | Создаём одну синтетическую личность с изменяемой ролью, отделяя доступ к интерфейсу от настоящих полномочий сервера. |
+| `fixtures` | 18 | Перехватываем сессию и вход и считаем staff-запросы: отказ интерфейса не должен предварительно читать административные данные. |
+| `enter` | 43 | Проходим реальную форму входа с тестовыми credentials, не подменяя состояние провайдера напрямую. |
+| `test: guest admin entry uses a clean login and retains its destination across reload` | 52 | Прямой вход гостя в /admin сохраняет проверенное назначение после reload, затем обычный пользователь получает отказ без staff-запросов. |
+| `test: a failed session check does not redirect or request staff data` | 113 | Временный сбой сессии оставляет возможность повтора на исходном URL, а не превращает посетителя в гостя. |
+| `test: a legacy login link is cleaned and still returns an administrator correctly` | 127 | Старый next переносится в безопасное состояние, а лишние query/fragment-секреты не попадают в sessionStorage. |
+| `test: an unsafe legacy return falls back to the profile` | 144 | Внешний return-target отвергается и после входа используется безопасный профиль. |
+| `test: profile entry uses a clean login and consumes its return after success` | 156 | Назначение возврата после успешного входа расходуется один раз. |
+| `test: login destinations remain independent between two tabs` | 171 | Две вкладки сохраняют собственные назначения входа и не перезаписывают друг друга. |
+| `test: renewal uses a clean club URL, survives reload and does not affect normal club entry` | 238 | Намерение продления переживает reload текущей истории, но не переносится на последующий обычный вход в клуб. |
 
 ## [apps/frontend/e2e/background-notices.spec.ts](../../../apps/frontend/e2e/background-notices.spec.ts)
 
@@ -589,7 +598,7 @@
 | `openComments` | 123 | Открываем клубную рубрику обсуждений и ждём собственный комментарий до действия. |
 | `choosePhotos` | 129 | Выбираем две локальные PNG одновременно; upload не должен начаться до отправки комментария. |
 | `dialogs` | 143 | Собираем alert и подтверждаем prompt/confirm с синтетической причиной блокировки. |
-| `managedPost` | 706 | Пост для quick-tag/delete сценариев отделён от discussion-fixture. |
+| `managedPost` | 708 | Пост для quick-tag/delete сценариев отделён от discussion-fixture. |
 | `test: a partial private photo failure blocks the frozen comment until explicit discard refreshes the list` | 154 | После частичного upload-failure весь frozen-comment остаётся неподтверждённым; discard очищает локальный intent, не отправляя комментарий с неполным набором фото. |
 | `test: an unknown like cannot be repeated until a successful read, and a failed read keeps it blocked` | 206 | Unknown-toggle комментария не повторяется до успешного read; неудачный read сохраняет блокировку. |
 | `test: a confirmed comment like and count survive a failed refresh` | 244 | Уже подтверждённые liked/count переживают сбой последующего обновления списка. |
@@ -600,10 +609,66 @@
 | `test: a moderator can use the report inbox without requesting owner-only admin data` | 391 | Модератор читает только report-inbox; owner-only admin-процедуры не запрашиваются, действия остаются доступными на узких экранах. |
 | `test: a reply with two confirmed photos is sent once and updates the loaded comment count` | 499 | Два подтверждённых photo-receipt прикрепляются к одному keyed reply; double-click не дублирует запись, total обновляется. |
 | `test: a rejected text edit retains the draft and leaves existing comment photos untouched` | 552 | Edit меняет только текст и сохраняет исходные photos через известный отказ и явный повтор. |
-| `test: a confirmed moderator deletion refreshes the inbox and affected comments` | 646 | Удаление reported-comment обновляет inbox и передаёт точную пару commentId/reportId. |
-| `test: a revoked session cannot show a late successful grant or retain admin UI` | 670 | Поздний grant-ACK не сохраняет admin-UI и не сообщает успех после подтверждённого logout. |
-| `test: a void post deletion response is not confirmed while the post still exists` | 774 | Void delete-ответ подтверждается отсутствием точечного поста, а не одним HTTP200. |
+| `test: a confirmed moderator deletion refreshes the inbox and affected comments` | 648 | Удаление reported-comment обновляет inbox и передаёт точную пару commentId/reportId. |
+| `test: a revoked session cannot show a late successful grant or retain admin UI` | 672 | Поздний grant-ACK не сохраняет admin-UI и не сообщает успех после подтверждённого logout. |
+| `test: a void post deletion response is not confirmed while the post still exists` | 776 | Void delete-ответ подтверждается отсутствием точечного поста, а не одним HTTP200. |
 | `test: a confirmed club grant announces the returned expiry and refreshes members` | 813 | Успешный grant использует returned expiry и свежий member-read, не вычисляя срок локально. |
+
+## [apps/frontend/e2e/config/playwright.acceptance.config.ts](../../../apps/frontend/e2e/config/playwright.acceptance.config.ts)
+
+Проверяем выбранные сценарии в мобильных профилях Chromium/WebKit; эмуляция не подтверждает работу физического iPhone или установленной PWA.
+
+## [apps/frontend/e2e/config/playwright.cache-audit.config.ts](../../../apps/frontend/e2e/config/playwright.cache-audit.config.ts)
+
+Две локальные точки запуска разделяют Next и wire-прокси аудита; запрет внешнего DNS не позволяет проверке незаметно скачать настоящие медиа.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `root` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `buildRoot` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/frontend/e2e/config/playwright.catalog.config.ts](../../../apps/frontend/e2e/config/playwright.catalog.config.ts)
+
+Тестовые ожидания каталога должны совпадать со сборочными VK/thumbnail-флагами; конфигурация сама frontend не пересобирает.
+
+## [apps/frontend/e2e/config/playwright.guest-checkout.config.ts](../../../apps/frontend/e2e/config/playwright.guest-checkout.config.ts)
+
+Выбираем только guest/NORMAL recovery и отключаем TEST-ожидания; нужны соответствующие флаги уже собранного клиента.
+
+## [apps/frontend/e2e/config/playwright.music.config.ts](../../../apps/frontend/e2e/config/playwright.music.config.ts)
+
+От базовой мобильной приёмки оставляем только переключение фоновой музыки и отдельные артефакты.
+
+## [apps/frontend/e2e/config/playwright.prodamus-test.config.ts](../../../apps/frontend/e2e/config/playwright.prodamus-test.config.ts)
+
+Тестовые ожидания соответствуют Prodamus TEST; recovery-ожидания отключены, чтобы сценарий не подменился LIVE-покупкой.
+
+## [apps/frontend/e2e/config/playwright.real-checkout.config.ts](../../../apps/frontend/e2e/config/playwright.real-checkout.config.ts)
+
+Адрес берётся из специально подготовленного checkout fixture; собственный webServer не запускаем и прекращаем прогон после первого отказа.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `file` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `fixture` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/frontend/e2e/config/playwright.real-editors.config.ts](../../../apps/frontend/e2e/config/playwright.real-editors.config.ts)
+
+Изолированный runner передаёт адрес настоящего временного API/frontend через fixture; конфигурация не использует рабочий стенд по умолчанию.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `file` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `fixture` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+
+## [apps/frontend/e2e/config/playwright.real-recovery.config.ts](../../../apps/frontend/e2e/config/playwright.real-recovery.config.ts)
+
+Проверки восстановления работают только с явно подготовленной временной средой; результат и trace отделены от обычного UI-прогона.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `file` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `fixture` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 
 ## [apps/frontend/e2e/content-edit-revisions.spec.ts](../../../apps/frontend/e2e/content-edit-revisions.spec.ts)
 
@@ -696,10 +761,24 @@ Adapt existing synthetic catalogs to the new wire contract, not production reque
 | `test: a photo scroll immediately followed by resize preserves the new selection` | 547 | Смена ориентации сразу после scroll проверяет гонку между событием прокрутки и пересчётом геометрии: выигрывает новый выбранный снимок. |
 | `test: a refreshed photo list clamps selection and removes empty indicators` | 656 | При сокращении серверного списка выбирается последний оставшийся снимок; при обнулении исчезает вся карусель, сохраняя текст поста. |
 | `test: a rejected audio play does not display playing state` | 746 | Имитируем отказ браузерного play(), а не декодирование настоящего аудио: отклонённый Promise должен оставить кнопку воспроизведения и видимую ошибку. |
-| `test: a failed comment photo upload keeps the text and reports its error` | 790 | Выбор файла ещё не начинает загрузку комментария; ошибка при отправке сохраняет его текст и показывает контролируемое сообщение. |
-| `test: a failed article list offers retry instead of showing an empty list` | 841 | Сбой чтения статей отличается от успешного пустого списка; пустое состояние появляется только после подтверждённого повтора. |
-| `test: shared image picker decoding errors are caught by its existing profile consumer` | 868 | Повреждённые байты доходят до общего декодера; потребитель профиля перехватывает отказ без необработанной ошибки страницы. |
-| `test: an expired session during an editor write closes private UI before any error dialog` | 897 | Подтверждённый 401 имеет приоритет над сообщением сохранения: закрываем приватный редактор без диалога, способного раскрыть прежний ввод. |
+| `test: a failed comment photo upload keeps the text and reports its error` | 797 | Выбор файла ещё не начинает загрузку комментария; ошибка при отправке сохраняет его текст и показывает контролируемое сообщение. |
+| `test: a failed article list offers retry instead of showing an empty list` | 848 | Сбой чтения статей отличается от успешного пустого списка; пустое состояние появляется только после подтверждённого повтора. |
+| `test: shared image picker decoding errors are caught by its existing profile consumer` | 875 | Повреждённые байты доходят до общего декодера; потребитель профиля перехватывает отказ без необработанной ошибки страницы. |
+| `test: an expired session during an editor write closes private UI before any error dialog` | 904 | Подтверждённый 401 имеет приоритет над сообщением сохранения: закрываем приватный редактор без диалога, способного раскрыть прежний ввод. |
+
+## [apps/frontend/e2e/f10-f17-regressions.spec.ts](../../../apps/frontend/e2e/f10-f17-regressions.spec.ts)
+
+Модуль f10-f17-regressions.spec.ts; объявления и смысловые границы перечислены ниже.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `urls` | 10 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `images` | 15 | Готовые варианты 320px достаточны для плитки и не декодируют многомегапиксельные оригиналы в тестах. |
+| `screenshot` | 41 | Снимок после загрузки шрифтов/картинок не фиксирует промежуточный кадр анимации. |
+| `video` | 59 | Функция. Подробности и ограничения — в исходнике. |
+| `feed` | 76 | Та же демонстрационная сетка, которую владелец одобрил на скриншотах. |
+| `test: F10: mixed media, legacy video URLs and failed poster keep safe tile behavior` | 163 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `test: F17: request error remains retryable and is distinct from an empty catalog` | 255 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
 
 ## [apps/frontend/e2e/first-entry-motion.spec.ts](../../../apps/frontend/e2e/first-entry-motion.spec.ts)
 
@@ -709,6 +788,18 @@ Adapt existing synthetic catalogs to the new wire contract, not production reque
 | --- | --- | --- |
 | `Frame` | 4 | Контракт типов. Подробности и ограничения — в исходнике. |
 | `test: reduced motion shows the real screen immediately with no entrance animation` | 223 | При reduced-motion содержимое сразу видно и в поддереве нет активных анимаций. |
+
+## [apps/frontend/e2e/first-group-regressions.spec.ts](../../../apps/frontend/e2e/first-group-regressions.spec.ts)
+
+Модуль first-group-regressions.spec.ts; объявления и смысловые границы перечислены ниже.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `post` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `capture` | 22 | Функция. Подробности и ограничения — в исходнике. |
+| `fixture` | 39 | Функция. Подробности и ограничения — в исходнике. |
+| `quickEdit` | 49 | Функция. Подробности и ограничения — в исходнике. |
+| `test: quick editor closes unchanged or reverted dates without confirmation` | 282 | Открытие без правок и возврат даты к исходной не должны давать ложное предупреждение. |
 
 ## [apps/frontend/e2e/fixtures/cache-audit-proxy.mjs](../../../apps/frontend/e2e/fixtures/cache-audit-proxy.mjs)
 
@@ -927,6 +1018,10 @@ Adapt existing synthetic catalogs to the new wire contract, not production reque
 | `test: whole-header-hidden.png` | 134 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
 | `test: quiz progress also scrolls away, leaving no fixed strip` | 164 | Полоса прогресса вопроса остаётся частью общего scroll, а не отдельной фиксированной полосой. |
 
+## [apps/frontend/e2e/home-hero.spec.ts](../../../apps/frontend/e2e/home-hero.spec.ts)
+
+Модуль home-hero.spec.ts; объявления и смысловые границы перечислены ниже.
+
 ## [apps/frontend/e2e/home-promo-carousel.spec.ts](../../../apps/frontend/e2e/home-promo-carousel.spec.ts)
 
 Модуль home-promo-carousel.spec.ts; объявления и смысловые границы перечислены ниже.
@@ -1011,6 +1106,17 @@ Adapt old synthetic account marks to a bounded response; no production fallback.
 | `test: another tab sees the same unknown request and cannot silently replace it` | 89 | Вторая вкладка видит тот же unknown и не заменяет его без явного решения. |
 | `test: unavailable storage blocks checkout before sending bytes` | 113 | Ошибка durable-записи останавливает checkout до отправки байтов. |
 
+## [apps/frontend/e2e/light-theme.spec.ts](../../../apps/frontend/e2e/light-theme.spec.ts)
+
+Модуль light-theme.spec.ts; объявления и смысловые границы перечислены ниже.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `expectLightDocument` | 5 | Цвета проверяются по действующему светлому оформлению, а не по системной теме. |
+| `test: unknown route stays light outside the application theme provider` | 79 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `test: server document` | 94 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `test: light scheme is declared before hydration` | 96 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+
 ## [apps/frontend/e2e/loading-feedback.spec.ts](../../../apps/frontend/e2e/loading-feedback.spec.ts)
 
 Модуль loading-feedback.spec.ts; объявления и смысловые границы перечислены ниже.
@@ -1044,6 +1150,22 @@ Adapt old synthetic account marks to a bounded response; no production fallback.
 | `test: a completed native video releases its offscreen row and can be reopened` | 476 | Нативный ended освобождает удерживаемую offscreen-строку: fixture — короткий audio-only WAV в video, а не проверка видео-кодека. |
 | `test: feed stops a repeated cursor, deduplicates posts and retries explicitly` | 642 | Повтор nextCursor останавливается после одного запроса; явный refresh дедуплицирует ID и не продолжает устаревший cursor. |
 | `test: windowing preserves the chosen photo and audio playback` | 718 | Выбранный слайд и активное аудио удерживают свои строки при windowing; возврат сохраняет индекс, а явная пауза снимает активное состояние. |
+
+## [apps/frontend/e2e/media-audit-regressions.spec.ts](../../../apps/frontend/e2e/media-audit-regressions.spec.ts)
+
+Модуль media-audit-regressions.spec.ts; объявления и смысловые границы перечислены ниже.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `picture` | 13 | A small deterministic picture makes zoom and crop boundaries visible without real user media. |
+| `capture` | 42 | Функция. Подробности и ограничения — в исходнике. |
+| `fingers` | 49 | Функция. Подробности и ограничения — в исходнике. |
+| `pinch` | 56 | Функция. Подробности и ограничения — в исходнике. |
+| `openPhotos` | 72 | Функция. Подробности и ограничения — в исходнике. |
+| `openPattern` | 130 | Protected patterns use synthetic bindings and decoded PNG content. |
+| `test: pinch enlarges only the active photo and keeps the close control stable` | 106 | Guest photo viewing is public; only the image may scale, not the viewport or close control. |
+| `test: a pattern double tap zooms and a drag cannot become a second tap` | 162 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `test: zoomed photo pans without dismissing and resets on photo change and resize` | 352 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
 
 ## [apps/frontend/e2e/media-failure-lifecycle.spec.ts](../../../apps/frontend/e2e/media-failure-lifecycle.spec.ts)
 
@@ -1148,18 +1270,18 @@ Adapt old synthetic account marks to a bounded response; no production fallback.
 | --- | --- | --- |
 | `photos` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `video` | 11 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `fixtures` | 22 | Создаём синтетические карточки видео, фотоальбом и клубный доступ; жесты работают по настоящему интерфейсу без внешних медиа. |
-| `touch` | 65 | Открываем CDP-канал и возвращаем отдельные стадии touch, чтобы тест мог проверить состояние до отпускания пальца. |
-| `center` | 95 | Дожидаемся доступности контрола trial-click и находим безопасный центр для touch/mouse. |
-| `test: touching and swiping a video card preserves its appearance and native scrolling; a fresh tap opens it` | 102 | Вертикальный touch по видео не меняет press-вид и не открывает detail; независимый tap после прокрутки открывает его. |
-| `test: touch navigation cards do not scale or dim, and canceled movement cannot open a link` | 141 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `test: a shelf touch has no press animation and a fresh tap still opens the product` | 167 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `test: native horizontal photo swipes change the slide without opening the viewer, and a tap opens it` | 189 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `test: moving off a held action cancels its timer; a stationary hold retains the existing action` | 221 | Смещение за допустимый порог отменяет long-press, неподвижное удержание сохраняет существующий переход в admin. |
-| `test: a compatibility click after a moved touch is blocked, while the next tap and keyboard activation work` | 244 | Совместимый click после moved-touch подавляется однократно, а следующий tap и клавиатура остаются рабочими. |
-| `test: mouse press feedback and keyboard activation of actions remain available` | 282 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `test: small finger movement preserves a tap and a native file chooser in the editor` | 307 | Малое движение остаётся tap и сохраняет browser user-gesture для нативного file chooser. |
-| `test: two-finger zoom in the pattern viewer and the following close tap still work` | 335 | Двухпальцевый CDP-жест меняет scale просмотрщика; следующее касание закрытия не должно быть поглощено прежним жестом. |
+| `fixtures` | 24 | Создаём синтетические карточки видео, фотоальбом и клубный доступ; жесты работают по настоящему интерфейсу без внешних медиа. |
+| `touch` | 69 | Открываем CDP-канал и возвращаем отдельные стадии touch, чтобы тест мог проверить состояние до отпускания пальца. |
+| `center` | 99 | Дожидаемся доступности контрола trial-click и находим безопасный центр для touch/mouse. |
+| `test: touching and swiping a video card preserves its appearance and native scrolling; a fresh tap opens it` | 106 | Вертикальный touch по видео не меняет press-вид и не открывает detail; независимый tap после прокрутки открывает его. |
+| `test: touch navigation cards do not scale or dim, and canceled movement cannot open a link` | 145 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `test: a shelf touch has no press animation and a fresh tap still opens the product` | 171 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `test: native horizontal photo swipes change the slide without opening the viewer, and a tap opens it` | 193 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `test: moving off a held action cancels its timer; a stationary hold retains the existing action` | 225 | Смещение за допустимый порог отменяет long-press, неподвижное удержание сохраняет существующий переход в admin. |
+| `test: a compatibility click after a moved touch is blocked, while the next tap and keyboard activation work` | 248 | Совместимый click после moved-touch подавляется однократно, а следующий tap и клавиатура остаются рабочими. |
+| `test: mouse press feedback and keyboard activation of actions remain available` | 286 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `test: small finger movement preserves a tap and a native file chooser in the editor` | 311 | Малое движение остаётся tap и сохраняет browser user-gesture для нативного file chooser. |
+| `test: two-finger zoom in the pattern viewer and the following close tap still work` | 339 | Двухпальцевый CDP-жест меняет scale просмотрщика; следующее касание закрытия не должно быть поглощено прежним жестом. |
 
 ## [apps/frontend/e2e/moderation-read-response.spec.ts](../../../apps/frontend/e2e/moderation-read-response.spec.ts)
 
@@ -1185,12 +1307,12 @@ Adapt old synthetic account marks to a bounded response; no production fallback.
 | `scrollSelector` | 6 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
 | `bottomNavigation` | 12 | Выбираем общую или клубную панель, поскольку у подтверждённого клуба нет второй строки общего меню. |
 | `checkChrome` | 19 | Проверяем единственную шапку и нижнее меню, их высоту и прозрачность относительно текущего маршрута. |
-| `test: details, login, quiz, documents and missing pages all have an exit even when the API fails` | 183 | Даже отказ API не должен убрать безопасный выход из детали, входа, теста, документов или 404. |
-| `test: back preserves actual app history across reload and forward, with a fallback at the initial entry` | 247 | Проверяем индекс app-history через reload, Back и Forward, заканчивая fallback у исходной записи. |
-| `test: session loading and failure keep home, back and the sections available` | 299 | Ожидание и ошибка сессии сохраняют общую навигацию и возможность уйти на главную. |
-| `test: an external previous page is not used as the app's back destination` | 328 | История чужой страницы не считается внутренним шагом приложения. |
-| `test: the login screen's header back has a safe direct-entry fallback` | 345 | Прямое открытие формы входа имеет безопасный возврат на главную. |
-| `test: the same navigation remains mounted between sections and details, with the correct active section` | 357 | DOM-узлы шапки и меню сохраняются между деталями и разделами, а active-section соответствует текущему маршруту. |
+| `test: details, login, quiz and documents all have an exit even when the API fails` | 183 | Даже отказ API не должен убрать безопасный выход из экранов с общей навигацией. |
+| `test: back preserves actual app history across reload and forward, with a fallback at the initial entry` | 273 | Проверяем индекс app-history через reload, Back и Forward, заканчивая fallback у исходной записи. |
+| `test: session loading and failure keep home, back and the sections available` | 325 | Ожидание и ошибка сессии сохраняют общую навигацию и возможность уйти на главную. |
+| `test: an external previous page is not used as the app's back destination` | 354 | История чужой страницы не считается внутренним шагом приложения. |
+| `test: the login screen's header back has a safe direct-entry fallback` | 371 | Прямое открытие формы входа имеет безопасный возврат на главную. |
+| `test: the same navigation remains mounted between sections and details, with the correct active section` | 383 | DOM-узлы шапки и меню сохраняются между деталями и разделами, а active-section соответствует текущему маршруту. |
 
 ## [apps/frontend/e2e/normal-checkout-recovery.spec.ts](../../../apps/frontend/e2e/normal-checkout-recovery.spec.ts)
 
@@ -1222,6 +1344,20 @@ Adapt old synthetic account marks to a bounded response; no production fallback.
 | `test: guests keep the existing checkout even when the NORMAL integration build is enabled` | 500 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
 | `test: a real client timeout retains one order and its key; checking afterwards never reopens payment` | 522 | После deadline ключ и один order сохраняются; явная сверка не повторяет create и не открывает провайдера. |
 | `test: missing browser evidence cannot replace a known outstanding purchase even after a failed check` | 555 | Потеря durable-evidence не разрешает заменить уже известную outstanding-покупку новым ключом. |
+
+## [apps/frontend/e2e/notification-placement.spec.ts](../../../apps/frontend/e2e/notification-placement.spec.ts)
+
+Модуль notification-placement.spec.ts; объявления и смысловые границы перечислены ниже.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `form` | 6 | Функция. Подробности и ограничения — в исходнике. |
+| `input` | 8 | Функция. Подробности и ограничения — в исходнике. |
+| `open` | 10 | Функция. Подробности и ограничения — в исходнике. |
+| `capture` | 19 | Функция. Подробности и ограничения — в исходнике. |
+| `test: modal recovery actions remain clickable and keyboard accessible` | 78 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `test: a nested dialog hides parent notices and returns them on close` | 129 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `test: date validation stays by the field without shifting the following content` | 152 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
 
 ## [apps/frontend/e2e/page-end-spacing.spec.ts](../../../apps/frontend/e2e/page-end-spacing.spec.ts)
 
@@ -1332,12 +1468,12 @@ Adapt old synthetic account marks to a bounded response; no production fallback.
 | `choose` | 49 | Передаём синтетический audio/document через filechooser; реальное чтение байтов проверяется при upload после восстановления. |
 | `dialogs` | 64 | Собираем alert и подтверждаем явные отказ/закрытие, не вызывая server-write напрямую. |
 | `existing` | 72 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `test: drafts belong to the authenticated account and return only to their original owner` | 570 | Account-scoped draft возвращается лишь исходному владельцу и не появляется в новой форме другого admin. |
-| `test: another tab cannot overwrite the newer draft or send a stale creation` | 603 | Старый tab не перезаписывает свежий draft другого tab и не отправляет stale-create. |
-| `test: failed local persistence blocks server writes and keeps input` | 630 | Отказ checkpoint блокирует server-write, сохраняя полный ввод в форме. |
-| `test: a corrupt draft is not overwritten or submitted and can be explicitly discarded` | 656 | Неизвестная schema-version сохраняется как повреждённая копия и требует отдельного explicit-discard, а не авто-reset. |
-| `test: a confirmed commit surviving local cleanup is finished without another server write` | 714 | Подтверждённый server-commit переживает неудачу local-delete: recovery завершает уборку без второго create. |
-| `test: legacy version-one drafts remain readable with their selected file` | 750 | Совместимость v1 проверяется там, где IndexedDB умеет Blob: сохранённые bytes переводятся обратно в File и доходят до того же upload. |
+| `test: drafts belong to the authenticated account and return only to their original owner` | 568 | Account-scoped draft возвращается лишь исходному владельцу и не появляется в новой форме другого admin. |
+| `test: another tab cannot overwrite the newer draft or send a stale creation` | 601 | Старый tab не перезаписывает свежий draft другого tab и не отправляет stale-create. |
+| `test: failed local persistence blocks server writes and keeps input` | 628 | Отказ checkpoint блокирует server-write, сохраняя полный ввод в форме. |
+| `test: a corrupt draft is not overwritten or submitted and can be explicitly discarded` | 654 | Неизвестная schema-version сохраняется как повреждённая копия и требует отдельного explicit-discard, а не авто-reset. |
+| `test: a confirmed commit surviving local cleanup is finished without another server write` | 712 | Подтверждённый server-commit переживает неудачу local-delete: recovery завершает уборку без второго create. |
+| `test: legacy version-one drafts remain readable with their selected file` | 748 | Совместимость v1 проверяется там, где IndexedDB умеет Blob: сохранённые bytes переводятся обратно в File и доходят до того же upload. |
 
 ## [apps/frontend/e2e/post-editor-calendar.spec.ts](../../../apps/frontend/e2e/post-editor-calendar.spec.ts)
 
@@ -1421,7 +1557,7 @@ Adapt old synthetic account marks to a bounded response; no production fallback.
 | `post` | 6 | Готовим одну опубликованную fixture для быстрых тегов и удаления с обеих пользовательских лент. |
 | `requests` | 24 | Разбираем tRPC-batch в журнал точных процедур и входов, чтобы проверить отсутствие полной admin-выборки и повторных write. |
 | `menu` | 43 | Проходим настоящее меню карточки и выбираем действие по accessible-name. |
-| `test: an account change cancels a late quick-action inspection` | 268 | При смене личности незавершённая проверка quick-action отменяется; поздний null не меняет новый список и не открывает прежний result-dialog. |
+| `test: an account change cancels a late quick-action inspection` | 264 | При смене личности незавершённая проверка quick-action отменяется; поздний null не меняет новый список и не открывает прежний result-dialog. |
 
 ## [apps/frontend/e2e/post-pages-refresh.spec.ts](../../../apps/frontend/e2e/post-pages-refresh.spec.ts)
 
@@ -1596,25 +1732,33 @@ Adapt old synthetic account marks to a bounded response; no production fallback.
 | --- | --- | --- |
 | `test: the page links to a standalone manifest with decodable 192/512 PNG icons` | 5 | Проверяем связь страницы с manifest и фактические размеры декодированных иконок; установка на физическом устройстве этим не подтверждается. |
 
+## [apps/frontend/e2e/quiz-image-alt.spec.ts](../../../apps/frontend/e2e/quiz-image-alt.spec.ts)
+
+Модуль quiz-image-alt.spec.ts; объявления и смысловые границы перечислены ниже.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `test: all 42 visual answers have real image alternatives and accessible descriptions` | 5 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+
 ## [apps/frontend/e2e/quiz-multitab.spec.ts](../../../apps/frontend/e2e/quiz-multitab.spec.ts)
 
 Модуль quiz-multitab.spec.ts; объявления и смысловые границы перечислены ниже.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `progressKey` | 7 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `resultKey` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `stored` | 10 | Читаем durable-progress текущего аккаунта, чтобы сравнить байты до и после конфликта. |
-| `continueSaved` | 13 | Находим отдельное согласие принять сохранённое состояние вместо локального черновика. |
-| `firstAnswer` | 19 | Первый вариант даёт различимый результат одновременной записи вкладок. |
-| `secondAnswer` | 22 | Второй вариант позволяет определить победителя ревизии и восстановить его выбор в проигравшей вкладке. |
-| `completedResult` | 24 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `openQuiz` | 40 | Открываем реальную quiz-страницу с одинаковой синтетической личностью для общей account-scoped записи. |
-| `startQuiz` | 45 | Начинаем новый проход через пользовательское действие и ждём первый вопрос. |
-| `test: an old result cannot restart over another tab's new progress` | 54 | Старый result-screen не может сбросить новый проход другой вкладки без явного принятия её состояния. |
-| `test: a stale last-question tab cannot finish or overwrite a newer run` | 117 | Завершение устаревшего прохода не должно заменить уже начатый новый run и его сохранённый результат. |
-| `test: a late answer from a stale tab cannot replace the newer question` | 164 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `test: legacy progress upgrades on the next explicit answer without losing earlier answers` | 187 | Legacy-progress повышает версию только при явном ответе; уже выбранные ответы сохраняются. |
+| `progressKey` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `resultKey` | 9 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `stored` | 11 | Читаем durable-progress текущего аккаунта, чтобы сравнить байты до и после конфликта. |
+| `continueSaved` | 14 | Находим отдельное согласие принять сохранённое состояние вместо локального черновика. |
+| `firstAnswer` | 20 | Первый вариант даёт различимый результат одновременной записи вкладок. |
+| `secondAnswer` | 23 | Второй вариант позволяет определить победителя ревизии и восстановить его выбор в проигравшей вкладке. |
+| `completedResult` | 25 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `openQuiz` | 41 | Открываем реальную quiz-страницу с одинаковой синтетической личностью для общей account-scoped записи. |
+| `startQuiz` | 46 | Начинаем новый проход через пользовательское действие и ждём первый вопрос. |
+| `test: an old result cannot restart over another tab's new progress` | 55 | Старый result-screen не может сбросить новый проход другой вкладки без явного принятия её состояния. |
+| `test: a stale last-question tab cannot finish or overwrite a newer run` | 130 | Завершение устаревшего прохода не должно заменить уже начатый новый run и его сохранённый результат. |
+| `test: a late answer from a stale tab cannot replace the newer question` | 177 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `test: legacy progress upgrades on the next explicit answer without losing earlier answers` | 200 | Legacy-progress повышает версию только при явном ответе; уже выбранные ответы сохраняются. |
 
 ## [apps/frontend/e2e/quiz-result-persistence.spec.ts](../../../apps/frontend/e2e/quiz-result-persistence.spec.ts)
 
@@ -1817,6 +1961,31 @@ Adapt old synthetic account marks to a bounded response; no production fallback.
 | `clearance` | 114 | Сверяем плавающие кнопки с меню, последней карточкой и границами main; hit-test ловит перекрытие, которое одни rect не показывают. |
 | `test: floating-controls.png` | 221 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
 
+## [apps/frontend/e2e/search-normalization.spec.ts](../../../apps/frontend/e2e/search-normalization.spec.ts)
+
+Модуль search-normalization.spec.ts; объявления и смысловые границы перечислены ниже.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `test: library searches ignore edge spaces and letter case without rewriting the input` | 4 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `test: feed sends trimmed case-normalized search and preserves the typed text` | 37 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+
+## [apps/frontend/e2e/section-scroll.spec.ts](../../../apps/frontend/e2e/section-scroll.spec.ts)
+
+Модуль section-scroll.spec.ts; объявления и смысловые границы перечислены ниже.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `scroll` | 5 | Функция. Подробности и ограничения — в исходнике. |
+| `menu` | 7 | Функция. Подробности и ограничения — в исходнике. |
+| `home` | 11 | Функция. Подробности и ограничения — в исходнике. |
+| `moveDown` | 16 | Функция. Подробности и ограничения — в исходнике. |
+| `revealHeader` | 25 | Функция. Подробности и ограничения — в исходнике. |
+| `capture` | 32 | Функция. Подробности и ограничения — в исходнике. |
+| `test: browser back keeps the former section position` | 126 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `test: returning from a product keeps the shop position` | 140 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `test: opening a section in a new tab does not reset the current section` | 162 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+
 ## [apps/frontend/e2e/security-hardening.spec.ts](../../../apps/frontend/e2e/security-hardening.spec.ts)
 
 Модуль security-hardening.spec.ts; объявления и смысловые границы перечислены ниже.
@@ -2001,9 +2170,9 @@ Adapt old synthetic account marks to a bounded response; no production fallback.
 | `scroll` | 7 | Читаем только видимый вертикальный контейнер текущей панели. |
 | `observeEntrances` | 91 | Наблюдаем нативные Element.animate и считаем входы узнаваемых заголовков, не заменяя анимации. |
 | `test: a newly opened tab has its layout styles in its first content frame` | 11 | Снимаем первый содержательный кадр после capture-click: CSS раздела должен быть готов вместе с заголовком и книжной раскладкой. |
-| `test: video heading and static library cards stay in place while API requests finish` | 199 | Задержка API не двигает статические заголовок и карточки библиотеки при замене placeholder данными. |
-| `test: returning to a stale tab refreshes the API without clearing its search or cached cards` | 241 | Возврат к устаревшей панели обновляет данные в фоне, сохраняя поиск и подтверждённые карточки до ответа. |
-| `test: a hidden club never processes another page's paid flag and retained state clears on session change` | 300 | Скрытый клуб не обрабатывает paid-флаг другого URL; подтверждённая смена сессии сбрасывает retained-персональное состояние. |
+| `test: video heading and static library cards stay in place while API requests finish` | 197 | Задержка API не двигает статические заголовок и карточки библиотеки при замене placeholder данными. |
+| `test: returning to a stale tab refreshes the API without clearing its search or cached cards` | 239 | Возврат к устаревшей панели обновляет данные в фоне, сохраняя поиск и подтверждённые карточки до ответа. |
+| `test: a hidden club never processes another page's paid flag and retained state clears on session change` | 298 | Скрытый клуб не обрабатывает paid-флаг другого URL; подтверждённая смена сессии сбрасывает retained-персональное состояние. |
 
 ## [apps/frontend/e2e/thumbnail-sizes.spec.ts](../../../apps/frontend/e2e/thumbnail-sizes.spec.ts)
 
@@ -2072,10 +2241,10 @@ Adapt old synthetic account marks to a bounded response; no production fallback.
 | `test: thumbnail-admin-mobile.png` | 1427 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
 | `test: thumbnail-admin-desktop.png` | 1432 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
 | `test: an invalid or whitespace cover remains editable without sending a write` | 1470 | Адрес iframe и строка пробелов не считаются картинкой; валидация сохраняет редактируемую форму и не пишет данные. |
-| `test: loss of a create response preserves the exact cover payload for explicit replay` | 1517 | После обрыва ответа создания повтор сохраняет исходную обложку и отсутствие id; suite проверяет payload клиента, а не серверную идемпотентность. |
-| `test: catalog covers support old and new pages without changing card geometry or fetching playback` | 1565 | Обложка, null, старый ответ без поля и 404 изображения сохраняют размеры карточки; догрузка не дублирует запись и не вызывает playback. |
-| `test: catalog-covers-mobile.png` | 1664 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
-| `test: catalog-covers-desktop.png` | 1669 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `test: loss of a create response preserves the exact cover payload for explicit replay` | 1519 | После обрыва ответа создания повтор сохраняет исходную обложку и отсутствие id; suite проверяет payload клиента, а не серверную идемпотентность. |
+| `test: catalog covers support old and new pages without changing card geometry or fetching playback` | 1567 | Обложка, null, старый ответ без поля и 404 изображения сохраняют размеры карточки; догрузка не дублирует запись и не вызывает playback. |
+| `test: catalog-covers-mobile.png` | 1666 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `test: catalog-covers-desktop.png` | 1671 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
 
 ## [apps/frontend/e2e/videos-scroll.spec.ts](../../../apps/frontend/e2e/videos-scroll.spec.ts)
 
@@ -2083,7 +2252,7 @@ Adapt old synthetic account marks to a bounded response; no production fallback.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `test: videos scroll to the last card and retain their position on return` | 17 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `test: videos scroll to the last card and open at the top from the menu` | 18 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
 
 ## [apps/frontend/e2e/vk-catalog-revisions.spec.ts](../../../apps/frontend/e2e/vk-catalog-revisions.spec.ts)
 
@@ -4713,6 +4882,16 @@ Frontend proxy запрещает точные старые клубные optim
 | `it: reports a failed refresh and recovers with an explicit retry without automatic repeats` | 166 | 503 видим как ошибка; только явный новый read получает revision8/новый email. |
 | `it: keeps the last confirmed Club appearance when selection rejects a later response` | 194 | Повреждённый новый snapshot не стирает последнее подтверждённое оформление. |
 
+## [tests/frontend-media-label.test.ts](../../../tests/frontend-media-label.test.ts)
+
+Модуль frontend-media-label.test.ts; объявления и смысловые границы перечислены ниже.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `it: uses the shared functions for every frontend caller` | 5 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: keeps the attachment label for %s` | 11 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: keeps the publication title for %s` | 23 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+
 ## [tests/frontend-media-safety.test.ts](../../../tests/frontend-media-safety.test.ts)
 
 Подменяем браузерные primitives и fetch, проверяя ранние лимиты файлов, безопасные ошибки, отмену загрузки и владение результатом операции.
@@ -4876,11 +5055,13 @@ Coordinator различает новые создания, definite rejection �
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `draft` | 8 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `it: keeps a draft unpublished and serializes its date` | 20 | Черновик не становится published от наличия даты; транспорт получает ISO-значение. |
-| `it: requires a valid date before scheduling a publication` | 29 | Отложенная публикация требует существующую корректную дату. |
-| `it: serializes a schedule without publishing immediately` | 42 | Scheduled сохраняет дату расписания и очищает дату немедленной публикации. |
-| `it: preserves two independent links and combined bold/italic formatting through serialization` | 57 | Два независимых URL и выделения сохраняются после повторной сериализации одного payload. |
+| `draft` | 14 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `it: keeps a draft unpublished and serializes its date` | 26 | Черновик не становится published от наличия даты; транспорт получает ISO-значение. |
+| `it: requires a valid date before scheduling a publication` | 35 | Отложенная публикация требует существующую корректную дату. |
+| `it: serializes a schedule without publishing immediately` | 48 | Scheduled сохраняет дату расписания и очищает дату немедленной публикации. |
+| `it: preserves two independent links and combined bold/italic formatting through serialization` | 63 | Два независимых URL и выделения сохраняются после повторной сериализации одного payload. |
+| `it: rejects a non-future schedule %s without changing the draft` | 87 | Даже корректная дата не разрешает отложенную публикацию в прошлом или прямо сейчас. |
+| `it: accepts the next future instant and keeps archive publication dates valid` | 103 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
 
 ## [tests/frontend-post-editor-api.test.ts](../../../tests/frontend-post-editor-api.test.ts)
 
@@ -5193,14 +5374,14 @@ Read-only availability probe должен отказывать до upload/creat
 
 ## [tests/frontend-private-video-recovery-notice.test.ts](../../../tests/frontend-private-video-recovery-notice.test.ts)
 
-SSR-подсказка редактора проверяется на синтетическом состоянии незавершённой загрузки.
+Регистрация уведомления проверяется на синтетическом состоянии незавершённой загрузки.
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `notice` | 9 | Собираем coordinator snapshot и File в памяти, без upload/HTTP; возвращаем статическую разметку уведомления. |
-| `it: offers status-first recovery for a video-only uncertain upload` | 46 | Неопределённая приватная video-загрузка предлагает сначала проверить статус, а не создать пост заново. |
-| `it: does not offer replay for an unknown post update, even with a private video` | 52 | Наличие video receipt не разрешает слепо повторять неизвестный update поста. |
-| `it: keeps the legacy upload warning without a recoverable private intent` | 56 | Без сохранённого приватного намерения кнопка восстановления не обещает недоступный status-path. |
+| `notice` | 13 | Собираем coordinator snapshot и File в памяти, без upload/HTTP; возвращаем сообщение и доступные действия. |
+| `it: offers status-first recovery for a video-only uncertain upload` | 51 | Неопределённая приватная video-загрузка предлагает сначала проверить статус, а не создать пост заново. |
+| `it: does not offer replay for an unknown post update, even with a private video` | 59 | Наличие video receipt не разрешает слепо повторять неизвестный update поста. |
+| `it: keeps the legacy upload warning without a recoverable private intent` | 65 | Без сохранённого приватного намерения кнопка восстановления не обещает недоступный status-path. |
 
 ## [tests/frontend-private-video-selection.test.ts](../../../tests/frontend-private-video-selection.test.ts)
 
@@ -5312,6 +5493,16 @@ Binary upload клиента проверяется перехваченным f
 | `it: bounds abandoned feed filters without removing pages of the current list` | 199 | Лимит применяется к старым scope фильтров, а не обрезает уже загруженные страницы текущей infinite-ленты. |
 | `it: allows an unobserved comment request to settle before cache eviction` | 236 | Выполняющийся запрос не вытесняется посередине; после settlement кеш возвращается к ограниченному размеру. |
 | `it: bounds abandoned club filters independently of feed filters` | 264 | Клубные фильтры имеют собственную группу ограничения и сохраняют наблюдаемый запрос. |
+
+## [tests/frontend-quiz-image-alt.test.ts](../../../tests/frontend-quiz-image-alt.test.ts)
+
+Модуль frontend-quiz-image-alt.test.ts; объявления и смысловые границы перечислены ниже.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `describe: quiz image alternatives` | 4 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: covers every image answer with distinct visual descriptions` | 10 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: describes image $id without exposing its scoring category` | 15 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
 
 ## [tests/frontend-read-responses.test.ts](../../../tests/frontend-read-responses.test.ts)
 
@@ -5526,25 +5717,25 @@ SSR модель подписки проверяет срок закэширов
 
 | Блок | Строка | Назначение |
 | --- | --- | --- |
-| `embed` | 18 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `card` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
-| `describe: catalog contracts` | 32 | Каталог содержит только карточки; playback URL и право воспроизведения проверяются отдельно. |
-| `it: keeps thumbnail opt-in out of old requests and includes it on every enabled page` | 34 | Только строка true включает includeThumbnails на каждой странице, сохраняя старый вход при выключенном флаге. |
-| `it: accepts documented public cover location %s` | 54 | Разрешены конкретные публичные asset/S3-префиксы с удалением внешних пробелов. |
-| `it: rejects private or ambiguous cover input %s` | 65 | Адрес приватного файла, активная схема, traversal, подпись, credentials или произвольный CDN не принимаются как публичная обложка. |
-| `it: does not load private media or a player as a thumbnail: %s` | 104 | Универсальный reader обложки не открывает закрытые API, iframe и активные схемы как изображение. |
-| `it: uses only the supplied public thumbnail URL` | 116 | Функция использует только переданный безопасный адрес и не угадывает источник по видео. |
-| `it: keeps the integration off unless explicitly enabled` | 127 | VK-каталог включается только явной строкой true, без приведения других truthy значений. |
-| `it: accepts a card without exposing an embed or provider` | 136 | Карточка закрытого видео остаётся безопасной метаинформацией без iframe/provider. |
-| `it: accepts the optional public thumbnail field without relaxing other fields: %s` | 143 | Необязательная обложка не разрешает расширить ответ карточки чувствительным embedUrl. |
-| `it: rejects damaged or overexposed catalog responses` | 159 | Проверяются типы, access enum, размер страницы и целый положительный курсор, а лишний embed запрещён. |
-| `it: stops repeated and descending cursors without inventing a cursor` | 170 | Повтор или движение курсора назад останавливают пагинацию; новый курсор клиент сам не вычисляет. |
-| `it: canonicalizes exported %s URLs` | 181 | Разрешённые VK-хосты сохраняются, параметры нормализуются и autoplay принудительно выключается. |
-| `it: rejects catalog-only invalid parameters %s` | 191 | Повторяющиеся или неизвестные параметры, неверные hd/autoplay и fragment делают embed недопустимым. |
-| `it: uses the requested identity and validated provider` | 203 | Playback должен соответствовать запрошенному ID; совместимый YouTube-ответ не смешивается с VK. |
-| `it: rejects mismatched or unsafe playback` | 231 | Подмена ID/provider, небезопасный media URL и несовместимые поля отклоняются до плеера. |
-| `it: does not accept a bare or invalid admin ID` | 247 | Ответ создания обязан быть объектом с безопасным числовым ID, а не неявно приведённым скаляром. |
-| `it: removes authority on pagehide and needs a new epoch on resume` | 258 | Уход страницы отзывает playback epoch; возврат, видимость и online требуют новой эпохи, unsubscribe снимает listener. |
+| `embed` | 19 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `card` | 20 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `describe: catalog contracts` | 33 | Каталог содержит только карточки; playback URL и право воспроизведения проверяются отдельно. |
+| `it: keeps thumbnail opt-in out of old requests and includes it on every enabled page` | 35 | Только строка true включает includeThumbnails на каждой странице, сохраняя старый вход при выключенном флаге. |
+| `it: accepts documented public cover location %s` | 55 | Разрешены конкретные публичные asset/S3-префиксы с удалением внешних пробелов. |
+| `it: rejects private or ambiguous cover input %s` | 70 | Адрес приватного файла, активная схема, traversal, подпись, credentials или произвольный CDN не принимаются как публичная обложка. |
+| `it: does not load private media or a player as a thumbnail: %s` | 120 | Универсальный reader обложки не открывает закрытые API, iframe и активные схемы как изображение. |
+| `it: uses only the supplied public thumbnail URL` | 132 | Функция использует только переданный безопасный адрес и не угадывает источник по видео. |
+| `it: keeps the integration off unless explicitly enabled` | 143 | VK-каталог включается только явной строкой true, без приведения других truthy значений. |
+| `it: accepts a card without exposing an embed or provider` | 152 | Карточка закрытого видео остаётся безопасной метаинформацией без iframe/provider. |
+| `it: accepts the optional public thumbnail field without relaxing other fields: %s` | 159 | Необязательная обложка не разрешает расширить ответ карточки чувствительным embedUrl. |
+| `it: rejects damaged or overexposed catalog responses` | 175 | Проверяются типы, access enum, размер страницы и целый положительный курсор, а лишний embed запрещён. |
+| `it: stops repeated and descending cursors without inventing a cursor` | 186 | Повтор или движение курсора назад останавливают пагинацию; новый курсор клиент сам не вычисляет. |
+| `it: canonicalizes exported %s URLs` | 197 | Разрешённые VK-хосты сохраняются, параметры нормализуются и autoplay принудительно выключается. |
+| `it: rejects catalog-only invalid parameters %s` | 207 | Повторяющиеся или неизвестные параметры, неверные hd/autoplay и fragment делают embed недопустимым. |
+| `it: uses the requested identity and validated provider` | 219 | Playback должен соответствовать запрошенному ID; совместимый YouTube-ответ не смешивается с VK. |
+| `it: rejects mismatched or unsafe playback` | 247 | Подмена ID/provider, небезопасный media URL и несовместимые поля отклоняются до плеера. |
+| `it: does not accept a bare or invalid admin ID` | 263 | Ответ создания обязан быть объектом с безопасным числовым ID, а не неявно приведённым скаляром. |
+| `it: removes authority on pagehide and needs a new epoch on resume` | 274 | Уход страницы отзывает playback epoch; возврат, видимость и online требуют новой эпохи, unsubscribe снимает listener. |
 
 ## [tests/frontend-video-retry-after.test.ts](../../../tests/frontend-video-retry-after.test.ts)
 

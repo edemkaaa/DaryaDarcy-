@@ -80,7 +80,7 @@
   .scrollContent {
     padding: 16px;
     gap: 20px;
-    padding-bottom: 40px;
+    padding-bottom: calc(40px + var(--background-notice-clearance, 0px));
   }
 
   .section {

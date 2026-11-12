@@ -406,6 +406,10 @@ function FullScreenViewer({
     });
   /** Смещение доступно только при увеличении; завершение жеста сохраняет базу для следующего движения. */
   const panGesture = Gesture.Pan()
+    .onStart(() => {
+      savedTranslateX.value = translateX.value;
+      savedTranslateY.value = translateY.value;
+    })
     .onUpdate((e) => {
       if (scale.value > 1) {
         translateX.value = savedTranslateX.value + e.translationX;

@@ -16,7 +16,11 @@ for (const width of [390, 1440]) {
         routes.push(new URL(request.url()).pathname);
     });
     await gotoWithSession(page, "/library");
-    const search = page.getByPlaceholder("Поиск материалов...");
+    const search = page.getByRole("textbox", {
+      name: "Поиск по библиотеке",
+      exact: true,
+    });
+    await expect(search).toHaveCount(1);
     await search.fill("Сборник");
     await page.locator('nav a[href="/shop"]').click();
     await expect(page.getByText("МАГАЗИН", { exact: true })).toBeVisible();
@@ -49,7 +53,7 @@ for (const width of [390, 1440]) {
     expect(documents).toBe(1);
   });
 
-  test(`home retains its DOM, decoded images and scroll after leaving (${width}px)`, async ({
+  test(`home retains its DOM and decoded images but opens at the top (${width}px)`, async ({
     page,
   }, info) => {
     await page.setViewportSize({ width, height: 844 });
@@ -63,6 +67,7 @@ for (const width of [390, 1440]) {
       node.scrollTop = 600;
     });
     const originalScroll = await scroll.evaluate((node) => node.scrollTop);
+    expect(originalScroll).toBeGreaterThan(0);
     const hero = (await page
       .locator('img[src*="hero_header"]')
       .first()
@@ -73,9 +78,7 @@ for (const width of [390, 1440]) {
     await expect(page).toHaveURL(/\/$/);
     expect(await scroll.evaluate((node) => node.isConnected)).toBe(true);
     expect(await hero.evaluate((node) => node.isConnected)).toBe(true);
-    expect(await scroll.evaluate((node) => node.scrollTop)).toBe(
-      originalScroll,
-    );
+    expect(await scroll.evaluate((node) => node.scrollTop)).toBe(0);
     await page.screenshot({
       path: info.outputPath(`home-return-${width}.png`),
     });
