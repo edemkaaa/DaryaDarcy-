@@ -2818,6 +2818,28 @@ Opt-in проверка настоящего Nginx и Docker DNS на собст
 | --- | --- | --- |
 | `it: rejects unsafe async code while accepting awaited and handled operations` | 7 | Используем настоящий путь проекта: незавершённые Promise и опасный finally обязаны дать конкретные правила, корректный await/catch должен пройти. |
 
+## [tests/backup-resource-bounds.test.ts](../../../tests/backup-resource-bounds.test.ts)
+
+Проверяем сроки и память бэкапа: настоящие процессы/файлы и SDK, но без подключения к БД и S3.
+
+| Блок | Строка | Назначение |
+| --- | --- | --- |
+| `S3Handle` | 12 | Контракт типов. Подробности и ограничения — в исходнике. |
+| `fixture` | 15 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `directory` | 138 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `sql` | 139 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `backup` | 140 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `pending` | 141 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `jobs` | 142 | Объявление данных или схемы. Подробности и ограничения — в исходнике. |
+| `start` | 205 | Сохраняем Promise до ожидания, чтобы cleanup дожидался и намеренно зависшей RED-операции. |
+| `outcome` | 212 | Watchdog даёт явный результат отсутствия deadline, не оставляя тест висеть до общего timeout. |
+| `it: streams the exact gzip with fixed Content-Length instead of allocating the whole archive` | 229 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: kills a stuck dump and removes its partial/credentials before permitting the next attempt` | 255 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: releases a stalled %s and retains the complete local copy` | 267 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: closes the unread archive on a failed send without leaking the SDK error` | 293 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: bounds the whole retention scan even when each individual page completes` | 310 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+| `it: allows the scheduler to run backup again after the timed-out dump` | 326 | Проверочный сценарий. Подробности и ограничения — в исходнике. |
+
 ## [tests/billing-checkout-built.test.ts](../../../tests/billing-checkout-built.test.ts)
 
 Модуль billing-checkout-built.test.ts; объявления и смысловые границы перечислены ниже.
@@ -7072,12 +7094,12 @@ Read-only policy проверяет resolved stack и общий бюджет р
 | `it: allows the next scheduled attempt after a failed dump instead of waiting a day` | 256 | Проверяет немедленно доступный следующий запуск после неудачи вместо суточного ожидания. |
 | `it: shares one in-progress backup even when callers explicitly bypass the interval` | 266 | Проверяет объединение двух конкурентных вызовов в один процесс и одну завершённую копию. |
 | `it: keeps a complete local copy and a safe warning when S3 $failure fails` | 273 | Проверяет сохранность готовой локальной копии и безопасный warning при отказе upload, list или delete внешнего S3-транспорта. |
-| `it: cleans up credentials and stops the dump when writing fails` | 379 | Проверяет остановку дочернего dump и очистку реквизитов и частичного файла при ошибке записи. |
-| `it: cleans up an output stream even if launching the tool throws synchronously` | 399 | Проверяет очистку открытого потока при синхронном исключении запуска инструмента. |
-| `it: quotes option-file metacharacters without injecting extra settings` | 407 | Проверяет экранирование специальных символов option-file без внедрения дополнительных настроек. |
-| `it: roundtrips special password characters through the real MySQL option parser` | 419 | Опционально проверяет точное чтение специальных символов пароля настоящим MySQL option-parser указанного тестового контейнера. |
-| `it: creates a restorable dump with the real MySQL client on a disposable database` | 437 | Опционально создаёт и восстанавливает только собственную backup_roundtrip-таблицу на явно проверенной одноразовой базе. |
-| `it: rejects invalid configuration without echoing credentials (%#)` | 483 | Проверяет безопасный отказ некорректного URL и NUL-символов до запуска дочернего процесса. |
+| `it: cleans up credentials and stops the dump when writing fails` | 386 | Проверяет остановку дочернего dump и очистку реквизитов и частичного файла при ошибке записи. |
+| `it: cleans up an output stream even if launching the tool throws synchronously` | 406 | Проверяет очистку открытого потока при синхронном исключении запуска инструмента. |
+| `it: quotes option-file metacharacters without injecting extra settings` | 414 | Проверяет экранирование специальных символов option-file без внедрения дополнительных настроек. |
+| `it: roundtrips special password characters through the real MySQL option parser` | 426 | Опционально проверяет точное чтение специальных символов пароля настоящим MySQL option-parser указанного тестового контейнера. |
+| `it: creates a restorable dump with the real MySQL client on a disposable database` | 444 | Опционально создаёт и восстанавливает только собственную backup_roundtrip-таблицу на явно проверенной одноразовой базе. |
+| `it: rejects invalid configuration without echoing credentials (%#)` | 490 | Проверяет безопасный отказ некорректного URL и NUL-символов до запуска дочернего процесса. |
 
 ## [tests/native-test-failure.test.ts](../../../tests/native-test-failure.test.ts)
 

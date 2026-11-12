@@ -3,9 +3,10 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { pipeline } from "node:stream/promises";
+import { finished, pipeline } from "node:stream/promises";
+import { Transform } from "node:stream";
 import { createGzip } from "node:zlib";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import {
   DeleteObjectCommand,
   ListObjectsV2Command,
@@ -18,6 +19,9 @@ import { ENV } from "./env";
 export const LOCAL_BACKUP_RETAIN_MS = 14 * 24 * 60 * 60_000;
 /** S3-копии обеспечивают более длительное внешнее хранение для восстановления. */
 export const S3_BACKUP_RETAIN_MS = 90 * 24 * 60 * 60_000;
+
+const DUMP_TIMEOUT_MS = 15 * 60_000;
+const S3_TIMEOUT_MS = 5 * 60_000;
 
 let lastBackupAt = 0;
 let activeBackup: Promise<void> | undefined;
@@ -59,12 +63,13 @@ function optionFilePassword(password: string): string {
   return `[client]\npassword="${password.replace(/[\\"\n\r\t\x08]/g, (char) => escapes[char])}"\n`;
 }
 
-/** Передаёт пароль через уже удалённый именованный файл, потоком сжимает dump в exclusive partial и переименовывает лишь после успешного завершения. */
+/** Передаёт пароль через удалённый именованный файл, потоком сжимает dump в exclusive partial и возвращает Content-MD5 только после успешного завершения и переименования. */
 async function writeMysqlDump(
   cfg: ReturnType<typeof parseDatabaseUrl>,
   filePath: string,
-): Promise<void> {
+): Promise<string> {
   const options = optionFilePassword(cfg.password);
+  const checksum = createHash("md5");
   const partialPath = `${filePath}.partial`;
   let credentialsDir: string | undefined;
   let credentialsFd: number | undefined;
@@ -99,6 +104,9 @@ async function writeMysqlDump(
       {
         stdio: [credentialsFd, "pipe", "pipe"],
         env: { ...process.env, DATABASE_URL: undefined, MYSQL_PWD: undefined },
+        // SIGTERM можно проигнорировать; deadline должен освободить worker и временный файл.
+        timeout: DUMP_TIMEOUT_MS,
+        killSignal: "SIGKILL",
       },
     );
     // Считываем диагностический поток, не накапливая и не журналируя вывод утилиты БД.
@@ -120,7 +128,14 @@ async function writeMysqlDump(
       const fd = fs.openSync(partialPath, "wx", 0o600);
       ownsPartial = true;
       const out = fs.createWriteStream(partialPath, { fd });
-      streamed = pipeline(dump.stdout!, createGzip(), out);
+      // Content-MD5 считаем по сжатым байтам в том же проходе, без второго чтения архива.
+      const checked = new Transform({
+        transform(chunk, _encoding, callback) {
+          checksum.update(chunk);
+          callback(null, chunk);
+        },
+      });
+      streamed = pipeline(dump.stdout!, createGzip(), checked, out);
       await Promise.all([closed, streamed]);
     } catch {
       if (dump.exitCode === null && dump.signalCode === null)
@@ -130,6 +145,7 @@ async function writeMysqlDump(
     }
     fs.renameSync(partialPath, filePath);
     ownsPartial = false;
+    return checksum.digest("base64");
   } catch {
     // Не прикладываем исходные ошибки процесса/потока: вызывающий код может их журналировать.
     throw new Error("MySQL backup dump or output failed");
@@ -164,23 +180,34 @@ async function writeMysqlDump(
 }
 
 /** Загружает готовую локальную gzip-копию в backups/mysql; при отсутствии S3 сохраняет только локальный файл. */
-async function uploadBackup(filePath: string): Promise<void> {
+async function uploadBackup(filePath: string, contentMD5: string): Promise<void> {
   const client = s3Client();
   if (!client || !ENV.s3Bucket) {
     console.warn("[backup] S3 not configured, keeping local file only");
     return;
   }
   const key = `backups/mysql/${path.basename(filePath)}`;
-  const body = fs.readFileSync(filePath);
-  await client.send(
-    new PutObjectCommand({
-      Bucket: ENV.s3Bucket,
-      Key: key,
-      Body: body,
-      ContentType: "application/gzip",
-    }),
-  );
-  console.log(`[backup] uploaded ${key} (${body.length} bytes)`);
+  const size = fs.statSync(filePath).size;
+  const body = fs.createReadStream(filePath, { highWaterMark: 64 * 1024 });
+  const closed = finished(body, { cleanup: true }).catch(() => undefined);
+  try {
+    await client.send(
+      new PutObjectCommand({
+        Bucket: ENV.s3Bucket,
+        Key: key,
+        Body: body,
+        ContentLength: size,
+        ContentMD5: contentMD5,
+        ContentType: "application/gzip",
+      }),
+      { abortSignal: AbortSignal.timeout(S3_TIMEOUT_MS) },
+    );
+    console.log(`[backup] uploaded ${key} (${size} bytes)`);
+  } finally {
+    body.destroy();
+    await closed;
+    client.destroy();
+  }
 }
 
 /** Создаёт клиент строго настроенного S3 либо возвращает null при неполной конфигурации. */
@@ -195,6 +222,14 @@ function s3Client(): S3Client | null {
       secretAccessKey: ENV.s3SecretKey,
     },
     forcePathStyle: true,
+    // Поток нельзя повторить после частичного чтения; известная длина не требует aws-chunked trailer.
+    maxAttempts: 1,
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    requestHandler: {
+      connectionTimeout: 5000,
+      requestTimeout: S3_TIMEOUT_MS,
+      throwOnRequestTimeout: true,
+    },
   });
 }
 
@@ -232,26 +267,36 @@ export async function pruneS3Backups(
   const cutoff = Date.now() - retainMs;
   let removed = 0;
   let token: string | undefined;
-  do {
-    const page = await client.send(
-      new ListObjectsV2Command({
-        Bucket: ENV.s3Bucket,
-        Prefix: "backups/mysql/",
-        ContinuationToken: token,
-      }),
-    );
-    for (const obj of page.Contents ?? []) {
-      if (!obj.Key?.endsWith(".sql.gz") || !obj.LastModified) continue;
-      if (obj.LastModified.getTime() >= cutoff) continue;
-      await client.send(
-        new DeleteObjectCommand({ Bucket: ENV.s3Bucket, Key: obj.Key }),
+  // Один deadline на весь обход, иначе бесконечная последовательность страниц удержит job.pending.
+  const signal = AbortSignal.timeout(S3_TIMEOUT_MS);
+  try {
+    do {
+      signal.throwIfAborted();
+      const page = await client.send(
+        new ListObjectsV2Command({
+          Bucket: ENV.s3Bucket,
+          Prefix: "backups/mysql/",
+          ContinuationToken: token,
+        }),
+        { abortSignal: signal },
       );
-      removed += 1;
-      console.log(`[backup] pruned s3 ${obj.Key}`);
-    }
-    token = page.IsTruncated ? page.NextContinuationToken : undefined;
-  } while (token);
-  return removed;
+      for (const obj of page.Contents ?? []) {
+        if (!obj.Key?.endsWith(".sql.gz") || !obj.LastModified) continue;
+        if (obj.LastModified.getTime() >= cutoff) continue;
+        signal.throwIfAborted();
+        await client.send(
+          new DeleteObjectCommand({ Bucket: ENV.s3Bucket, Key: obj.Key }),
+          { abortSignal: signal },
+        );
+        removed += 1;
+        console.log(`[backup] pruned s3 ${obj.Key}`);
+      }
+      token = page.IsTruncated ? page.NextContinuationToken : undefined;
+    } while (token);
+    return removed;
+  } finally {
+    client.destroy();
+  }
 }
 
 /** Один локальный Promise исключает параллельный dump; интервал считается после успешной локальной копии. */
@@ -284,11 +329,11 @@ async function runMysqlBackup(dbUrl: string): Promise<void> {
       fs.rmSync(path.join(dir, file.name), { force: true });
   }
   const filePath = path.join(dir, `daryadarcy-${stamp}-${randomUUID()}.sql.gz`);
-  await writeMysqlDump(cfg, filePath);
+  const contentMD5 = await writeMysqlDump(cfg, filePath);
   lastBackupAt = Date.now();
 
   try {
-    await uploadBackup(filePath);
+    await uploadBackup(filePath, contentMD5);
   } catch {
     // Ошибки SDK могут содержать подписанные запросы, учётные данные и вложенные причины.
     console.warn("[backup] upload failed:");

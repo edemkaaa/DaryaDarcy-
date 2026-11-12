@@ -5,7 +5,7 @@ import path from "node:path";
 import { gunzipSync } from "node:zlib";
 import { inspect } from "node:util";
 import type { ChildProcess } from "node:child_process";
-import { Writable } from "node:stream";
+import { Readable, Writable } from "node:stream";
 import {
   DeleteObjectCommand,
   ListObjectsV2Command,
@@ -300,6 +300,7 @@ describe("MySQL backup credentials and completion", () => {
       fs.utimesSync(oldFile, expiredAt, expiredAt);
       const seen: string[] = [];
       const issued: unknown[] = [];
+      const uploaded: Buffer[] = [];
       // Only the external S3 transport is replaced. Real orchestration, dump
       // process/pipes, gzip, local retention and SDK command construction run.
       vi.spyOn(S3Client.prototype, "send").mockImplementation(
@@ -314,6 +315,12 @@ describe("MySQL backup credentials and completion", () => {
                   ? "delete"
                   : "unexpected";
           seen.push(stage);
+          if (command instanceof PutObjectCommand) {
+            const body = command.input.Body;
+            if (body instanceof Readable) {
+              for await (const chunk of body) uploaded.push(Buffer.from(chunk));
+            } else if (Buffer.isBuffer(body)) uploaded.push(body);
+          }
           if (stage === failure) {
             throw Object.assign(
               new Error("S3 failure S3_BACKUP_PRIVATE_MARKER", {
@@ -347,7 +354,7 @@ describe("MySQL backup credentials and completion", () => {
       expect(upload.input.Key).toMatch(
         /^backups\/mysql\/daryadarcy-.*\.sql\.gz$/,
       );
-      expect(gunzipSync(upload.input.Body as Buffer).toString()).toBe(
+      expect(gunzipSync(Buffer.concat(uploaded)).toString()).toBe(
         "CREATE TABLE backup_fixture (id INT);\n",
       );
       expect((issued[1] as ListObjectsV2Command).input.Prefix).toBe(
